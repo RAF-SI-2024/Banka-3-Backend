@@ -9,6 +9,7 @@
 
 ### Ostalo
 
+- Obavezni unit testovi na svakom PR
 - Obavezno koriscenje DTO za sve zahteve
 - Obavezno anotiranje svih endpointa sa swagger anotacijama
 - Koristiti unix timestamp
