@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:17.3-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql@17/data
+    environment:
+      - POSTGRES_PASSWORD=lozinka
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=main_db
+
+volumes:
+  postgres_data:
