@@ -43,6 +43,7 @@
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
+                            <version>1.18.26</version>
                             <artifactId>lombok</artifactId>
                         </path>
                     </annotationProcessorPaths>
