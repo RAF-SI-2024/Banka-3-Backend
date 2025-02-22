@@ -3,7 +3,7 @@ package rs.raf.user_service.entity;
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity
+@Entity(name="users")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
 public abstract class BaseUser {

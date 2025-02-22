@@ -347,7 +347,8 @@ _main() {
 			EOM
 		fi
     docker_temp_server_start "$@"
-    psql -U "$POSTGRES_USER" -c "CREATE SCHEMA IF NOT EXISTS user_service_schema; CREATE SCHEMA IF NOT EXISTS email_service_schema"
+    psql -U "$POSTGRES_USER" -c "CREATE SCHEMA IF NOT EXISTS user_service_schema;"
+    psql -U "$POSTGRES_USER" -c "CREATE SCHEMA IF NOT EXISTS email_service_schema;"
     docker_temp_server_stop
 	fi
 
