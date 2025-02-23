@@ -1,4 +1,4 @@
-package rs.raf.user_service.employee_search;
+package rs.raf.user_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

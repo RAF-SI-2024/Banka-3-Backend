@@ -1,4 +1,4 @@
-package rs.raf.user_service.employee_search;
+package rs.raf.user_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.user_service.entity.Employee;

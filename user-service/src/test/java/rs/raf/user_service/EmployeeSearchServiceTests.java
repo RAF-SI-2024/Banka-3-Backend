@@ -10,15 +10,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.employee_search.EmployeeRepository;
-import rs.raf.user_service.employee_search.EmployeeService;
-import rs.raf.user_service.employee_search.EmployeeDTO;
+import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.service.EmployeeService;
+import rs.raf.user_service.entity.EmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

@@ -1,11 +1,16 @@
 package rs.raf.user_service.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity(name="users")
+@Entity(name = "users")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
+@Getter
+@Setter
 public abstract class BaseUser {
 
     @Id
