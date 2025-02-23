@@ -24,13 +24,25 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @Operation(summary = "User Login", description = "Endpoint za logovanje korisnika i generisanje JWT tokena")
+    @Operation(summary = "Client Login", description = "Endpoint for logging client and generating JWT token")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Uspešno generisan JWT token"),
-            @ApiResponse(responseCode = "401", description = "Neispravni kredencijali")
+            @ApiResponse(responseCode = "200", description = "Succesfully generated JWT token"),
+            @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
-    @PostMapping("/login")
+    @PostMapping("/login/client")
     public ResponseEntity<LoginResponse> clientLogin(@RequestBody LoginRequest request) {
+        String token = authService.authenticate(request.getEmail(), request.getPassword());
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
+        return ResponseEntity.ok(response);
+    }
+    @Operation(summary = "Employee Login", description = "Endpoint for logging employee and generating JWT token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Succesfully generated JWT token"),
+            @ApiResponse(responseCode = "401", description = "Bad credentials")
+    })
+    @PostMapping("/login/employee")
+    public ResponseEntity<LoginResponse> employeeLogin(@RequestBody LoginRequest request) {
         String token = authService.authenticate(request.getEmail(), request.getPassword());
         LoginResponse response = new LoginResponse();
         response.setToken(token);

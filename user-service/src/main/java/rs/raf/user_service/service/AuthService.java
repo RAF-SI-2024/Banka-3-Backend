@@ -4,7 +4,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.configuration.JwtTokenUtil;
 import rs.raf.user_service.entity.BaseUser;
+import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.UserRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -27,6 +31,10 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        return jwtTokenUtil.generateToken(user.getEmail());
+        List<String> permissions = user.getPermissions().stream()
+                .map(Permission::getName)
+                .collect(Collectors.toList());
+
+        return jwtTokenUtil.generateToken(user.getEmail(),permissions);
     }
 }

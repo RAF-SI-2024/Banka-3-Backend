@@ -6,10 +6,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import rs.raf.user_service.configuration.JwtTokenUtil;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.AuthService;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,10 +44,13 @@ public class AuthServiceTest {
         Employee employee = new Employee();
         employee.setEmail(email);
         employee.setPassword(encodedPassword);
+        Permission permission = new Permission();
+        permission.setName("EMPLOYEE");
+        employee.setPermissions(Collections.singleton(permission));
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenUtil.generateToken(email)).thenReturn(token);
+        when(jwtTokenUtil.generateToken(email, Collections.singletonList("EMPLOYEE"))).thenReturn(token);
 
         String returnedToken = authService.authenticate(email, rawPassword);
         assertEquals(token, returnedToken);
@@ -60,10 +66,13 @@ public class AuthServiceTest {
         Client client = new Client();
         client.setEmail(email);
         client.setPassword(encodedPassword);
+        Permission permission = new Permission();
+        permission.setName("CLIENT");
+        client.setPermissions(Collections.singleton(permission));
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(client));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenUtil.generateToken(email)).thenReturn(token);
+        when(jwtTokenUtil.generateToken(email, Collections.singletonList("CLIENT"))).thenReturn(token);
 
         String returnedToken = authService.authenticate(email, rawPassword);
         assertEquals(token, returnedToken);
@@ -78,6 +87,9 @@ public class AuthServiceTest {
         Employee employee = new Employee();
         employee.setEmail(email);
         employee.setPassword(encodedPassword);
+        Permission permission = new Permission();
+        permission.setName("EMPLOYEE");
+        employee.setPermissions(Collections.singleton(permission));
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(false);
