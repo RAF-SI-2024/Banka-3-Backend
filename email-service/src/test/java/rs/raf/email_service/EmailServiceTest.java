@@ -1,4 +1,4 @@
-package rs.raf.email_service.tests;
+package rs.raf.email_service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import rs.raf.email_service.EmailService;
 
 import static org.mockito.Mockito.*;
 
