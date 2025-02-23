@@ -21,21 +21,6 @@ public class EmployeeService {
         this.employeeRepository = employeeRepository;
     }
 
-    /*
-    public Employee findById(Long id) {
-        return employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
-    }
-
-    public Page<Employee> findAll(String position, String department, Boolean active, Pageable pageable) {
-        Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.hasPosition(position))
-                .and(EmployeeSearchSpecification.hasDepartment(department))
-                .and(EmployeeSearchSpecification.isActive(active));
-
-        return employeeRepository.findAll(spec, pageable);
-    }
-
-     */
-
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee list retrieved successfully")
@@ -60,20 +45,50 @@ public class EmployeeService {
         return mapToDTO(employee);
     }
 
+    @Operation(summary = "Delete an employee", description = "Deletes an employee by their ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public void deleteEmployee(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+        employeeRepository.delete(employee);
+    }
+
+    @Operation(summary = "Deactivate an employee", description = "Deactivates an employee by their ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee deactivated successfully"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public void deactivateEmployee(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+        employee.setActive(false);
+        employeeRepository.save(employee);
+    }
+
+    @Operation(summary = "Activate an employee", description = "Activates an employee by their ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee activated successfully"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public void activateEmployee(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+        employee.setActive(true);
+        employeeRepository.save(employee);
+    }
 
     private EmployeeDTO mapToDTO(Employee employee) {
         return new EmployeeDTO(
                 employee.getFirstName(),
                 employee.getLastName(),
                 employee.getEmail(),
-
                 employee.getUsername(),
                 employee.getPosition(),
                 employee.getDepartment(),
                 employee.isActive()
-
-
         );
     }
-
 }

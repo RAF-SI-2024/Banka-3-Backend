@@ -101,4 +101,86 @@ class EmployeeServiceTest {
 
         assertEquals("Employee not found", exception.getMessage());
     }
+
+    @Test
+    void testDeleteEmployee() {
+        Employee employee = new Employee();
+        employee.setId(1L);
+        employee.setUsername("marko123");
+        employee.setPosition("Manager");
+        employee.setDepartment("Finance");
+        employee.setActive(true);
+
+        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+
+        // Pozivamo metodu za brisanje
+        employeeService.deleteEmployee(1L);
+
+        // Proveravamo da li je delete metoda pozvana
+        verify(employeeRepository, times(1)).delete(employee);
+    }
+
+    @Test
+    void testDeleteEmployeeNotFound() {
+        when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(RuntimeException.class, () -> employeeService.deleteEmployee(99L));
+
+        assertEquals("Employee not found", exception.getMessage());
+        verify(employeeRepository, never()).delete(any()); // Proveravamo da delete nije pozvan
+    }
+
+    @Test
+    void testDeactivateEmployee() {
+        Employee employee = new Employee();
+        employee.setId(1L);
+        employee.setUsername("marko123");
+        employee.setPosition("Manager");
+        employee.setDepartment("Finance");
+        employee.setActive(true);
+
+        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+
+        employeeService.deactivateEmployee(1L);
+
+        assertFalse(employee.isActive());
+        verify(employeeRepository, times(1)).save(employee); // Proveravamo da je save pozvan
+    }
+
+    @Test
+    void testDeactivateEmployeeNotFound() {
+        when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(RuntimeException.class, () -> employeeService.deactivateEmployee(99L));
+
+        assertEquals("Employee not found", exception.getMessage());
+        verify(employeeRepository, never()).save(any()); // Proveravamo da save nije pozvan
+    }
+
+    @Test
+    void testActivateEmployee() {
+        Employee employee = new Employee();
+        employee.setId(1L);
+        employee.setUsername("marko123");
+        employee.setPosition("Manager");
+        employee.setDepartment("Finance");
+        employee.setActive(false);
+
+        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+
+        employeeService.activateEmployee(1L);
+
+        assertTrue(employee.isActive());
+        verify(employeeRepository, times(1)).save(employee);
+    }
+
+    @Test
+    void testActivateEmployeeNotFound() {
+        when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(RuntimeException.class, () -> employeeService.activateEmployee(99L));
+
+        assertEquals("Employee not found", exception.getMessage());
+        verify(employeeRepository, never()).save(any());
+    }
 }
