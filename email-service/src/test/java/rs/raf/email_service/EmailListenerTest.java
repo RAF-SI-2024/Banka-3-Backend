@@ -1,13 +1,10 @@
-package rs.raf.email_service.tests;
+package rs.raf.email_service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import rs.raf.email_service.EmailListener;
-import rs.raf.email_service.EmailRequestDto;
-import rs.raf.email_service.EmailService;
 
 import static org.mockito.Mockito.*;
 
