@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import rs.raf.user_service.entity.PermissionDTO;
 import rs.raf.user_service.entity.BaseUser;
 import rs.raf.user_service.entity.Permission;
+import rs.raf.user_service.mapper.PermissionMapper;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 
@@ -28,7 +29,7 @@ public class UserService {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getPermissions().stream()
-                .map(this::convertToDTO)
+                .map(PermissionMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -58,12 +59,5 @@ public class UserService {
 
         user.getPermissions().remove(permission);
         userRepository.save(user);
-    }
-
-    private PermissionDTO convertToDTO(Permission permission) {
-        PermissionDTO dto = new PermissionDTO();
-        dto.setId(permission.getId());
-        dto.setName(permission.getName());
-        return dto;
     }
 }
