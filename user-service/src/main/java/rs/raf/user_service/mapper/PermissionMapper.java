@@ -1,6 +1,6 @@
 package rs.raf.user_service.mapper;
 
-import rs.raf.user_service.entity.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDTO;
 import rs.raf.user_service.entity.Permission;
 
 public class PermissionMapper {
