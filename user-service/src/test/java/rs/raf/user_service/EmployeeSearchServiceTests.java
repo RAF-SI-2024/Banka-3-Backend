@@ -10,12 +10,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.user_service.employee_search.EmployeeRepository;
+import rs.raf.user_service.employee_search.EmployeeService;
+import rs.raf.user_service.employee_search.EmployeeDTO;
 import rs.raf.user_service.entity.Employee;
-import rs.raf.user_service.employee_search.EmployeeSearchRepository;
-import rs.raf.user_service.employee_search.EmployeeSearchService;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -24,14 +27,13 @@ import static org.mockito.Mockito.*;
 class EmployeeServiceTest {
 
     @Mock
-    private EmployeeSearchRepository employeeRepository;
+    private EmployeeRepository employeeRepository;
 
     @InjectMocks
-    private EmployeeSearchService employeeService;
+    private EmployeeService employeeService;
 
     @Test
     void testFindById() {
-
         Employee employee = new Employee();
         employee.setUsername("marko123");
         employee.setPosition("Manager");
@@ -40,7 +42,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
 
-        Employee result = employeeService.findById(1L);
+        EmployeeDTO result = employeeService.findById(1L);
 
         assertNotNull(result);
         assertEquals("marko123", result.getUsername());
@@ -49,22 +51,17 @@ class EmployeeServiceTest {
 
     @Test
     void testFindAllWithPaginationAndFilters() {
-
         Employee employee = new Employee();
         employee.setUsername("jovan456");
         employee.setPosition("Developer");
         employee.setDepartment("IT");
         employee.setActive(true);
 
-
         Page<Employee> page = new PageImpl<>(Collections.singletonList(employee));
 
-        //when(employeeRepository.findAll(any(), any())).thenReturn(page);
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-
-        Page<Employee> result = employeeService.findAll("Developer", "IT", true, PageRequest.of(0, 10));
-
+        Page<EmployeeDTO> result = employeeService.findAll("Developer", "IT", true, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
@@ -75,7 +72,6 @@ class EmployeeServiceTest {
 
     @Test
     void testFindAllWithoutFilters() {
-
         Employee emp1 = new Employee();
         emp1.setUsername("ana789");
         emp1.setPosition("HR");
@@ -88,12 +84,11 @@ class EmployeeServiceTest {
         emp2.setDepartment("Creative");
         emp2.setActive(false);
 
-        Page<Employee> page = new PageImpl<>(java.util.List.of(emp1, emp2));
+        Page<Employee> page = new PageImpl<>(List.of(emp1, emp2));
 
-        //when(employeeRepository.findAll(any(), any())).thenReturn(page);
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<Employee> result = employeeService.findAll(null, null, null, PageRequest.of(0, 10));
+        Page<EmployeeDTO> result = employeeService.findAll(null, null, null, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
