@@ -31,7 +31,7 @@ public class AuthController {
     })
     @PostMapping("/login/client")
     public ResponseEntity<LoginResponse> clientLogin(@RequestBody LoginRequest request) {
-        String token = authService.authenticate(request.getEmail(), request.getPassword());
+        String token = authService.authenticateClient(request.getEmail(), request.getPassword());
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         return ResponseEntity.ok(response);
@@ -43,7 +43,7 @@ public class AuthController {
     })
     @PostMapping("/login/employee")
     public ResponseEntity<LoginResponse> employeeLogin(@RequestBody LoginRequest request) {
-        String token = authService.authenticate(request.getEmail(), request.getPassword());
+        String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         return ResponseEntity.ok(response);
