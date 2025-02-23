@@ -2,7 +2,7 @@ package rs.raf.user_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.entity.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDTO;
 import rs.raf.user_service.entity.BaseUser;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.mapper.PermissionMapper;
@@ -10,7 +10,6 @@ import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service

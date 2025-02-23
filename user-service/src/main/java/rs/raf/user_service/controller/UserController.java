@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.entity.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDTO;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;

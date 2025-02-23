@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import rs.raf.user_service.entity.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDTO;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.UserRepository;

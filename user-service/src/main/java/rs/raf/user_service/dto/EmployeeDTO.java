@@ -1,4 +1,4 @@
-package rs.raf.user_service.entity;
+package rs.raf.user_service.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,16 +16,7 @@ public class EmployeeDTO {
     private String firstName;
     private String lastName;
     private String email;
-    /*
-    public EmployeeDTO(String username, String position, String department, boolean active) {
 
-        this.username = username;
-        this.position = position;
-        this.department = department;
-        this.active = active;
-    }
-
-     */
 
     public EmployeeDTO(String firstName, String lastName, String email,
                        String username, String position, String department, boolean active) {

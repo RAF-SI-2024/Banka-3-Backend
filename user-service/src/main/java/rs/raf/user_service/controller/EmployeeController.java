@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.entity.EmployeeDTO;
+import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.service.EmployeeService;
 
 @RestController
