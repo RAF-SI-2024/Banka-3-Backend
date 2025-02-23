@@ -34,7 +34,7 @@ public class AuthControllerTest {
 
         when(authService.authenticate(email, password)).thenReturn(token);
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
@@ -53,7 +53,7 @@ public class AuthControllerTest {
 
         when(authService.authenticate(email, password)).thenReturn(token);
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
