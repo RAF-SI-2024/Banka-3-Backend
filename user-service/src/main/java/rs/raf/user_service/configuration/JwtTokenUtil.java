@@ -1,4 +1,5 @@
 package rs.raf.user_service.configuration;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -7,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.List;
 
 @Component
 public class JwtTokenUtil {

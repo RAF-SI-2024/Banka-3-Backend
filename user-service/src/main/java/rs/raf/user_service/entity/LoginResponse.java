@@ -1,4 +1,4 @@
-package rs.raf.user_service.dtos;
+package rs.raf.user_service.entity;
 
 import lombok.Getter;
 import lombok.Setter;

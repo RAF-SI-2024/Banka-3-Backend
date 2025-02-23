@@ -6,11 +6,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import rs.raf.user_service.configuration.JwtTokenUtil;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+
 /*
         Class is called on every Http request/response to check validity of token.
         It is set in the security config as before filter for every call.
@@ -32,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && jwtTokenUtil.validateToken(token)) {
             String email = jwtTokenUtil.getSubjectFromToken(token);
-           // System.out.println("Extracted email: " + email);
+            // System.out.println("Extracted email: " + email);
 
             Claims claims = jwtTokenUtil.getClaimsFromToken(token);
 

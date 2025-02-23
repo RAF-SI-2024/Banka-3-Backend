@@ -1,17 +1,20 @@
 package rs.raf.user_service;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import rs.raf.user_service.entity.Employee;
-import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.repository.UserRepository;
-import rs.raf.user_service.configuration.JwtTokenUtil;
-import rs.raf.user_service.service.AuthService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import rs.raf.user_service.configuration.JwtTokenUtil;
+import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.repository.UserRepository;
+import rs.raf.user_service.service.AuthService;
+
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AuthServiceTest {
 
