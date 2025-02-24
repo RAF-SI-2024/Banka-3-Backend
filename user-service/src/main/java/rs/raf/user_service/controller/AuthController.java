@@ -41,7 +41,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-
+//
     @Operation(summary = "Employee Login", description = "Endpoint for logging employee and generating JWT token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Succesfully generated JWT token"),
