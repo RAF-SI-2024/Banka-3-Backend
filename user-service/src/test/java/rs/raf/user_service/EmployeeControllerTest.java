@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import rs.raf.user_service.controller.EmployeeController;
 import rs.raf.user_service.dto.CreateEmployeeDTO;
 import rs.raf.user_service.dto.UpdateEmployeeDTO;
+import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.service.EmployeeService;
 
 import java.util.Calendar;
@@ -80,18 +81,35 @@ public class EmployeeControllerTest {
 
     @Test
     public void testUpdateEmployee() {
-        /*// Mock a valid BindingResult (no errors)
         when(bindingResult.hasErrors()).thenReturn(false);
 
-        // Call the controller method directly
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.set(1990, 1, 20, 0, 0, 0);
+        // Directly call the controller method and capture the response
+        UpdateEmployeeDTO updateEmployeeDTO = new UpdateEmployeeDTO("Peric", "F", "+38161123457",
+                "Trg Republike 6", "Programer", "Programiranje"
+        );
 
-        ResponseEntity<Void> response = employeeController.updateEmployee(new UpdateEmployeeDTO("Petar",
-                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", "+38161123456",
-                "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
+        ResponseEntity<Void> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
 
-        // Verify that the service method was called and assert the response
-        assertEquals(200, response.getStatusCodeValue());*/
+        // Verify the response
+        assertEquals(200, response.getStatusCodeValue());  // 200 OK status
+        verify(employeeService, times(1)).updateEmployee(1L, updateEmployeeDTO);
+    }
+
+    @Test
+    public void testUpdateEmployeeInvalidParameter() {
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getFieldError("firstName")).thenReturn(new FieldError("createEmployeeDTO", "firstName",
+                "First name cannot be null"));
+
+        // Directly call the controller method and capture the response
+        UpdateEmployeeDTO updateEmployeeDTO = new UpdateEmployeeDTO("", "F", "+38161123457",
+                "Trg Republike 6", "Programer", "Programiranje"
+        );
+
+        ResponseEntity<Void> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
+
+        // Verify the response
+        assertEquals(400, response.getStatusCodeValue());  // 200 OK status
+        verify(employeeService, never()).updateEmployee(1L, updateEmployeeDTO);
     }
 }
