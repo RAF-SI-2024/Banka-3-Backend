@@ -1,10 +1,10 @@
-package rs.raf.user_service.entity;
+package rs.raf.user_service.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LoginResponse {
+public class LoginResponseDTO {
     private String token;
 }
