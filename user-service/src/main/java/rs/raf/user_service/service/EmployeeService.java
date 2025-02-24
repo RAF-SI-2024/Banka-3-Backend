@@ -7,8 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 

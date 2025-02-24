@@ -6,8 +6,8 @@ import rs.raf.user_service.dto.PermissionDTO;
 import rs.raf.user_service.entity.BaseUser;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.mapper.PermissionMapper;
-import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
+import rs.raf.user_service.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;

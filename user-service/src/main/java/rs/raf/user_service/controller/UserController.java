@@ -1,4 +1,3 @@
-
 package rs.raf.user_service.controller;
 
 import io.swagger.v3.oas.annotations.Operation;

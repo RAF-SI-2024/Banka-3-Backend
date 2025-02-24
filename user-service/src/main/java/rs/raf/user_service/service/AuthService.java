@@ -9,7 +9,6 @@ import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,7 +37,7 @@ public class AuthService {
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(),permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
     }
 
     public String authenticateEmployee(String email, String password) {
@@ -51,6 +50,6 @@ public class AuthService {
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(),permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
     }
 }
