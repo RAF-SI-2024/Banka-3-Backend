@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import rs.raf.user_service.entity.LoginRequest;
-import rs.raf.user_service.entity.LoginResponse;
+import rs.raf.user_service.dto.LoginRequestDTO;
+import rs.raf.user_service.dto.LoginResponseDTO;
 import rs.raf.user_service.service.AuthService;
 
 @Tag(name = "Authentication Controller", description = "API for authenticating users")
@@ -30,9 +30,9 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/client")
-    public ResponseEntity<LoginResponse> clientLogin(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponseDTO> clientLogin(@RequestBody LoginRequestDTO request) {
         String token = authService.authenticateClient(request.getEmail(), request.getPassword());
-        LoginResponse response = new LoginResponse();
+        LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         return ResponseEntity.ok(response);
     }
@@ -42,9 +42,9 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/employee")
-    public ResponseEntity<LoginResponse> employeeLogin(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponseDTO> employeeLogin(@RequestBody LoginRequestDTO request) {
         String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
-        LoginResponse response = new LoginResponse();
+        LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         return ResponseEntity.ok(response);
     }

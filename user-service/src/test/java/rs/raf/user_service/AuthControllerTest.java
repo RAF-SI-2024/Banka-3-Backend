@@ -4,8 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
-import rs.raf.user_service.entity.LoginRequest;
-import rs.raf.user_service.entity.LoginResponse;
+import rs.raf.user_service.dto.LoginRequestDTO;
+import rs.raf.user_service.dto.LoginResponseDTO;
 import rs.raf.user_service.service.AuthService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,13 +28,13 @@ public class AuthControllerTest {
         String password = "password";
         String token = "jwtTokenClient";
 
-        LoginRequest request = new LoginRequest();
+        LoginRequestDTO request = new LoginRequestDTO();
         request.setEmail(email);
         request.setPassword(password);
 
         when(authService.authenticateClient(email, password)).thenReturn(token);
 
-        ResponseEntity<LoginResponse> responseEntity = authController.clientLogin(request);
+        ResponseEntity<LoginResponseDTO> responseEntity = authController.clientLogin(request);
         assertEquals(200, responseEntity.getStatusCodeValue());
         assertEquals(token, responseEntity.getBody().getToken());
         verify(authService, times(1)).authenticateClient(email, password);
@@ -46,13 +46,13 @@ public class AuthControllerTest {
         String password = "password";
         String token = "jwtTokenEmployee";
 
-        LoginRequest request = new LoginRequest();
+        LoginRequestDTO request = new LoginRequestDTO();
         request.setEmail(email);
         request.setPassword(password);
 
         when(authService.authenticateEmployee(email, password)).thenReturn(token);
 
-        ResponseEntity<LoginResponse> responseEntity = authController.employeeLogin(request);
+        ResponseEntity<LoginResponseDTO> responseEntity = authController.employeeLogin(request);
         assertEquals(200, responseEntity.getStatusCodeValue());
         assertEquals(token, responseEntity.getBody().getToken());
         verify(authService, times(1)).authenticateEmployee(email, password);
