@@ -12,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.service.EmployeeService;
-import rs.raf.user_service.entity.EmployeeDTO;
+import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 
 import java.util.Collections;
