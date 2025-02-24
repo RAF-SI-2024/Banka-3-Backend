@@ -14,8 +14,7 @@ import rs.raf.user_service.service.AuthService;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class AuthServiceTest {
@@ -73,10 +72,8 @@ public class AuthServiceTest {
         when(clientRepository.findByEmail(email)).thenReturn(Optional.of(client));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.authenticateClient(email, rawPassword);
-        });
-        assertEquals("Invalid credentials", exception.getMessage());
+        String returnedToken = authService.authenticateClient(email, rawPassword);
+        assertNull(returnedToken, "Expected null when password is invalid");
     }
 
     @Test
@@ -86,10 +83,8 @@ public class AuthServiceTest {
 
         when(clientRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.authenticateClient(email, rawPassword);
-        });
-        assertEquals("Invalid credentials", exception.getMessage());
+        String returnedToken = authService.authenticateClient(email, rawPassword);
+        assertNull(returnedToken, "Expected null when user is not found");
     }
 
     @Test
@@ -130,10 +125,8 @@ public class AuthServiceTest {
         when(employeeRepository.findByEmail(email)).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(false);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.authenticateEmployee(email, rawPassword);
-        });
-        assertEquals("Invalid credentials", exception.getMessage());
+        String returnedToken = authService.authenticateEmployee(email, rawPassword);
+        assertNull(returnedToken, "Expected null when password is invalid");
     }
 
     @Test
@@ -143,9 +136,7 @@ public class AuthServiceTest {
 
         when(employeeRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.authenticateEmployee(email, rawPassword);
-        });
-        assertEquals("Invalid credentials", exception.getMessage());
+        String returnedToken = authService.authenticateEmployee(email, rawPassword);
+        assertNull(returnedToken, "Expected null when user is not found");
     }
 }
