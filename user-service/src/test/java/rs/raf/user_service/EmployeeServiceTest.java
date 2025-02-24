@@ -15,9 +15,7 @@ import rs.raf.user_service.service.EmployeeService;
 import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -182,5 +180,38 @@ class EmployeeServiceTest {
 
         assertEquals("Employee not found", exception.getMessage());
         verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    void testCreateEmployee() {
+        String firstName = "Petar";
+        String lastName = "Petrovic";
+        String gender = "MA";
+        String email = "petar@raf.rs";
+        String phone = "+38161123456";
+        String address = "Trg Republike 5";
+        String username = "petareperic90";
+        String position = "Menadzer";
+        String department = "Finansije";
+
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(1990, 1, 20, 0, 0, 0);
+        Date birthDate = calendar.getTime();
+
+        employeeService.createEmployee(new EmployeeDTO(firstName, lastName, birthDate, gender, email, phone, address,
+                username, position, department));
+
+        verify(employeeRepository, times(1)).save(argThat(employee ->
+                employee.getFirstName().equals(firstName) &&
+                employee.getLastName().equals(lastName) &&
+                employee.getBirthDate().equals(birthDate) &&
+                employee.getGender().equals(gender) &&
+                employee.getEmail().equals(email) &&
+                employee.getPhone().equals(phone) &&
+                employee.getAddress().equals(address) &&
+                employee.getUsername().equals(username) &&
+                employee.getPosition().equals(position) &&
+                employee.getDepartment().equals(department)
+        ));
     }
 }

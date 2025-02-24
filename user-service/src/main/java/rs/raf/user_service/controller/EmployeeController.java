@@ -10,9 +10,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.service.EmployeeService;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/employees")
@@ -99,6 +102,25 @@ public class EmployeeController {
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @Operation(summary = "Create an employee", description = "Creates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Employee created successfully"),
+            @ApiResponse(responseCode = "400", description = "Input values in wrong format"),
+            @ApiResponse(responseCode = "500", description = "Employee creation failed")
+    })
+    @PostMapping
+    public ResponseEntity<Void> createEmployee(@RequestBody @Valid EmployeeDTO employeeDTO, BindingResult result){
+        if (result.hasErrors())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
+        try {
+            employeeService.createEmployee(employeeDTO);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

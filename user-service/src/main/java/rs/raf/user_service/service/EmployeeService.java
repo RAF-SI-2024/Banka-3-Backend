@@ -80,6 +80,19 @@ public class EmployeeService {
         employeeRepository.save(employee);
     }
 
+    @Operation(summary = "Create an employee", description = "Creates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Employee created successfully"),
+            @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
+    })
+    public void createEmployee(EmployeeDTO employeeDTO) {
+        if (employeeRepository.existsByUsername(employeeDTO.getUsername()) ||
+                employeeRepository.existsByEmail(employeeDTO.getEmail()))
+            throw new IllegalArgumentException();
+
+        employeeRepository.save(mapFromDTO(employeeDTO));
+    }
+
     private EmployeeDTO mapToDTO(Employee employee) {
         return new EmployeeDTO(
                 employee.getFirstName(),
@@ -89,6 +102,21 @@ public class EmployeeService {
                 employee.getPosition(),
                 employee.getDepartment(),
                 employee.isActive()
+        );
+    }
+
+    private Employee mapFromDTO(EmployeeDTO employeeDTO){
+        return new Employee(
+                employeeDTO.getFirstName(),
+                employeeDTO.getLastName(),
+                employeeDTO.getBirthDate(),
+                employeeDTO.getGender(),
+                employeeDTO.getEmail(),
+                employeeDTO.getPhone(),
+                employeeDTO.getAddress(),
+                employeeDTO.getUsername(),
+                employeeDTO.getPosition(),
+                employeeDTO.getDepartment()
         );
     }
 }
