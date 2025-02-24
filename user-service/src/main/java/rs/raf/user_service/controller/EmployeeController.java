@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.CreateEmployeeDTO;
@@ -31,6 +32,7 @@ public class EmployeeController {
         this.employeeService = employeeService;
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee"),
@@ -41,6 +43,7 @@ public class EmployeeController {
         return employeeService.findById(id);
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
@@ -57,6 +60,7 @@ public class EmployeeController {
         return employeeService.findAll(position, department, active, pageable);
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Delete an employee", description = "Deletes an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deleted successfully"),
@@ -74,6 +78,7 @@ public class EmployeeController {
         }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Deactivate an employee", description = "Deactivates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deactivated successfully"),
@@ -91,6 +96,7 @@ public class EmployeeController {
         }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Activate an employee", description = "Activates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee activated successfully"),

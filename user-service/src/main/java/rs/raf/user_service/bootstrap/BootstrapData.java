@@ -13,10 +13,6 @@ import rs.raf.user_service.repository.PermissionRepository;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.temporal.TemporalAccessor;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
