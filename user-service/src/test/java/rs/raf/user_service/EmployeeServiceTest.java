@@ -10,11 +10,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.user_service.dto.CreateEmployeeDTO;
+import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.service.EmployeeService;
 import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -186,7 +189,7 @@ class EmployeeServiceTest {
     void testCreateEmployee() {
         String firstName = "Petar";
         String lastName = "Petrovic";
-        String gender = "MA";
+        String gender = "M";
         String email = "petar@raf.rs";
         String phone = "+38161123456";
         String address = "Trg Republike 5";
@@ -198,8 +201,9 @@ class EmployeeServiceTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
         Date birthDate = calendar.getTime();
 
-        employeeService.createEmployee(new EmployeeDTO(firstName, lastName, birthDate, gender, email, phone, address,
-                username, position, department));
+        employeeService.createEmployee(new CreateEmployeeDTO(firstName, lastName, birthDate, gender, email, phone, address,
+                username, position, department)
+        );
 
         verify(employeeRepository, times(1)).save(argThat(employee ->
                 employee.getFirstName().equals(firstName) &&
@@ -213,5 +217,51 @@ class EmployeeServiceTest {
                 employee.getPosition().equals(position) &&
                 employee.getDepartment().equals(department)
         ));
+    }
+
+    @Test
+    void testUpdateEmployee() {
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(1990, 1, 20, 0, 0, 0);
+
+        Employee employee = new Employee("Petar", "Petrovic", calendar.getTime(), "M",
+                "petar@raf.rs", "+38161123456","Trg Republike 5", "petareperic90",
+                "Menadzer", "Finansije"
+        );
+
+        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+
+        String lastName = "Peric";
+        String gender = "F";
+        String phone = "+38161123457";
+        String address = "Trg Republike 6";
+        String position = "Programer";
+        String department = "Programiranje";
+
+        employeeService.updateEmployee(1L , new UpdateEmployeeDTO(lastName, gender, phone, address, position, department));
+
+        assertAll("Employee fields should be updated correctly",
+                () -> assertEquals(lastName, employee.getLastName()),
+                () -> assertEquals(gender, employee.getGender()),
+                () -> assertEquals(phone, employee.getPhone()),
+                () -> assertEquals(address, employee.getAddress()),
+                () -> assertEquals(position, employee.getPosition()),
+                () -> assertEquals(department, employee.getDepartment())
+        );
+        verify(employeeRepository, times(1)).save(employee);
+    }
+
+    @Test
+    void testUpdateEmployeeNotFound() {
+        when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(EntityNotFoundException.class, () -> employeeService.updateEmployee(
+                99L , new UpdateEmployeeDTO("Peric", "F", "+38161123457",
+                        "Trg Republike 6", "Programer", "Programiranje")
+                )
+        );
+
+        assertEquals("Employee not found", exception.getMessage());
+        verify(employeeRepository, never()).save(any());
     }
 }

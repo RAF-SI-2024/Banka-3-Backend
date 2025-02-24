@@ -7,10 +7,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import rs.raf.user_service.dto.CreateEmployeeDTO;
+import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
+
+import javax.persistence.EntityNotFoundException;
 
 @Service
 public class EmployeeService {
@@ -85,12 +89,30 @@ public class EmployeeService {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
             @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
     })
-    public void createEmployee(EmployeeDTO employeeDTO) {
-        if (employeeRepository.existsByUsername(employeeDTO.getUsername()) ||
-                employeeRepository.existsByEmail(employeeDTO.getEmail()))
+    public void createEmployee(CreateEmployeeDTO createEmployeeDTO) {
+        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()) ||
+                employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new IllegalArgumentException();
 
-        employeeRepository.save(mapFromDTO(employeeDTO));
+        employeeRepository.save(createEmployeeDTO.mapToEmployee());
+    }
+
+    @Operation(summary = "Update an employee", description = "Updates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
+        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
+
+        employee.setLastName(updateEmployeeDTO.getLastName());
+        employee.setGender(updateEmployeeDTO.getGender());
+        employee.setPhone(updateEmployeeDTO.getPhone());
+        employee.setAddress(updateEmployeeDTO.getAddress());
+        employee.setPosition(updateEmployeeDTO.getPosition());
+        employee.setDepartment(updateEmployeeDTO.getDepartment());
+
+        employeeRepository.save(employee);
     }
 
     private EmployeeDTO mapToDTO(Employee employee) {
@@ -102,21 +124,6 @@ public class EmployeeService {
                 employee.getPosition(),
                 employee.getDepartment(),
                 employee.isActive()
-        );
-    }
-
-    private Employee mapFromDTO(EmployeeDTO employeeDTO){
-        return new Employee(
-                employeeDTO.getFirstName(),
-                employeeDTO.getLastName(),
-                employeeDTO.getBirthDate(),
-                employeeDTO.getGender(),
-                employeeDTO.getEmail(),
-                employeeDTO.getPhone(),
-                employeeDTO.getAddress(),
-                employeeDTO.getUsername(),
-                employeeDTO.getPosition(),
-                employeeDTO.getDepartment()
         );
     }
 }

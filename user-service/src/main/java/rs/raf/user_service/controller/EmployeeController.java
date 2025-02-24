@@ -12,9 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.dto.CreateEmployeeDTO;
 import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.service.EmployeeService;
 
+import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 
 @RestController
@@ -112,13 +115,43 @@ public class EmployeeController {
             @ApiResponse(responseCode = "500", description = "Employee creation failed")
     })
     @PostMapping
-    public ResponseEntity<Void> createEmployee(@RequestBody @Valid EmployeeDTO employeeDTO, BindingResult result){
+    public ResponseEntity<Void> createEmployee(
+            @RequestBody @Valid CreateEmployeeDTO createEmployeeDTO,
+            BindingResult result
+    ){
         if (result.hasErrors())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 
         try {
-            employeeService.createEmployee(employeeDTO);
-            return ResponseEntity.ok().build();
+            employeeService.createEmployee(createEmployeeDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @Operation(summary = "Update an employee", description = "Updates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Input values in wrong format"),
+            @ApiResponse(responseCode = "404", description = "Employee not found"),
+            @ApiResponse(responseCode = "500", description = "Employee update failed")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateEmployee(
+            @Parameter(description = "Employee ID", required = true, example = "1") @PathVariable Long id,
+            @RequestBody @Valid UpdateEmployeeDTO updateEmployeeDTO,
+            BindingResult result
+    ) {
+        if (result.hasErrors())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
+        try {
+            employeeService.updateEmployee(id, updateEmployeeDTO);
+            return ResponseEntity.status(HttpStatus.OK).build();
+
+        } catch (EntityNotFoundException notFoundException){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
