@@ -4,13 +4,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
 import java.util.Date;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class EmployeeDTO {
+public class EmployeeDto {
     private Long id;
     private String username;
     private String position;
@@ -29,7 +28,7 @@ public class EmployeeDTO {
 
 
 
-    public EmployeeDTO(String firstName, String lastName, String email,
+    public EmployeeDto(String firstName, String lastName, String email,
                        String username, String position, String department, boolean active) {
 
         this.firstName = firstName;

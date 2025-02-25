@@ -13,10 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.ActivationRequestDto;
-import rs.raf.user_service.dto.EmployeeDTO;
-import rs.raf.user_service.dto.CreateEmployeeDTO;
-import rs.raf.user_service.dto.UpdateEmployeeDTO;
+import rs.raf.user_service.dto.EmployeeDto;
+import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
@@ -40,7 +39,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
     @GetMapping("/{id}")
-    public EmployeeDTO getEmployeeById(@PathVariable Long id) {
+    public EmployeeDto getEmployeeById(@PathVariable Long id) {
         return employeeService.findById(id);
     }
 
@@ -50,7 +49,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
     })
     @GetMapping
-    public Page<EmployeeDTO> getAllEmployees(
+    public Page<EmployeeDto> getAllEmployees(
             @RequestParam(required = false) String position,
             @RequestParam(required = false) String department,
             @RequestParam(required = false) Boolean active,
@@ -123,7 +122,7 @@ public class EmployeeController {
     })
     @PostMapping
     public ResponseEntity<Void> createEmployee(
-            @RequestBody @Valid CreateEmployeeDTO createEmployeeDTO,
+            @RequestBody @Valid CreateEmployeeDto createEmployeeDTO,
             BindingResult result
     ){
         if (result.hasErrors())
@@ -147,7 +146,7 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateEmployee(
             @Parameter(description = "Employee ID", required = true, example = "1") @PathVariable Long id,
-            @RequestBody @Valid UpdateEmployeeDTO updateEmployeeDTO,
+            @RequestBody @Valid UpdateEmployeeDto updateEmployeeDTO,
             BindingResult result
     ) {
         if (result.hasErrors())

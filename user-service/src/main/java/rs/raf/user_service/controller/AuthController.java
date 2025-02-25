@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import rs.raf.user_service.dto.*;
 import rs.raf.user_service.service.AuthService;
 
-import java.util.Map;
-
 @Tag(name = "Authentication Controller", description = "API for authenticating users")
 @RestController
 @RequestMapping("/api/auth")
@@ -32,12 +30,12 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/client")
-    public ResponseEntity<?> clientLogin(@RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> clientLogin(@RequestBody LoginRequestDto request) {
         String token = authService.authenticateClient(request.getEmail(), request.getPassword());
         if (token == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
         }
-        LoginResponseDTO response = new LoginResponseDTO();
+        LoginResponseDto response = new LoginResponseDto();
         response.setToken(token);
         return ResponseEntity.ok(response);
     }
@@ -48,12 +46,12 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/employee")
-    public ResponseEntity<?> employeeLogin(@RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> employeeLogin(@RequestBody LoginRequestDto request) {
         String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
         if (token == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
         }
-        LoginResponseDTO response = new LoginResponseDTO();
+        LoginResponseDto response = new LoginResponseDto();
         response.setToken(token);
         return ResponseEntity.ok(response);
     }
@@ -63,7 +61,7 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Request for password reset successfully sent."),
             @ApiResponse(responseCode = "400", description = "Invalid email.")
     })
-    public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDTO requestPasswordResetDTO){
+    public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDto requestPasswordResetDTO){
         try {
             this.authService.requestPasswordReset(requestPasswordResetDTO.getEmail());
             return ResponseEntity.ok().build();
@@ -78,7 +76,7 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Valid"),
             @ApiResponse(responseCode = "404", description = "Invalid")
     })
-    public ResponseEntity<Void> checkToken(@RequestBody CheckTokenDTO checkTokenDTO){
+    public ResponseEntity<Void> checkToken(@RequestBody CheckTokenDto checkTokenDTO){
         try {
             authService.checkToken(checkTokenDTO.getToken());
             return ResponseEntity.ok().build();

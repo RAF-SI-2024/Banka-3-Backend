@@ -8,9 +8,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.EmployeeDTO;
-import rs.raf.user_service.dto.PermissionDTO;
-import rs.raf.user_service.dto.UserDTO;
+import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.UserDto;
 import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Employee;
@@ -59,7 +58,7 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
 
-        List<PermissionDTO> permissions = userService.getUserPermissions(userId);
+        List<PermissionDto> permissions = userService.getUserPermissions(userId);
 
 
         assertNotNull(permissions);
@@ -187,7 +186,7 @@ class UserServiceTest {
     }
     @Test
     public void testCreateClient_Success() {
-        UserDTO userDTO = new UserDTO();
+        UserDto userDTO = new UserDto();
         userDTO.setEmail("test@example.com");
         userDTO.setFirstName("John");
         userDTO.setLastName("Doe");

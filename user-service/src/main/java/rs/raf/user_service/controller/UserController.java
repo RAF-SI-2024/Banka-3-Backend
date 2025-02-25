@@ -6,15 +6,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.ActivationRequestDto;
-import rs.raf.user_service.dto.PermissionDTO;
-import rs.raf.user_service.dto.UserDTO;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.UserDto;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;
@@ -34,10 +31,10 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Permissions retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<List<PermissionDTO>> getUserPermissions(
+    public ResponseEntity<List<PermissionDto>> getUserPermissions(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId) {
-        List<PermissionDTO> permissions = userService.getUserPermissions(userId);
+        List<PermissionDto> permissions = userService.getUserPermissions(userId);
         return ResponseEntity.ok(permissions);
     }
 
@@ -82,22 +79,4 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-
-    @PostMapping
-    @Operation(summary = "Create new client", description = "Creates a client without password.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "New user made successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid user data.")
-    })
-    public ResponseEntity<String> createUser(@RequestBody UserDTO userDTO) {
-        try {
-            userService.createUser(userDTO);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
-
-
 }

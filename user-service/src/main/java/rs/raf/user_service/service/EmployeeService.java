@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,10 +11,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.entity.AuthToken;
-import rs.raf.user_service.dto.CreateEmployeeDTO;
-import rs.raf.user_service.dto.UpdateEmployeeDTO;
+import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.entity.Employee;
-import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
@@ -42,7 +41,7 @@ public class EmployeeService {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee list retrieved successfully")
     })
-    public Page<EmployeeDTO> findAll(String position, String department, Boolean active, Pageable pageable) {
+    public Page<EmployeeDto> findAll(String position, String department, Boolean active, Pageable pageable) {
         Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.hasPosition(position))
                 .and(EmployeeSearchSpecification.hasDepartment(department))
                 .and(EmployeeSearchSpecification.isActive(active));
@@ -56,7 +55,7 @@ public class EmployeeService {
             @ApiResponse(responseCode = "200", description = "Employee found"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
-    public EmployeeDTO findById(Long id) {
+    public EmployeeDto findById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         return mapToDTO(employee);
@@ -102,7 +101,7 @@ public class EmployeeService {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
             @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
     })
-    public void createEmployee(CreateEmployeeDTO createEmployeeDTO) {
+    public void createEmployee(CreateEmployeeDto createEmployeeDTO) {
         if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()) ||
                 employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new IllegalArgumentException();
@@ -126,7 +125,7 @@ public class EmployeeService {
             @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
-    public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
+    public void updateEmployee(Long id, UpdateEmployeeDto updateEmployeeDTO) {
         Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
         employee.setLastName(updateEmployeeDTO.getLastName());
@@ -139,8 +138,8 @@ public class EmployeeService {
         employeeRepository.save(employee);
     }
 
-    private EmployeeDTO mapToDTO(Employee employee) {
-        return new EmployeeDTO(
+    private EmployeeDto mapToDTO(Employee employee) {
+        return new EmployeeDto(
                 employee.getFirstName(),
                 employee.getLastName(),
                 employee.getEmail(),

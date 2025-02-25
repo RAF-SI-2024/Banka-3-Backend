@@ -1,13 +1,12 @@
 package rs.raf.user_service.service;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.PermissionDTO;
-import rs.raf.user_service.dto.UserDTO;
+import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.UserDto;
 import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.BaseUser;
 import rs.raf.user_service.entity.Client;
@@ -40,7 +39,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<PermissionDTO> getUserPermissions(Long userId) {
+    public List<PermissionDto> getUserPermissions(Long userId) {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getPermissions().stream()
@@ -75,26 +74,4 @@ public class UserService {
         user.getPermissions().remove(permission);
         userRepository.save(user);
     }
-    public void createUser(UserDTO userDto) {
-
-        Client client = new Client();
-        client.setFirstName(userDto.getFirstName());
-        client.setLastName(userDto.getLastName());
-        client.setBirthDate(userDto.getBirthDate());
-        client.setGender(userDto.getGender());
-        client.setEmail(userDto.getEmail());
-        client.setPhone(userDto.getPhone());
-        client.setAddress(userDto.getAddress());
-        userRepository.save(client);
-
-        UUID token = UUID.fromString(UUID.randomUUID().toString());
-        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),client.getEmail());
-        rabbitTemplate.convertAndSend("activate-client-account",emailRequestDto);
-
-        Long createdAt = Instant.now().toEpochMilli();
-        Long expiresAt = createdAt + 86400000;//24h
-        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "activate-client-account",client.getId());
-        authTokenRepository.save(authToken);;
-    }
-
 }
