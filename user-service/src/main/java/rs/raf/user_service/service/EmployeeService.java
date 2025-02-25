@@ -15,6 +15,7 @@ import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDto;
+import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
@@ -47,7 +48,7 @@ public class EmployeeService {
                 .and(EmployeeSearchSpecification.isActive(active));
 
         return employeeRepository.findAll(spec, pageable)
-                .map(this::mapToDTO);
+                .map(EmployeeMapper::toDto);
     }
 
     @Operation(summary = "Find employee by ID", description = "Fetches an employee by its unique ID")
@@ -58,7 +59,7 @@ public class EmployeeService {
     public EmployeeDto findById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
-        return mapToDTO(employee);
+        return EmployeeMapper.toDto(employee);
     }
 
     @Operation(summary = "Delete an employee", description = "Deletes an employee by their ID.")
@@ -138,15 +139,4 @@ public class EmployeeService {
         employeeRepository.save(employee);
     }
 
-    private EmployeeDto mapToDTO(Employee employee) {
-        return new EmployeeDto(
-                employee.getFirstName(),
-                employee.getLastName(),
-                employee.getEmail(),
-                employee.getUsername(),
-                employee.getPosition(),
-                employee.getDepartment(),
-                employee.isActive()
-        );
-    }
 }
