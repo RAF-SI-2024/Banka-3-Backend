@@ -2,13 +2,15 @@ package rs.raf.user_service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import rs.raf.user_service.configuration.JwtTokenUtil;
-import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.entity.Employee;
-import rs.raf.user_service.entity.Permission;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.entity.*;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.AuthService;
 
 import java.util.Collections;
@@ -24,7 +26,12 @@ public class AuthServiceTest {
     private JwtTokenUtil jwtTokenUtil;
     private ClientRepository clientRepository;
     private EmployeeRepository employeeRepository;
+    private UserRepository userRepository;
     private AuthService authService;
+    private  AuthTokenRepository authTokenRepository;
+    private  RabbitTemplate rabbitTemplate;
+
+
 
     @BeforeEach
     public void setup() {
@@ -32,7 +39,10 @@ public class AuthServiceTest {
         jwtTokenUtil = mock(JwtTokenUtil.class);
         clientRepository = mock(ClientRepository.class);
         employeeRepository = mock(EmployeeRepository.class);
-        authService = new AuthService(passwordEncoder, jwtTokenUtil, clientRepository, employeeRepository);
+        authTokenRepository = mock(AuthTokenRepository.class);
+        userRepository = mock(UserRepository.class);
+        rabbitTemplate = mock(RabbitTemplate.class);
+        authService = new AuthService(passwordEncoder, jwtTokenUtil, clientRepository, employeeRepository,authTokenRepository,rabbitTemplate,userRepository);
     }
 
     @Test
@@ -147,5 +157,64 @@ public class AuthServiceTest {
             authService.authenticateEmployee(email, rawPassword);
         });
         assertEquals("Invalid credentials", exception.getMessage());
+    }
+    @Test
+    public void testRequestPasswordReset_Success() {
+        String email = "test@example.com";
+        BaseUser user = new Client();
+        user.setEmail(email);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        authService.requestPasswordReset(email);
+        verify(authTokenRepository).save(any(AuthToken.class));
+        verify(rabbitTemplate).convertAndSend(eq("reset-password"), any(EmailRequestDto.class));
+    }
+
+    @Test
+    public void testRequestPasswordReset_UserNotFound() {
+        String email = "test@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            authService.requestPasswordReset(email);
+        });
+        assertEquals("User not found", exception.getMessage());
+    }
+
+    @Test
+    public void testResetPassword_Success() {
+        String token = "valid-token";
+        String newPassword = "newPassword123";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(System.currentTimeMillis() + 100000);
+        BaseUser user = new Client();
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+        when(userRepository.findById(authToken.getUserId())).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn("encodedPassword");
+        authService.resetPassword(token, newPassword);
+        verify(clientRepository).save(any(Client.class));
+        assertEquals(System.currentTimeMillis(), authToken.getExpiresAt(), 1000);
+    }
+
+    @Test
+    public void testResetPassword_InvalidToken() {
+        String token = "invalid-token";
+        String newPassword = "newPassword123";
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            authService.resetPassword(token, newPassword);
+        });
+        assertEquals("Invalid token.", exception.getMessage());
+    }
+
+    @Test
+    public void testResetPassword_ExpiredToken() {
+        String token = "expired-token";
+        String newPassword = "newPassword123";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(System.currentTimeMillis() - 100000);
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            authService.resetPassword(token, newPassword);
+        });
+        assertEquals("Expired token.", exception.getMessage());
     }
 }

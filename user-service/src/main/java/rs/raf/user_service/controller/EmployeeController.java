@@ -11,7 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.dto.ActivationRequestDto;
 import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.dto.UserDTO;
 import rs.raf.user_service.service.EmployeeService;
 
 @RestController
@@ -96,6 +98,37 @@ public class EmployeeController {
             @PathVariable Long id) {
         try {
             employeeService.activateEmployee(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PostMapping
+    @Operation(summary = "Create new employee", description = "Creates an employee without password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "New employee made successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid employee data.")
+    })
+    public ResponseEntity<String> createEmployee(@RequestBody EmployeeDTO employeeDTO) {
+        try {
+             employeeService.createEmployee(employeeDTO);
+             return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+    }
+    @PostMapping("/set-password")
+    @Operation(summary = "Activate employee account", description = "Activates employee and sets his password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "New employee password set successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid employee data.")
+    })
+    public ResponseEntity<Void> activateEmployee(@RequestBody ActivationRequestDto activationRequestDto){
+        try {
+            employeeService.activateEmployee(activationRequestDto.getToken(),activationRequestDto.getPassword());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

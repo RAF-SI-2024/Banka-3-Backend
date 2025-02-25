@@ -28,8 +28,11 @@ public class EmailListener {
 
     @RabbitListener(queues = "activate-client-account")
     public void handleActivateAccount(EmailRequestDto dto) {
+        System.out.println("ovde");
+        System.out.println(dto.getDestination()+" "+dto.getCode());
         String subject = "Activate Your Account";
         String text = "Your activation code is: " + dto.getCode();
         emailService.sendEmail(dto.getDestination(), subject, text);
     }
+
 }

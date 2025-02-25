@@ -5,11 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.entity.AuthToken;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.service.EmployeeService;
 import rs.raf.user_service.dto.EmployeeDTO;
@@ -27,9 +31,14 @@ class EmployeeServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+    @Mock
+    private AuthTokenRepository authTokenRepository;
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private EmployeeService employeeService;
+
 
     @Test
     void testFindById() {
@@ -183,4 +192,44 @@ class EmployeeServiceTest {
         assertEquals("Employee not found", exception.getMessage());
         verify(employeeRepository, never()).save(any());
     }
-}
+
+    @Test
+    public void testCreateEmployee_Success() {
+        EmployeeDTO employeeDTO = new EmployeeDTO();
+        employeeDTO.setEmail("test@example.com");
+        employeeDTO.setFirstName("John");
+        employeeDTO.setLastName("Doe");
+
+        employeeService.createEmployee(employeeDTO);
+
+        verify(employeeRepository, times(1)).save(any(Employee.class));
+
+        verify(authTokenRepository, times(1)).save(any(AuthToken.class));
+
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("set-password"), any(EmailRequestDto.class));
+    }
+    @Test
+    public void testActivateEmployee_InvalidToken() {
+        String token = "invalid-token";
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            employeeService.activateEmployee(token, "newPassword123");
+        });
+        assertEquals("Invalid token.", exception.getMessage());
+    }
+
+    @Test
+    public void testActivateEmployee_ExpiredToken() {
+        String token = "expired-token";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(System.currentTimeMillis() - 100000); // Token je istekao
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            employeeService.activateEmployee(token, "newPassword123");
+        });
+    }
+    }

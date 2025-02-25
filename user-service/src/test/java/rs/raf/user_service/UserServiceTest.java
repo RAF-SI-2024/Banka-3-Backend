@@ -6,9 +6,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.dto.PermissionDTO;
+import rs.raf.user_service.dto.UserDTO;
+import rs.raf.user_service.entity.AuthToken;
+import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 import rs.raf.user_service.service.UserService;
@@ -28,10 +35,12 @@ class UserServiceTest {
 
     @Mock
     private PermissionRepository permissionRepository;
-
+    @Mock
+    private AuthTokenRepository authTokenRepository;
     @InjectMocks
     private UserService userService;
-
+    @Mock
+    private RabbitTemplate rabbitTemplate;
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -175,6 +184,44 @@ class UserServiceTest {
 
         assertEquals("Permission not found", exception.getMessage());
         verify(userRepository, never()).save(user);
+    }
+    @Test
+    public void testCreateClient_Success() {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setEmail("test@example.com");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+
+        userService.createUser(userDTO);
+
+        verify(userRepository, times(1)).save(any(Client.class));
+
+        verify(authTokenRepository, times(1)).save(any(AuthToken.class));
+
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("activate-client-account"), any(EmailRequestDto.class));
+    }
+    @Test
+    public void testActivateClient_InvalidToken() {
+        String token = "invalid-token";
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            userService.activateUser(token, "newPassword123");
+        });
+        assertEquals("Invalid token.", exception.getMessage());
+    }
+    @Test
+    public void testActivateUser_ExpiredToken() {
+        String token = "expired-token";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(System.currentTimeMillis() - 100000);
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            userService.activateUser(token, "newPassword123");
+        });
     }
 }
 

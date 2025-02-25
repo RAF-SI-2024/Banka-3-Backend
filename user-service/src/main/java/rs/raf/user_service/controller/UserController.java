@@ -7,10 +7,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.dto.ActivationRequestDto;
 import rs.raf.user_service.dto.PermissionDTO;
+import rs.raf.user_service.dto.UserDTO;
+import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;
@@ -70,6 +74,38 @@ public class UserController {
             @PathVariable Long permissionId) {
         try {
             userService.removePermissionFromUser(userId, permissionId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PostMapping
+    @Operation(summary = "Create new client", description = "Creates a client without password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "New user made successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid user data.")
+    })
+    public ResponseEntity<String> createUser(@RequestBody UserDTO userDTO) {
+        try {
+            userService.createUser(userDTO);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PostMapping("/activate-account")
+    @Operation(summary = "Activate client account", description = "Activates client and sets his password.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password set successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid user data.")
+    })
+    public ResponseEntity<Void> activateUser(@RequestBody ActivationRequestDto activationRequestDto) {
+        System.out.println("evo me");
+        try {
+            userService.activateUser(activationRequestDto.getToken(), activationRequestDto.getPassword());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
