@@ -42,6 +42,8 @@ public abstract class BaseUser {
 
     private String password;
 
+
+
     @ManyToMany
     @JoinTable(
             name = "user_permissions",
