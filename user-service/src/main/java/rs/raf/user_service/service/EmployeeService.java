@@ -11,18 +11,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.UserDTO;
 import rs.raf.user_service.entity.AuthToken;
-import rs.raf.user_service.entity.BaseUser;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.dto.CreateEmployeeDTO;
+import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDTO;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
-
 import java.time.Instant;
 import java.util.UUID;
+import javax.persistence.EntityNotFoundException;
 
 @Service
 public class EmployeeService {
@@ -98,6 +97,47 @@ public class EmployeeService {
         employeeRepository.save(employee);
     }
 
+    @Operation(summary = "Create an employee", description = "Creates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Employee created successfully"),
+            @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
+    })
+    public void createEmployee(CreateEmployeeDTO createEmployeeDTO) {
+        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()) ||
+                employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
+            throw new IllegalArgumentException();
+
+        Employee employee = employeeRepository.save(createEmployeeDTO.mapToEmployee());
+        
+                UUID token = UUID.fromString(UUID.randomUUID().toString());
+        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
+
+        rabbitTemplate.convertAndSend("set-password",emailRequestDto);
+
+        Long createdAt = Instant.now().toEpochMilli();
+        Long expiresAt = createdAt + 86400000;//24h
+        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
+        authTokenRepository.save(authToken);
+    }
+
+    @Operation(summary = "Update an employee", description = "Updates an employee.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
+        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
+
+        employee.setLastName(updateEmployeeDTO.getLastName());
+        employee.setGender(updateEmployeeDTO.getGender());
+        employee.setPhone(updateEmployeeDTO.getPhone());
+        employee.setAddress(updateEmployeeDTO.getAddress());
+        employee.setPosition(updateEmployeeDTO.getPosition());
+        employee.setDepartment(updateEmployeeDTO.getDepartment());
+
+        employeeRepository.save(employee);
+    }
+
     private EmployeeDTO mapToDTO(Employee employee) {
         return new EmployeeDTO(
                 employee.getFirstName(),
@@ -109,32 +149,4 @@ public class EmployeeService {
                 employee.isActive()
         );
     }
-    public void createEmployee(EmployeeDTO employeeDTO) {
-
-        Employee employee = new Employee();
-        employee.setFirstName(employeeDTO.getFirstName());
-        employee.setLastName(employeeDTO.getLastName());
-        employee.setBirthDate(employeeDTO.getBirthDate());
-        employee.setGender(employeeDTO.getGender());
-        employee.setEmail(employeeDTO.getEmail());
-        employee.setPhone(employeeDTO.getPhone());
-        employee.setAddress(employeeDTO.getAddress());
-        employee.setUsername(employeeDTO.getUsername());
-        employee.setPosition(employeeDTO.getPosition());
-        employee.setDepartment(employeeDTO.getDepartment());
-        employee.setActive(employeeDTO.isActive());
-
-        employeeRepository.save(employee);
-
-        UUID token = UUID.fromString(UUID.randomUUID().toString());
-        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
-
-        rabbitTemplate.convertAndSend("set-password",emailRequestDto);
-
-        Long createdAt = Instant.now().toEpochMilli();
-        Long expiresAt = createdAt + 86400000;//24h
-        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
-        authTokenRepository.save(authToken);
-    }
-
 }

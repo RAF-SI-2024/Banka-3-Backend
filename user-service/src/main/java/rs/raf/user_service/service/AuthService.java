@@ -12,7 +12,6 @@ import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.UserRepository;
 
-
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -41,33 +40,29 @@ public class AuthService {
     }
 
     public String authenticateClient(String email, String password) {
-        Client user = clientRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+        Client user = clientRepository.findByEmail(email).orElse(null);
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            return null;
         }
 
         List<String> permissions = user.getPermissions().stream()
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(),permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
     }
 
     public String authenticateEmployee(String email, String password) {
-        Employee user = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+        Employee user = employeeRepository.findByEmail(email).orElse(null);
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            return null;
         }
 
         List<String> permissions = user.getPermissions().stream()
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(),permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
     }
     public void requestPasswordReset(String email){
         BaseUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));

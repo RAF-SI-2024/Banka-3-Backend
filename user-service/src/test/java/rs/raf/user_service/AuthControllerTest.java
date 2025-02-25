@@ -2,6 +2,7 @@ package rs.raf.user_service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
@@ -9,7 +10,7 @@ import rs.raf.user_service.dto.LoginRequestDTO;
 import rs.raf.user_service.dto.LoginResponseDTO;
 import rs.raf.user_service.dto.RequestPasswordResetDTO;
 import rs.raf.user_service.service.AuthService;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import org.springframework.http.HttpStatus;
 import java.util.HashMap;
@@ -32,38 +33,68 @@ public class AuthControllerTest {
 
     @Test
     public void testClientLogin_Success() {
-        String email = "client@example.com";
-        String password = "password";
-        String token = "jwtTokenClient";
-
         LoginRequestDTO request = new LoginRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
+        request.setEmail("test@example.com");
+        request.setPassword("password");
 
-        when(authService.authenticateClient(email, password)).thenReturn(token);
+        String expectedToken = "valid_jwt_token";
+        when(authService.authenticateClient(request.getEmail(), request.getPassword())).thenReturn(expectedToken);
 
-        ResponseEntity<LoginResponseDTO> responseEntity = authController.clientLogin(request);
-        assertEquals(200, responseEntity.getStatusCodeValue());
-        assertEquals(token, responseEntity.getBody().getToken());
-        verify(authService, times(1)).authenticateClient(email, password);
+        ResponseEntity<?> responseEntity = authController.clientLogin(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertNotNull(responseEntity.getBody());
+        assertInstanceOf(LoginResponseDTO.class, responseEntity.getBody());
+
+        LoginResponseDTO responseDTO = (LoginResponseDTO) responseEntity.getBody();
+        assertEquals(expectedToken, responseDTO.getToken());
+    }
+
+    @Test
+    public void testClientLogin_InvalidCredentials() {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setEmail("invalid@example.com");
+        request.setPassword("wrongpassword");
+
+        when(authService.authenticateClient(request.getEmail(), request.getPassword())).thenReturn(null);
+
+        ResponseEntity<?> responseEntity = authController.clientLogin(request);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertEquals("Bad credentials", responseEntity.getBody());
     }
 
     @Test
     public void testEmployeeLogin_Success() {
-        String email = "employee@example.com";
-        String password = "password";
-        String token = "jwtTokenEmployee";
-
         LoginRequestDTO request = new LoginRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
+        request.setEmail("test@example.com");
+        request.setPassword("password");
 
-        when(authService.authenticateEmployee(email, password)).thenReturn(token);
+        String expectedToken = "valid_jwt_token";
+        when(authService.authenticateEmployee(request.getEmail(), request.getPassword())).thenReturn(expectedToken);
 
-        ResponseEntity<LoginResponseDTO> responseEntity = authController.employeeLogin(request);
-        assertEquals(200, responseEntity.getStatusCodeValue());
-        assertEquals(token, responseEntity.getBody().getToken());
-        verify(authService, times(1)).authenticateEmployee(email, password);
+        ResponseEntity<?> responseEntity = authController.employeeLogin(request);
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertNotNull(responseEntity.getBody());
+        assertInstanceOf(LoginResponseDTO.class, responseEntity.getBody());
+
+        LoginResponseDTO responseDTO = (LoginResponseDTO) responseEntity.getBody();
+        assertEquals(expectedToken, responseDTO.getToken());
+    }
+
+    @Test
+    public void testEmployeeLogin_InvalidCredentials() {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setEmail("invalid@example.com");
+        request.setPassword("wrongpassword");
+
+        when(authService.authenticateEmployee(request.getEmail(), request.getPassword())).thenReturn(null);
+
+        ResponseEntity<?> responseEntity = authController.employeeLogin(request);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
+        assertEquals("Bad credentials", responseEntity.getBody());
     }
 
     @Test

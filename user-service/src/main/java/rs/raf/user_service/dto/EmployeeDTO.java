@@ -41,7 +41,3 @@ public class EmployeeDTO {
         this.active = active;
     }
 }
-
-
-
-

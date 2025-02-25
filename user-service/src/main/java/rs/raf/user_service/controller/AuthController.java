@@ -32,20 +32,27 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/client")
-    public ResponseEntity<LoginResponseDTO> clientLogin(@RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> clientLogin(@RequestBody LoginRequestDTO request) {
         String token = authService.authenticateClient(request.getEmail(), request.getPassword());
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
+        }
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         return ResponseEntity.ok(response);
     }
+
     @Operation(summary = "Employee Login", description = "Endpoint for logging employee and generating JWT token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Succesfully generated JWT token"),
             @ApiResponse(responseCode = "401", description = "Bad credentials")
     })
     @PostMapping("/login/employee")
-    public ResponseEntity<LoginResponseDTO> employeeLogin(@RequestBody LoginRequestDTO request) {
+    public ResponseEntity<?> employeeLogin(@RequestBody LoginRequestDTO request) {
         String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
+        }
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         return ResponseEntity.ok(response);

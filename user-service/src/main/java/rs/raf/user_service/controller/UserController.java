@@ -1,4 +1,3 @@
-
 package rs.raf.user_service.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.ActivationRequestDto;
 import rs.raf.user_service.dto.PermissionDTO;
@@ -27,6 +27,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{userId}/permissions")
     @Operation(summary = "Get user permissions", description = "Returns a list of all permissions for a specific user.")
     @ApiResponses(value = {
@@ -40,6 +41,7 @@ public class UserController {
         return ResponseEntity.ok(permissions);
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/{userId}/permissions")
     @Operation(summary = "Add permission to user", description = "Adds a permission to a user.")
     @ApiResponses(value = {
@@ -60,6 +62,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @DeleteMapping("/{userId}/permissions/{permissionId}")
     @Operation(summary = "Remove permission from user", description = "Removes a permission from a user.")
     @ApiResponses(value = {
