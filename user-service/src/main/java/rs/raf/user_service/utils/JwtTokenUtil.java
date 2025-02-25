@@ -1,4 +1,4 @@
-package rs.raf.user_service.configuration;
+package rs.raf.user_service.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

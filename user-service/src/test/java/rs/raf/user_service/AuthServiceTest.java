@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import rs.raf.user_service.configuration.JwtTokenUtil;
+import rs.raf.user_service.utils.JwtTokenUtil;
 import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.entity.*;
 import rs.raf.user_service.repository.AuthTokenRepository;

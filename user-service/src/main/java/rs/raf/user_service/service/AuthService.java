@@ -1,10 +1,9 @@
 package rs.raf.user_service.service;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.configuration.JwtTokenUtil;
+import rs.raf.user_service.utils.JwtTokenUtil;
 import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.entity.*;
 import rs.raf.user_service.repository.AuthTokenRepository;
