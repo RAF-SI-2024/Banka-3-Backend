@@ -52,7 +52,7 @@ public class EmployeeControllerTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
-                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", "+38161123456",
+                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", true,"+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
         // Verify that the service method was called and assert the response
@@ -73,7 +73,7 @@ public class EmployeeControllerTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("",
-                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", "+38161123456",
+                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", true, "+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
         // Verify that validation errors were detected

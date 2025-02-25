@@ -70,7 +70,7 @@ public class AuthService {
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),email);
         rabbitTemplate.convertAndSend("reset-password",emailRequestDto);
 
-        Long createdAt = Instant.now().toEpochMilli();;
+        Long createdAt = Instant.now().toEpochMilli();
         Long expiresAt = createdAt + 86400000;//24h
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "reset-password",user.getId());
         authTokenRepository.save(authToken);

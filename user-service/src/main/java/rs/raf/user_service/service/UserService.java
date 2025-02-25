@@ -4,20 +4,15 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.dto.PermissionDto;
-import rs.raf.user_service.dto.UserDto;
-import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.BaseUser;
-import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.mapper.PermissionMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
-import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
+import rs.raf.user_service.repository.UserRepository;
 
-import java.time.Instant;
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service

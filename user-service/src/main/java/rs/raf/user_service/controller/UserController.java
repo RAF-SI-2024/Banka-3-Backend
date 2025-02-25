@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.PermissionDto;
-import rs.raf.user_service.dto.UserDto;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;

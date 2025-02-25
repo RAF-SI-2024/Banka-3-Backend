@@ -3,7 +3,6 @@ package rs.raf.user_service.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import rs.raf.user_service.entity.Employee;
 
 import javax.validation.constraints.*;
 import java.util.Date;

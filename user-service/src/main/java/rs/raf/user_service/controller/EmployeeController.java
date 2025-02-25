@@ -16,10 +16,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.*;
-import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
-import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
