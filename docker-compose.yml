@@ -12,3 +12,6 @@ services:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
       - POSTGRES_DB=main_db
+
+volumes:
+  postgres_data:
