@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.boot.context.properties.bind.validation.ValidationErrors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,14 +13,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.dto.CreateEmployeeDto;
-import rs.raf.user_service.dto.UpdateEmployeeDto;
+import rs.raf.user_service.dto.*;
+import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
+import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/employees")
@@ -39,8 +45,14 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
     @GetMapping("/{id}")
-    public EmployeeDto getEmployeeById(@PathVariable Long id) {
-        return employeeService.findById(id);
+    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok().body(employeeService.findById(id));
+        }
+        catch(EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+
     }
 
     @PreAuthorize("hasAuthority('admin')")
@@ -49,7 +61,7 @@ public class EmployeeController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
     })
     @GetMapping
-    public Page<EmployeeDto> getAllEmployees(
+    public ResponseEntity<Page<EmployeeDto>> getAllEmployees(
             @RequestParam(required = false) String position,
             @RequestParam(required = false) String department,
             @RequestParam(required = false) Boolean active,
@@ -57,7 +69,7 @@ public class EmployeeController {
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        return employeeService.findAll(position, department, active, pageable);
+        return ResponseEntity.ok(employeeService.findAll(position, department, active, pageable));
     }
 
     @PreAuthorize("hasAuthority('admin')")
@@ -114,6 +126,7 @@ public class EmployeeController {
         }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Create an employee", description = "Creates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
@@ -121,21 +134,31 @@ public class EmployeeController {
             @ApiResponse(responseCode = "500", description = "Employee creation failed")
     })
     @PostMapping
-    public ResponseEntity<Void> createEmployee(
+    public ResponseEntity<?> createEmployee(
             @RequestBody @Valid CreateEmployeeDto createEmployeeDTO,
             BindingResult result
     ){
-        if (result.hasErrors())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        if (result.hasErrors()) {
+            List<String> errors = result.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.toList());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
+        }
 
         try {
-            employeeService.createEmployee(createEmployeeDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).build();
-        } catch (Exception e) {
+            EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
+        }
+        catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @Operation(summary = "Update an employee", description = "Updates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
@@ -144,21 +167,23 @@ public class EmployeeController {
             @ApiResponse(responseCode = "500", description = "Employee update failed")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateEmployee(
+    public ResponseEntity<?> updateEmployee(
             @Parameter(description = "Employee ID", required = true, example = "1") @PathVariable Long id,
             @RequestBody @Valid UpdateEmployeeDto updateEmployeeDTO,
             BindingResult result
     ) {
-        if (result.hasErrors())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-
+        if (result.hasErrors()) {
+            List<String> errors = result.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.toList());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
+        }
         try {
-            employeeService.updateEmployee(id, updateEmployeeDTO);
-            return ResponseEntity.status(HttpStatus.OK).build();
+            EmployeeDto employeeDto = employeeService.updateEmployee(id, updateEmployeeDTO);
+            return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
 
-        } catch (EntityNotFoundException notFoundException){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

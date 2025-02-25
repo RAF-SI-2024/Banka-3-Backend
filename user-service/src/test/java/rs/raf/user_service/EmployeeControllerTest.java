@@ -10,6 +10,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import rs.raf.user_service.controller.EmployeeController;
 import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.service.EmployeeService;
 
@@ -39,7 +40,9 @@ public class EmployeeControllerTest {
     @Test
     public void testCreateEmployee() {
         // Mock the service layer to simulate success
-        doNothing().when(employeeService).createEmployee(any(CreateEmployeeDto.class));
+        EmployeeDto mockEmployee = new EmployeeDto(); // Simuliraj kreiranog zaposlenog
+        mockEmployee.setFirstName("Petar");
+        when(employeeService.createEmployee(any(CreateEmployeeDto.class))).thenReturn(mockEmployee);
 
         // Mock a valid BindingResult (no errors)
         when(bindingResult.hasErrors()).thenReturn(false);
@@ -48,12 +51,13 @@ public class EmployeeControllerTest {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(1990, 1, 20, 0, 0, 0);
 
-        ResponseEntity<Void> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
+        ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
                 "Petrovic", calendar.getTime(),"M", "petar@raf.rs", "+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
         // Verify that the service method was called and assert the response
         assertEquals(201, response.getStatusCodeValue());
+        assertEquals(mockEmployee.getFirstName(), ((EmployeeDto)response.getBody()).getFirstName());
         verify(employeeService, times(1)).createEmployee(any(CreateEmployeeDto.class));
     }
 
@@ -68,7 +72,7 @@ public class EmployeeControllerTest {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(1990, 1, 20, 0, 0, 0);
 
-        ResponseEntity<Void> response = employeeController.createEmployee(new CreateEmployeeDto("",
+        ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("",
                 "Petrovic", calendar.getTime(),"M", "petar@raf.rs", "+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
@@ -86,7 +90,7 @@ public class EmployeeControllerTest {
                 "Trg Republike 6", "Programer", "Programiranje"
         );
 
-        ResponseEntity<Void> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
+        ResponseEntity<?> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
 
         // Verify the response
         assertEquals(200, response.getStatusCodeValue());  // 200 OK status
@@ -104,7 +108,7 @@ public class EmployeeControllerTest {
                 "Trg Republike 6", "Programer", "Programiranje"
         );
 
-        ResponseEntity<Void> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
+        ResponseEntity<?> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
 
         // Verify the response
         assertEquals(400, response.getStatusCodeValue());  // 200 OK status

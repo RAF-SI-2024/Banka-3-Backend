@@ -1,5 +1,6 @@
 package rs.raf.user_service.mapper;
 
+import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.entity.Employee;
 
@@ -45,5 +46,24 @@ public class EmployeeMapper {
         employee.setActive(dto.isActive());
 
         return employee;
+    }
+
+    public static Employee createDtoToEntity(CreateEmployeeDto dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new Employee(
+                dto.getFirstName(),
+                dto.getLastName(),
+                dto.getBirthDate(),
+                dto.getGender(),
+                dto.getEmail(),
+                dto.getPhone(),
+                dto.getAddress(),
+                dto.getUsername(),
+                dto.getPosition(),
+                dto.getDepartment(),
+                dto.getActive()
+        );
     }
 }

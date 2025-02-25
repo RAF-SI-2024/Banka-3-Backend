@@ -15,6 +15,8 @@ import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDto;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
@@ -58,7 +60,7 @@ public class EmployeeService {
     })
     public EmployeeDto findById(Long id) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(EntityNotFoundException::new);
         return EmployeeMapper.toDto(employee);
     }
 
@@ -102,15 +104,17 @@ public class EmployeeService {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
             @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
     })
-    public void createEmployee(CreateEmployeeDto createEmployeeDTO) {
-        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()) ||
-                employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
-            throw new IllegalArgumentException();
+    public EmployeeDto createEmployee(CreateEmployeeDto createEmployeeDTO) {
+        if (employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
+            throw new EmailAlreadyExistsException();
 
-        Employee employee = createEmployeeDTO.mapToEmployee();
+        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()))
+            throw new UserAlreadyExistsException();
+
+        Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
         employeeRepository.save(employee);
         
-                UUID token = UUID.fromString(UUID.randomUUID().toString());
+        UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
 
         rabbitTemplate.convertAndSend("set-password",emailRequestDto);
@@ -119,6 +123,8 @@ public class EmployeeService {
         Long expiresAt = createdAt + 86400000;//24h
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
         authTokenRepository.save(authToken);
+
+        return EmployeeMapper.toDto(employee);
     }
 
     @Operation(summary = "Update an employee", description = "Updates an employee.")
@@ -126,7 +132,7 @@ public class EmployeeService {
             @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
-    public void updateEmployee(Long id, UpdateEmployeeDto updateEmployeeDTO) {
+    public EmployeeDto updateEmployee(Long id, UpdateEmployeeDto updateEmployeeDTO) {
         Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
         employee.setLastName(updateEmployeeDTO.getLastName());
@@ -136,7 +142,9 @@ public class EmployeeService {
         employee.setPosition(updateEmployeeDTO.getPosition());
         employee.setDepartment(updateEmployeeDTO.getDepartment());
 
-        employeeRepository.save(employee);
+        employee = employeeRepository.save(employee);
+
+        return EmployeeMapper.toDto(employee);
     }
 
 }

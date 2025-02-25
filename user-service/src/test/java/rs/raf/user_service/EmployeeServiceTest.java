@@ -107,7 +107,7 @@ class EmployeeServiceTest {
 
         Exception exception = assertThrows(RuntimeException.class, () -> employeeService.findById(99L));
 
-        assertEquals("Employee not found", exception.getMessage());
+        assertEquals(EntityNotFoundException.class, exception.getClass());
     }
 
     @Test
