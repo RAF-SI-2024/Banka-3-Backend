@@ -76,7 +76,7 @@ public class AuthService {
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),email);
         rabbitTemplate.convertAndSend("reset-password",emailRequestDto);
 
-        Long createdAt = System.currentTimeMillis();
+        Long createdAt = Instant.now().toEpochMilli();;
         Long expiresAt = createdAt + 86400000;//24h
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "reset-password",user.getId());
         authTokenRepository.save(authToken);
@@ -84,8 +84,8 @@ public class AuthService {
     }
     public void resetPassword(String token, String password){
         AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
-        if(currAuthToken.getExpiresAt()>System.currentTimeMillis()){
-            currAuthToken.setExpiresAt(System.currentTimeMillis());
+        if(currAuthToken.getExpiresAt()>Instant.now().toEpochMilli()){
+            currAuthToken.setExpiresAt(Instant.now().toEpochMilli());
             BaseUser user = userRepository.findById(currAuthToken.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
             user.setPassword(passwordEncoder.encode(password));
             if(user instanceof Client client1){
@@ -97,12 +97,12 @@ public class AuthService {
     }
     public void checkToken(String token){
         AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
-        if(currAuthToken.getExpiresAt()<System.currentTimeMillis())
+        if(currAuthToken.getExpiresAt()<Instant.now().toEpochMilli())
             throw new RuntimeException("Expired token.");
     }
     public void setPassword(String token, String password){
         AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
-        if(currAuthToken.getExpiresAt()>System.currentTimeMillis()) {
+        if(currAuthToken.getExpiresAt()>Instant.now().toEpochMilli()) {
             BaseUser user = userRepository.findById(currAuthToken.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
             currAuthToken.setExpiresAt(Instant.now().toEpochMilli());
             user.setPassword(passwordEncoder.encode(password));

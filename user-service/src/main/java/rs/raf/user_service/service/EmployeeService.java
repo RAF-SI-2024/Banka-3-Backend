@@ -21,6 +21,7 @@ import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -130,7 +131,7 @@ public class EmployeeService {
 
         rabbitTemplate.convertAndSend("set-password",emailRequestDto);
 
-        Long createdAt = System.currentTimeMillis();
+        Long createdAt = Instant.now().toEpochMilli();
         Long expiresAt = createdAt + 86400000;//24h
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
         authTokenRepository.save(authToken);

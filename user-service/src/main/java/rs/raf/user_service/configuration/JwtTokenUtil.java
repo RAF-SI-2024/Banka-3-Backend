@@ -7,6 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class JwtTokenUtil {
                 .setSubject(email)
                 .claim("permissions", permissions)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(Instant.now().toEpochMilli() + expiration))
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }

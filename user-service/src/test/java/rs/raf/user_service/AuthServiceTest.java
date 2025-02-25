@@ -184,14 +184,14 @@ public class AuthServiceTest {
         String token = "valid-token";
         String newPassword = "newPassword123";
         AuthToken authToken = new AuthToken();
-        authToken.setExpiresAt(System.currentTimeMillis() + 100000);
+        authToken.setExpiresAt(Instant.now().toEpochMilli()+ 100000);
         BaseUser user = new Client();
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
         when(userRepository.findById(authToken.getUserId())).thenReturn(Optional.of(user));
         when(passwordEncoder.encode(newPassword)).thenReturn("encodedPassword");
         authService.resetPassword(token, newPassword);
         verify(clientRepository).save(any(Client.class));
-        assertEquals(System.currentTimeMillis(), authToken.getExpiresAt(), 1000);
+        assertEquals(Instant.now().toEpochMilli(), authToken.getExpiresAt(), 1000);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class AuthServiceTest {
         String token = "expired-token";
         String newPassword = "newPassword123";
         AuthToken authToken = new AuthToken();
-        authToken.setExpiresAt(System.currentTimeMillis() - 100000);
+        authToken.setExpiresAt(Instant.now().toEpochMilli() - 100000);
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             authService.resetPassword(token, newPassword);
