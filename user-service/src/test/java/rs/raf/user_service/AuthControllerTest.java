@@ -96,7 +96,7 @@ public class AuthControllerTest {
         dto.setToken("valid_token");
         dto.setPassword("newPassword");
 
-        ResponseEntity<Void> response = authController.resetPassword(dto);
+        ResponseEntity<Void> response = authController.activateUser(dto);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -104,15 +104,12 @@ public class AuthControllerTest {
 
     @Test
     public void testActivateUser_Success() {
-        // Priprema podataka
         ActivationRequestDto request = new ActivationRequestDto();
         request.setToken("valid-token");
         request.setPassword("newPassword123");
 
-        // Poziv metode
         ResponseEntity<Void> response = authController.activateUser(request);
 
-        // Provera rezultata
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
         // Provera da li je servis pozvan
@@ -120,40 +117,30 @@ public class AuthControllerTest {
     }
     @Test
     public void testActivateUser_InvalidToken() {
-        // Priprema podataka
         ActivationRequestDto request = new ActivationRequestDto();
         request.setToken("invalid-token");
         request.setPassword("newPassword123");
 
-        // Simuliramo izuzetak kada je token nevažeći
         doThrow(new RuntimeException("Invalid token.")).when(authService).setPassword("invalid-token", "newPassword123");
 
-        // Poziv metode
         ResponseEntity<Void> response = authController.activateUser(request);
 
-        // Provera rezultata
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        // Provera da li je servis pozvan
         verify(authService, times(1)).setPassword("invalid-token", "newPassword123");
     }
     @Test
     public void testActivateUser_ExpiredToken() {
-        // Priprema podataka
         ActivationRequestDto request = new ActivationRequestDto();
         request.setToken("expired-token");
         request.setPassword("newPassword123");
 
-        // Simuliramo izuzetak kada je token istekao
         doThrow(new RuntimeException("Expired token.")).when(authService).setPassword("expired-token", "newPassword123");
 
-        // Poziv metode
         ResponseEntity<Void> response = authController.activateUser(request);
 
-        // Provera rezultata
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        // Provera da li je servis pozvan
         verify(authService, times(1)).setPassword("expired-token", "newPassword123");
     }
 }

@@ -229,30 +229,23 @@ public class AuthServiceTest {
         BaseUser user = new Client();
         user.setId(1L);
 
-        // Mock-ovanje repozitorijuma
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
 
-        // Poziv metode
         authService.setPassword(token, password);
 
-        // Provera da li je lozinka ažurirana
         verify(userRepository, times(1)).save(user);
         assertEquals("encodedPassword", user.getPassword());
 
-        // Provera da li je token ažuriran
         assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
     }
     @Test
     public void testSetPassword_InvalidToken() {
-        // Priprema podataka
         String token = "invalid-token";
 
-        // Mock-ovanje repozitorijuma
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
 
-        // Provera da li se baca izuzetak
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             authService.setPassword(token, "newPassword123");
         });
@@ -260,15 +253,12 @@ public class AuthServiceTest {
     }
     @Test
     public void testSetPassword_ExpiredToken() {
-        // Priprema podataka
         String token = "expired-token";
         AuthToken authToken = new AuthToken();
         authToken.setExpiresAt(Instant.now().minusSeconds(3600).toEpochMilli()); // Token je istekao
 
-        // Mock-ovanje repozitorijuma
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
 
-        // Provera da li se baca izuzetak
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             authService.setPassword(token, "newPassword123");
         });
