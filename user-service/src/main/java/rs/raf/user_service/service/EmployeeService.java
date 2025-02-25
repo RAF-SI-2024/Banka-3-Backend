@@ -107,7 +107,8 @@ public class EmployeeService {
                 employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new IllegalArgumentException();
 
-        Employee employee = employeeRepository.save(createEmployeeDTO.mapToEmployee());
+        Employee employee = createEmployeeDTO.mapToEmployee();
+        employeeRepository.save(employee);
         
                 UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
