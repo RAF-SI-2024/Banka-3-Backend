@@ -6,16 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
-import rs.raf.user_service.dto.LoginRequestDTO;
-import rs.raf.user_service.dto.LoginResponseDTO;
-import rs.raf.user_service.dto.RequestPasswordResetDTO;
+import rs.raf.user_service.dto.LoginRequestDto;
+import rs.raf.user_service.dto.LoginResponseDto;
+import rs.raf.user_service.dto.RequestPasswordResetDto;
 import rs.raf.user_service.service.AuthService;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import org.springframework.http.HttpStatus;
-import java.util.HashMap;
-import java.util.Map;
-import static org.junit.jupiter.api.Assertions.*;
+
 import rs.raf.user_service.dto.ActivationRequestDto;
 
 public class AuthControllerTest {
@@ -33,7 +30,7 @@ public class AuthControllerTest {
 
     @Test
     public void testClientLogin_Success() {
-        LoginRequestDTO request = new LoginRequestDTO();
+        LoginRequestDto request = new LoginRequestDto();
         request.setEmail("test@example.com");
         request.setPassword("password");
 
@@ -44,15 +41,15 @@ public class AuthControllerTest {
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         assertNotNull(responseEntity.getBody());
-        assertInstanceOf(LoginResponseDTO.class, responseEntity.getBody());
+        assertInstanceOf(LoginResponseDto.class, responseEntity.getBody());
 
-        LoginResponseDTO responseDTO = (LoginResponseDTO) responseEntity.getBody();
+        LoginResponseDto responseDTO = (LoginResponseDto) responseEntity.getBody();
         assertEquals(expectedToken, responseDTO.getToken());
     }
 
     @Test
     public void testClientLogin_InvalidCredentials() {
-        LoginRequestDTO request = new LoginRequestDTO();
+        LoginRequestDto request = new LoginRequestDto();
         request.setEmail("invalid@example.com");
         request.setPassword("wrongpassword");
 
@@ -66,7 +63,7 @@ public class AuthControllerTest {
 
     @Test
     public void testEmployeeLogin_Success() {
-        LoginRequestDTO request = new LoginRequestDTO();
+        LoginRequestDto request = new LoginRequestDto();
         request.setEmail("test@example.com");
         request.setPassword("password");
 
@@ -77,15 +74,15 @@ public class AuthControllerTest {
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         assertNotNull(responseEntity.getBody());
-        assertInstanceOf(LoginResponseDTO.class, responseEntity.getBody());
+        assertInstanceOf(LoginResponseDto.class, responseEntity.getBody());
 
-        LoginResponseDTO responseDTO = (LoginResponseDTO) responseEntity.getBody();
+        LoginResponseDto responseDTO = (LoginResponseDto) responseEntity.getBody();
         assertEquals(expectedToken, responseDTO.getToken());
     }
 
     @Test
     public void testEmployeeLogin_InvalidCredentials() {
-        LoginRequestDTO request = new LoginRequestDTO();
+        LoginRequestDto request = new LoginRequestDto();
         request.setEmail("invalid@example.com");
         request.setPassword("wrongpassword");
 
@@ -99,7 +96,7 @@ public class AuthControllerTest {
 
     @Test
     void testRequestPasswordReset_Success() {
-        RequestPasswordResetDTO requestPasswordResetDTO = new RequestPasswordResetDTO();
+        RequestPasswordResetDto requestPasswordResetDTO = new RequestPasswordResetDto();
         requestPasswordResetDTO.setEmail("test@example.com");
 
         ResponseEntity<Void> response = authController.requestPasswordReset(requestPasswordResetDTO);
@@ -110,7 +107,7 @@ public class AuthControllerTest {
 
     @Test
     void testRequestPasswordReset_Failure() {
-        RequestPasswordResetDTO requestPasswordResetDTO = new RequestPasswordResetDTO();
+        RequestPasswordResetDto requestPasswordResetDTO = new RequestPasswordResetDto();
         requestPasswordResetDTO.setEmail("test@example.com");
 
         doThrow(new RuntimeException()).when(authService).requestPasswordReset(anyString());

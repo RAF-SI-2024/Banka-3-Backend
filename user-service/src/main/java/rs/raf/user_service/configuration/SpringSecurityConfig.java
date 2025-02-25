@@ -1,7 +1,6 @@
 package rs.raf.user_service.configuration;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -41,7 +40,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api-docs/**").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/auth/login/**").permitAll()
+                .antMatchers("/api/auth/login/**").permitAll()
                 .antMatchers("/api/admin/users/**").hasAuthority("admin")
                 .antMatchers("/api/admin/employees/**").hasAuthority("admin")
                 .anyRequest().authenticated()

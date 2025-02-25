@@ -11,14 +11,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.repository.AuthTokenRepository;
-import rs.raf.user_service.dto.CreateEmployeeDTO;
-import rs.raf.user_service.dto.UpdateEmployeeDTO;
+import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.service.EmployeeService;
-import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.entity.Employee;
 
 import javax.persistence.EntityNotFoundException;
@@ -51,7 +49,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
 
-        EmployeeDTO result = employeeService.findById(1L);
+        EmployeeDto result = employeeService.findById(1L);
 
         assertNotNull(result);
         assertEquals("marko123", result.getUsername());
@@ -70,7 +68,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDTO> result = employeeService.findAll("Developer", "IT", true, PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll("Developer", "IT", true, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
@@ -97,7 +95,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDTO> result = employeeService.findAll(null, null, null, PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll(null, null, null, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
@@ -109,7 +107,7 @@ class EmployeeServiceTest {
 
         Exception exception = assertThrows(RuntimeException.class, () -> employeeService.findById(99L));
 
-        assertEquals("Employee not found", exception.getMessage());
+        assertEquals(EntityNotFoundException.class, exception.getClass());
     }
 
     @Test
@@ -206,12 +204,13 @@ class EmployeeServiceTest {
         String username = "petareperic90";
         String position = "Menadzer";
         String department = "Finansije";
+        Boolean active = true;
 
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(1990, 1, 20, 0, 0, 0);
         Date birthDate = calendar.getTime();
 
-        employeeService.createEmployee(new CreateEmployeeDTO(firstName, lastName, birthDate, gender, email, phone, address,
+        employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active,phone, address,
                 username, position, department)
         );
 
@@ -236,7 +235,7 @@ class EmployeeServiceTest {
 
         Employee employee = new Employee("Petar", "Petrovic", calendar.getTime(), "M",
                 "petar@raf.rs", "+38161123456","Trg Republike 5", "petareperic90",
-                "Menadzer", "Finansije"
+                "Menadzer", "Finansije", true
         );
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
@@ -248,7 +247,7 @@ class EmployeeServiceTest {
         String position = "Programer";
         String department = "Programiranje";
 
-        employeeService.updateEmployee(1L , new UpdateEmployeeDTO(lastName, gender, phone, address, position, department));
+        employeeService.updateEmployee(1L , new UpdateEmployeeDto(lastName, gender, phone, address, position, department));
 
         assertAll("Employee fields should be updated correctly",
                 () -> assertEquals(lastName, employee.getLastName()),
@@ -266,7 +265,7 @@ class EmployeeServiceTest {
         when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(EntityNotFoundException.class, () -> employeeService.updateEmployee(
-                99L , new UpdateEmployeeDTO("Peric", "F", "+38161123457",
+                99L , new UpdateEmployeeDto("Peric", "F", "+38161123457",
                         "Trg Republike 6", "Programer", "Programiranje")
                 )
         );

@@ -1,6 +1,5 @@
 package rs.raf.user_service;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,7 +7,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import rs.raf.user_service.configuration.JwtTokenUtil;
+import rs.raf.user_service.utils.JwtTokenUtil;
 import rs.raf.user_service.security.JwtAuthenticationFilter;
 
 import javax.servlet.FilterChain;
