@@ -13,6 +13,7 @@ import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.UserRepository;
 
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -69,16 +70,15 @@ public class AuthService {
         return jwtTokenUtil.generateToken(user.getEmail(),permissions);
     }
     public void requestPasswordReset(String email){
-        BaseUser client = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        BaseUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),email);
-        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
         rabbitTemplate.convertAndSend("reset-password",emailRequestDto);
 
         Long createdAt = System.currentTimeMillis();
         Long expiresAt = createdAt + 86400000;//24h
-        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "reset-password",client.getId());
+        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "reset-password",user.getId());
         authTokenRepository.save(authToken);
 
     }
@@ -86,11 +86,11 @@ public class AuthService {
         AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
         if(currAuthToken.getExpiresAt()>System.currentTimeMillis()){
             currAuthToken.setExpiresAt(System.currentTimeMillis());
-            BaseUser client = userRepository.findById(currAuthToken.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
-            client.setPassword(passwordEncoder.encode(password));
-            if(client instanceof Client client1){
+            BaseUser user = userRepository.findById(currAuthToken.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
+            user.setPassword(passwordEncoder.encode(password));
+            if(user instanceof Client client1){
                 clientRepository.save(client1);
-            } else if (client instanceof Employee employee) {
+            } else if (user instanceof Employee employee) {
                 employeeRepository.save(employee);
             }
         }else throw new RuntimeException("Expired token.");
@@ -100,4 +100,15 @@ public class AuthService {
         if(currAuthToken.getExpiresAt()<System.currentTimeMillis())
             throw new RuntimeException("Expired token.");
     }
+    public void setPassword(String token, String password){
+        AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
+        if(currAuthToken.getExpiresAt()>System.currentTimeMillis()) {
+            BaseUser user = userRepository.findById(currAuthToken.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
+            currAuthToken.setExpiresAt(Instant.now().toEpochMilli());
+            user.setPassword(passwordEncoder.encode(password));
+            userRepository.save(user);
+        }else throw new RuntimeException("Expired token");
+
+    }
+
 }

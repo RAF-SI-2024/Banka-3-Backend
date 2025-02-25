@@ -200,29 +200,8 @@ class UserServiceTest {
 
         verify(rabbitTemplate, times(1)).convertAndSend(eq("activate-client-account"), any(EmailRequestDto.class));
     }
-    @Test
-    public void testActivateClient_InvalidToken() {
-        String token = "invalid-token";
 
-        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.activateUser(token, "newPassword123");
-        });
-        assertEquals("Invalid token.", exception.getMessage());
-    }
-    @Test
-    public void testActivateUser_ExpiredToken() {
-        String token = "expired-token";
-        AuthToken authToken = new AuthToken();
-        authToken.setExpiresAt(System.currentTimeMillis() - 100000);
-
-        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.activateUser(token, "newPassword123");
-        });
-    }
 }
 
 

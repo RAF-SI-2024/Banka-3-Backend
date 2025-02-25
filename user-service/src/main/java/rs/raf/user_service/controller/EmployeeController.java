@@ -120,18 +120,5 @@ public class EmployeeController {
         }
 
     }
-    @PostMapping("/set-password")
-    @Operation(summary = "Activate employee account", description = "Activates employee and sets his password.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "New employee password set successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid employee data.")
-    })
-    public ResponseEntity<Void> activateEmployee(@RequestBody ActivationRequestDto activationRequestDto){
-        try {
-            employeeService.activateEmployee(activationRequestDto.getToken(),activationRequestDto.getPassword());
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
+
 }

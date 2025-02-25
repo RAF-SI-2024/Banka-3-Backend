@@ -208,28 +208,4 @@ class EmployeeServiceTest {
 
         verify(rabbitTemplate, times(1)).convertAndSend(eq("set-password"), any(EmailRequestDto.class));
     }
-    @Test
-    public void testActivateEmployee_InvalidToken() {
-        String token = "invalid-token";
-
-        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            employeeService.activateEmployee(token, "newPassword123");
-        });
-        assertEquals("Invalid token.", exception.getMessage());
-    }
-
-    @Test
-    public void testActivateEmployee_ExpiredToken() {
-        String token = "expired-token";
-        AuthToken authToken = new AuthToken();
-        authToken.setExpiresAt(System.currentTimeMillis() - 100000); // Token je istekao
-
-        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
-
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            employeeService.activateEmployee(token, "newPassword123");
-        });
-    }
     }

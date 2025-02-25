@@ -128,7 +128,6 @@ public class EmployeeService {
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
 
-        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
         rabbitTemplate.convertAndSend("set-password",emailRequestDto);
 
         Long createdAt = System.currentTimeMillis();
@@ -136,14 +135,5 @@ public class EmployeeService {
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
         authTokenRepository.save(authToken);
     }
-    public void activateEmployee(String token, String password){
-        AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
-        if(currAuthToken.getExpiresAt()>System.currentTimeMillis()){
-            currAuthToken.setExpiresAt(System.currentTimeMillis());
-            Employee employee = employeeRepository.findById(currAuthToken.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            employee.setPassword(passwordEncoder.encode(password));
-            employeeRepository.save(employee);
-        }else throw new RuntimeException("Expired token");
-    }
+
 }

@@ -7,6 +7,7 @@ import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
 import rs.raf.user_service.dto.LoginRequestDTO;
 import rs.raf.user_service.dto.LoginResponseDTO;
+import rs.raf.user_service.dto.RequestPasswordResetDTO;
 import rs.raf.user_service.service.AuthService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
@@ -67,10 +68,10 @@ public class AuthControllerTest {
 
     @Test
     void testRequestPasswordReset_Success() {
-        Map<String, String> request = new HashMap<>();
-        request.put("email", "test@example.com");
+        RequestPasswordResetDTO requestPasswordResetDTO = new RequestPasswordResetDTO();
+        requestPasswordResetDTO.setEmail("test@example.com");
 
-        ResponseEntity<Void> response = authController.requestPasswordReset(request);
+        ResponseEntity<Void> response = authController.requestPasswordReset(requestPasswordResetDTO);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -78,12 +79,12 @@ public class AuthControllerTest {
 
     @Test
     void testRequestPasswordReset_Failure() {
-        Map<String, String> request = new HashMap<>();
-        request.put("email", "test@example.com");
+        RequestPasswordResetDTO requestPasswordResetDTO = new RequestPasswordResetDTO();
+        requestPasswordResetDTO.setEmail("test@example.com");
 
         doThrow(new RuntimeException()).when(authService).requestPasswordReset(anyString());
 
-        ResponseEntity<Void> response = authController.requestPasswordReset(request);
+        ResponseEntity<Void> response = authController.requestPasswordReset(requestPasswordResetDTO);
 
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -102,16 +103,57 @@ public class AuthControllerTest {
     }
 
     @Test
-    void testResetPassword_Failure() {
-        ActivationRequestDto dto = new ActivationRequestDto();
-        dto.setToken("invalid_token");
-        dto.setPassword("newPassword");
+    public void testActivateUser_Success() {
+        // Priprema podataka
+        ActivationRequestDto request = new ActivationRequestDto();
+        request.setToken("valid-token");
+        request.setPassword("newPassword123");
 
-        doThrow(new RuntimeException()).when(authService).resetPassword(anyString(), anyString());
+        // Poziv metode
+        ResponseEntity<Void> response = authController.activateUser(request);
 
-        ResponseEntity<Void> response = authController.resetPassword(dto);
+        // Provera rezultata
+        assertEquals(HttpStatus.OK, response.getStatusCode());
 
-        assertNotNull(response);
+        // Provera da li je servis pozvan
+        verify(authService, times(1)).setPassword("valid-token", "newPassword123");
+    }
+    @Test
+    public void testActivateUser_InvalidToken() {
+        // Priprema podataka
+        ActivationRequestDto request = new ActivationRequestDto();
+        request.setToken("invalid-token");
+        request.setPassword("newPassword123");
+
+        // Simuliramo izuzetak kada je token nevažeći
+        doThrow(new RuntimeException("Invalid token.")).when(authService).setPassword("invalid-token", "newPassword123");
+
+        // Poziv metode
+        ResponseEntity<Void> response = authController.activateUser(request);
+
+        // Provera rezultata
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+
+        // Provera da li je servis pozvan
+        verify(authService, times(1)).setPassword("invalid-token", "newPassword123");
+    }
+    @Test
+    public void testActivateUser_ExpiredToken() {
+        // Priprema podataka
+        ActivationRequestDto request = new ActivationRequestDto();
+        request.setToken("expired-token");
+        request.setPassword("newPassword123");
+
+        // Simuliramo izuzetak kada je token istekao
+        doThrow(new RuntimeException("Expired token.")).when(authService).setPassword("expired-token", "newPassword123");
+
+        // Poziv metode
+        ResponseEntity<Void> response = authController.activateUser(request);
+
+        // Provera rezultata
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+
+        // Provera da li je servis pozvan
+        verify(authService, times(1)).setPassword("expired-token", "newPassword123");
     }
 }

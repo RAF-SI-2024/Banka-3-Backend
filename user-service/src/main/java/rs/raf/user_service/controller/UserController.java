@@ -96,19 +96,5 @@ public class UserController {
         }
     }
 
-    @PostMapping("/activate-account")
-    @Operation(summary = "Activate client account", description = "Activates client and sets his password.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Password set successfully."),
-            @ApiResponse(responseCode = "400", description = "Invalid user data.")
-    })
-    public ResponseEntity<Void> activateUser(@RequestBody ActivationRequestDto activationRequestDto) {
-        System.out.println("evo me");
-        try {
-            userService.activateUser(activationRequestDto.getToken(), activationRequestDto.getPassword());
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
+
 }

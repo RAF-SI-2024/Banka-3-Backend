@@ -17,6 +17,7 @@ import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -88,24 +89,12 @@ public class UserService {
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),client.getEmail());
-        System.out.println(emailRequestDto.getDestination()+" "+emailRequestDto.getCode()+" evo me");
-        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
         rabbitTemplate.convertAndSend("activate-client-account",emailRequestDto);
 
-        Long createdAt = System.currentTimeMillis();
+        Long createdAt = Instant.now().toEpochMilli();
         Long expiresAt = createdAt + 86400000;//24h
         AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "activate-client-account",client.getId());
         authTokenRepository.save(authToken);;
     }
-    //TODO dodaj endpoint za proveru tokena da li je validan
-    public void activateUser(String token, String password){
-        AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
-        if(currAuthToken.getExpiresAt()>System.currentTimeMillis()){
-            currAuthToken.setExpiresAt(System.currentTimeMillis());
-            BaseUser client = userRepository.findById(currAuthToken.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            client.setPassword(passwordEncoder.encode(password));
-            userRepository.save(client);
-        }else throw new RuntimeException("Expired token");
-    }
+
 }
