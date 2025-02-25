@@ -10,9 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import rs.raf.user_service.dto.LoginRequestDTO;
-import rs.raf.user_service.dto.LoginResponseDTO;
+import rs.raf.user_service.dto.*;
 import rs.raf.user_service.service.AuthService;
+
+import java.util.Map;
 
 @Tag(name = "Authentication Controller", description = "API for authenticating users")
 @RestController
@@ -55,5 +56,49 @@ public class AuthController {
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/request-password-reset")
+    @Operation(summary = "Request password reset", description = "Requests password reset with email adress.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Request for password reset successfully sent."),
+            @ApiResponse(responseCode = "400", description = "Invalid email.")
+    })
+    public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDTO requestPasswordResetDTO){
+        try {
+            this.authService.requestPasswordReset(requestPasswordResetDTO.getEmail());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    @PostMapping("check-token")
+    @Operation(summary = "Checks if a token is still valid", description = "Checks if a token is still valid.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Valid"),
+            @ApiResponse(responseCode = "404", description = "Invalid")
+    })
+    public ResponseEntity<Void> checkToken(@RequestBody CheckTokenDTO checkTokenDTO){
+        try {
+            authService.checkToken(checkTokenDTO.getToken());
+            return ResponseEntity.ok().build();
+        }catch (RuntimeException e) {
+            return ResponseEntity.status(404).build();
+        }
+    }
+    @PostMapping("/set-password")
+    @Operation(summary = "Sets password", description = "Sets new password for both clients and employees")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password set successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid data.")
+    })
+    public ResponseEntity<Void> activateUser(@RequestBody ActivationRequestDto activationRequestDto) {
+        try {
+            authService.setPassword(activationRequestDto.getToken(),activationRequestDto.getPassword());
+            //userService.activateUser(activationRequestDto.getToken(), activationRequestDto.getPassword());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }

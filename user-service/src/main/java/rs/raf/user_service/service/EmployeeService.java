@@ -3,26 +3,39 @@ package rs.raf.user_service.service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.dto.CreateEmployeeDTO;
 import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.dto.EmployeeDTO;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
-
+import java.time.Instant;
+import java.util.UUID;
 import javax.persistence.EntityNotFoundException;
 
 @Service
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final PasswordEncoder passwordEncoder;
 
-    public EmployeeService(EmployeeRepository employeeRepository) {
+    public EmployeeService(EmployeeRepository employeeRepository, RabbitTemplate rabbitTemplate,AuthTokenRepository authTokenRepository, PasswordEncoder passwordEncoder) {
         this.employeeRepository = employeeRepository;
+        this.rabbitTemplate = rabbitTemplate;
+        this.authTokenRepository = authTokenRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
@@ -94,7 +107,18 @@ public class EmployeeService {
                 employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new IllegalArgumentException();
 
-        employeeRepository.save(createEmployeeDTO.mapToEmployee());
+        Employee employee = createEmployeeDTO.mapToEmployee();
+        employeeRepository.save(employee);
+        
+                UUID token = UUID.fromString(UUID.randomUUID().toString());
+        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(),employee.getEmail());
+
+        rabbitTemplate.convertAndSend("set-password",emailRequestDto);
+
+        Long createdAt = Instant.now().toEpochMilli();
+        Long expiresAt = createdAt + 86400000;//24h
+        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password",employee.getId());
+        authTokenRepository.save(authToken);
     }
 
     @Operation(summary = "Update an employee", description = "Updates an employee.")

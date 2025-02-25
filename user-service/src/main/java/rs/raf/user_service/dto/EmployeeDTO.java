@@ -1,10 +1,15 @@
 package rs.raf.user_service.dto;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import javax.persistence.Column;
+import java.util.Date;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class EmployeeDTO {
     private Long id;
     private String username;
@@ -16,6 +21,12 @@ public class EmployeeDTO {
     private String firstName;
     private String lastName;
     private String email;
+
+    private Date birthDate;
+    private String gender;
+    private String phone;
+    private String address;
+
 
 
     public EmployeeDTO(String firstName, String lastName, String email,

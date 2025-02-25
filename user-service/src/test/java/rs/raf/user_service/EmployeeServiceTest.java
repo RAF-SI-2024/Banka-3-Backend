@@ -5,11 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.entity.AuthToken;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.dto.CreateEmployeeDTO;
 import rs.raf.user_service.dto.UpdateEmployeeDTO;
 import rs.raf.user_service.repository.EmployeeRepository;
@@ -28,9 +32,14 @@ class EmployeeServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+    @Mock
+    private AuthTokenRepository authTokenRepository;
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private EmployeeService employeeService;
+
 
     @Test
     void testFindById() {
@@ -186,6 +195,7 @@ class EmployeeServiceTest {
     }
 
     @Test
+
     void testCreateEmployee() {
         String firstName = "Petar";
         String lastName = "Petrovic";
