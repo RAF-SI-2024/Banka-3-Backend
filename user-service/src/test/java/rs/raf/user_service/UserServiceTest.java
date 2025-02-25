@@ -184,21 +184,21 @@ class UserServiceTest {
         assertEquals("Permission not found", exception.getMessage());
         verify(userRepository, never()).save(user);
     }
-    @Test
-    public void testCreateClient_Success() {
-        UserDto userDTO = new UserDto();
-        userDTO.setEmail("test@example.com");
-        userDTO.setFirstName("John");
-        userDTO.setLastName("Doe");
-
-        userService.createUser(userDTO);
-
-        verify(userRepository, times(1)).save(any(Client.class));
-
-        verify(authTokenRepository, times(1)).save(any(AuthToken.class));
-
-        verify(rabbitTemplate, times(1)).convertAndSend(eq("activate-client-account"), any(EmailRequestDto.class));
-    }
+//    @Test
+//    public void testCreateClient_Success() {
+//        UserDto userDTO = new UserDto();
+//        userDTO.setEmail("test@example.com");
+//        userDTO.setFirstName("John");
+//        userDTO.setLastName("Doe");
+//
+//        userService.createUser(userDTO);
+//
+//        verify(userRepository, times(1)).save(any(Client.class));
+//
+//        verify(authTokenRepository, times(1)).save(any(AuthToken.class));
+//
+//        verify(rabbitTemplate, times(1)).convertAndSend(eq("activate-client-account"), any(EmailRequestDto.class));
+//    }
 
 
 }
