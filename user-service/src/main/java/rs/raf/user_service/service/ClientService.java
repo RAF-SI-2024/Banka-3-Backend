@@ -2,7 +2,7 @@ package rs.raf.user_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
@@ -27,9 +27,9 @@ public class ClientService {
         this.clientMapper = clientMapper;
     }
 
-    public List<ClientDto> listClients(int page, int size) {
-        Page<Client> clientsPage = clientRepository.findAll(PageRequest.of(page, size));
-        return clientsPage.stream().map(clientMapper::toDto).collect(Collectors.toList());
+    public Page<ClientDto> listClients(Pageable pageable) {
+        Page<Client> clientsPage = clientRepository.findAll(pageable);
+        return clientsPage.map(clientMapper::toDto);
     }
 
     public ClientDto getClientById(Long id) {

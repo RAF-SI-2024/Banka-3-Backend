@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,10 +35,11 @@ public class ClientController {
     @GetMapping
     @Operation(summary = "Get all clients with pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
-    public ResponseEntity<List<ClientDto>> getAllClients(
+    public ResponseEntity<Page<ClientDto>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(clientService.listClients(page, size));
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(clientService.listClients(pageable));
     }
 
     @PreAuthorize("hasAuthority('admin')")
