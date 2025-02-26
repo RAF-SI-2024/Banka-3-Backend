@@ -2,6 +2,10 @@ package rs.raf.email_service;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import rs.raf.email_service.data.EmailType;
+import rs.raf.email_service.utils.EmailUtils;
+
+import javax.mail.MessagingException;
 
 @Component
 public class EmailListener {
@@ -13,26 +17,27 @@ public class EmailListener {
     }
 
     @RabbitListener(queues = "reset-password")
-    public void handleResetPassword(EmailRequestDto dto) {
-        String subject = "Reset Password";
-        String text = "Your reset code is: " + dto.getCode();
-        emailService.sendEmail(dto.getDestination(), subject, text);
+    public void handleResetPassword(EmailRequestDto dto) throws MessagingException {
+        String subject = EmailUtils.getEmailSubject(EmailType.RESET_PASSWORD);
+        String content = EmailUtils.getEmailContent(EmailType.RESET_PASSWORD, dto.getCode());
+        String plain = EmailUtils.getEmailPlainContent(EmailType.RESET_PASSWORD, dto.getCode());
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
     @RabbitListener(queues = "set-password")
-    public void handleSetPassword(EmailRequestDto dto) {
-        String subject = "Set Your Password";
-        String text = "Your password setup code is: " + dto.getCode();
-        emailService.sendEmail(dto.getDestination(), subject, text);
+    public void handleSetPassword(EmailRequestDto dto) throws MessagingException {
+        String subject = EmailUtils.getEmailSubject(EmailType.SET_PASSWORD);
+        String content = EmailUtils.getEmailContent(EmailType.SET_PASSWORD, dto.getCode());
+        String plain = EmailUtils.getEmailPlainContent(EmailType.SET_PASSWORD, dto.getCode());
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
     @RabbitListener(queues = "activate-client-account")
-    public void handleActivateAccount(EmailRequestDto dto) {
-        System.out.println("ovde");
-        System.out.println(dto.getDestination()+" "+dto.getCode());
-        String subject = "Activate Your Account";
-        String text = "Your activation code is: " + dto.getCode();
-        emailService.sendEmail(dto.getDestination(), subject, text);
+    public void handleActivateAccount(EmailRequestDto dto) throws MessagingException {
+        String subject = EmailUtils.getEmailSubject(EmailType.ACTIVATE_ACCOUNT);
+        String content = EmailUtils.getEmailContent(EmailType.ACTIVATE_ACCOUNT, dto.getCode());
+        String plain = EmailUtils.getEmailPlainContent(EmailType.ACTIVATE_ACCOUNT, dto.getCode());
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
 }
