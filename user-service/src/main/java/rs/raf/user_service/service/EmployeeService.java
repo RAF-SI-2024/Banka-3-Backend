@@ -45,10 +45,11 @@ public class EmployeeService {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee list retrieved successfully")
     })
-    public Page<EmployeeDto> findAll(String position, String department, Boolean active, Pageable pageable) {
-        Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.hasPosition(position))
-                .and(EmployeeSearchSpecification.hasDepartment(department))
-                .and(EmployeeSearchSpecification.isActive(active));
+    public Page<EmployeeDto> findAll(String firstName, String lastName, String email, String position, Pageable pageable) {
+        Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.startsWithFirstName(firstName))
+                .and(EmployeeSearchSpecification.startsWithLastName(lastName))
+                .and(EmployeeSearchSpecification.startsWithEmail(email))
+                .and(EmployeeSearchSpecification.startsWithPosition(position));
 
         return employeeRepository.findAll(spec, pageable)
                 .map(EmployeeMapper::toDto);
