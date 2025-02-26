@@ -6,6 +6,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.mail.MessagingException;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -18,7 +20,7 @@ class EmailListenerTest {
     private EmailListener emailListener;
 
     @Test
-    void testSendEmail() {
+    void testSendEmail() throws MessagingException {
         // Arrange
         String destination = "test@example.com";
         String code = "123456";
@@ -29,6 +31,6 @@ class EmailListenerTest {
         // Act
         emailListener.handleResetPassword(emailRequestDto);
 
-        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString());
+        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString(), anyString());
     }
 }

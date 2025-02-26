@@ -6,9 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import rs.raf.user_service.dto.PermissionDTO;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.UserService;
@@ -28,9 +30,12 @@ class UserServiceTest {
 
     @Mock
     private PermissionRepository permissionRepository;
-
+    @Mock
+    private AuthTokenRepository authTokenRepository;
     @InjectMocks
     private UserService userService;
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     @BeforeEach
     void setUp() {
@@ -51,7 +56,7 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
 
-        List<PermissionDTO> permissions = userService.getUserPermissions(userId);
+        List<PermissionDto> permissions = userService.getUserPermissions(userId);
 
 
         assertNotNull(permissions);
@@ -177,6 +182,23 @@ class UserServiceTest {
         assertEquals("Permission not found", exception.getMessage());
         verify(userRepository, never()).save(user);
     }
+//    @Test
+//    public void testCreateClient_Success() {
+//        UserDto userDTO = new UserDto();
+//        userDTO.setEmail("test@example.com");
+//        userDTO.setFirstName("John");
+//        userDTO.setLastName("Doe");
+//
+//        userService.createUser(userDTO);
+//
+//        verify(userRepository, times(1)).save(any(Client.class));
+//
+//        verify(authTokenRepository, times(1)).save(any(AuthToken.class));
+//
+//        verify(rabbitTemplate, times(1)).convertAndSend(eq("activate-client-account"), any(EmailRequestDto.class));
+//    }
+
+
 }
 
 

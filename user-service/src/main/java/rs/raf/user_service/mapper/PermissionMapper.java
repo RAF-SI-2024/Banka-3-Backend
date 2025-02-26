@@ -1,22 +1,22 @@
 package rs.raf.user_service.mapper;
 
-import rs.raf.user_service.dto.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.entity.Permission;
 
 public class PermissionMapper {
 
-    public static PermissionDTO toDTO(Permission permission) {
+    public static PermissionDto toDTO(Permission permission) {
         if (permission == null) {
             return null;
         }
 
-        PermissionDTO dto = new PermissionDTO();
+        PermissionDto dto = new PermissionDto();
         dto.setId(permission.getId());
         dto.setName(permission.getName());
         return dto;
     }
 
-    public static Permission toEntity(PermissionDTO dto) {
+    public static Permission toEntity(PermissionDto dto) {
         if (dto == null) {
             return null;
         }

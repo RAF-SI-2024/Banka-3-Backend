@@ -1,11 +1,14 @@
 package rs.raf.user_service.service;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.entity.BaseUser;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.mapper.PermissionMapper;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 import rs.raf.user_service.repository.UserRepository;
 
@@ -17,15 +20,22 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PermissionRepository permissionRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final PasswordEncoder passwordEncoder;
+
 
 
     @Autowired
-    public UserService(UserRepository userRepository, PermissionRepository permissionRepository) {
+    public UserService(UserRepository userRepository, PermissionRepository permissionRepository, AuthTokenRepository authTokenRepository, RabbitTemplate rabbitTemplate, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
+        this.authTokenRepository = authTokenRepository;
+        this.rabbitTemplate = rabbitTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public List<PermissionDTO> getUserPermissions(Long userId) {
+    public List<PermissionDto> getUserPermissions(Long userId) {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getPermissions().stream()

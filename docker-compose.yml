@@ -7,10 +7,19 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - postgres_data:/var/lib/postgresql@17/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
       - POSTGRES_DB=main_db
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - 5672:5672  # RabbitMQ port
+      - 15672:15672  # RabbitMQ management console port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
 volumes:
   postgres_data:

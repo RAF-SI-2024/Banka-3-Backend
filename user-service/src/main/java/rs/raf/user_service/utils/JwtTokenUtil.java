@@ -1,4 +1,4 @@
-package rs.raf.user_service.configuration;
+package rs.raf.user_service.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -7,13 +7,14 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
 @Component
 public class JwtTokenUtil {
 
-    private static final Key secret = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
     private final long expiration = 86400000;
 
     public String generateToken(String email, List<String> permissions) {
@@ -21,7 +22,7 @@ public class JwtTokenUtil {
                 .setSubject(email)
                 .claim("permissions", permissions)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(Instant.now().toEpochMilli() + expiration))
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }

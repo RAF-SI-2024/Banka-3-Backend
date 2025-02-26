@@ -1,12 +1,13 @@
-package rs.raf.email_service;
+package rs.raf.user_service.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.io.Serializable;
 
-@Setter
-@Getter
+
+@Data
+@AllArgsConstructor
 public class EmailRequestDto implements Serializable {
     // Getteri i setteri
     private String code;

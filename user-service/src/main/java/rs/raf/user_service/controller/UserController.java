@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.PermissionDTO;
+import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;
@@ -30,10 +30,10 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Permissions retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<List<PermissionDTO>> getUserPermissions(
+    public ResponseEntity<List<PermissionDto>> getUserPermissions(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId) {
-        List<PermissionDTO> permissions = userService.getUserPermissions(userId);
+        List<PermissionDto> permissions = userService.getUserPermissions(userId);
         return ResponseEntity.ok(permissions);
     }
 
