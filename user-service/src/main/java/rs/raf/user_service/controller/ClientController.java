@@ -6,15 +6,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.ClientDTO;
-import rs.raf.user_service.dto.CreateClientDTO;
-import rs.raf.user_service.dto.UpdateClientDTO;
+import rs.raf.user_service.dto.*;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.ClientService;
 
+import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/clients")
@@ -24,36 +28,59 @@ public class ClientController {
     @Autowired
     private ClientService clientService;
 
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping
     @Operation(summary = "Get all clients with pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
-    public ResponseEntity<List<ClientDTO>> getAllClients(
+    public ResponseEntity<List<ClientDto>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(clientService.listClients(page, size));
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{id}")
     @Operation(summary = "Get client by ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Client retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Client not found")
     })
-    public ResponseEntity<ClientDTO> getClientById(@PathVariable Long id) {
-        return ResponseEntity.ok(clientService.getClientById(id));
+    public ResponseEntity<?> getClientById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok().body(clientService.getClientById(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping
     @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Client created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<ClientDTO> addClient(@Valid @RequestBody CreateClientDTO createClientDto) {
-        ClientDTO createdClient = clientService.addClient(createClientDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdClient);
+    public ResponseEntity<?> addClient(@Valid @RequestBody CreateClientDto createClientDto,
+                                       BindingResult result) {
+        if (result.hasErrors()) {
+            List<String> errors = result.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.toList());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
+        }
+
+        try {
+            ClientDto clientDto = clientService.addClient(createClientDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(clientDto);
+        } catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @PutMapping("/{id}")
     @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
@@ -61,11 +88,25 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client not found"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDTO updateClientDto) {
-        ClientDTO updatedClient = clientService.updateClient(id, updateClientDto);
-        return ResponseEntity.ok(updatedClient);
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDto updateClientDto,
+                                          BindingResult result) {
+        if (result.hasErrors()) {
+            List<String> errors = result.getAllErrors().stream()
+                    .map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.toList());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
+        }
+        try {
+            ClientDto clientDto = clientService.updateClient(id, updateClientDto);
+            return ResponseEntity.status(HttpStatus.OK).body(clientDto);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
+    @PreAuthorize("hasAuthority('admin')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete client by ID")
@@ -74,13 +115,12 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client not found")
     })
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
-        clientService.deleteClient(id);
-        return ResponseEntity.noContent().build();
+        try {
+            clientService.deleteClient(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
-    // ✅ Obrada NoSuchElementException - vraća 404 umesto 500
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<String> handleNoSuchElementException(NoSuchElementException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-    }
 }

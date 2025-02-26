@@ -11,10 +11,9 @@ import java.util.Date;
 @NoArgsConstructor
 
 
-public class CreateClientDTO {
+public class UpdateClientDto {
     private String firstName;
     private String lastName;
-    private String email;
     private String address;
     private String phone;
     private String gender;
