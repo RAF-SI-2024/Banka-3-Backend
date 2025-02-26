@@ -9,7 +9,7 @@ import java.util.Date;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ClientDTO {
+public class ClientDto {
 
     private Long id;
     private String firstName;
@@ -21,7 +21,7 @@ public class ClientDTO {
     private String gender;
     private Date birthDate;
 
-    public ClientDTO(Long id, String firstName, String lastName, String email, String password, String address, String phone, String gender, Date birthDate) {
+    public ClientDto(Long id, String firstName, String lastName, String email, String password, String address, String phone, String gender, Date birthDate) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;

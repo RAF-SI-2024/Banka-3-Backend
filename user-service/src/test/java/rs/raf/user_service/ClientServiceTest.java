@@ -9,9 +9,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import rs.raf.user_service.dto.ClientDTO;
-import rs.raf.user_service.dto.CreateClientDTO;
-import rs.raf.user_service.dto.UpdateClientDTO;
+import rs.raf.user_service.dto.ClientDto;
+import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
@@ -50,9 +50,9 @@ public class ClientServiceTest {
         client.setId(1L);
         Page<Client> page = new PageImpl<>(List.of(client));
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(page);
-        when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDTO());
+        when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDto());
 
-        List<ClientDTO> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(0, 5);
         assertNotNull(clients);
         assertEquals(1, clients.size());
     }
@@ -62,9 +62,9 @@ public class ClientServiceTest {
         Client client = new Client();
         client.setId(1L);
         when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
-        when(clientMapper.toDto(client)).thenReturn(new ClientDTO());
+        when(clientMapper.toDto(client)).thenReturn(new ClientDto());
 
-        ClientDTO clientDTO = clientService.getClientById(1L);
+        ClientDto clientDTO = clientService.getClientById(1L);
         assertNotNull(clientDTO);
     }
 
@@ -76,7 +76,7 @@ public class ClientServiceTest {
 
     @Test
     public void testAddClient_Success() throws ParseException {
-        CreateClientDTO createClientDTO = new CreateClientDTO();
+        CreateClientDto createClientDTO = new CreateClientDto();
         createClientDTO.setFirstName("Mihailo");
         createClientDTO.setLastName("Petrović");
         createClientDTO.setEmail("mihailo@example.com");
@@ -96,7 +96,7 @@ public class ClientServiceTest {
         client.setBirthDate(createClientDTO.getBirthDate());
         client.setPassword(""); // ✅ Lozinka prazna po zahtevu
 
-        ClientDTO expectedDTO = new ClientDTO(
+        ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
                 client.getEmail(), client.getPassword(), client.getAddress(),
                 client.getPhone(), client.getGender(), client.getBirthDate());
@@ -105,7 +105,7 @@ public class ClientServiceTest {
         when(clientRepository.save(client)).thenReturn(client);
         when(clientMapper.toDto(client)).thenReturn(expectedDTO);
 
-        ClientDTO result = clientService.addClient(createClientDTO);
+        ClientDto result = clientService.addClient(createClientDTO);
 
         assertNotNull(result);
         assertEquals("Mihailo", result.getFirstName());
@@ -116,7 +116,7 @@ public class ClientServiceTest {
 
     @Test
     public void testUpdateClient_Success() throws ParseException {
-        UpdateClientDTO updateClientDTO = new UpdateClientDTO();
+        UpdateClientDto updateClientDTO = new UpdateClientDto();
         updateClientDTO.setFirstName("Petar");
         updateClientDTO.setLastName("Perić");
         updateClientDTO.setAddress("Nova Adresa 100");
@@ -138,7 +138,7 @@ public class ClientServiceTest {
         updatedClient.setBirthDate(updateClientDTO.getBirthDate());
         updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
 
-        ClientDTO expectedDTO = new ClientDTO(
+        ClientDto expectedDTO = new ClientDto(
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getPassword(), updatedClient.getAddress(),
                 updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate());
@@ -147,11 +147,11 @@ public class ClientServiceTest {
         doAnswer(invocation -> {
             clientMapper.fromUpdateDto(updateClientDTO, existingClient);
             return null;
-        }).when(clientMapper).fromUpdateDto(any(UpdateClientDTO.class), any(Client.class));
+        }).when(clientMapper).fromUpdateDto(any(UpdateClientDto.class), any(Client.class));
         when(clientRepository.save(existingClient)).thenReturn(updatedClient);
         when(clientMapper.toDto(updatedClient)).thenReturn(expectedDTO);
 
-        ClientDTO result = clientService.updateClient(1L, updateClientDTO);
+        ClientDto result = clientService.updateClient(1L, updateClientDTO);
 
         assertNotNull(result);
         assertEquals("Petar", result.getFirstName());
@@ -178,7 +178,7 @@ public class ClientServiceTest {
         Page<Client> emptyPage = new PageImpl<>(Collections.emptyList());
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(emptyPage);
 
-        List<ClientDTO> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(0, 5);
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }

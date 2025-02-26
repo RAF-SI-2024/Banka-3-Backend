@@ -2,11 +2,11 @@ package rs.raf.user_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.ClientDTO;
-import rs.raf.user_service.dto.CreateClientDTO;
-import rs.raf.user_service.dto.UpdateClientDTO;
+import rs.raf.user_service.dto.ClientDto;
+import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
@@ -27,19 +27,19 @@ public class ClientService {
         this.clientMapper = clientMapper;
     }
 
-    public List<ClientDTO> listClients(int page, int size) {
-        Page<Client> clientsPage = clientRepository.findAll(PageRequest.of(page, size));
-        return clientsPage.stream().map(clientMapper::toDto).collect(Collectors.toList());
+    public Page<ClientDto> listClients(Pageable pageable) {
+        Page<Client> clientsPage = clientRepository.findAll(pageable);
+        return clientsPage.map(clientMapper::toDto);
     }
 
-    public ClientDTO getClientById(Long id) {
+    public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
         return clientMapper.toDto(client);
     }
 
     // Kreiranje klijenta bez lozinke (password ostaje prazan)
-    public ClientDTO addClient(CreateClientDTO createClientDto) {
+    public ClientDto addClient(CreateClientDto createClientDto) {
         System.out.println("[addClient] Pozvana metoda sa podacima: " + createClientDto);
 
         Client client = clientMapper.fromCreateDto(createClientDto);
@@ -53,7 +53,7 @@ public class ClientService {
     }
 
     // Ažuriranje samo dozvoljenih polja (email i druge vrednosti se ne diraju)
-    public ClientDTO updateClient(Long id, UpdateClientDTO updateClientDto) {
+    public ClientDto updateClient(Long id, UpdateClientDto updateClientDto) {
         Client existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
 

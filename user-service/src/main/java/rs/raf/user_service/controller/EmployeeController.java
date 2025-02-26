@@ -58,14 +58,16 @@ public class EmployeeController {
     })
     @GetMapping
     public ResponseEntity<Page<EmployeeDto>> getAllEmployees(
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email,
             @RequestParam(required = false) String position,
-            @RequestParam(required = false) String department,
-            @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        System.out.println(firstName + " " + lastName + " " + email + " " + position);
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(employeeService.findAll(position, department, active, pageable));
+        return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
 
     @PreAuthorize("hasAuthority('admin')")
