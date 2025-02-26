@@ -31,6 +31,6 @@ class EmailListenerTest {
         // Act
         emailListener.handleResetPassword(emailRequestDto);
 
-        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString());
+        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString(), anyString());
     }
 }
