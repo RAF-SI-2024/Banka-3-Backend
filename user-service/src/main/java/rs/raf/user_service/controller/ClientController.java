@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.ClientDTO;
+import rs.raf.user_service.dto.CreateClientDTO;
+import rs.raf.user_service.dto.UpdateClientDTO;
 import rs.raf.user_service.service.ClientService;
 
 import javax.validation.Valid;
@@ -42,25 +44,25 @@ public class ClientController {
     }
 
     @PostMapping
-    @Operation(summary = "Add new client (with password validation)")
+    @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Client created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<ClientDTO> addClient(@Valid @RequestBody ClientDTO clientDTO) {
-        ClientDTO createdClient = clientService.addClient(clientDTO);
+    public ResponseEntity<ClientDTO> addClient(@Valid @RequestBody CreateClientDTO createClientDto) {
+        ClientDTO createdClient = clientService.addClient(createClientDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdClient);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update client (with password validation)")
+    @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Client updated successfully"),
             @ApiResponse(responseCode = "404", description = "Client not found"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @Valid @RequestBody ClientDTO clientDTO) {
-        ClientDTO updatedClient = clientService.updateClient(id, clientDTO);
+    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDTO updateClientDto) {
+        ClientDTO updatedClient = clientService.updateClient(id, updateClientDto);
         return ResponseEntity.ok(updatedClient);
     }
 

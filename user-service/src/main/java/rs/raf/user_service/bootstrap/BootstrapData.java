@@ -43,7 +43,6 @@ public class BootstrapData implements CommandLineRunner {
                     .firstName("Marko")
                     .lastName("Markovic")
                     .email("marko.m@example.com")
-                    .username("marko.m")  //  Dodato username polje
                     .phone("0611158275")
                     .address("Pozeska 56")
                     .birthDate(dateFormat.parse("1990-05-15"))
@@ -55,7 +54,6 @@ public class BootstrapData implements CommandLineRunner {
                     .firstName("Jovan")
                     .lastName("Jovanovic")
                     .email("jovan.v@example.com")
-                    .username("jovan.v")  //  Dodato username polje
                     .phone("0671152371")
                     .address("Cara Dusana 105")
                     .birthDate(dateFormat.parse("1990-01-25"))

@@ -1,6 +1,5 @@
 package rs.raf.user_service;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,8 +11,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.user_service.controller.ClientController;
 import rs.raf.user_service.dto.ClientDTO;
+import rs.raf.user_service.dto.CreateClientDTO;
+import rs.raf.user_service.dto.UpdateClientDTO;
 import rs.raf.user_service.service.ClientService;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -40,14 +42,35 @@ public class ClientControllerUnitTest {
     private ClientController clientController;
 
     private ClientDTO clientDTO;
+    private CreateClientDTO createClientDTO;
+    private UpdateClientDTO updateClientDTO;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
         this.mockMvc = MockMvcBuilders.standaloneSetup(clientController).build();
         this.objectMapper = new ObjectMapper();
 
-        clientDTO = new ClientDTO(1L, "Marko", "Markovic", "marko@example.com", "userMarko", "Password12", "Adresa 1", "0611158275", "M", new Date());
+        Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("1990-05-15");
+
+        clientDTO = new ClientDTO(1L, "Marko", "Markovic", "marko@example.com", "", "Adresa 1", "0611158275", "M", birthDate);
+
+        createClientDTO = new CreateClientDTO();
+        createClientDTO.setFirstName("Marko");
+        createClientDTO.setLastName("Markovic");
+        createClientDTO.setEmail("marko@example.com");
+        createClientDTO.setAddress("Adresa 1");
+        createClientDTO.setPhone("0611158275");
+        createClientDTO.setGender("M");
+        createClientDTO.setBirthDate(birthDate);
+
+        updateClientDTO = new UpdateClientDTO();
+        updateClientDTO.setFirstName("MarkoUpdated");
+        updateClientDTO.setLastName("MarkovicUpdated");
+        updateClientDTO.setAddress("Nova Adresa");
+        updateClientDTO.setPhone("0611159999");
+        updateClientDTO.setGender("M");
+        updateClientDTO.setBirthDate(birthDate);
     }
 
     @Test
@@ -88,29 +111,38 @@ public class ClientControllerUnitTest {
 
     @Test
     public void testAddClient_Success() throws Exception {
-        when(clientService.addClient(any(ClientDTO.class))).thenReturn(clientDTO);
+        when(clientService.addClient(any(CreateClientDTO.class))).thenReturn(clientDTO);
 
         mockMvc.perform(post("/api/admin/clients")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(clientDTO)))
+                        .content(objectMapper.writeValueAsString(createClientDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.firstName", is(clientDTO.getFirstName())));
+                .andExpect(jsonPath("$.firstName", is(clientDTO.getFirstName())))
+                .andExpect(jsonPath("$.email", is(clientDTO.getEmail())))
+                .andExpect(jsonPath("$.password", is(""))); // ✅ Lozinka prazna
 
-        verify(clientService, times(1)).addClient(any(ClientDTO.class));
+        verify(clientService, times(1)).addClient(any(CreateClientDTO.class));
     }
 
     @Test
     public void testUpdateClient_Success() throws Exception {
-        clientDTO.setFirstName("UpdatedName");
-        when(clientService.updateClient(eq(1L), any(ClientDTO.class))).thenReturn(clientDTO);
+        clientDTO.setFirstName(updateClientDTO.getFirstName());
+        clientDTO.setLastName(updateClientDTO.getLastName());
+        clientDTO.setAddress(updateClientDTO.getAddress());
+        clientDTO.setPhone(updateClientDTO.getPhone());
+
+        when(clientService.updateClient(eq(1L), any(UpdateClientDTO.class))).thenReturn(clientDTO);
 
         mockMvc.perform(put("/api/admin/clients/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(clientDTO)))
+                        .content(objectMapper.writeValueAsString(updateClientDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstName", is("UpdatedName")));
+                .andExpect(jsonPath("$.firstName", is(updateClientDTO.getFirstName())))
+                .andExpect(jsonPath("$.lastName", is(updateClientDTO.getLastName())))
+                .andExpect(jsonPath("$.address", is(updateClientDTO.getAddress())))
+                .andExpect(jsonPath("$.phone", is(updateClientDTO.getPhone())));
 
-        verify(clientService, times(1)).updateClient(eq(1L), any(ClientDTO.class));
+        verify(clientService, times(1)).updateClient(eq(1L), any(UpdateClientDTO.class));
     }
 
     @Test

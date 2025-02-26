@@ -16,7 +16,5 @@ import javax.persistence.Entity;
 @SuperBuilder
 @RequiredArgsConstructor
 public class Client extends BaseUser {
-    @Column(nullable = false, unique = true)
-    private String username;
 
 }

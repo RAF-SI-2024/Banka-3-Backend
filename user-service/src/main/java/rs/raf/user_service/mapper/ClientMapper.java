@@ -1,20 +1,23 @@
 package rs.raf.user_service.mapper;
 
+
 import org.springframework.stereotype.Component;
 import rs.raf.user_service.dto.ClientDTO;
+import rs.raf.user_service.dto.CreateClientDTO;
+import rs.raf.user_service.dto.UpdateClientDTO;
 import rs.raf.user_service.entity.Client;
 
 @Component
 public class ClientMapper {
 
+    // ✅ Mapiranje iz Client u ClientDTO (sa svim poljima)
     public ClientDTO toDto(Client client) {
-        if (client == null) return null; //  Dodatna provera
+        if (client == null) return null;
         return new ClientDTO(
                 client.getId(),
                 client.getFirstName(),
                 client.getLastName(),
                 client.getEmail(),
-                client.getUsername(),
                 client.getPassword(),
                 client.getAddress(),
                 client.getPhone(),
@@ -23,25 +26,46 @@ public class ClientMapper {
         );
     }
 
+    // ✅ Mapiranje iz ClientDTO u Client
     public Client toEntity(ClientDTO clientDTO) {
-        System.out.println("[ClientMapper] Mapping ClientDTO to Client: " + clientDTO);
-        if (clientDTO == null) {
-            System.out.println("[ClientMapper] Dobijen je null ClientDTO.");
-            return null;
-        }
+        if (clientDTO == null) return null;
         Client client = new Client();
         client.setId(clientDTO.getId());
         client.setFirstName(clientDTO.getFirstName());
         client.setLastName(clientDTO.getLastName());
         client.setEmail(clientDTO.getEmail());
-        client.setUsername(clientDTO.getUsername());  // ✅ Dodato mapiranje username-a
         client.setPassword(clientDTO.getPassword());
         client.setAddress(clientDTO.getAddress());
         client.setPhone(clientDTO.getPhone());
         client.setGender(clientDTO.getGender());
         client.setBirthDate(clientDTO.getBirthDate());
-        System.out.println("[ClientMapper] Mapped Client: " + client);
         return client;
     }
 
+    // ✅ Nova metoda: Mapiranje iz CreateClientDTO u Client (prilikom kreiranja)
+    public Client fromCreateDto(CreateClientDTO createClientDTO) {
+        if (createClientDTO == null) return null;
+        Client client = new Client();
+        client.setFirstName(createClientDTO.getFirstName());
+        client.setLastName(createClientDTO.getLastName());
+        client.setEmail(createClientDTO.getEmail());
+        client.setAddress(createClientDTO.getAddress());
+        client.setPhone(createClientDTO.getPhone());
+        client.setGender(createClientDTO.getGender());
+        client.setBirthDate(createClientDTO.getBirthDate());
+        client.setPassword("");  // ✅ Lozinka ostaje prazna prilikom kreiranja
+        return client;
+    }
+
+    // ✅ Nova metoda: Ažuriranje entiteta na osnovu UpdateClientDTO
+    public void fromUpdateDto(UpdateClientDTO updateClientDTO, Client client) {
+        if (updateClientDTO == null || client == null) return;
+        client.setFirstName(updateClientDTO.getFirstName());
+        client.setLastName(updateClientDTO.getLastName());
+        client.setAddress(updateClientDTO.getAddress());
+        client.setPhone(updateClientDTO.getPhone());
+        client.setGender(updateClientDTO.getGender());
+        client.setBirthDate(updateClientDTO.getBirthDate());
+    }
 }
+

@@ -8,6 +8,5 @@ import java.util.Optional;
 public interface ClientRepository extends JpaRepository<Client, Long> {
     Optional<Client> findByEmail(String email);
 
-    // Provera postojanja klijenta po username-u
-    boolean existsByUsername(String username);
+
 }

@@ -1,5 +1,6 @@
 package rs.raf.user_service;
 
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -9,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import rs.raf.user_service.dto.ClientDTO;
+import rs.raf.user_service.dto.CreateClientDTO;
+import rs.raf.user_service.dto.UpdateClientDTO;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
@@ -23,8 +26,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ClientServiceTest {
 
@@ -48,10 +50,9 @@ public class ClientServiceTest {
         client.setId(1L);
         Page<Client> page = new PageImpl<>(List.of(client));
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(page);
-
         when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDTO());
-        List<ClientDTO> clients = clientService.listClients(0, 5);
 
+        List<ClientDTO> clients = clientService.listClients(0, 5);
         assertNotNull(clients);
         assertEquals(1, clients.size());
     }
@@ -75,69 +76,94 @@ public class ClientServiceTest {
 
     @Test
     public void testAddClient_Success() throws ParseException {
-        //  Kreiramo potpun ClientDTO objekat
-        ClientDTO clientDTO = new ClientDTO();
-        clientDTO.setFirstName("Mihailo");
-        clientDTO.setLastName("Petrović");
-        clientDTO.setUsername("userMihailo");
-        clientDTO.setEmail("mihailo@example.com");
-        clientDTO.setPassword("Password12"); //  Validna lozinka (8-32 karaktera, 2 broja, veliko i malo slovo)
-        clientDTO.setAddress("Bulevar Kralja Aleksandra 73");
-        clientDTO.setPhone("0612345678");
-        clientDTO.setGender("M");
-        clientDTO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("1995-08-20"));
+        CreateClientDTO createClientDTO = new CreateClientDTO();
+        createClientDTO.setFirstName("Mihailo");
+        createClientDTO.setLastName("Petrović");
+        createClientDTO.setEmail("mihailo@example.com");
+        createClientDTO.setAddress("Bulevar Kralja Aleksandra 73");
+        createClientDTO.setPhone("0612345678");
+        createClientDTO.setGender("M");
+        createClientDTO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("1995-08-20"));
 
-// Kreiramo Client entitet koji će se vratiti iz mappera i repozitorijuma
         Client client = new Client();
         client.setId(1L);
-        client.setUsername(clientDTO.getUsername());
-        client.setFirstName(clientDTO.getFirstName());
-        client.setLastName(clientDTO.getLastName());
-        client.setEmail(clientDTO.getEmail());
-        client.setPassword(clientDTO.getPassword());
-        client.setAddress(clientDTO.getAddress());
-        client.setPhone(clientDTO.getPhone());
-        client.setGender(clientDTO.getGender());
-        client.setBirthDate(clientDTO.getBirthDate());
+        client.setFirstName(createClientDTO.getFirstName());
+        client.setLastName(createClientDTO.getLastName());
+        client.setEmail(createClientDTO.getEmail());
+        client.setAddress(createClientDTO.getAddress());
+        client.setPhone(createClientDTO.getPhone());
+        client.setGender(createClientDTO.getGender());
+        client.setBirthDate(createClientDTO.getBirthDate());
+        client.setPassword(""); // ✅ Lozinka prazna po zahtevu
 
-        // Mock-ovanje mapiranja i čuvanja
-        when(clientMapper.toEntity(clientDTO)).thenReturn(client);
+        ClientDTO expectedDTO = new ClientDTO(
+                client.getId(), client.getFirstName(), client.getLastName(),
+                client.getEmail(), client.getPassword(), client.getAddress(),
+                client.getPhone(), client.getGender(), client.getBirthDate());
+
+        when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
-        when(clientMapper.toDto(client)).thenReturn(clientDTO);
+        when(clientMapper.toDto(client)).thenReturn(expectedDTO);
 
-        // Poziv metode za testiranje
-        ClientDTO result = clientService.addClient(clientDTO);
+        ClientDTO result = clientService.addClient(createClientDTO);
 
-        // Ispis za proveru
-        System.out.println("[Test] Rezultat metode addClient: " + result);
-
-        // Provere rezultata
         assertNotNull(result);
-        assertEquals(clientDTO.getFirstName(), result.getFirstName());
-        assertEquals(clientDTO.getLastName(), result.getLastName());
-        assertEquals(clientDTO.getEmail(), result.getEmail());
-        assertEquals(clientDTO.getAddress(), result.getAddress());
+        assertEquals("Mihailo", result.getFirstName());
+        assertEquals("Petrović", result.getLastName());
+        assertEquals("mihailo@example.com", result.getEmail());
+        assertEquals("", result.getPassword());
     }
 
     @Test
-    public void testUpdateClient_Success() {
-        Client client = new Client();
-        client.setId(1L);
-        ClientDTO clientDTO = new ClientDTO();
+    public void testUpdateClient_Success() throws ParseException {
+        UpdateClientDTO updateClientDTO = new UpdateClientDTO();
+        updateClientDTO.setFirstName("Petar");
+        updateClientDTO.setLastName("Perić");
+        updateClientDTO.setAddress("Nova Adresa 100");
+        updateClientDTO.setPhone("0601234567");
+        updateClientDTO.setGender("M");
+        updateClientDTO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("1990-01-01"));
 
-        when(clientRepository.findById(1L)).thenReturn(Optional.of(client));
-        when(clientRepository.save(client)).thenReturn(client);
-        when(clientMapper.toDto(client)).thenReturn(clientDTO);
+        Client existingClient = new Client();
+        existingClient.setId(1L);
+        existingClient.setEmail("stari@example.com"); // Email se NE MENJA
 
-        ClientDTO updatedClient = clientService.updateClient(1L, clientDTO);
-        assertNotNull(updatedClient);
+        Client updatedClient = new Client();
+        updatedClient.setId(1L);
+        updatedClient.setFirstName(updateClientDTO.getFirstName());
+        updatedClient.setLastName(updateClientDTO.getLastName());
+        updatedClient.setAddress(updateClientDTO.getAddress());
+        updatedClient.setPhone(updateClientDTO.getPhone());
+        updatedClient.setGender(updateClientDTO.getGender());
+        updatedClient.setBirthDate(updateClientDTO.getBirthDate());
+        updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
+
+        ClientDTO expectedDTO = new ClientDTO(
+                updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
+                updatedClient.getEmail(), updatedClient.getPassword(), updatedClient.getAddress(),
+                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate());
+
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
+        doAnswer(invocation -> {
+            clientMapper.fromUpdateDto(updateClientDTO, existingClient);
+            return null;
+        }).when(clientMapper).fromUpdateDto(any(UpdateClientDTO.class), any(Client.class));
+        when(clientRepository.save(existingClient)).thenReturn(updatedClient);
+        when(clientMapper.toDto(updatedClient)).thenReturn(expectedDTO);
+
+        ClientDTO result = clientService.updateClient(1L, updateClientDTO);
+
+        assertNotNull(result);
+        assertEquals("Petar", result.getFirstName());
+        assertEquals("Perić", result.getLastName());
+        assertEquals("stari@example.com", result.getEmail());
+        assertEquals("Nova Adresa 100", result.getAddress());
     }
 
     @Test
     public void testDeleteClient_Success() {
         when(clientRepository.existsById(1L)).thenReturn(true);
         doNothing().when(clientRepository).deleteById(1L);
-
         assertDoesNotThrow(() -> clientService.deleteClient(1L));
     }
 
@@ -145,29 +171,6 @@ public class ClientServiceTest {
     public void testDeleteClient_NotFound() {
         when(clientRepository.existsById(1L)).thenReturn(false);
         assertThrows(NoSuchElementException.class, () -> clientService.deleteClient(1L));
-    }
-
-    @Test
-    public void testAddClient_InvalidPassword() {
-        ClientDTO clientDTO = new ClientDTO();
-        clientDTO.setFirstName("Petar");
-        clientDTO.setLastName("Perić");
-        clientDTO.setEmail("petar@example.com");
-        clientDTO.setPassword("pass"); // Nevalidna lozinka
-
-        assertThrows(IllegalArgumentException.class, () -> clientService.addClient(clientDTO));
-    }
-
-    @Test
-    public void testUpdateClient_InvalidPassword() {
-        Client existingClient = new Client();
-        existingClient.setId(1L);
-        ClientDTO updateDTO = new ClientDTO();
-        updateDTO.setPassword("weak"); //  Nevalidna lozinka
-
-        when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
-
-        assertThrows(IllegalArgumentException.class, () -> clientService.updateClient(1L, updateDTO));
     }
 
     @Test
