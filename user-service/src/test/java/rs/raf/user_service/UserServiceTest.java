@@ -42,6 +42,7 @@ class UserServiceTest {
         MockitoAnnotations.openMocks(this);
     }
 
+
     @Test
     void getUserPermissions_UserExists_ReturnsPermissions() {
 

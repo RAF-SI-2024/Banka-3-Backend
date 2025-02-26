@@ -25,6 +25,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
 
+
     @Autowired
     public UserService(UserRepository userRepository, PermissionRepository permissionRepository, AuthTokenRepository authTokenRepository, RabbitTemplate rabbitTemplate, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
