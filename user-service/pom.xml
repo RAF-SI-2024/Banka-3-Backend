@@ -83,13 +83,6 @@
             <version>0.11.5</version>
         </dependency>
 
-        <!-- Spring Boot Starter za testiranje -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Jackson za ObjectMapper -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
