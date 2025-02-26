@@ -11,13 +11,13 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.dto.UpdateEmployeeDto;
+import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.service.EmployeeService;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.entity.Employee;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.*;
@@ -193,7 +193,6 @@ class EmployeeServiceTest {
     }
 
     @Test
-
     void testCreateEmployee() {
         String firstName = "Petar";
         String lastName = "Petrovic";
@@ -210,21 +209,21 @@ class EmployeeServiceTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
         Date birthDate = calendar.getTime();
 
-        employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active,phone, address,
+        employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active, phone, address,
                 username, position, department)
         );
 
         verify(employeeRepository, times(1)).save(argThat(employee ->
                 employee.getFirstName().equals(firstName) &&
-                employee.getLastName().equals(lastName) &&
-                employee.getBirthDate().equals(birthDate) &&
-                employee.getGender().equals(gender) &&
-                employee.getEmail().equals(email) &&
-                employee.getPhone().equals(phone) &&
-                employee.getAddress().equals(address) &&
-                employee.getUsername().equals(username) &&
-                employee.getPosition().equals(position) &&
-                employee.getDepartment().equals(department)
+                        employee.getLastName().equals(lastName) &&
+                        employee.getBirthDate().equals(birthDate) &&
+                        employee.getGender().equals(gender) &&
+                        employee.getEmail().equals(email) &&
+                        employee.getPhone().equals(phone) &&
+                        employee.getAddress().equals(address) &&
+                        employee.getUsername().equals(username) &&
+                        employee.getPosition().equals(position) &&
+                        employee.getDepartment().equals(department)
         ));
     }
 
@@ -234,7 +233,7 @@ class EmployeeServiceTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
 
         Employee employee = new Employee("Petar", "Petrovic", calendar.getTime(), "M",
-                "petar@raf.rs", "+38161123456","Trg Republike 5", "petareperic90",
+                "petar@raf.rs", "+38161123456", "Trg Republike 5", "petareperic90",
                 "Menadzer", "Finansije", true
         );
 
@@ -247,7 +246,7 @@ class EmployeeServiceTest {
         String position = "Programer";
         String department = "Programiranje";
 
-        employeeService.updateEmployee(1L , new UpdateEmployeeDto(lastName, gender, phone, address, position, department));
+        employeeService.updateEmployee(1L, new UpdateEmployeeDto(lastName, gender, phone, address, position, department));
 
         assertAll("Employee fields should be updated correctly",
                 () -> assertEquals(lastName, employee.getLastName()),
@@ -265,8 +264,8 @@ class EmployeeServiceTest {
         when(employeeRepository.findById(99L)).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(EntityNotFoundException.class, () -> employeeService.updateEmployee(
-                99L , new UpdateEmployeeDto("Peric", "F", "+38161123457",
-                        "Trg Republike 6", "Programer", "Programiranje")
+                        99L, new UpdateEmployeeDto("Peric", "F", "+38161123457",
+                                "Trg Republike 6", "Programer", "Programiranje")
                 )
         );
 

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import rs.raf.user_service.utils.JwtTokenUtil;
 import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.entity.*;
 import rs.raf.user_service.repository.AuthTokenRepository;
@@ -12,6 +11,7 @@ import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.AuthService;
+import rs.raf.user_service.utils.JwtTokenUtil;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -28,9 +28,8 @@ public class AuthServiceTest {
     private EmployeeRepository employeeRepository;
     private UserRepository userRepository;
     private AuthService authService;
-    private  AuthTokenRepository authTokenRepository;
-    private  RabbitTemplate rabbitTemplate;
-
+    private AuthTokenRepository authTokenRepository;
+    private RabbitTemplate rabbitTemplate;
 
 
     @BeforeEach
@@ -42,7 +41,7 @@ public class AuthServiceTest {
         authTokenRepository = mock(AuthTokenRepository.class);
         userRepository = mock(UserRepository.class);
         rabbitTemplate = mock(RabbitTemplate.class);
-        authService = new AuthService(passwordEncoder, jwtTokenUtil, clientRepository, employeeRepository,authTokenRepository,rabbitTemplate,userRepository);
+        authService = new AuthService(passwordEncoder, jwtTokenUtil, clientRepository, employeeRepository, authTokenRepository, rabbitTemplate, userRepository);
     }
 
     @Test
@@ -150,6 +149,7 @@ public class AuthServiceTest {
         String returnedToken = authService.authenticateEmployee(email, rawPassword);
         assertNull(returnedToken, "Expected null when user is not found");
     }
+
     @Test
     public void testRequestPasswordReset_Success() {
         String email = "test@example.com";
@@ -176,7 +176,7 @@ public class AuthServiceTest {
         String token = "valid-token";
         String newPassword = "newPassword123";
         AuthToken authToken = new AuthToken();
-        authToken.setExpiresAt(Instant.now().toEpochMilli()+ 100000);
+        authToken.setExpiresAt(Instant.now().toEpochMilli() + 100000);
         BaseUser user = new Client();
         when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
         when(userRepository.findById(authToken.getUserId())).thenReturn(Optional.of(user));
@@ -209,6 +209,7 @@ public class AuthServiceTest {
         });
         assertEquals("Expired token.", exception.getMessage());
     }
+
     @Test
     public void testSetPassword_Success() {
         // Priprema podataka
@@ -232,6 +233,7 @@ public class AuthServiceTest {
 
         assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
     }
+
     @Test
     public void testSetPassword_InvalidToken() {
         String token = "invalid-token";
@@ -243,6 +245,7 @@ public class AuthServiceTest {
         });
         assertEquals("Invalid token.", exception.getMessage());
     }
+
     @Test
     public void testSetPassword_ExpiredToken() {
         String token = "expired-token";

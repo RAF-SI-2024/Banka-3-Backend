@@ -55,13 +55,14 @@ public class AuthController {
         response.setToken(token);
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("/request-password-reset")
     @Operation(summary = "Request password reset", description = "Requests password reset with email adress.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Request for password reset successfully sent."),
             @ApiResponse(responseCode = "400", description = "Invalid email.")
     })
-    public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDto requestPasswordResetDTO){
+    public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDto requestPasswordResetDTO) {
         try {
             this.authService.requestPasswordReset(requestPasswordResetDTO.getEmail());
             return ResponseEntity.ok().build();
@@ -76,14 +77,15 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Valid"),
             @ApiResponse(responseCode = "404", description = "Invalid")
     })
-    public ResponseEntity<Void> checkToken(@RequestBody CheckTokenDto checkTokenDTO){
+    public ResponseEntity<Void> checkToken(@RequestBody CheckTokenDto checkTokenDTO) {
         try {
             authService.checkToken(checkTokenDTO.getToken());
             return ResponseEntity.ok().build();
-        }catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(404).build();
         }
     }
+
     @PostMapping("/set-password")
     @Operation(summary = "Sets password", description = "Sets new password for both clients and employees")
     @ApiResponses(value = {
@@ -92,7 +94,7 @@ public class AuthController {
     })
     public ResponseEntity<Void> activateUser(@RequestBody ActivationRequestDto activationRequestDto) {
         try {
-            authService.setPassword(activationRequestDto.getToken(),activationRequestDto.getPassword());
+            authService.setPassword(activationRequestDto.getToken(), activationRequestDto.getPassword());
             //userService.activateUser(activationRequestDto.getToken(), activationRequestDto.getPassword());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {

@@ -52,12 +52,12 @@ public class EmployeeControllerTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
-                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", true,"+38161123456",
+                "Petrovic", calendar.getTime(), "M", "petar@raf.rs", true, "+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
         // Verify that the service method was called and assert the response
         assertEquals(201, response.getStatusCodeValue());
-        assertEquals(mockEmployee.getFirstName(), ((EmployeeDto)response.getBody()).getFirstName());
+        assertEquals(mockEmployee.getFirstName(), ((EmployeeDto) response.getBody()).getFirstName());
         verify(employeeService, times(1)).createEmployee(any(CreateEmployeeDto.class));
     }
 
@@ -73,7 +73,7 @@ public class EmployeeControllerTest {
         calendar.set(1990, 1, 20, 0, 0, 0);
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("",
-                "Petrovic", calendar.getTime(),"M", "petar@raf.rs", true, "+38161123456",
+                "Petrovic", calendar.getTime(), "M", "petar@raf.rs", true, "+38161123456",
                 "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"), bindingResult);
 
         // Verify that validation errors were detected
@@ -90,7 +90,7 @@ public class EmployeeControllerTest {
                 "Trg Republike 6", "Programer", "Programiranje"
         );
 
-        ResponseEntity<?> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
+        ResponseEntity<?> response = employeeController.updateEmployee(1L, updateEmployeeDTO, bindingResult);
 
         // Verify the response
         assertEquals(200, response.getStatusCodeValue());  // 200 OK status
@@ -108,7 +108,7 @@ public class EmployeeControllerTest {
                 "Trg Republike 6", "Programer", "Programiranje"
         );
 
-        ResponseEntity<?> response = employeeController.updateEmployee(1L , updateEmployeeDTO, bindingResult);
+        ResponseEntity<?> response = employeeController.updateEmployee(1L, updateEmployeeDTO, bindingResult);
 
         // Verify the response
         assertEquals(400, response.getStatusCodeValue());  // 200 OK status

@@ -6,14 +6,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
+import rs.raf.user_service.dto.ActivationRequestDto;
 import rs.raf.user_service.dto.LoginRequestDto;
 import rs.raf.user_service.dto.LoginResponseDto;
 import rs.raf.user_service.dto.RequestPasswordResetDto;
 import rs.raf.user_service.service.AuthService;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
-import rs.raf.user_service.dto.ActivationRequestDto;
 
 public class AuthControllerTest {
 
@@ -143,6 +143,7 @@ public class AuthControllerTest {
         // Provera da li je servis pozvan
         verify(authService, times(1)).setPassword("valid-token", "newPassword123");
     }
+
     @Test
     public void testActivateUser_InvalidToken() {
         ActivationRequestDto request = new ActivationRequestDto();
@@ -157,6 +158,7 @@ public class AuthControllerTest {
 
         verify(authService, times(1)).setPassword("invalid-token", "newPassword123");
     }
+
     @Test
     public void testActivateUser_ExpiredToken() {
         ActivationRequestDto request = new ActivationRequestDto();

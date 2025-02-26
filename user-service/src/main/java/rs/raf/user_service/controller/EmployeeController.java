@@ -45,8 +45,7 @@ public class EmployeeController {
     public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().body(employeeService.findById(id));
-        }
-        catch(EntityNotFoundException e) {
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
 
@@ -134,7 +133,7 @@ public class EmployeeController {
     public ResponseEntity<?> createEmployee(
             @RequestBody @Valid CreateEmployeeDto createEmployeeDTO,
             BindingResult result
-    ){
+    ) {
         if (result.hasErrors()) {
             List<String> errors = result.getAllErrors().stream()
                     .map(ObjectError::getDefaultMessage)
@@ -145,11 +144,9 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        }
-        catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
+        } catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

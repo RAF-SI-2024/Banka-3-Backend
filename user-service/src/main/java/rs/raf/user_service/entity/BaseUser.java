@@ -55,7 +55,7 @@ public abstract class BaseUser {
     private Set<Permission> permissions = new HashSet<>();
 
     public BaseUser(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
-                    String address){
+                    String address) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.birthDate = birthDate;
