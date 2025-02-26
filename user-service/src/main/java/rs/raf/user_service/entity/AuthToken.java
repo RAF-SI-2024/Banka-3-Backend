@@ -14,14 +14,14 @@ import javax.persistence.Id;
 @AllArgsConstructor
 @RequiredArgsConstructor
 public class AuthToken {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     Long createdAt;
     Long expiresAt;
     String token;
     String type;
     Long userId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     public AuthToken(Long createdAt, Long expiresAt, String token, String type, Long userId) {
         this.createdAt = createdAt;

@@ -11,8 +11,8 @@ import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.AuthTokenRepository;
-import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.repository.PermissionRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.UserService;
 
 import java.util.HashSet;
@@ -36,6 +36,7 @@ class UserServiceTest {
     private UserService userService;
     @Mock
     private RabbitTemplate rabbitTemplate;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);

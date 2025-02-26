@@ -26,7 +26,7 @@ public class UserService {
 
 
     @Autowired
-    public UserService(UserRepository userRepository, PermissionRepository permissionRepository,AuthTokenRepository authTokenRepository, RabbitTemplate rabbitTemplate, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PermissionRepository permissionRepository, AuthTokenRepository authTokenRepository, RabbitTemplate rabbitTemplate, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
         this.authTokenRepository = authTokenRepository;
