@@ -1,4 +1,4 @@
-package rs.raf.user_service.unit;
+package rs.raf.user_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -6,10 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -80,18 +76,16 @@ public class ClientControllerUnitTest {
     @Test
     public void testGetAllClients() throws Exception {
         List<ClientDto> clients = Arrays.asList(clientDTO);
-        Page<ClientDto> clientsPage = new PageImpl<>(clients);
-
-        when(clientService.listClients(PageRequest.of(0,10))).thenReturn(clientsPage);
+        when(clientService.listClients(0, 10)).thenReturn(clients);
 
         mockMvc.perform(get("/api/admin/clients")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].firstName", is(clientDTO.getFirstName())));
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].firstName", is(clientDTO.getFirstName())));
 
-        verify(clientService, times(1)).listClients(PageRequest.of(0,10));
+        verify(clientService, times(1)).listClients(0, 10);
     }
 
     @Test
@@ -170,6 +164,4 @@ public class ClientControllerUnitTest {
 
         verify(clientService, times(1)).deleteClient(1L);
     }
-
-
 }
