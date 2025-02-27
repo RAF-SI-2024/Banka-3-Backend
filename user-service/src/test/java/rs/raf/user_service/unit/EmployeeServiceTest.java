@@ -209,6 +209,7 @@ class EmployeeServiceTest {
         String username = "petareperic90";
         String position = "Menadzer";
         String department = "Finansije";
+        String jmbg = "1234567890123";
         Boolean active = true;
 
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -216,7 +217,7 @@ class EmployeeServiceTest {
         Date birthDate = calendar.getTime();
 
         employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active, phone, address,
-                username, position, department)
+                username, position, department, jmbg)
         );
 
         verify(employeeRepository, times(1)).save(argThat(employee ->
@@ -240,7 +241,7 @@ class EmployeeServiceTest {
 
         Employee employee = new Employee("Petar", "Petrovic", calendar.getTime(), "M",
                 "petar@raf.rs", "+38161123456", "Trg Republike 5", "petareperic90",
-                "Menadzer", "Finansije", true
+                "Menadzer", "Finansije", true, "1234567890123"
         );
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));

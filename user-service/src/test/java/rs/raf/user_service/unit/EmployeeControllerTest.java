@@ -53,7 +53,7 @@ public class EmployeeControllerTest {
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
                 "Petrovic", calendar.getTime(), "M", "petar@raf.rs", true, "+38161123456",
-                "Trg Republike 5", "petareperic90", "Menadzer", "Finansije"));
+                "Trg Republike 5", "petareperic90", "Menadzer", "Finansije", "1234567890123"));
 
         // Verify that the service method was called and assert the response
         assertEquals(201, response.getStatusCodeValue());

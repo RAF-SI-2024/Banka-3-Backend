@@ -40,4 +40,11 @@ public class CreateClientDto {
 
     @NotNull(message = "Address cannot be null")
     private String address;
+
+    @NotNull(message = "Jmbg cannot be null")
+    @Pattern(
+            regexp = "^[0-9]{13}$",
+            message = "Jmbg must be exactly 13 digits"
+    )
+    private String jmbg;
 }

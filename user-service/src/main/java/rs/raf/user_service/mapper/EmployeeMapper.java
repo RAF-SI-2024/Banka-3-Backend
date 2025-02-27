@@ -23,6 +23,7 @@ public class EmployeeMapper {
         dto.setDepartment(employee.getDepartment());
         dto.setActive(employee.isActive());
         dto.setUsername(employee.getUsername());
+        dto.setJmbg(employee.getJmbg());
 
         return dto;
     }
@@ -44,6 +45,7 @@ public class EmployeeMapper {
         employee.setPosition(dto.getPosition());
         employee.setDepartment(dto.getDepartment());
         employee.setActive(dto.isActive());
+        employee.setJmbg(dto.getJmbg());
 
         return employee;
     }
@@ -63,7 +65,8 @@ public class EmployeeMapper {
                 dto.getUsername(),
                 dto.getPosition(),
                 dto.getDepartment(),
-                dto.getActive()
+                dto.getActive(),
+                dto.getJmbg()
         );
     }
 }

@@ -95,11 +95,12 @@ public class ClientServiceTest {
         client.setGender(createClientDTO.getGender());
         client.setBirthDate(createClientDTO.getBirthDate());
         client.setPassword(""); // ✅ Lozinka prazna po zahtevu
+        client.setJmbg(createClientDTO.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
                 client.getEmail(), client.getPassword(), client.getAddress(),
-                client.getPhone(), client.getGender(), client.getBirthDate());
+                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg());
 
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
@@ -125,6 +126,7 @@ public class ClientServiceTest {
         Client existingClient = new Client();
         existingClient.setId(1L);
         existingClient.setEmail("stari@example.com"); // Email se NE MENJA
+        existingClient.setJmbg("1234567890123");
 
         Client updatedClient = new Client();
         updatedClient.setId(1L);
@@ -133,11 +135,12 @@ public class ClientServiceTest {
         updatedClient.setPhone(updateClientDTO.getPhone());
         updatedClient.setGender(updateClientDTO.getGender());
         updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
+        updatedClient.setJmbg(existingClient.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getPassword(), updatedClient.getAddress(),
-                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate());
+                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(), updatedClient.getJmbg());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
         doAnswer(invocation -> {

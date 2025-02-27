@@ -140,8 +140,8 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
         }
     }
 
-    @When("created a new employee with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, birthday on {string}, username {string}, position {string} and department {string}")
-    public void createdANewEmployeeWithFirstNameSecondNameEmailAdressPhoneNumberGenderBirthdayOnUsernamePositionAndDepartment(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7, String arg8, String arg9) {
+    @When("created a new employee with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, birthday on {string}, username {string}, position {string}, department {string} and jmbg {string}")
+    public void createdANewEmployeeWithFirstNameSecondNameEmailAdressPhoneNumberGenderBirthdayOnUsernamePositionAndDepartment(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7, String arg8, String arg9, String arg10) {
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
         String dateStr = arg6;
         Date date = new Date();
@@ -151,7 +151,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
             fail(e.getMessage());
         }
 
-        CreateEmployeeDto newEmployee = new CreateEmployeeDto(arg0, arg1, date, arg5, arg2, false, arg4, arg3, arg7, arg8, arg9);
+        CreateEmployeeDto newEmployee = new CreateEmployeeDto(arg0, arg1, date, arg5, arg2, false, arg4, arg3, arg7, arg8, arg9, arg10);
         addedEmployee = employeeService.createEmployee(newEmployee);
 
     }

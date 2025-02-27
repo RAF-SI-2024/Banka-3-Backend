@@ -22,7 +22,8 @@ public class ClientMapper {
                 client.getAddress(),
                 client.getPhone(),
                 client.getGender(),
-                client.getBirthDate()
+                client.getBirthDate(),
+                client.getJmbg()
         );
     }
 
@@ -39,6 +40,7 @@ public class ClientMapper {
         client.setPhone(clientDTO.getPhone());
         client.setGender(clientDTO.getGender());
         client.setBirthDate(clientDTO.getBirthDate());
+        client.setJmbg(clientDTO.getJmbg());
         return client;
     }
 
@@ -54,6 +56,7 @@ public class ClientMapper {
         client.setGender(createClientDTO.getGender());
         client.setBirthDate(createClientDTO.getBirthDate());
         client.setPassword("");  // ✅ Lozinka ostaje prazna prilikom kreiranja
+        client.setJmbg(createClientDTO.getJmbg());
         return client;
     }
 

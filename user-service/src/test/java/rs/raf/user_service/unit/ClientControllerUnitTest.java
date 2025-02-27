@@ -56,7 +56,7 @@ public class ClientControllerUnitTest {
 
         Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("1990-05-15");
 
-        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "", "Adresa 1", "0611158275", "M", birthDate);
+        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "", "Adresa 1", "0611158275", "M", birthDate, "1234567890123");
 
         createClientDTO = new CreateClientDto();
         createClientDTO.setFirstName("Marko");
@@ -66,6 +66,7 @@ public class ClientControllerUnitTest {
         createClientDTO.setPhone("0611158275");
         createClientDTO.setGender("M");
         createClientDTO.setBirthDate(birthDate);
+        createClientDTO.setJmbg("1234567890123");
 
         updateClientDTO = new UpdateClientDto();
         updateClientDTO.setLastName("MarkovicUpdated");

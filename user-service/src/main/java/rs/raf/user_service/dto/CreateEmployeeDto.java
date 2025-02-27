@@ -54,6 +54,13 @@ public class CreateEmployeeDto {
     @NotNull(message = "Department cannot be null")
     @Size(min = 2, max = 100, message = "Department must be between 2 and 100 characters")
     private String department;
+
+    @NotNull(message = "Jmbg cannot be null")
+    @Pattern(
+            regexp = "^[0-9]{13}$",
+            message = "Jmbg must be exactly 13 digits"
+    )
+    private String jmbg;
 }
 
 
