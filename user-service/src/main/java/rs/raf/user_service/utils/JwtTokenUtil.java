@@ -17,10 +17,11 @@ public class JwtTokenUtil {
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
     private final long expiration = 86400000;
 
-    public String generateToken(String email, List<String> permissions) {
+    public String generateToken(String email, Long id, List<String> permissions) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("permissions", permissions)
+                .claim("userId", id)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(Instant.now().toEpochMilli() + expiration))
                 .signWith(SignatureAlgorithm.HS512, secret)

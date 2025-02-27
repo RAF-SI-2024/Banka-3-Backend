@@ -48,7 +48,7 @@ public class AuthService {
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), user.getId(), permissions);
     }
 
     public String authenticateEmployee(String email, String password) {
@@ -61,7 +61,7 @@ public class AuthService {
                 .map(Permission::getName)
                 .collect(Collectors.toList());
 
-        return jwtTokenUtil.generateToken(user.getEmail(), permissions);
+        return jwtTokenUtil.generateToken(user.getEmail(), user.getId(), permissions);
     }
 
     public void requestPasswordReset(String email) {
