@@ -60,12 +60,10 @@ public class ClientMapper {
     // ✅ Nova metoda: Ažuriranje entiteta na osnovu UpdateClientDTO
     public void fromUpdateDto(UpdateClientDto updateClientDTO, Client client) {
         if (updateClientDTO == null || client == null) return;
-        client.setFirstName(updateClientDTO.getFirstName());
         client.setLastName(updateClientDTO.getLastName());
         client.setAddress(updateClientDTO.getAddress());
         client.setPhone(updateClientDTO.getPhone());
         client.setGender(updateClientDTO.getGender());
-        client.setBirthDate(updateClientDTO.getBirthDate());
     }
 }
 

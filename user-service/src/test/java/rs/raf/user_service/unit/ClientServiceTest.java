@@ -1,4 +1,4 @@
-package rs.raf.user_service;
+package rs.raf.user_service.unit;
 
 
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ public class ClientServiceTest {
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(page);
         when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDto());
 
-        List<ClientDto> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
         assertNotNull(clients);
         assertEquals(1, clients.size());
     }
@@ -117,12 +117,10 @@ public class ClientServiceTest {
     @Test
     public void testUpdateClient_Success() throws ParseException {
         UpdateClientDto updateClientDTO = new UpdateClientDto();
-        updateClientDTO.setFirstName("Petar");
         updateClientDTO.setLastName("Perić");
         updateClientDTO.setAddress("Nova Adresa 100");
         updateClientDTO.setPhone("0601234567");
         updateClientDTO.setGender("M");
-        updateClientDTO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("1990-01-01"));
 
         Client existingClient = new Client();
         existingClient.setId(1L);
@@ -130,12 +128,10 @@ public class ClientServiceTest {
 
         Client updatedClient = new Client();
         updatedClient.setId(1L);
-        updatedClient.setFirstName(updateClientDTO.getFirstName());
         updatedClient.setLastName(updateClientDTO.getLastName());
         updatedClient.setAddress(updateClientDTO.getAddress());
         updatedClient.setPhone(updateClientDTO.getPhone());
         updatedClient.setGender(updateClientDTO.getGender());
-        updatedClient.setBirthDate(updateClientDTO.getBirthDate());
         updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
 
         ClientDto expectedDTO = new ClientDto(
@@ -154,7 +150,6 @@ public class ClientServiceTest {
         ClientDto result = clientService.updateClient(1L, updateClientDTO);
 
         assertNotNull(result);
-        assertEquals("Petar", result.getFirstName());
         assertEquals("Perić", result.getLastName());
         assertEquals("stari@example.com", result.getEmail());
         assertEquals("Nova Adresa 100", result.getAddress());
@@ -178,7 +173,7 @@ public class ClientServiceTest {
         Page<Client> emptyPage = new PageImpl<>(Collections.emptyList());
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(emptyPage);
 
-        List<ClientDto> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }

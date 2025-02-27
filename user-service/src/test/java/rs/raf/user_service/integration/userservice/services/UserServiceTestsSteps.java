@@ -99,9 +99,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     public void updatingTheClientsPhoneNumberWith(String arg0) {
         UpdateClientDto updateClientDto = new UpdateClientDto();
         updateClientDto.setLastName(addedClient.getLastName());
-        updateClientDto.setFirstName(addedClient.getFirstName());
         updateClientDto.setGender(addedClient.getGender());
-        updateClientDto.setBirthDate(addedClient.getBirthDate());
         updateClientDto.setAddress(addedClient.getAddress());
         updateClientDto.setPhone(arg0);
 
@@ -202,7 +200,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
         if (!foundEmployee.isActive()) {
             fail("Employee is not active");
         }
-        if (!foundEmployee.getPhoneNumber().equals(arg1)) {
+        if (!foundEmployee.getPhone().equals(arg1)) {
             fail("Phone number not updated properly.");
         }
     }

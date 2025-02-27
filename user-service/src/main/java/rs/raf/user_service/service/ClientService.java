@@ -57,12 +57,10 @@ public class ClientService {
         Client existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
 
-        existingClient.setFirstName(updateClientDto.getFirstName());
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());
         existingClient.setPhone(updateClientDto.getPhone());
         existingClient.setGender(updateClientDto.getGender());
-        existingClient.setBirthDate(updateClientDto.getBirthDate());
 
         Client updatedClient = clientRepository.save(existingClient);
         System.out.println("[updateClient] Klijent ažuriran: " + updatedClient);
