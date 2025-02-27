@@ -1,4 +1,4 @@
-package rs.raf.user_service;
+package rs.raf.user_service.unit;
 
 
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ public class ClientServiceTest {
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(page);
         when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDto());
 
-        List<ClientDto> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
         assertNotNull(clients);
         assertEquals(1, clients.size());
     }
@@ -178,8 +178,10 @@ public class ClientServiceTest {
         Page<Client> emptyPage = new PageImpl<>(Collections.emptyList());
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(emptyPage);
 
-        List<ClientDto> clients = clientService.listClients(0, 5);
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }
+
+
 }

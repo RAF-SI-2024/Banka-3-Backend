@@ -21,6 +21,7 @@ import rs.raf.user_service.service.ClientService;
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @RestController
@@ -52,7 +53,7 @@ public class ClientController {
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().body(clientService.getClientById(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException | NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -121,7 +122,7 @@ public class ClientController {
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
         try {
             clientService.deleteClient(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }

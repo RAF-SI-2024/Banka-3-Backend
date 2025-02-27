@@ -1,4 +1,4 @@
-package rs.raf.user_service;
+package rs.raf.user_service.unit;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,6 +60,9 @@ class EmployeeServiceTest {
     void testFindAllWithPaginationAndFilters() {
         Employee employee = new Employee();
         employee.setUsername("jovan456");
+        employee.setFirstName("Jovan");
+        employee.setLastName("Jovanovic");
+        employee.setEmail("jovan456@example.com");
         employee.setPosition("Developer");
         employee.setDepartment("IT");
         employee.setActive(true);
@@ -68,7 +71,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDto> result = employeeService.findAll("Developer", "IT", true, PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll("Jovan", "Jovanovic", "jovan456@example.com","Developer", PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
@@ -81,6 +84,9 @@ class EmployeeServiceTest {
     void testFindAllWithoutFilters() {
         Employee emp1 = new Employee();
         emp1.setUsername("ana789");
+        //emp1.setFirstName("Ana");
+        //emp1.setLastName("Anicic");
+        //emp1.setEmail("ana789@example.com");
         emp1.setPosition("HR");
         emp1.setDepartment("Human Resources");
         emp1.setActive(true);
@@ -95,7 +101,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDto> result = employeeService.findAll(null, null, null, PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll(null, null, null, null, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
@@ -272,4 +278,6 @@ class EmployeeServiceTest {
         assertEquals("Employee not found", exception.getMessage());
         verify(employeeRepository, never()).save(any());
     }
+
+
 }

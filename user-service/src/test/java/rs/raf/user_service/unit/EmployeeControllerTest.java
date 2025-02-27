@@ -1,4 +1,4 @@
-package rs.raf.user_service;
+package rs.raf.user_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package rs.raf.user_service;
+package rs.raf.user_service.unit;
 
 import io.jsonwebtoken.impl.DefaultClaims;
 import org.junit.jupiter.api.BeforeEach;
