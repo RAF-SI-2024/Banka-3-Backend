@@ -36,7 +36,7 @@ public abstract class BaseUser {
 
     private String gender;
 
-    @Column(updatable = false)
+    @Column(updatable = false, unique = true)
     private String email;
 
     private String phone;

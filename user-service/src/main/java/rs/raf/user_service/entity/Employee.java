@@ -18,7 +18,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class Employee extends BaseUser {
 
-    @Column(updatable = false)
+    @Column(updatable = false, unique = true)
     private String username;
 
     private String position;

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.*;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
@@ -133,22 +134,12 @@ public class EmployeeController {
     })
     @PostMapping
     public ResponseEntity<?> createEmployee(
-            @RequestBody @Valid CreateEmployeeDto createEmployeeDTO,
-            BindingResult result
+            @RequestBody @Valid CreateEmployeeDto createEmployeeDTO
     ) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
-
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        } catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
-        } catch (Exception e) {
+        }  catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -165,15 +156,8 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEmployee(
             @Parameter(description = "Employee ID", required = true, example = "1") @PathVariable Long id,
-            @RequestBody @Valid UpdateEmployeeDto updateEmployeeDTO,
-            BindingResult result
+            @RequestBody @Valid UpdateEmployeeDto updateEmployeeDTO
     ) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
         try {
             EmployeeDto employeeDto = employeeService.updateEmployee(id, updateEmployeeDTO);
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
