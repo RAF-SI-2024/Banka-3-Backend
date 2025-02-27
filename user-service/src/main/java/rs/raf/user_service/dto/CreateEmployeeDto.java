@@ -37,7 +37,7 @@ public class CreateEmployeeDto {
     @NotNull(message = "Active cannot be null")
     private Boolean active;
 
-    @Pattern(regexp = "^\\+381(6[0-9]{1}|7[0-9]{1}|11)[0-9]{6,7}$", message = "Invalid phone number")
+    @Pattern(regexp = "^0?[1-9][0-9]{6,14}$", message = "Invalid phone number")
     private String phone;
 
     @NotNull(message = "Address cannot be null")
@@ -54,6 +54,13 @@ public class CreateEmployeeDto {
     @NotNull(message = "Department cannot be null")
     @Size(min = 2, max = 100, message = "Department must be between 2 and 100 characters")
     private String department;
+
+    @NotNull(message = "Jmbg cannot be null")
+    @Pattern(
+            regexp = "^[0-9]{13}$",
+            message = "Jmbg must be exactly 13 digits"
+    )
+    private String jmbg;
 }
 
 

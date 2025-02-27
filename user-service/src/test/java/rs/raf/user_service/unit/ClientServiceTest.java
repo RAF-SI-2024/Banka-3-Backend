@@ -95,11 +95,12 @@ public class ClientServiceTest {
         client.setGender(createClientDTO.getGender());
         client.setBirthDate(createClientDTO.getBirthDate());
         client.setPassword(""); // ✅ Lozinka prazna po zahtevu
+        client.setJmbg(createClientDTO.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
                 client.getEmail(), client.getPassword(), client.getAddress(),
-                client.getPhone(), client.getGender(), client.getBirthDate());
+                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg());
 
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
@@ -117,31 +118,29 @@ public class ClientServiceTest {
     @Test
     public void testUpdateClient_Success() throws ParseException {
         UpdateClientDto updateClientDTO = new UpdateClientDto();
-        updateClientDTO.setFirstName("Petar");
         updateClientDTO.setLastName("Perić");
         updateClientDTO.setAddress("Nova Adresa 100");
         updateClientDTO.setPhone("0601234567");
         updateClientDTO.setGender("M");
-        updateClientDTO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("1990-01-01"));
 
         Client existingClient = new Client();
         existingClient.setId(1L);
         existingClient.setEmail("stari@example.com"); // Email se NE MENJA
+        existingClient.setJmbg("1234567890123");
 
         Client updatedClient = new Client();
         updatedClient.setId(1L);
-        updatedClient.setFirstName(updateClientDTO.getFirstName());
         updatedClient.setLastName(updateClientDTO.getLastName());
         updatedClient.setAddress(updateClientDTO.getAddress());
         updatedClient.setPhone(updateClientDTO.getPhone());
         updatedClient.setGender(updateClientDTO.getGender());
-        updatedClient.setBirthDate(updateClientDTO.getBirthDate());
         updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
+        updatedClient.setJmbg(existingClient.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getPassword(), updatedClient.getAddress(),
-                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate());
+                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(), updatedClient.getJmbg());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
         doAnswer(invocation -> {
@@ -154,7 +153,6 @@ public class ClientServiceTest {
         ClientDto result = clientService.updateClient(1L, updateClientDTO);
 
         assertNotNull(result);
-        assertEquals("Petar", result.getFirstName());
         assertEquals("Perić", result.getLastName());
         assertEquals("stari@example.com", result.getEmail());
         assertEquals("Nova Adresa 100", result.getAddress());
@@ -182,6 +180,4 @@ public class ClientServiceTest {
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }
-
-
 }

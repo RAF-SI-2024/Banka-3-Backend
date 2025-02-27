@@ -22,9 +22,10 @@ public class EmployeeDto {
     private String firstName;
     private String lastName;
     private String email;
-
+    private String jmbg;
     private Date birthDate;
     private String gender;
-    private String phoneNumber;
+    private String phone;
     private String address;
+
 }

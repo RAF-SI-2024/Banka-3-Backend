@@ -36,7 +36,7 @@ public abstract class BaseUser {
 
     private String gender;
 
-    @Column(updatable = false)
+    @Column(updatable = false, unique = true)
     private String email;
 
     private String phone;
@@ -45,7 +45,8 @@ public abstract class BaseUser {
 
     private String password;
 
-
+    @Column(updatable = false, unique = true)
+    private String jmbg;
 
     @ManyToMany
     @JoinTable(
@@ -57,7 +58,7 @@ public abstract class BaseUser {
     private Set<Permission> permissions = new HashSet<>();
 
     public BaseUser(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
-                    String address) {
+                    String address, String jmbg) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.birthDate = birthDate;
@@ -65,5 +66,6 @@ public abstract class BaseUser {
         this.email = email;
         this.phone = phone;
         this.address = address;
+        this.jmbg = jmbg;
     }
 }

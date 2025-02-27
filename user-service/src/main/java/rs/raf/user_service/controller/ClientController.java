@@ -21,7 +21,6 @@ import rs.raf.user_service.service.ClientService;
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @RestController
@@ -53,7 +52,7 @@ public class ClientController {
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().body(clientService.getClientById(id));
-        } catch (EntityNotFoundException | NoSuchElementException e) {
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -65,19 +64,11 @@ public class ClientController {
             @ApiResponse(responseCode = "201", description = "Client created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<?> addClient(@Valid @RequestBody CreateClientDto createClientDto,
-                                       BindingResult result) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
-
+    public ResponseEntity<?> addClient(@Valid @RequestBody CreateClientDto createClientDto) {
         try {
             ClientDto clientDto = clientService.addClient(createClientDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(clientDto);
-        } catch (UserAlreadyExistsException | EmailAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
@@ -93,14 +84,7 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client not found"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<?> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDto updateClientDto,
-                                          BindingResult result) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDto updateClientDto) {
         try {
             ClientDto clientDto = clientService.updateClient(id, updateClientDto);
             return ResponseEntity.status(HttpStatus.OK).body(clientDto);
@@ -122,7 +106,7 @@ public class ClientController {
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
         try {
             clientService.deleteClient(id);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }

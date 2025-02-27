@@ -52,6 +52,7 @@ public class AuthServiceTest {
         String token = "jwtTokenClient";
 
         Client client = new Client();
+        client.setId(1L);
         client.setEmail(email);
         client.setPassword(encodedPassword);
         Permission permission = new Permission();
@@ -60,7 +61,7 @@ public class AuthServiceTest {
 
         when(clientRepository.findByEmail(email)).thenReturn(Optional.of(client));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenUtil.generateToken(email, Collections.singletonList("CLIENT"))).thenReturn(token);
+        when(jwtTokenUtil.generateToken(email, 1L, Collections.singletonList("CLIENT"))).thenReturn(token);
 
         String returnedToken = authService.authenticateClient(email, rawPassword);
         assertEquals(token, returnedToken);
@@ -105,6 +106,7 @@ public class AuthServiceTest {
         String token = "jwtTokenEmployee";
 
         Employee employee = new Employee();
+        employee.setId(1L);
         employee.setEmail(email);
         employee.setPassword(encodedPassword);
         Permission permission = new Permission();
@@ -113,7 +115,7 @@ public class AuthServiceTest {
 
         when(employeeRepository.findByEmail(email)).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenUtil.generateToken(email, Collections.singletonList("EMPLOYEE"))).thenReturn(token);
+        when(jwtTokenUtil.generateToken(email, 1L, Collections.singletonList("EMPLOYEE"))).thenReturn(token);
 
         String returnedToken = authService.authenticateEmployee(email, rawPassword);
         assertEquals(token, returnedToken);

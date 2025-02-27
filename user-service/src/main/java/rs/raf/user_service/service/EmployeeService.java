@@ -24,6 +24,7 @@ import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
+import javax.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -107,15 +108,16 @@ public class EmployeeService {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
             @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
     })
-    public EmployeeDto createEmployee(CreateEmployeeDto createEmployeeDTO) {
+    public EmployeeDto createEmployee(CreateEmployeeDto createEmployeeDTO) throws EmailAlreadyExistsException {
         if (employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new EmailAlreadyExistsException();
-
         if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()))
             throw new UserAlreadyExistsException();
 
+
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
         employeeRepository.save(employee);
+
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());
