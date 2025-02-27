@@ -111,14 +111,13 @@ public class EmployeeService {
     public EmployeeDto createEmployee(CreateEmployeeDto createEmployeeDTO) throws EmailAlreadyExistsException {
         if (employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new EmailAlreadyExistsException();
+        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()))
+            throw new UserAlreadyExistsException();
+
 
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
-        try {
-            employeeRepository.save(employee);
-        }
-        catch (ConstraintViolationException e) {
-            throw new UserAlreadyExistsException();
-        }
+        employeeRepository.save(employee);
+
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());

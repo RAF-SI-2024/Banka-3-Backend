@@ -8,9 +8,11 @@ import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
 
+import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -46,10 +48,15 @@ public class ClientService {
         client.setPassword("");  // Lozinka ostaje prazna
         System.out.println("[addClient] Lozinka ostavljena prazna prilikom kreiranja.");
 
-        Client savedClient = clientRepository.save(client);
-        System.out.println("[addClient] Klijent sačuvan u bazi: " + savedClient);
+        try {
+            Client savedClient = clientRepository.save(client);
+            System.out.println("[addClient] Klijent sačuvan u bazi: " + savedClient);
 
-        return clientMapper.toDto(savedClient);
+            return clientMapper.toDto(savedClient);
+        } catch (ConstraintViolationException e) {
+            throw new EmailAlreadyExistsException();
+        }
+
     }
 
     // Ažuriranje samo dozvoljenih polja (email i druge vrednosti se ne diraju)

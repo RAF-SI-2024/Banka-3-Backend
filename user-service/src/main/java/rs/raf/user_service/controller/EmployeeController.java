@@ -139,7 +139,10 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        }  catch (Exception e) {
+        }  catch(EmailAlreadyExistsException | UserAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -161,7 +164,6 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.updateEmployee(id, updateEmployeeDTO);
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
