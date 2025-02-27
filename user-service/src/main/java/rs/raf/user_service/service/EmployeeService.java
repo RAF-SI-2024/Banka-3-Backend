@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -119,7 +120,9 @@ public class EmployeeService {
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());
 
+
         rabbitTemplate.convertAndSend("set-password", emailRequestDto);
+
 
         Long createdAt = Instant.now().toEpochMilli();
         Long expiresAt = createdAt + 86400000;//24h
