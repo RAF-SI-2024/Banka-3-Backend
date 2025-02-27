@@ -64,15 +64,7 @@ public class ClientController {
             @ApiResponse(responseCode = "201", description = "Client created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<?> addClient(@Valid @RequestBody CreateClientDto createClientDto,
-                                       BindingResult result) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
-
+    public ResponseEntity<?> addClient(@Valid @RequestBody CreateClientDto createClientDto) {
         try {
             ClientDto clientDto = clientService.addClient(createClientDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(clientDto);
@@ -92,14 +84,7 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client not found"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<?> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDto updateClientDto,
-                                          BindingResult result) {
-        if (result.hasErrors()) {
-            List<String> errors = result.getAllErrors().stream()
-                    .map(ObjectError::getDefaultMessage)
-                    .collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
-        }
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @Valid @RequestBody UpdateClientDto updateClientDto) {
         try {
             ClientDto clientDto = clientService.updateClient(id, updateClientDto);
             return ResponseEntity.status(HttpStatus.OK).body(clientDto);
