@@ -37,7 +37,7 @@ public class CreateEmployeeDto {
     @NotNull(message = "Active cannot be null")
     private Boolean active;
 
-    @Pattern(regexp = "^\\+381(6[0-9]{1}|7[0-9]{1}|11)[0-9]{6,7}$", message = "Invalid phone number")
+    @Pattern(regexp = "^0?[1-9][0-9]{6,14}$", message = "Invalid phone number")
     private String phone;
 
     @NotNull(message = "Address cannot be null")
