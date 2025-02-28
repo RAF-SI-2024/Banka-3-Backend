@@ -15,6 +15,7 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.*;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.ClientService;
 
@@ -68,7 +69,7 @@ public class ClientController {
         try {
             ClientDto clientDto = clientService.addClient(createClientDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(clientDto);
-        } catch (EmailAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | JmbgAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();

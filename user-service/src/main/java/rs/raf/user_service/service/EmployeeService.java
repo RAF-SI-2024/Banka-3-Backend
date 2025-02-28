@@ -17,6 +17,7 @@ import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
@@ -113,6 +114,8 @@ public class EmployeeService {
             throw new EmailAlreadyExistsException();
         if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()))
             throw new UserAlreadyExistsException();
+        if (employeeRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
+            throw new JmbgAlreadyExistsException();
 
 
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);

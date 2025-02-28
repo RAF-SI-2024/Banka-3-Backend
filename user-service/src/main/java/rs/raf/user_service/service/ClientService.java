@@ -9,6 +9,7 @@ import rs.raf.user_service.dto.CreateClientDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
 
@@ -42,15 +43,15 @@ public class ClientService {
 
     // Kreiranje klijenta bez lozinke (password ostaje prazan)
     public ClientDto addClient(CreateClientDto createClientDto) {
-        System.out.println("[addClient] Pozvana metoda sa podacima: " + createClientDto);
-
         Client client = clientMapper.fromCreateDto(createClientDto);
         client.setPassword("");  // Lozinka ostaje prazna
-        System.out.println("[addClient] Lozinka ostavljena prazna prilikom kreiranja.");
+
+        if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
+            throw new JmbgAlreadyExistsException();
+        }
 
         try {
             Client savedClient = clientRepository.save(client);
-            System.out.println("[addClient] Klijent sačuvan u bazi: " + savedClient);
 
             return clientMapper.toDto(savedClient);
         } catch (ConstraintViolationException e) {
