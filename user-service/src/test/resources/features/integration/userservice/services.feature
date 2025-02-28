@@ -2,18 +2,18 @@ Feature: Testing the services in user-service
 
   #ClientService
   Scenario: Adding a new client
-    When created a new client with first name "Luka", second name "Basrak", email "test@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001."
+    When created a new client with first name "Luka", second name "Basrak", email "test@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001." and jmbg "1111111111111"
     And list all clients
     Then recieve client with email "test@example.com"
 
   Scenario: Updating a client
-    Given created a new client with first name "Luka", second name "Basrak", email "test1@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001."
+    Given created a new client with first name "Luka", second name "Basrak", email "test1@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001." and jmbg "1111111111112"
     When updating the clients phone number with "7654321"
     And searching for that client
     Then recieve that client with email "test1@example.com" and phone number "7654321"
 
   Scenario: Deleting a client
-    Given created a new client with first name "Luka", second name "Basrak", email "test2@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001."
+    Given created a new client with first name "Luka", second name "Basrak", email "test2@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", and birthday on "14.07.2001." and jmbg "1111111111113"
     When deleting that client
     Then the client with the "test2@example.com" email does not exist in the list of all clients
 
