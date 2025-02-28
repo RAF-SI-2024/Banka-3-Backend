@@ -95,7 +95,7 @@ public class EmailUtils {
                                    display: inline-block;
                                    padding: 12px 25px;
                                    background-color: #3182ce;
-                                   color: white;
+                                   color: white !important;
                                    text-decoration: none;
                                    border-radius: 6px;
                                    font-size: 16px;
