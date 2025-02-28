@@ -6,12 +6,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.ClientRepository;
 
+import javax.persistence.EntityNotFoundException;
 import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -81,5 +85,11 @@ public class ClientService {
         }
         clientRepository.deleteById(id);
         System.out.println("[deleteClient] Klijent sa ID " + id + " uspešno obrisan.");
+    }
+
+    public ClientDto findByEmail(String email) {
+        Client client = clientRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return clientMapper.toDto(client);
     }
 }

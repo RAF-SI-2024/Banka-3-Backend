@@ -154,4 +154,11 @@ public class EmployeeService {
         return EmployeeMapper.toDto(employee);
     }
 
+    public EmployeeDto findByEmail(String email) {
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return EmployeeMapper.toDto(employee);
+    }
+
+
 }
