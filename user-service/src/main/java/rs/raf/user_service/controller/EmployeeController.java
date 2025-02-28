@@ -166,7 +166,10 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.updateEmployee(id, updateEmployeeDTO);
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
-        } catch (Exception e) {
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

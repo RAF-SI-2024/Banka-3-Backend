@@ -57,7 +57,7 @@ public class ClientService {
     // Ažuriranje samo dozvoljenih polja (email i druge vrednosti se ne diraju)
     public ClientDto updateClient(Long id, UpdateClientDto updateClientDto) {
         Client existingClient = clientRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
 
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());

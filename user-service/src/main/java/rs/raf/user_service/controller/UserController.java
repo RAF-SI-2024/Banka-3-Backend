@@ -14,6 +14,7 @@ import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.dto.PermissionRequestDto;
 import rs.raf.user_service.service.UserService;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -47,9 +48,8 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "User already has this permission")
     })
     public ResponseEntity<Void> addPermissionToUser(
-            @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId,
-            @RequestBody PermissionRequestDto permissionRequestDto) {
+            @RequestBody @Valid PermissionRequestDto permissionRequestDto) {
         try {
             userService.addPermissionToUser(userId, permissionRequestDto);
             return ResponseEntity.ok().build();

@@ -99,7 +99,7 @@ public class ClientServiceTest {
 
         ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
-                client.getEmail(), client.getPassword(), client.getAddress(),
+                client.getEmail(), client.getAddress(),
                 client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg());
 
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
@@ -112,7 +112,6 @@ public class ClientServiceTest {
         assertEquals("Mihailo", result.getFirstName());
         assertEquals("Petrović", result.getLastName());
         assertEquals("mihailo@example.com", result.getEmail());
-        assertEquals("", result.getPassword());
     }
 
     @Test
@@ -139,7 +138,7 @@ public class ClientServiceTest {
 
         ClientDto expectedDTO = new ClientDto(
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
-                updatedClient.getEmail(), updatedClient.getPassword(), updatedClient.getAddress(),
+                updatedClient.getEmail(), updatedClient.getAddress(),
                 updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(), updatedClient.getJmbg());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));

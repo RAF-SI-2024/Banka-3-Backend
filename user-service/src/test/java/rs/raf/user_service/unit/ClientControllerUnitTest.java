@@ -56,7 +56,7 @@ public class ClientControllerUnitTest {
 
         Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("1990-05-15");
 
-        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "", "Adresa 1", "0611158275", "M", birthDate, "1234567890123");
+        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "Adresa 1", "0611158275", "M", birthDate, "1234567890123");
 
         createClientDTO = new CreateClientDto();
         createClientDTO.setFirstName("Marko");
@@ -122,9 +122,7 @@ public class ClientControllerUnitTest {
                         .content(objectMapper.writeValueAsString(createClientDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstName", is(clientDTO.getFirstName())))
-                .andExpect(jsonPath("$.email", is(clientDTO.getEmail())))
-                .andExpect(jsonPath("$.password", is(""))); // ✅ Lozinka prazna
-
+                .andExpect(jsonPath("$.email", is(clientDTO.getEmail())));
         verify(clientService, times(1)).addClient(any(CreateClientDto.class));
     }
 
