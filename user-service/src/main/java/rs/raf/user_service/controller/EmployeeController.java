@@ -18,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.*;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.EmployeeService;
 
@@ -140,7 +141,7 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        }  catch(EmailAlreadyExistsException | UserAlreadyExistsException e) {
+        }  catch(EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
         catch (Exception e) {
@@ -165,7 +166,10 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.updateEmployee(id, updateEmployeeDTO);
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
-        } catch (Exception e) {
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

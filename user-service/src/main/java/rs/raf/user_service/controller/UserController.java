@@ -11,8 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.PermissionRequestDto;
 import rs.raf.user_service.service.UserService;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -46,12 +48,10 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "User already has this permission")
     })
     public ResponseEntity<Void> addPermissionToUser(
-            @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId,
-            @Parameter(description = "Permission ID", required = true, example = "2")
-            @RequestBody Long permissionId) {
+            @RequestBody @Valid PermissionRequestDto permissionRequestDto) {
         try {
-            userService.addPermissionToUser(userId, permissionId);
+            userService.addPermissionToUser(userId, permissionRequestDto);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

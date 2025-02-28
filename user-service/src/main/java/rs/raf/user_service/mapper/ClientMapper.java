@@ -18,7 +18,6 @@ public class ClientMapper {
                 client.getFirstName(),
                 client.getLastName(),
                 client.getEmail(),
-                client.getPassword(),
                 client.getAddress(),
                 client.getPhone(),
                 client.getGender(),
@@ -35,7 +34,6 @@ public class ClientMapper {
         client.setFirstName(clientDTO.getFirstName());
         client.setLastName(clientDTO.getLastName());
         client.setEmail(clientDTO.getEmail());
-        client.setPassword(clientDTO.getPassword());
         client.setAddress(clientDTO.getAddress());
         client.setPhone(clientDTO.getPhone());
         client.setGender(clientDTO.getGender());

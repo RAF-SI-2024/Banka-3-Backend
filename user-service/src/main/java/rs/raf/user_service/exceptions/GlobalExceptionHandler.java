@@ -25,10 +25,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ValidationErrorMessageDto(errors));
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ErrorMessageDto> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(ex.getMessage()));
-    }
+//    @ExceptionHandler(EmailAlreadyExistsException.class)
+//    public ResponseEntity<ErrorMessageDto> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(ex.getMessage()));
+//    }
 
 //    @ExceptionHandler({EmailAlreadyExistsException.class, UserAlreadyExistsException.class})
 //    public ResponseEntity<ErrorMessageDto> handleUserAlreadyExistsException(RuntimeException ex) {

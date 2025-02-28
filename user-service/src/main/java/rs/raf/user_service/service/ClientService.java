@@ -1,37 +1,28 @@
 package rs.raf.user_service.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
-import rs.raf.user_service.dto.EmployeeDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
-import rs.raf.user_service.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.ClientRepository;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.ConstraintViolationException;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class ClientService {
 
     private final ClientRepository clientRepository;
     private final ClientMapper clientMapper;
-
-    @Autowired
-    public ClientService(ClientRepository clientRepository, ClientMapper clientMapper) {
-        this.clientRepository = clientRepository;
-        this.clientMapper = clientMapper;
-    }
 
     public Page<ClientDto> listClients(Pageable pageable) {
         Page<Client> clientsPage = clientRepository.findAll(pageable);
@@ -46,15 +37,15 @@ public class ClientService {
 
     // Kreiranje klijenta bez lozinke (password ostaje prazan)
     public ClientDto addClient(CreateClientDto createClientDto) {
-        System.out.println("[addClient] Pozvana metoda sa podacima: " + createClientDto);
-
         Client client = clientMapper.fromCreateDto(createClientDto);
         client.setPassword("");  // Lozinka ostaje prazna
-        System.out.println("[addClient] Lozinka ostavljena prazna prilikom kreiranja.");
 
+        if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
+            throw new JmbgAlreadyExistsException();
+        }
+        // @Todo hendlati constraint violation greske ovde i u employee 😡😡😡😡😡😡😡😡
         try {
             Client savedClient = clientRepository.save(client);
-            System.out.println("[addClient] Klijent sačuvan u bazi: " + savedClient);
 
             return clientMapper.toDto(savedClient);
         } catch (ConstraintViolationException e) {
@@ -66,7 +57,7 @@ public class ClientService {
     // Ažuriranje samo dozvoljenih polja (email i druge vrednosti se ne diraju)
     public ClientDto updateClient(Long id, UpdateClientDto updateClientDto) {
         Client existingClient = clientRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
 
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());

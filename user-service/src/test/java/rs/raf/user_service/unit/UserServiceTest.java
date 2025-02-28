@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.PermissionRequestDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
 import rs.raf.user_service.repository.AuthTokenRepository;
@@ -93,7 +94,7 @@ class UserServiceTest {
         when(permissionRepository.findById(permissionId)).thenReturn(Optional.of(permission));
 
 
-        userService.addPermissionToUser(userId, permissionId);
+        userService.addPermissionToUser(userId, new PermissionRequestDto(permission.getId()));
 
 
         assertTrue(user.getPermissions().contains(permission));
@@ -115,7 +116,7 @@ class UserServiceTest {
 
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.addPermissionToUser(userId, permissionId);
+            userService.addPermissionToUser(userId, new PermissionRequestDto(permission.getId()));
         });
 
         assertEquals("User already has this permission", exception.getMessage());
@@ -176,7 +177,7 @@ class UserServiceTest {
 
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            userService.addPermissionToUser(userId, permissionId);
+            userService.addPermissionToUser(userId, new PermissionRequestDto(permissionId));
         });
 
         assertEquals("Permission not found", exception.getMessage());

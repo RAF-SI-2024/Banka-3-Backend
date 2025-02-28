@@ -56,8 +56,8 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
-    @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string}")
-    public void createdANewClientWithFirstNameSecondNameEmailAdressPhoneNumberGenderAndBirthdayOn(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6) {
+    @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string} and jmbg {string}")
+    public void createdANewClientWithFirstNameSecondNameEmailAdressPhoneNumberGenderAndBirthdayOn(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7) {
         CreateClientDto newClient = new CreateClientDto();
 
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
@@ -76,6 +76,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
         newClient.setPhone(arg4);
         newClient.setGender(arg5);
         newClient.setBirthDate(date);
+        newClient.setJmbg(arg7);
 
         addedClient = clientService.addClient(newClient);
     }
@@ -223,7 +224,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     @Transactional
     @When("added a new permission with id {string}")
     public void addedANewPermissionWithId(String arg0) {
-        userService.addPermissionToUser(addedEmployee.getId(), Long.parseLong(arg0));
+        userService.addPermissionToUser(addedEmployee.getId(), new PermissionRequestDto(Long.parseLong(arg0)));
     }
 
     @Transactional
