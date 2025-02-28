@@ -26,17 +26,17 @@ public class EmailUtils {
         switch (type) {
             case SET_PASSWORD: {
                 title = "Set Your Password";
-                link = "http://localhost/set-password/" + token;
+                link = "http://localhost::4200/set-password/" + token;
                 break;
             }
             case RESET_PASSWORD: {
                 title = "Reset Your Password";
-                link = "http://localhost/reset-password/" + token;
+                link = "http://localhost:4200/reset-password/" + token;
                 break;
             }
             case ACTIVATE_ACCOUNT: {
                 title = "Activate Your Account";
-                link = "http://localhost/activate-account/" + token;
+                link = "http://localhost:4200/set-password/" + token;
                 break;
             }
             default: {
