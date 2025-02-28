@@ -1,6 +1,6 @@
 package rs.raf.user_service.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -12,23 +12,15 @@ import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
-
 import javax.validation.ConstraintViolationException;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class ClientService {
 
     private final ClientRepository clientRepository;
     private final ClientMapper clientMapper;
-
-    @Autowired
-    public ClientService(ClientRepository clientRepository, ClientMapper clientMapper) {
-        this.clientRepository = clientRepository;
-        this.clientMapper = clientMapper;
-    }
 
     public Page<ClientDto> listClients(Pageable pageable) {
         Page<Client> clientsPage = clientRepository.findAll(pageable);
@@ -49,7 +41,7 @@ public class ClientService {
         if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
             throw new JmbgAlreadyExistsException();
         }
-
+        // @Todo hendlati constraint violation greske ovde i u employee 😡😡😡😡😡😡😡😡
         try {
             Client savedClient = clientRepository.save(client);
 

@@ -3,12 +3,11 @@ package rs.raf.user_service.service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.AllArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.EmailRequestDto;
@@ -25,24 +24,16 @@ import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
-import javax.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
-    private final PasswordEncoder passwordEncoder;
-
-    public EmployeeService(EmployeeRepository employeeRepository, RabbitTemplate rabbitTemplate, AuthTokenRepository authTokenRepository, PasswordEncoder passwordEncoder) {
-        this.employeeRepository = employeeRepository;
-        this.rabbitTemplate = rabbitTemplate;
-        this.authTokenRepository = authTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
     @ApiResponses(value = {
@@ -117,6 +108,7 @@ public class EmployeeService {
         if (employeeRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
 
+        // @Todo hendlati constraint violation greske ovde i u clientu 😡😡😡😡😡😡😡😡
 
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
         employeeRepository.save(employee);
