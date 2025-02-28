@@ -1,21 +1,28 @@
 package rs.raf.user_service.service;
 
 import lombok.AllArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.dto.UpdateClientDto;
+import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
+import rs.raf.user_service.repository.UserRepository;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.ConstraintViolationException;
+import java.time.Instant;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -23,6 +30,9 @@ public class ClientService {
 
     private final ClientRepository clientRepository;
     private final ClientMapper clientMapper;
+    private final UserRepository userRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     public Page<ClientDto> listClients(Pageable pageable) {
         Page<Client> clientsPage = clientRepository.findAll(pageable);
@@ -35,17 +45,27 @@ public class ClientService {
         return clientMapper.toDto(client);
     }
 
-    // Kreiranje klijenta bez lozinke (password ostaje prazan)
     public ClientDto addClient(CreateClientDto createClientDto) {
         Client client = clientMapper.fromCreateDto(createClientDto);
-        client.setPassword("");  // Lozinka ostaje prazna
+        client.setPassword("");
 
         if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
             throw new JmbgAlreadyExistsException();
         }
-        // @Todo hendlati constraint violation greske ovde i u employee 😡😡😡😡😡😡😡😡
         try {
             Client savedClient = clientRepository.save(client);
+
+            UUID token = UUID.fromString(UUID.randomUUID().toString());
+            EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), client.getEmail());
+
+
+            rabbitTemplate.convertAndSend("set-password", emailRequestDto);
+
+
+            Long createdAt = Instant.now().toEpochMilli();
+            Long expiresAt = createdAt + 86400000;//24h
+            AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password", client.getId());
+            authTokenRepository.save(authToken);
 
             return clientMapper.toDto(savedClient);
         } catch (ConstraintViolationException e) {
