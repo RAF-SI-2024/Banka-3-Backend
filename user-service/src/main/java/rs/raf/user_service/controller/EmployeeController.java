@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.validation.annotation.Validated;
@@ -168,6 +169,22 @@ public class EmployeeController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved employee details"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentEmployee() {
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            return ResponseEntity.ok().body(employeeService.findByEmail(email));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

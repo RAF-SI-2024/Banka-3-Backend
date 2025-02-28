@@ -12,6 +12,8 @@ import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
 import rs.raf.user_service.repository.ClientRepository;
+
+import javax.persistence.EntityNotFoundException;
 import javax.validation.ConstraintViolationException;
 import java.util.NoSuchElementException;
 
@@ -74,5 +76,11 @@ public class ClientService {
         }
         clientRepository.deleteById(id);
         System.out.println("[deleteClient] Klijent sa ID " + id + " uspešno obrisan.");
+    }
+
+    public ClientDto findByEmail(String email) {
+        Client client = clientRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return clientMapper.toDto(client);
     }
 }
