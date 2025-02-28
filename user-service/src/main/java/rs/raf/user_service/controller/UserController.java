@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.PermissionDto;
+import rs.raf.user_service.dto.PermissionRequestDto;
 import rs.raf.user_service.service.UserService;
 
 import java.util.List;
@@ -48,10 +49,9 @@ public class UserController {
     public ResponseEntity<Void> addPermissionToUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId,
-            @Parameter(description = "Permission ID", required = true, example = "2")
-            @RequestBody Long permissionId) {
+            @RequestBody PermissionRequestDto permissionRequestDto) {
         try {
-            userService.addPermissionToUser(userId, permissionId);
+            userService.addPermissionToUser(userId, permissionRequestDto);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
