@@ -1,4 +1,4 @@
-package rs.raf.email_service.tests;
+package rs.raf.email_service.unit;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,6 +8,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.email_service.EmailListener;
 import rs.raf.email_service.EmailRequestDto;
 import rs.raf.email_service.EmailService;
+
+import javax.mail.MessagingException;
 
 import static org.mockito.Mockito.*;
 
@@ -21,7 +23,7 @@ class EmailListenerTest {
     private EmailListener emailListener;
 
     @Test
-    void testSendEmail() {
+    void testSendEmail() throws MessagingException {
         // Arrange
         String destination = "test@example.com";
         String code = "123456";
@@ -32,6 +34,6 @@ class EmailListenerTest {
         // Act
         emailListener.handleResetPassword(emailRequestDto);
 
-        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString());
+        verify(emailService, times(1)).sendEmail(anyString(), anyString(), anyString(), anyString());
     }
 }
