@@ -12,6 +12,17 @@ services:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
       - POSTGRES_DB=main_db
+  bank_db:
+    image: postgres:17.3-alpine
+    restart: always
+    ports:
+      - 5433:5432
+    volumes:
+      - postgres_data_bank:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=lozinka
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=bank_db
   rabbitmq:
     image: rabbitmq:3-management
     restart: always
@@ -23,3 +34,4 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
 volumes:
   postgres_data:
+  postgres_data_bank:
