@@ -1,5 +1,7 @@
 package rs.raf.user_service.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,7 +31,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin/employees")
 @Tag(name = "Employee Management", description = "API for managing employees")
-
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -37,6 +38,7 @@ public class EmployeeController {
     public EmployeeController(EmployeeService employeeService) {
         this.employeeService = employeeService;
     }
+
 
     @PreAuthorize("hasAuthority('admin')")
 
@@ -46,11 +48,6 @@ public class EmployeeController {
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
     @GetMapping("/{id}")
-
-    public EmployeeDTO getEmployeeById(@PathVariable Long id) {
-        return employeeService.findById(id);
-    }
-
 
     public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
         try {
@@ -68,16 +65,6 @@ public class EmployeeController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
     })
     @GetMapping
-
-    public Page<EmployeeDTO> getAllEmployees(
-            @RequestParam(required = false) String position,
-            @RequestParam(required = false) String department,
-            @RequestParam(required = false) Boolean active,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size);
-        return employeeService.findAll(position, department, active, pageable);
 
     public ResponseEntity<Page<EmployeeDto>> getAllEmployees(
             @RequestParam(required = false) String firstName,

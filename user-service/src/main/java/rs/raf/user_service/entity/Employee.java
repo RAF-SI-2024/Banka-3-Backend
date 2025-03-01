@@ -1,11 +1,6 @@
 package rs.raf.user_service.entity;
 
-import lombok.Getter;
-import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +10,7 @@ import lombok.experimental.SuperBuilder;
 import javax.persistence.*;
 import java.util.Date;
 
+
 @Entity
 @DiscriminatorValue("EMP")
 @Getter
@@ -23,6 +19,7 @@ import java.util.Date;
 @SuperBuilder()
 @RequiredArgsConstructor
 @AllArgsConstructor
+
 public class Employee extends BaseUser {
 
     @Column(updatable = false, unique = true)

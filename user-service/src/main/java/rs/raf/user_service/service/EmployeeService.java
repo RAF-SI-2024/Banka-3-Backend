@@ -1,7 +1,16 @@
 package rs.raf.user_service.service;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import lombok.AllArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.dto.EmployeeDto;
@@ -29,6 +38,27 @@ public class EmployeeService {
     private final RabbitTemplate rabbitTemplate;
 
 
+    @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee list retrieved successfully")
+    })
+
+    public Page<EmployeeDto> findAll(String firstName, String lastName, String email, String position, Pageable pageable) {
+        Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.startsWithFirstName(firstName))
+                .and(EmployeeSearchSpecification.startsWithLastName(lastName))
+                .and(EmployeeSearchSpecification.startsWithEmail(email))
+                .and(EmployeeSearchSpecification.startsWithPosition(position));
+
+        return employeeRepository.findAll(spec, pageable)
+                .map(EmployeeMapper::toDto);
+
+    }
+
+    @Operation(summary = "Find employee by ID", description = "Fetches an employee by its unique ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee found"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
 
     public EmployeeDto findById(Long id) {
         Employee employee = employeeRepository.findById(id)
