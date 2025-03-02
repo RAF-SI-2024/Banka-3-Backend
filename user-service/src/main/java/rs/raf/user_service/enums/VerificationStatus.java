@@ -1,4 +1,4 @@
-package rs.raf.user_service.entity;
+package rs.raf.user_service.enums;
 
 public enum VerificationStatus {
     PENDING,

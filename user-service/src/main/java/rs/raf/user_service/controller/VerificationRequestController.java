@@ -4,12 +4,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.VerificationRequestDto;
 import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.entity.VerificationStatus;
+import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.VerificationRequestService;
 
 import java.util.List;
@@ -19,20 +19,17 @@ import java.util.List;
 public class VerificationRequestController {
 
     private final VerificationRequestService verificationRequestService;
-    private final RestTemplate restTemplate;
+    private final ClientService clientService;
 
-    public VerificationRequestController(VerificationRequestService verificationRequestService, RestTemplate restTemplate) {
+    public VerificationRequestController(VerificationRequestService verificationRequestService, ClientService clientService) {
         this.verificationRequestService = verificationRequestService;
-        this.restTemplate = restTemplate;
+        this.clientService = clientService;
     }
 
-    private ClientDto getCurrentClient(String Token){
-        String url = "http://user-service/api/clients/me";
-        return restTemplate.getForObject(url, ClientDto.class);
+    private ClientDto getCurrentClient() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return clientService.findByEmail(email);
     }
-
-
-
 
     @Operation(summary = "Get active verification requests", description = "Returns a list of pending verification requests for the user.")
     @ApiResponses(value = {
@@ -40,8 +37,8 @@ public class VerificationRequestController {
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @GetMapping("/active-requests")
-    public ResponseEntity<List<VerificationRequest>> getActiveRequests(@RequestHeader("Authorization") String token) {
-        ClientDto client = getCurrentClient(token);
+    public ResponseEntity<List<VerificationRequest>> getActiveRequests() {
+        ClientDto client = getCurrentClient();
         List<VerificationRequest> requests = verificationRequestService.getActiveRequests(client.getId());
         return ResponseEntity.ok(requests);
     }

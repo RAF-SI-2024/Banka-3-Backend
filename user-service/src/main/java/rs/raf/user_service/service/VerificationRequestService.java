@@ -2,12 +2,11 @@ package rs.raf.user_service.service;
 
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.entity.VerificationStatus;
+import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
 
 @Service
 public class VerificationRequestService {

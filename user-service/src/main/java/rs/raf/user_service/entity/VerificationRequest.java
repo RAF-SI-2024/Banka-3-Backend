@@ -2,6 +2,7 @@ package rs.raf.user_service.entity;
 
 
 import lombok.*;
+import rs.raf.user_service.enums.VerificationStatus;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;

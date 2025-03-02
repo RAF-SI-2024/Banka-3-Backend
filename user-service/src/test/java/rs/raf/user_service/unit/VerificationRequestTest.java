@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.entity.VerificationStatus;
+import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.service.VerificationRequestService;
 
