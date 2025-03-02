@@ -1,7 +1,11 @@
-package rs.raf.bank_service.domain.entity;
+package rs.raf.bank_service.domain.dto;
 
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 
@@ -11,31 +15,18 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-@Entity
-public class Card {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+@NoArgsConstructor
+@AllArgsConstructor
+public class CardDto {
+
     private Long id;
-    
-    @Column(unique = true, length = 16)
     private String cardNumber;
-
-    @Column(length = 3)
     private String cvv;
-
-    @Enumerated(EnumType.STRING)
-    private CardType type;
-
+    private String type;
     private String name;
-
     private LocalDate creationDate;
     private LocalDate expirationDate;
-    
-    @ManyToOne
-    private Account account;
-    
-    @Enumerated(EnumType.STRING)
-    private CardStatus status;
-    
+    private String accountNumber;
+    private String status;
     private BigDecimal cardLimit;
 }
