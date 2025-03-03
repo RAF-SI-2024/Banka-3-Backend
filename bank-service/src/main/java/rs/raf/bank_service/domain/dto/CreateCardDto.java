@@ -18,7 +18,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCardDto {
-    @NotBlank
+    /*@NotBlank
     @Size(min = 16, max = 16)
     @Pattern(regexp = "\\d{16}", message = "Card number must be 16 digits")
     private String cardNumber;
@@ -26,7 +26,7 @@ public class CreateCardDto {
     @NotBlank
     @Size(min = 3, max = 3)
     @Pattern(regexp = "\\d{3}", message = "CVV must be 3 digits")
-    private String cvv;
+    private String cvv;*/
 
     @NotBlank
     private String type;
@@ -37,8 +37,8 @@ public class CreateCardDto {
     @NotBlank
     private String accountNumber;
 
-    @NotBlank
-    private String status;
+    //@NotBlank
+    //private String status;
 
     @NotNull
     private BigDecimal cardLimit;

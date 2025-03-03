@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class CardMapper {
 
 
-    public CardDto toCardDto(Card card){
+    public static CardDto toCardDto(Card card){
         if (card == null) return null;
         return new CardDto(card.getId(),
                 card.getCardNumber(),
@@ -53,12 +53,12 @@ public class CardMapper {
             return null;
         }
         Card card = new Card();
-        card.setCardNumber(dto.getCardNumber());
-        card.setCvv(dto.getCvv());
+        //card.setCardNumber(dto.getCardNumber());
+        //card.setCvv(dto.getCvv());
         card.setType(CardType.valueOf(dto.getType()));
         card.setName(dto.getName());
         card.setAccount(account);
-        card.setStatus(CardStatus.valueOf(dto.getStatus()));
+        //card.setStatus(CardStatus.valueOf(dto.getStatus()));
         card.setCardLimit(dto.getCardLimit());
 
         return card;

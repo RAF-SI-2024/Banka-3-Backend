@@ -1,12 +1,42 @@
 package rs.raf.bank_service.controller;
 
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import rs.raf.bank_service.domain.dto.CreateCardDto;
+import rs.raf.bank_service.domain.dto.NewBankAccountDto;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.service.CardService;
 
 @RestController
 @RequestMapping("/api/card")
 @Tag(name = "Card Management", description = "API for managing bank cards")
 public class CardController {
+
+    @Autowired
+    private CardService cardService;
+
+
+    @PreAuthorize("hasAuthority('employee')")
+    @PostMapping
+    @Operation(summary = "Add new card.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Account created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<String> createCard(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CreateCardDto createCardDto){
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        }catch (ClientNotFoundException | CurrencyNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }
