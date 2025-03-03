@@ -1,20 +1,23 @@
 package rs.raf.user_service.unit;
 
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.EmailRequestDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.ClientService;
 
 import java.text.ParseException;
@@ -26,6 +29,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class ClientServiceTest {
@@ -35,6 +39,15 @@ public class ClientServiceTest {
 
     @Mock
     private ClientMapper clientMapper;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private AuthTokenRepository authTokenRepository;
+
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private ClientService clientService;
@@ -52,7 +65,7 @@ public class ClientServiceTest {
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(page);
         when(clientMapper.toDto(any(Client.class))).thenReturn(new ClientDto());
 
-        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0, 5)).getContent();
         assertNotNull(clients);
         assertEquals(1, clients.size());
     }
@@ -105,6 +118,9 @@ public class ClientServiceTest {
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
         when(clientMapper.toDto(client)).thenReturn(expectedDTO);
+        when(clientRepository.findByJmbg(any())).thenReturn(Optional.empty());
+        doNothing().when(rabbitTemplate).convertAndSend(eq("set-password"), any(EmailRequestDto.class));
+        when(authTokenRepository.save(any())).thenReturn(null);
 
         ClientDto result = clientService.addClient(createClientDTO);
 
@@ -112,6 +128,9 @@ public class ClientServiceTest {
         assertEquals("Mihailo", result.getFirstName());
         assertEquals("Petrović", result.getLastName());
         assertEquals("mihailo@example.com", result.getEmail());
+
+        verify(rabbitTemplate).convertAndSend(eq("set-password"), any(EmailRequestDto.class));
+        verify(authTokenRepository).save(any());
     }
 
     @Test
@@ -139,7 +158,8 @@ public class ClientServiceTest {
         ClientDto expectedDTO = new ClientDto(
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getAddress(),
-                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(), updatedClient.getJmbg());
+                updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(),
+                updatedClient.getJmbg());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
         doAnswer(invocation -> {
@@ -175,7 +195,7 @@ public class ClientServiceTest {
         Page<Client> emptyPage = new PageImpl<>(Collections.emptyList());
         when(clientRepository.findAll(any(PageRequest.class))).thenReturn(emptyPage);
 
-        List<ClientDto> clients = clientService.listClients(PageRequest.of(0,5)).getContent();
+        List<ClientDto> clients = clientService.listClients(PageRequest.of(0, 5)).getContent();
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }
