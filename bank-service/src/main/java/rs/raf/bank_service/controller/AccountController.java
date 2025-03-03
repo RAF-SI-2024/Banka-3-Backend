@@ -52,14 +52,14 @@ public class AccountController {
             @ApiResponse(responseCode = "201", description = "Account created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<String> createBankAccount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NewBankAccountDto newBankAccountDto){
+    public ResponseEntity<String> createBankAccount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NewBankAccountDto newBankAccountDto) {
         try {
-            accountService.createNewBankAccount(newBankAccountDto,authorizationHeader);
+            accountService.createNewBankAccount(newBankAccountDto, authorizationHeader);
 //            if(newBankAccountDto.isCreateCard()){
 //                accountService.createCard...
 //            }
             return ResponseEntity.status(HttpStatus.CREATED).build();
-        }catch (ClientNotFoundException | CurrencyNotFoundException e) {
+        } catch (ClientNotFoundException | CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }

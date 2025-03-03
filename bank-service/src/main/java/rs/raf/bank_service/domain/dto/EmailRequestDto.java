@@ -1,4 +1,5 @@
 package rs.raf.bank_service.domain.dto;
+
 import lombok.Data;
 
 @Data

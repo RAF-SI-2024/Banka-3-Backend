@@ -15,19 +15,19 @@ public class Card {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(unique = true, length = 16)
     private String cardNumber;
-    
+
     private String cvv;
     private LocalDate creationDate;
     private LocalDate expirationDate;
-    
+
     @ManyToOne
     private Account account;
-    
+
     @Enumerated(EnumType.STRING)
     private CardStatus status;
-    
+
     private BigDecimal cardLimit;
 }

@@ -16,7 +16,10 @@ import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.domain.dto.UserDto;
-import rs.raf.bank_service.domain.entity.*;
+import rs.raf.bank_service.domain.entity.Account;
+import rs.raf.bank_service.domain.entity.CompanyAccount;
+import rs.raf.bank_service.domain.entity.Currency;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.domain.enums.AccountType;
@@ -31,20 +34,18 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class AccountService {
-    @Autowired
-    UserService userService;
     private final CurrencyRepository currencyRepository;
     private final AccountRepository accountRepository;
-
     @Autowired
     private final UserClient userClient;
+    @Autowired
+    UserService userService;
 
     @Operation(
             summary = "Retrieve accounts with filtering and pagination",

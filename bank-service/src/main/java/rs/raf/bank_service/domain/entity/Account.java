@@ -24,7 +24,7 @@ import java.time.LocalDate;
 public abstract class Account {
     @Id
     // @Column(unique = true, length = 18)
-   // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(updatable = false)
     private String accountNumber;
 

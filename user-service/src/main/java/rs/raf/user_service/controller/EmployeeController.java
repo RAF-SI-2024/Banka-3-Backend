@@ -12,11 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.ObjectError;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.*;
+import rs.raf.user_service.dto.CreateEmployeeDto;
+import rs.raf.user_service.dto.EmployeeDto;
+import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
@@ -24,8 +23,6 @@ import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/employees")
@@ -141,10 +138,9 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        }  catch(EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -168,8 +164,7 @@ public class EmployeeController {
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

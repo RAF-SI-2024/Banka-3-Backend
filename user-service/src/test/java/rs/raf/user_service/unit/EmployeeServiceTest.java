@@ -71,7 +71,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDto> result = employeeService.findAll("Jovan", "Jovanovic", "jovan456@example.com","Developer", PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll("Jovan", "Jovanovic", "jovan456@example.com", "Developer", PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());

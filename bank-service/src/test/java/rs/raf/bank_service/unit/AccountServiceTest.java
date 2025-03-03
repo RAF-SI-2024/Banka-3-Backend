@@ -1,9 +1,5 @@
 package rs.raf.bank_service.unit;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +8,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
@@ -20,7 +20,6 @@ import rs.raf.bank_service.domain.dto.UserDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
-import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
@@ -28,18 +27,14 @@ import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.UserService;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AccountServiceTest {
@@ -217,6 +212,7 @@ public class AccountServiceTest {
         assertEquals("3", dtos.get(0).getAccountNumber());
         assertEquals("4", dtos.get(1).getAccountNumber());
     }
+
     @Test
     public void testCreateNewBankAccount_Success() {
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();

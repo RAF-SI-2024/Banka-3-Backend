@@ -21,11 +21,11 @@ public class Company {
 
     private String name;
 
-    @Column(updatable = false,unique = true)
+    @Column(updatable = false, unique = true)
     private String registrationNumber;
 
-    @Column(updatable = false,unique = true)
-    private String  taxId;
+    @Column(updatable = false, unique = true)
+    private String taxId;
 
     private String activityCode;
 

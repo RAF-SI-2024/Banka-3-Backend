@@ -4,7 +4,6 @@ import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
-import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountType;
 
 public class AccountMapper {
