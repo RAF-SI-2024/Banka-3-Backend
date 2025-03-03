@@ -14,7 +14,7 @@ public class CreateCompanyDto {
 
     private String name;
     private String registrationNumber;
-    private Long taxId;
+    private String taxId;
     private String activityCode;
     private String address;
     private Long majorityOwner;

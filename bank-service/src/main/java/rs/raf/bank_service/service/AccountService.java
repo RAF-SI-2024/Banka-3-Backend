@@ -9,6 +9,8 @@ import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.domain.enums.AccountType;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 
@@ -29,7 +31,7 @@ public class AccountService {
         Long userId = newBankAccountDto.getClientId();
         UserDto userDto = userService.getUserById(userId, authorizationHeader);
         if (userDto == null)
-            throw new NoSuchElementException("Client not found with ID: " + userId);
+            throw new ClientNotFoundException(userId);
         Account newAccount;
         if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
             newAccount = new CompanyAccount();
@@ -41,7 +43,7 @@ public class AccountService {
         newAccount.setCreatedByEmployeeId(newBankAccountDto.getEmployeeId());
         newAccount.setCreationDate(LocalDate.ofEpochDay(Instant.now().getEpochSecond()));
         System.out.println(newBankAccountDto.getCurrency());
-        Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency()).orElseThrow(() -> new NoSuchElementException("Invalid currency."));
+        Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency()).orElseThrow(() -> new CurrencyNotFoundException(newBankAccountDto.getCurrency()));
         newAccount.setCurrency(currCurrency);
         newAccount.setStatus(AccountStatus.valueOf(newBankAccountDto.getIsActive()));
         newAccount.setType(AccountType.valueOf(newBankAccountDto.getAccountType()));
@@ -54,8 +56,20 @@ public class AccountService {
         newAccount.setMonthlySpending(newBankAccountDto.getMonthlySpending());
 
         String random = String.format("%09d", ThreadLocalRandom.current().nextInt(0, 1_000_000_000));
-        String accountNumber = "3330001"+random;
+        String accountOwnerTypeNumber = "";
+        switch (newBankAccountDto.getAccountOwnerType()) {
+            case "PERSONAL" -> accountOwnerTypeNumber = "11";
+            case "COMPANY" -> accountOwnerTypeNumber = "12";
+            case "SAVINGS" -> accountOwnerTypeNumber = "13";
+            case "RETIREMENT" -> accountOwnerTypeNumber = "14";
+            case "YOUTH" -> accountOwnerTypeNumber = "15";
+            case "STUDENT" -> accountOwnerTypeNumber = "16";
+            case "UNEMPLOYED" -> accountOwnerTypeNumber = "17";
+        }
+
+        String accountNumber = "3330001" + random + accountOwnerTypeNumber;
         newAccount.setAccountNumber(accountNumber);
+
 
         accountRepository.save(newAccount);
     }

@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.CreateCompanyDto;
+import rs.raf.user_service.exceptions.ActivityCodeNotFoundException;
+import rs.raf.user_service.exceptions.ClientNotFoundException;
+import rs.raf.user_service.exceptions.CompanyRegNumExistsException;
+import rs.raf.user_service.exceptions.TaxIdAlreadyExistsException;
 import rs.raf.user_service.service.CompanyService;
 import rs.raf.user_service.service.EmployeeService;
 
@@ -34,8 +38,8 @@ public class CompanyController {
         try {
             companyService.createCompany(createCompanyDto);
             return ResponseEntity.status(HttpStatus.CREATED).build();
-        } catch (RuntimeException e) {
-            e.printStackTrace();
+        } catch (ClientNotFoundException | ActivityCodeNotFoundException | CompanyRegNumExistsException |
+                 TaxIdAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
 

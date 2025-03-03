@@ -25,7 +25,7 @@ public class Company {
     private String registrationNumber;
 
     @Column(updatable = false,unique = true)
-    private Long  taxId;
+    private String  taxId;
 
     private String activityCode;
 

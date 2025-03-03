@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.service.AccountService;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
@@ -34,8 +36,7 @@ public class AccountController {
 //                accountService.createCard...
 //            }
             return ResponseEntity.status(HttpStatus.CREATED).build();
-        }catch (RuntimeException e) {
-            e.printStackTrace();
+        }catch (ClientNotFoundException | CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
