@@ -1,5 +1,6 @@
 package rs.raf.bank_service.service;
 
+import feign.FeignException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,9 +15,7 @@ import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.CardLimitExceededException;
-import rs.raf.bank_service.exceptions.InvalidCardLimitException;
-import rs.raf.bank_service.exceptions.InvalidCardTypeException;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.mapper.CardMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
@@ -85,7 +84,7 @@ public class CardService {
         return CardMapper.toCardDto(card);
     }
 
-    public CardRequestResponseDto requestCardForAccount(CreateCardDto createCardDto, String authorizationHeader) {
+    public void requestCardForAccount(CreateCardDto createCardDto, String authorizationHeader) {
         Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
         AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
@@ -99,8 +98,10 @@ public class CardService {
         UserDto user;
         try {
             user = userService.getUserById(account.getClientId(), authorizationHeader);
+        } catch (FeignException.NotFound e) {
+            throw new ClientNotFoundException(account.getClientId());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch user details for email sending", e);
+            throw new ExternalServiceException();
         }
 
         String email = user.getEmail();
@@ -108,20 +109,7 @@ public class CardService {
             throw new IllegalArgumentException("Email address not found for user.");
         }
 
-        UUID token = UUID.fromString(UUID.randomUUID().toString());
-        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), email);
-
-        try {
-            rabbitTemplate.convertAndSend("request-card", emailRequestDto);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to send email request through RabbitMQ", e);
-        }
-
-        return new CardRequestResponseDto(
-                "A confirmation code has been sent to your email. Please enter it to complete the card creation.",
-                true,
-                token.toString()
-        );
+        userClient.requestCard(new RequestCardDto(email));
     }
 
 
