@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.PayeeDto;
 import rs.raf.bank_service.domain.entity.Payee;
-import rs.raf.bank_service.exceptions.PayeeNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicatePayeeException;
+import rs.raf.bank_service.exceptions.PayeeNotFoundException;
+import rs.raf.bank_service.exceptions.PayeesNotFoundByClientIdException;
 import rs.raf.bank_service.mapper.PayeeMapper;
 import rs.raf.bank_service.repository.PayeeRepository;
 
@@ -18,6 +19,16 @@ public class PayeeService {
 
     private final PayeeRepository repository;
     private final PayeeMapper mapper;
+
+    public List<PayeeDto> getByClientId(Long clientId) {
+        List<Payee> payees = repository.findByClientId(clientId);
+        if (payees.isEmpty()) {
+            throw new PayeesNotFoundByClientIdException(clientId);  // Baci izuzetak ako nema payee-a
+        }
+        return payees.stream()
+                .map(mapper::toDto)
+                .collect(Collectors.toList());
+    }
 
     public List<PayeeDto> getAll() {
         return repository.findAll()
@@ -51,3 +62,4 @@ public class PayeeService {
         repository.delete(payee);
     }
 }
+

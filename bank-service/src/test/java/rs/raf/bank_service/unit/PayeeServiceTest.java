@@ -41,11 +41,13 @@ class PayeeServiceTest {
         payee.setId(1L);
         payee.setName("John Doe");
         payee.setAccountNumber("123456789");
+        payee.setClientId(123L); // Dodan clientId
 
         payeeDto = new PayeeDto();
         payeeDto.setId(1L);
         payeeDto.setName("John Doe");
         payeeDto.setAccountNumber("123456789");
+        payeeDto.setClientId(123L); // Dodan clientId
     }
 
     @Test
@@ -58,6 +60,18 @@ class PayeeServiceTest {
         assertEquals(1, result.size());
         assertEquals("John Doe", result.get(0).getName());
         verify(payeeRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getByClientId_ShouldReturnPayeeList() {
+        when(payeeRepository.findByClientId(123L)).thenReturn(List.of(payee));  // Dodajemo mock za findByClientId
+        when(payeeMapper.toDto(any(Payee.class))).thenReturn(payeeDto);
+
+        List<PayeeDto> result = payeeService.getByClientId(123L);  // Testiramo getByClientId
+
+        assertEquals(1, result.size());
+        assertEquals("John Doe", result.get(0).getName());
+        verify(payeeRepository, times(1)).findByClientId(123L);  // Verifikujemo poziv sa clientId
     }
 
     @Test

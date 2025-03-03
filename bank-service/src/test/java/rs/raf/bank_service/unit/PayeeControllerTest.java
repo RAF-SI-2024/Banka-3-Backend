@@ -1,40 +1,52 @@
 package rs.raf.bank_service.unit;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import rs.raf.bank_service.controller.PayeeController;
 import rs.raf.bank_service.domain.dto.PayeeDto;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
+import rs.raf.bank_service.exceptions.PayeesNotFoundByClientIdException;
 import rs.raf.bank_service.service.PayeeService;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
+import java.util.Arrays;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(PayeeController.class)
+@AutoConfigureMockMvc
 public class PayeeControllerTest {
 
-    @InjectMocks
-    private PayeeController payeeController;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private PayeeService payeeService;
 
-    @Mock
-    private BindingResult bindingResult;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private PayeeDto testPayeeDto;
+    private long clientId;
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
+
+        clientId = 1L;  // Dodeljujem neki clientId za testove
 
         testPayeeDto = new PayeeDto();
         testPayeeDto.setId(1L);
@@ -43,69 +55,113 @@ public class PayeeControllerTest {
     }
 
     @Test
-    public void testCreatePayee_Success() {
-        when(bindingResult.hasErrors()).thenReturn(false);
+    @WithMockUser(authorities = "client")
+    public void testCreatePayee_Success() throws Exception {
         when(payeeService.create(any(PayeeDto.class))).thenReturn(testPayeeDto);
 
-        ResponseEntity<String> response = payeeController.createPayee("Bearer test-token", testPayeeDto, bindingResult);
+        mockMvc.perform(post("/api/payees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(testPayeeDto)))
+                .andExpect(status().isCreated())
+                .andExpect(content().string("Payee created successfully."));
 
-        assertEquals(201, response.getStatusCodeValue());
-        assertEquals("Payee created successfully.", response.getBody());
         verify(payeeService, times(1)).create(any(PayeeDto.class));
     }
 
     @Test
-    public void testCreatePayee_InvalidData() {
-        when(bindingResult.hasErrors()).thenReturn(true);
-        when(bindingResult.getFieldErrors()).thenReturn(List.of(new FieldError("payeeDto", "naziv", "Naziv ne može biti prazan")));
+    @WithMockUser(authorities = "client")
+    public void testCreatePayee_InvalidData() throws Exception {
+        PayeeDto invalidPayee = new PayeeDto();
+        invalidPayee.setName("");  // Nevalidno ime
+        invalidPayee.setAccountNumber("");  // Nevalidan broj računa
 
-        ResponseEntity<String> response = payeeController.createPayee("Bearer test-token", new PayeeDto(), bindingResult);
-
-        assertEquals(400, response.getStatusCodeValue());
-        assertEquals("naziv: Naziv ne može biti prazan", response.getBody());
-        verify(payeeService, never()).create(any());
+        mockMvc.perform(post("/api/payees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(invalidPayee)))
+                .andExpect(status().isBadRequest());  // Očekujemo status 400
     }
 
     @Test
-    public void testUpdatePayee_Success() {
-        when(bindingResult.hasErrors()).thenReturn(false);
-        when(payeeService.update(anyLong(), any(PayeeDto.class))).thenReturn(testPayeeDto); // Ispravljeno
+    @WithMockUser(authorities = "client")
+    public void testUpdatePayee_Success() throws Exception {
+        when(payeeService.update(anyLong(), any(PayeeDto.class))).thenReturn(testPayeeDto);
 
-        ResponseEntity<String> response = payeeController.updatePayee(1L, testPayeeDto, bindingResult);
+        mockMvc.perform(put("/api/payees/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(testPayeeDto)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Payee updated successfully."));
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Payee updated successfully.", response.getBody());
         verify(payeeService, times(1)).update(anyLong(), any(PayeeDto.class));
     }
 
     @Test
-    public void testUpdatePayee_NotFound() {
-        when(bindingResult.hasErrors()).thenReturn(false);
-        doThrow(new PayeeNotFoundException(testPayeeDto.getId())).when(payeeService).update(anyLong(), any(PayeeDto.class));
+    @WithMockUser(authorities = "client")
+    public void testUpdatePayee_NotFound() throws Exception {
+        doThrow(new PayeeNotFoundException(999L)).when(payeeService).update(anyLong(), any(PayeeDto.class));
 
-        ResponseEntity<String> response = payeeController.updatePayee(999L, testPayeeDto, bindingResult);
-
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("Cannot find payee with id: " + testPayeeDto.getId(), response.getBody());
+        mockMvc.perform(put("/api/payees/999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(testPayeeDto)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Cannot find payee with id: 999"));
     }
 
     @Test
-    public void testDeletePayee_Success() {
+    @WithMockUser(authorities = "client")
+    public void testDeletePayee_Success() throws Exception {
         doNothing().when(payeeService).delete(anyLong());
 
-        ResponseEntity<String> response = payeeController.deletePayee(1L);
+        mockMvc.perform(delete("/api/payees/1"))
+                .andExpect(status().isNoContent());
 
-        assertEquals(204, response.getStatusCodeValue());
         verify(payeeService, times(1)).delete(anyLong());
     }
 
     @Test
-    public void testDeletePayee_NotFound() {
-        doThrow(new PayeeNotFoundException(testPayeeDto.getId())).when(payeeService).delete(anyLong());
+    @WithMockUser(authorities = "client")
+    public void testDeletePayee_NotFound() throws Exception {
+        doThrow(new PayeeNotFoundException(999L)).when(payeeService).delete(anyLong());
 
-        ResponseEntity<String> response = payeeController.deletePayee(999L);
+        mockMvc.perform(delete("/api/payees/999"))
+                .andExpect(status().isNotFound());
+    }
 
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("Cannot find payee with id: " + testPayeeDto.getId(), response.getBody());
+    @Test
+    @WithMockUser(authorities = "client")
+    public void testGetPayeesByClientId_Success() throws Exception {
+        List<PayeeDto> payees = Arrays.asList(testPayeeDto);
+        when(payeeService.getByClientId(clientId)).thenReturn(payees);
+
+        mockMvc.perform(get("/api/payees/client/" + clientId))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(payees)));
+
+        verify(payeeService, times(1)).getByClientId(clientId);
+    }
+
+    @Test
+    @WithMockUser(authorities = "client")
+    public void testGetPayeesByClientId_NotFound() throws Exception {
+        Long clientId = 1L;  // Postavi konkretan clientId za test
+
+        // Simuliraj da servis baca PayeesNotFoundByClientIdException
+        when(payeeService.getByClientId(clientId)).thenThrow(new PayeesNotFoundByClientIdException(clientId));
+
+        // MockMvc poziv
+        mockMvc.perform(get("/api/payees/client/" + clientId))
+                .andExpect(status().isNotFound())  // Provera da je status 404
+                .andExpect(content().string("Cannot find payee/s with client ID: " + clientId));  // Provera poruke
+
+        // Verifikacija poziva servisa
+        verify(payeeService, times(1)).getByClientId(clientId);
+    }
+
+    private String asJsonString(final Object obj) {
+        try {
+            return new ObjectMapper().writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
