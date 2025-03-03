@@ -48,6 +48,7 @@ public class BootstrapData implements CommandLineRunner {
                     .birthDate(dateFormat.parse("1990-05-15"))
                     .gender("M")
                     .password(passwordEncoder.encode("markomarko"))
+                    .jmbg("0123456789126")
                     .build();
 
             Client client2 = Client.builder()
@@ -59,6 +60,7 @@ public class BootstrapData implements CommandLineRunner {
                     .birthDate(dateFormat.parse("1990-01-25"))
                     .gender("M")
                     .password(passwordEncoder.encode("jovanjovan"))
+                    .jmbg("0123456789125")
                     .build();
 
             clientRepository.saveAll(Set.of(client, client2));
@@ -79,6 +81,7 @@ public class BootstrapData implements CommandLineRunner {
                     .department("HR")
                     .active(true)
                     .permissions(permissions)
+                    .jmbg("0123456789123")
                     .build();
 
             Employee employee2 = Employee.builder()
@@ -94,6 +97,7 @@ public class BootstrapData implements CommandLineRunner {
                     .position("Manager")
                     .department("Finance")
                     .active(true)
+                    .jmbg("0123456789124")
                     .build();
 
             employeeRepository.saveAll(Set.of(employee, employee2));

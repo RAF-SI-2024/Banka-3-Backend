@@ -1,68 +1,88 @@
 package rs.raf.user_service.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.ClientDTO;
-import rs.raf.user_service.dto.CreateClientDTO;
-import rs.raf.user_service.dto.UpdateClientDTO;
+import rs.raf.user_service.dto.ClientDto;
+import rs.raf.user_service.dto.CreateClientDto;
+import rs.raf.user_service.dto.EmailRequestDto;
+import rs.raf.user_service.dto.UpdateClientDto;
+import rs.raf.user_service.entity.AuthToken;
 import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
+import rs.raf.user_service.repository.UserRepository;
 
-import java.util.List;
+import javax.persistence.EntityNotFoundException;
+import javax.validation.ConstraintViolationException;
+import java.time.Instant;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class ClientService {
 
     private final ClientRepository clientRepository;
     private final ClientMapper clientMapper;
+    private final UserRepository userRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final RabbitTemplate rabbitTemplate;
 
-    @Autowired
-    public ClientService(ClientRepository clientRepository, ClientMapper clientMapper) {
-        this.clientRepository = clientRepository;
-        this.clientMapper = clientMapper;
+    public Page<ClientDto> listClients(Pageable pageable) {
+        Page<Client> clientsPage = clientRepository.findAll(pageable);
+        return clientsPage.map(clientMapper::toDto);
     }
 
-    public List<ClientDTO> listClients(int page, int size) {
-        Page<Client> clientsPage = clientRepository.findAll(PageRequest.of(page, size));
-        return clientsPage.stream().map(clientMapper::toDto).collect(Collectors.toList());
-    }
-
-    public ClientDTO getClientById(Long id) {
+    public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
         return clientMapper.toDto(client);
     }
 
-    // Kreiranje klijenta bez lozinke (password ostaje prazan)
-    public ClientDTO addClient(CreateClientDTO createClientDto) {
-        System.out.println("[addClient] Pozvana metoda sa podacima: " + createClientDto);
-
+    public ClientDto addClient(CreateClientDto createClientDto) {
         Client client = clientMapper.fromCreateDto(createClientDto);
-        client.setPassword("");  // Lozinka ostaje prazna
-        System.out.println("[addClient] Lozinka ostavljena prazna prilikom kreiranja.");
+        client.setPassword("");
 
-        Client savedClient = clientRepository.save(client);
-        System.out.println("[addClient] Klijent sačuvan u bazi: " + savedClient);
+        if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
+            throw new JmbgAlreadyExistsException();
+        }
+        try {
+            Client savedClient = clientRepository.save(client);
 
-        return clientMapper.toDto(savedClient);
+            UUID token = UUID.fromString(UUID.randomUUID().toString());
+            EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), client.getEmail());
+
+
+            rabbitTemplate.convertAndSend("set-password", emailRequestDto);
+
+
+            Long createdAt = Instant.now().toEpochMilli();
+            Long expiresAt = createdAt + 86400000;//24h
+            AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "set-password", client.getId());
+            authTokenRepository.save(authToken);
+
+            return clientMapper.toDto(savedClient);
+        } catch (ConstraintViolationException e) {
+            throw new EmailAlreadyExistsException();
+        }
+
     }
 
     // Ažuriranje samo dozvoljenih polja (email i druge vrednosti se ne diraju)
-    public ClientDTO updateClient(Long id, UpdateClientDTO updateClientDto) {
+    public ClientDto updateClient(Long id, UpdateClientDto updateClientDto) {
         Client existingClient = clientRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
 
-        existingClient.setFirstName(updateClientDto.getFirstName());
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());
         existingClient.setPhone(updateClientDto.getPhone());
         existingClient.setGender(updateClientDto.getGender());
-        existingClient.setBirthDate(updateClientDto.getBirthDate());
 
         Client updatedClient = clientRepository.save(existingClient);
         System.out.println("[updateClient] Klijent ažuriran: " + updatedClient);
@@ -76,5 +96,11 @@ public class ClientService {
         }
         clientRepository.deleteById(id);
         System.out.println("[deleteClient] Klijent sa ID " + id + " uspešno obrisan.");
+    }
+
+    public ClientDto findByEmail(String email) {
+        Client client = clientRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return clientMapper.toDto(client);
     }
 }

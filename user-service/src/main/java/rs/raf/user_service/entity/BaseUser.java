@@ -1,6 +1,9 @@
 package rs.raf.user_service.entity;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import javax.persistence.*;
@@ -33,7 +36,7 @@ public abstract class BaseUser {
 
     private String gender;
 
-    @Column(updatable = false)
+    @Column(updatable = false, unique = true)
     private String email;
 
     private String phone;
@@ -42,7 +45,8 @@ public abstract class BaseUser {
 
     private String password;
 
-
+    @Column(updatable = false, unique = true)
+    private String jmbg;
 
     @ManyToMany
     @JoinTable(
@@ -53,4 +57,15 @@ public abstract class BaseUser {
 
     private Set<Permission> permissions = new HashSet<>();
 
+    public BaseUser(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
+                    String address, String jmbg) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.email = email;
+        this.phone = phone;
+        this.address = address;
+        this.jmbg = jmbg;
+    }
 }
