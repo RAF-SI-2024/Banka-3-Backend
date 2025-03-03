@@ -1,14 +1,17 @@
 package rs.raf.bank_service.domain.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
+import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
-@Getter
-@Setter
+@Data
 @Entity
+@RequiredArgsConstructor
+@SuperBuilder
+@AllArgsConstructor
 public class Currency {
     @Id
     private String code; // oznaka npr EUR
