@@ -1,42 +1,117 @@
 package rs.raf.bank_service.controller;
 
-
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.bank_service.domain.dto.CreateCardDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.domain.dto.CardDto;
+import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.service.CardService;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/card")
-@Tag(name = "Card Management", description = "API for managing bank cards")
+@RequestMapping("/api/account/{accountNumber}/cards")
 public class CardController {
 
-    @Autowired
-    private CardService cardService;
+    private final CardService cardService;
 
+    public CardController(CardService cardService) {
+        this.cardService = cardService;
+    }
 
-    @PreAuthorize("hasAuthority('employee')")
-    @PostMapping
-    @Operation(summary = "Add new card.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Account created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping
+    @Operation(
+            summary = "Get Cards by Account",
+            description = "Retrieves all cards associated with the specified account number."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public ResponseEntity<String> createCard(@RequestHeader("Authorization") String authorizationHeader, @RequestBody CreateCardDto createCardDto){
-        try {
-            return ResponseEntity.status(HttpStatus.CREATED).build();
-        }catch (ClientNotFoundException | CurrencyNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+    public ResponseEntity<List<CardDto>> getCardsByAccount(
+            @Parameter(
+                    description = "Account number for which cards are retrieved",
+                    in = ParameterIn.PATH,
+                    required = true,
+                    example = "222222222222222222"
+            )
+            @PathVariable String accountNumber) {
+        List<CardDto> cards = cardService.getCardsByAccount(accountNumber);
+        return ResponseEntity.ok(cards);
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/{cardNumber}/block")
+    @Operation(
+            summary = "Block Card",
+            description = "Blocks the card identified by the provided card number."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<Void> blockCard(
+            @Parameter(
+                    description = "Card number to block",
+                    in = ParameterIn.PATH,
+                    required = true,
+                    example = "1234123412341234"
+            )
+            @PathVariable String cardNumber) {
+        cardService.changeCardStatus(cardNumber, CardStatus.BLOCKED);
+        return ResponseEntity.ok().build();
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/{cardNumber}/unblock")
+    @Operation(
+            summary = "Unblock Card",
+            description = "Unblocks the card identified by the provided card number."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card unblocked successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<Void> unblockCard(
+            @Parameter(
+                    description = "Card number to unblock",
+                    in = ParameterIn.PATH,
+                    required = true,
+                    example = "1234123412341234"
+            )
+            @PathVariable String cardNumber) {
+        cardService.changeCardStatus(cardNumber, CardStatus.ACTIVE);
+        return ResponseEntity.ok().build();
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @PostMapping("/{cardNumber}/deactivate")
+    @Operation(
+            summary = "Deactivate Card",
+            description = "Deactivates the card identified by the provided card number."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card deactivated successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<Void> deactivateCard(
+            @Parameter(
+                    description = "Card number to deactivate",
+                    in = ParameterIn.PATH,
+                    required = true,
+                    example = "1234123412341234"
+            )
+            @PathVariable String cardNumber) {
+        cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
+        return ResponseEntity.ok().build();
     }
 }

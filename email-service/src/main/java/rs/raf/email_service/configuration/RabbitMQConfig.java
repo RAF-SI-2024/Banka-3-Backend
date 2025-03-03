@@ -27,6 +27,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue cardStatusChangeQueue() {
+        return new Queue("card-status-change", false);
+    }
+
+    @Bean
     public Queue requestCardQueue() {
         return new Queue("request-card", false);
     }

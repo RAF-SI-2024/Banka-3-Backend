@@ -2,14 +2,12 @@ package rs.raf.bank_service.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import java.io.Serializable;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
-public class EmailRequestDto implements Serializable {
-    // Getteri i setteri
-    private String code;
+@NoArgsConstructor
+public class EmailRequestDto {
     private String destination;
-
+    private String code;
 }

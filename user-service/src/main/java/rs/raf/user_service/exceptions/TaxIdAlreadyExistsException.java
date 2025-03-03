@@ -1,8 +1,8 @@
 package rs.raf.user_service.exceptions;
 
-public class TaxIdAlreadyExistsException extends RuntimeException{
+public class TaxIdAlreadyExistsException extends RuntimeException {
     public TaxIdAlreadyExistsException(String id) {
-        super("TaxId: "+id+" "+"already exits.");
+        super("TaxId: " + id + " " + "already exits.");
     }
 
 }

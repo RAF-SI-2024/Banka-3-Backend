@@ -27,6 +27,7 @@ public class CardDto {
     private LocalDate creationDate;
     private LocalDate expirationDate;
     private String accountNumber;
-    private String status;
+    private CardStatus status;
     private BigDecimal cardLimit;
+    private ClientDto owner;
 }

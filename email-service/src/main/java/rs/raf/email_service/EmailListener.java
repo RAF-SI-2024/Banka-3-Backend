@@ -48,4 +48,12 @@ public class EmailListener {
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
+    @RabbitListener(queues = "card-status-change")
+    public void handleCardStatusChange(EmailRequestDto dto) throws MessagingException {
+        String subject = "Card Status Changed";
+        String content = "Your card status has been changed to: " + dto.getCode();
+        String plain = "Your card status is now: " + dto.getCode();
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
+
 }

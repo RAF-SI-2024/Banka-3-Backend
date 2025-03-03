@@ -6,9 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -69,6 +67,8 @@ public class ClientControllerUnitTest {
         createClientDTO.setJmbg("1234567890123");
 
         updateClientDTO = new UpdateClientDto();
+        updateClientDTO.setFirstName(clientDTO.getFirstName());  // added if required by validation
+        updateClientDTO.setEmail(clientDTO.getEmail());
         updateClientDTO.setLastName("MarkovicUpdated");
         updateClientDTO.setAddress("Nova Adresa");
         updateClientDTO.setPhone("0611159999");
@@ -80,7 +80,8 @@ public class ClientControllerUnitTest {
         List<ClientDto> clients = Arrays.asList(clientDTO);
         Page<ClientDto> clientsPage = new PageImpl<>(clients);
 
-        when(clientService.listClients(PageRequest.of(0,10))).thenReturn(clientsPage);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("lastName").ascending());
+        when(clientService.listClientsWithFilters(null, null, null, pageable)).thenReturn(clientsPage);
 
         mockMvc.perform(get("/api/admin/clients")
                         .param("page", "0")
@@ -89,7 +90,7 @@ public class ClientControllerUnitTest {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].firstName", is(clientDTO.getFirstName())));
 
-        verify(clientService, times(1)).listClients(PageRequest.of(0,10));
+        verify(clientService, times(1)).listClientsWithFilters(null, null, null, pageable);
     }
 
     @Test

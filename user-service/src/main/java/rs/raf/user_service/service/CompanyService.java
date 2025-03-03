@@ -22,17 +22,17 @@ public class CompanyService {
     private final ClientRepository clientRepository;
     private final ActivityCodeRepository activityCodeRepository;
 
-    public void createCompany(CreateCompanyDto createCompanyDto){
+    public void createCompany(CreateCompanyDto createCompanyDto) {
         Client client = clientRepository.findById(createCompanyDto.getMajorityOwner()).orElse(null);
-        if(client == null)
+        if (client == null)
             throw new NoSuchElementException("Owner not found with ID: " + createCompanyDto.getMajorityOwner());
 
         ActivityCode activityCode = activityCodeRepository.findById(createCompanyDto.getActivityCode()).orElse(null);
-        if(activityCode == null)
+        if (activityCode == null)
             throw new NoSuchElementException("Activity code not found with ID: " + createCompanyDto.getActivityCode());
-        if(companyRepository.findByRegistrationNumber(createCompanyDto.getRegistrationNumber()).isPresent())
+        if (companyRepository.findByRegistrationNumber(createCompanyDto.getRegistrationNumber()).isPresent())
             throw new CompanyRegNumExistsException(createCompanyDto.getRegistrationNumber());
-        if(companyRepository.findByTaxId(createCompanyDto.getTaxId()).isPresent())
+        if (companyRepository.findByTaxId(createCompanyDto.getTaxId()).isPresent())
             throw new TaxIdAlreadyExistsException(createCompanyDto.getTaxId());
         Company company = new Company();
         company.setName(createCompanyDto.getName());
