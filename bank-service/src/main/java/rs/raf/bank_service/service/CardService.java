@@ -1,11 +1,10 @@
 package rs.raf.bank_service.service;
 
 import lombok.AllArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.raf.bank_service.domain.dto.AccountTypeDto;
-import rs.raf.bank_service.domain.dto.CardDto;
-import rs.raf.bank_service.domain.dto.CreateCardDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.enums.AccountStatus;
@@ -23,14 +22,19 @@ import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 public class CardService {
 
+    @Autowired
+    UserService userService;
+
     CardRepository cardRepository;
     AccountMapper accountMapper;
     AccountRepository accountRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     private boolean isBusiness(AccountTypeDto accountTypeDto){
         return accountTypeDto.getSubtype().equals("Company");
@@ -73,6 +77,47 @@ public class CardService {
 
         return CardMapper.toCardDto(card);
     }
+
+    public CardRequestResponseDto requestCardForAccount(CreateCardDto createCardDto, String authorizationHeader) {
+        Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
+                .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
+        AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
+
+        Long cardCount = cardRepository.countByAccount(account);
+
+        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
+            throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
+        }
+
+        UserDto user;
+        try {
+            user = userService.getUserById(account.getClientId(), authorizationHeader);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch user details for email sending", e);
+        }
+
+        String email = user.getEmail();
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("Email address not found for user.");
+        }
+
+        UUID token = UUID.fromString(UUID.randomUUID().toString());
+        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), email);
+
+        try {
+            rabbitTemplate.convertAndSend("request-card", emailRequestDto);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send email request through RabbitMQ", e);
+        }
+
+        return new CardRequestResponseDto(
+                "A confirmation code has been sent to your email. Please enter it to complete the card creation.",
+                true,
+                token.toString()
+        );
+    }
+
+
 
     private String generateCardNumber(String name){
         String firstFifteen = generateMIIandIIN(name) + generateAccountNumber();

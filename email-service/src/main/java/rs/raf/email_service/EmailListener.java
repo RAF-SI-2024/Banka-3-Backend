@@ -40,4 +40,12 @@ public class EmailListener {
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
+    @RabbitListener(queues = "request-card")
+    public void handleRequestCard(EmailRequestDto dto) throws MessagingException {
+        String subject = EmailUtils.getEmailSubject(EmailType.REQUEST_CARD);
+        String content = EmailUtils.getEmailContent(EmailType.REQUEST_CARD, dto.getCode());
+        String plain = EmailUtils.getEmailPlainContent(EmailType.REQUEST_CARD, dto.getCode());
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
+
 }
