@@ -26,10 +26,13 @@ public class VerificationRequestController {
         this.clientService = clientService;
     }
 
+    /*
     private ClientDto getCurrentClient() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return clientService.findByEmail(email);
     }
+
+     */
 
     @Operation(summary = "Get active verification requests", description = "Returns a list of pending verification requests for the user.")
     @ApiResponses(value = {
@@ -38,7 +41,7 @@ public class VerificationRequestController {
     })
     @GetMapping("/active-requests")
     public ResponseEntity<List<VerificationRequest>> getActiveRequests() {
-        ClientDto client = getCurrentClient();
+        ClientDto client = clientService.getCurrentClient();
         List<VerificationRequest> requests = verificationRequestService.getActiveRequests(client.getId());
         return ResponseEntity.ok(requests);
     }
