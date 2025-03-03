@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import rs.raf.user_service.controller.EmployeeController;
 import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.EmployeeDto;

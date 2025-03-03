@@ -3,19 +3,19 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 import okhttp3.Response;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.UserDto;
 
 import java.io.IOException;
 
 @Service
 public class UserService {
+    private final OkHttpClient client;
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
     @Value("http://localhost:8080/api/") // za sad hardcoded ovde
     private String USER_SERVICE_URL;
-    private final OkHttpClient client;
 
     public UserService() {
         this.client = new OkHttpClient();
