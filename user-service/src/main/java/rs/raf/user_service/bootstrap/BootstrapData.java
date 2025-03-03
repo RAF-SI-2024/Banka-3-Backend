@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import rs.raf.user_service.entity.ActivityCode;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.entity.Permission;
+import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.PermissionRepository;
@@ -22,7 +24,7 @@ public class BootstrapData implements CommandLineRunner {
     private final ClientRepository clientRepository;
     private final EmployeeRepository employeeRepository;
     private final PermissionRepository permissionRepository;
-
+    private final ActivityCodeRepository activityCodeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -33,7 +35,10 @@ public class BootstrapData implements CommandLineRunner {
             Permission adminPermission = Permission.builder()
                     .name("admin")
                     .build();
-            permissionRepository.saveAll(Set.of(adminPermission));
+            Permission employeePermission = Permission.builder()
+                    .name("employee")
+                    .build();
+            permissionRepository.saveAll(Set.of(adminPermission,employeePermission));
         }
 
         Set<Permission> permissions = new HashSet<>(permissionRepository.findAll());
@@ -101,6 +106,14 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             employeeRepository.saveAll(Set.of(employee, employee2));
+        }
+        if(activityCodeRepository.count() == 0){
+            ActivityCode activityCode = ActivityCode.builder()
+                    .id("10.01")
+                    .description("Food producion")
+                    .build();
+
+            activityCodeRepository.save(activityCode);
         }
     }
 }
