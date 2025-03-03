@@ -61,7 +61,6 @@ public class CardService {
         card.setCreationDate(LocalDate.now());
         card.setExpirationDate(LocalDate.now().plusMonths(60));
 
-
         card.setCardNumber(generateCardNumber(createCardDto.getName()));
         card.setCvv(generateCVV());
         card.setType(cardType);
@@ -139,30 +138,6 @@ public class CardService {
 
         int checkDigit = (10 - (sum % 10)) % 10;
         return String.valueOf(checkDigit);
-    }
-
-    private boolean luhnValidation(String cardNumber) {
-        if (cardNumber.length() != 16) {
-            return false;
-        }
-
-        int sum = 0;
-        boolean shouldDouble = true;
-
-        for (int i = cardNumber.length() - 1; i >= 0; i--) {
-            int digit = Character.getNumericValue(cardNumber.charAt(i));
-
-            if (shouldDouble) {
-                digit = digit * 2;
-                if (digit > 9) {
-                    digit -= 9;
-                }
-            }
-
-            sum = sum + digit;
-            shouldDouble = !shouldDouble;
-        }
-        return sum % 10 == 0;
     }
 
 
