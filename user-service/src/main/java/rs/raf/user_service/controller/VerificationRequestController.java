@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.exceptions.ClientNotFoundException;
+import rs.raf.user_service.exceptions.VerificationClientNotFoundException;
 import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.VerificationRequestService;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 @RestController
@@ -26,13 +29,6 @@ public class VerificationRequestController {
         this.clientService = clientService;
     }
 
-    /*
-    private ClientDto getCurrentClient() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return clientService.findByEmail(email);
-    }
-
-     */
 
     @Operation(summary = "Get active verification requests", description = "Returns a list of pending verification requests for the user.")
     @ApiResponses(value = {
@@ -41,9 +37,17 @@ public class VerificationRequestController {
     })
     @GetMapping("/active-requests")
     public ResponseEntity<List<VerificationRequest>> getActiveRequests() {
-        ClientDto client = clientService.getCurrentClient();
-        List<VerificationRequest> requests = verificationRequestService.getActiveRequests(client.getId());
-        return ResponseEntity.ok(requests);
+
+        try {
+            ClientDto client = clientService.getCurrentClient();
+
+            List<VerificationRequest> requests = verificationRequestService.getActiveRequests(client.getId());
+            return ResponseEntity.ok(requests);
+
+        } catch (Exception e) {
+            throw new VerificationClientNotFoundException();
+        }
+
     }
 
     @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
