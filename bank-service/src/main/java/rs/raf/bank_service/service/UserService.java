@@ -12,6 +12,7 @@ import java.io.IOException;
 
 @Service
 public class UserService {
+    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
     @Value("http://localhost:8080/api/") // za sad hardcoded ovde
     private String USER_SERVICE_URL;
     private final OkHttpClient client;
@@ -20,6 +21,8 @@ public class UserService {
         this.client = new OkHttpClient();
     }
 
+    // @todo use feign client
+    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
     public UserDto getUserById(Long id, String token) {
         Request request = new Request.Builder()
                 .url(USER_SERVICE_URL + "admin/clients/" + id)
@@ -36,6 +39,7 @@ public class UserService {
         }
 
     }
+    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
     public UserDto parseResponse(String responseBody) {
         ObjectMapper objectMapper = new ObjectMapper();
