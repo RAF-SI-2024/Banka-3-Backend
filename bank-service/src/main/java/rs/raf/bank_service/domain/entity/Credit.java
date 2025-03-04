@@ -17,6 +17,7 @@ public class Credit {
 
     private String accountNumber;
     private BigDecimal amount;
+    private String creditType;
 
     @ManyToOne
     private Currency currency;
