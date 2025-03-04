@@ -54,11 +54,11 @@ public class AccountMapper {
         return dto;
     }
 
-    public AccountTypeDto toAccountTypeDto(Account account){
+    public AccountTypeDto toAccountTypeDto(Account account) {
         if (account == null) return null;
         AccountTypeDto dto = new AccountTypeDto();
         dto.setAccountNumber(account.getAccountNumber());
-        if (account instanceof PersonalAccount){
+        if (account instanceof PersonalAccount) {
             dto.setSubtype("Personal");
         } else if (account instanceof CompanyAccount) {
             dto.setSubtype("Company");

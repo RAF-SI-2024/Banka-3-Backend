@@ -9,54 +9,58 @@ import lombok.AllArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.domain.mapper.CardMapper;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
-import java.util.List;
-import java.util.stream.Collectors;
-import rs.raf.bank_service.client.UserClient;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Random;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class CardService {
 
-    @Autowired
-    UserService userService;
-
     private final CardRepository cardRepository;
-    AccountMapper accountMapper;
-    AccountRepository accountRepository;
     private final UserClient userClient;
     private final RabbitTemplate rabbitTemplate;
+    @Autowired
+    UserService userService;
+    AccountMapper accountMapper;
+    AccountRepository accountRepository;
 
-    private boolean isBusiness(AccountTypeDto accountTypeDto){
+    public static String generateCVV() {
+        Random random = new Random();
+        int cvv = 100 + random.nextInt(900);
+        return String.valueOf(cvv);
+    }
+
+    private boolean isBusiness(AccountTypeDto accountTypeDto) {
         return accountTypeDto.getSubtype().equals("Company");
     }
 
-    public CardDtoNoOwner createCard(CreateCardDto createCardDto){
+    public CardDtoNoOwner createCard(CreateCardDto createCardDto) {
         Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
         AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
 
         Long cardCount = cardRepository.countByAccount(account);
 
-        if ((isBusiness(accountTypeDto) && cardCount>0) || (!isBusiness(accountTypeDto) && cardCount>1)){
+        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
             throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
         }
-        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0){
+        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidCardLimitException();
         }
         CardType cardType;
@@ -94,7 +98,7 @@ public class CardService {
         if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
             throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
         }
-        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0){
+        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidCardLimitException();
         }
 
@@ -119,7 +123,7 @@ public class CardService {
         }
     }
 
-    public CardDtoNoOwner recieveCardForAccount(String token, CreateCardDto createCardDto){
+    public CardDtoNoOwner recieveCardForAccount(String token, CreateCardDto createCardDto) {
         try {
             userClient.checkToken(new CheckTokenDto(token));
         } catch (FeignException.NotFound e) {
@@ -131,20 +135,12 @@ public class CardService {
         return createCard(createCardDto);
     }
 
-
-
-    private String generateCardNumber(String name){
+    private String generateCardNumber(String name) {
         String firstFifteen = generateMIIandIIN(name) + generateAccountNumber();
         return firstFifteen + luhnDigit(firstFifteen);
     }
 
-    public static String generateCVV() {
-        Random random = new Random();
-        int cvv = 100 + random.nextInt(900);
-        return String.valueOf(cvv);
-    }
-
-    private String generateMIIandIIN(String name){
+    private String generateMIIandIIN(String name) {
         Random random = new Random();
 
         switch (name.toLowerCase()) {
@@ -169,7 +165,7 @@ public class CardService {
         }
     }
 
-    private String generateAccountNumber(){
+    private String generateAccountNumber() {
         Random random = new Random();
 
         int accountNumber = random.nextInt(1000000000);
@@ -177,7 +173,7 @@ public class CardService {
     }
 
 
-    private String luhnDigit(String firstFifteen){
+    private String luhnDigit(String firstFifteen) {
         int sum = 0;
         boolean shouldDouble = true;
 

@@ -11,16 +11,23 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
+import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
+import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
+import rs.raf.bank_service.exceptions.CardLimitExceededException;
+import rs.raf.bank_service.exceptions.InvalidTokenException;
 import rs.raf.bank_service.service.CardService;
 
+import javax.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CardController.class)
 public class CardControllerTest {
@@ -55,7 +62,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(authorities = "admin")
     public void testBlockCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
+        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
 
         mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/block")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -65,7 +72,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(authorities = "admin")
     public void testUnblockCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
+        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
 
         mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/unblock")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -75,10 +82,146 @@ public class CardControllerTest {
     @Test
     @WithMockUser(authorities = "admin")
     public void testDeactivateCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
+        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
 
         mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/deactivate")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+
+
+
+    @Test
+    public void testRequestCardForAccount_Success() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        doNothing().when(cardService).requestCardForAccount(createCardDto);
+
+        mockMvc.perform(post("/request")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("A confirmation email has been sent. Please verify to receive your card."));
+
+        verify(cardService, times(1)).requestCardForAccount(createCardDto);
+    }
+
+    @Test
+    public void testRequestCardForAccount_EntityNotFound() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        doThrow(new EntityNotFoundException("Account not found")).when(cardService).requestCardForAccount(createCardDto);
+
+        mockMvc.perform(post("/request")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Account not found"));
+
+        verify(cardService, times(1)).requestCardForAccount(createCardDto);
+    }
+
+    @Test
+    public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        doThrow(new CardLimitExceededException("Card limit exceeded")).when(cardService).requestCardForAccount(createCardDto);
+
+        mockMvc.perform(post("/request")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Card limit exceeded"));
+
+        verify(cardService, times(1)).requestCardForAccount(createCardDto);
+    }
+
+    // Test for verifyAndReceiveCard
+    @Test
+    public void testVerifyAndReceiveCard_Success() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        // Full CardDtoNoOwner with all fields filled
+        CardDtoNoOwner cardDto = new CardDtoNoOwner(
+                1L,  // id
+                "1234567890123456",  // cardNumber
+                "123",  // cvv
+                "Visa",  // type
+                "John Doe",  // name
+                LocalDate.of(2023, 1, 1),  // creationDate
+                LocalDate.of(2027, 1, 1),  // expirationDate
+                "account123",  // accountNumber
+                CardStatus.ACTIVE,  // status (Example, adjust to your actual enum)
+                new BigDecimal("1000.00")  // cardLimit
+        );
+
+        when(cardService.recieveCardForAccount("validToken", createCardDto)).thenReturn(cardDto);
+
+        mockMvc.perform(post("/recieve?token=validToken")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"id\":1,\"cardNumber\":\"1234567890123456\",\"cvv\":\"123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"creationDate\":\"2023-01-01\",\"expirationDate\":\"2027-01-01\",\"accountNumber\":\"account123\",\"status\":\"ACTIVE\",\"cardLimit\":1000.00}"));
+
+        verify(cardService, times(1)).recieveCardForAccount("validToken", createCardDto);
+    }
+
+    @Test
+    public void testVerifyAndReceiveCard_InvalidToken() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        doThrow(new InvalidTokenException()).when(cardService).recieveCardForAccount("invalidToken", createCardDto);
+
+        mockMvc.perform(post("/recieve?token=invalidToken")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isNotFound());
+
+        verify(cardService, times(1)).recieveCardForAccount("invalidToken", createCardDto);
+    }
+
+    // Test for createCard
+    @Test
+    public void testCreateCard_Success() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        // Full CardDtoNoOwner with all fields filled
+        CardDtoNoOwner cardDto = new CardDtoNoOwner(
+                1L,  // id
+                "1234567890123456",  // cardNumber
+                "123",  // cvv
+                "Visa",  // type
+                "John Doe",  // name
+                LocalDate.of(2023, 1, 1),  // creationDate
+                LocalDate.of(2027, 1, 1),  // expirationDate
+                "account123",  // accountNumber
+                CardStatus.ACTIVE,  // status (Example, adjust to your actual enum)
+                new BigDecimal("1000.00")  // cardLimit
+        );
+
+        when(cardService.createCard(createCardDto)).thenReturn(cardDto);
+
+        mockMvc.perform(post("/create")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"id\":1,\"cardNumber\":\"1234567890123456\",\"cvv\":\"123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"creationDate\":\"2023-01-01\",\"expirationDate\":\"2027-01-01\",\"accountNumber\":\"account123\",\"status\":\"ACTIVE\",\"cardLimit\":1000.00}"));
+
+        verify(cardService, times(1)).createCard(createCardDto);
+    }
+
+    @Test
+    public void testCreateCard_EntityNotFound() throws Exception {
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        doThrow(new EntityNotFoundException("Account not found")).when(cardService).createCard(createCardDto);
+
+        mockMvc.perform(post("/create")
+                        .contentType("application/json")
+                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                .andExpect(status().isNotFound());
+
+        verify(cardService, times(1)).createCard(createCardDto);
     }
 }

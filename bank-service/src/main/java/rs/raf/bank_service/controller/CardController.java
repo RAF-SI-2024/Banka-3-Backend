@@ -136,11 +136,11 @@ public class CardController {
     public ResponseEntity<String> requestCardForAccount(@RequestBody @Valid CreateCardDto createCardDto) {
         try {
             cardService.requestCardForAccount(createCardDto);
-        }catch (EntityNotFoundException | ClientNotFoundException e){
+        } catch (EntityNotFoundException | ClientNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }catch (CardLimitExceededException | IllegalArgumentException | InvalidCardLimitException e){
+        } catch (CardLimitExceededException | IllegalArgumentException | InvalidCardLimitException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (ExternalServiceException e){
+        } catch (ExternalServiceException e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
         }
         return ResponseEntity.ok("A confirmation email has been sent. Please verify to receive your card.");
@@ -160,12 +160,12 @@ public class CardController {
     public ResponseEntity<CardDtoNoOwner> verifyAndReceiveCard(@RequestParam String token, @RequestBody @Valid CreateCardDto createCardDto) {
         CardDtoNoOwner cardDto;
         try {
-            cardDto=cardService.recieveCardForAccount(token,createCardDto);
-        }catch (InvalidTokenException | EntityNotFoundException e){
+            cardDto = cardService.recieveCardForAccount(token, createCardDto);
+        } catch (InvalidTokenException | EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }catch (CardLimitExceededException | InvalidCardTypeException | InvalidCardLimitException e){
+        } catch (CardLimitExceededException | InvalidCardTypeException | InvalidCardLimitException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        } catch (ExternalServiceException e){
+        } catch (ExternalServiceException e) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
         }
         return ResponseEntity.ok(cardDto);
@@ -183,11 +183,11 @@ public class CardController {
     })
     public ResponseEntity<CardDtoNoOwner> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
         CardDtoNoOwner cardDto;
-        try{
-            cardDto=cardService.createCard(createCardDto);
-        }catch (EntityNotFoundException e){
+        try {
+            cardDto = cardService.createCard(createCardDto);
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }catch (CardLimitExceededException | InvalidCardLimitException | InvalidCardTypeException e){
+        } catch (CardLimitExceededException | InvalidCardLimitException | InvalidCardTypeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok(cardDto);

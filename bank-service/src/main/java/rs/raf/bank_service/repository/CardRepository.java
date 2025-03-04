@@ -10,6 +10,8 @@ import java.util.Optional;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
     Long countByAccount(Account account);
+
     List<Card> findByAccount_AccountNumber(String accountNumber);
+
     Optional<Card> findByCardNumber(String cardNumber);
 }

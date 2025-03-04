@@ -25,7 +25,7 @@ public class CardMapper {
         return dto;
     }
 
-    public static CardDtoNoOwner toCardDtoNoOwner(Card card){
+    public static CardDtoNoOwner toCardDtoNoOwner(Card card) {
         if (card == null) return null;
         return new CardDtoNoOwner(card.getId(),
                 card.getCardNumber(),

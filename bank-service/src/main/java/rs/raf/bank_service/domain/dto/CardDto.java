@@ -5,11 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.enums.CardStatus;
-import rs.raf.bank_service.domain.enums.CardType;
 
-import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
