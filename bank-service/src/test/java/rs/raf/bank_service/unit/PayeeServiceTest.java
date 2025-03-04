@@ -67,7 +67,7 @@ public class PayeeServiceTest {
         payee.setAccountNumber("1234567890");
 
         // Ispravljeno: when se poziva na repository, a ne na Optional
-        when(repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId)).thenReturn(Optional.empty());
+        when(repository.findByAccountNumberAndClientId(dto.getAccountNumber(), clientId)).thenReturn(Optional.empty());
         when(mapper.toEntity(dto)).thenReturn(payee);
         when(repository.save(payee)).thenReturn(payee);
         when(mapper.toDto(payee)).thenReturn(dto);
@@ -193,7 +193,7 @@ public class PayeeServiceTest {
         existingPayee.setAccountNumber("1234567890");
         existingPayee.setClientId(clientId);
 
-        when(repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId)).thenReturn(Optional.of(existingPayee));
+        when(repository.findByAccountNumberAndClientId(dto.getAccountNumber(), clientId)).thenReturn(Optional.of(existingPayee));
 
         // Act & Assert
         assertThrows(DuplicatePayeeException.class, () -> service.create(dto, clientId));

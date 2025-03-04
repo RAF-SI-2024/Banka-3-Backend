@@ -40,7 +40,7 @@ public class PayeeService {
 
     public PayeeDto create(PayeeDto dto, Long clientId) {
 
-        Optional<Payee> existingPayee = repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId); //ispravljena metoda u PayeeRepository
+        Optional<Payee> existingPayee = repository.findByAccountNumberAndClientId(dto.getAccountNumber(), clientId); //ispravljena metoda u PayeeRepository
         if (existingPayee.isPresent()) {
             throw new DuplicatePayeeException(dto.getAccountNumber()); //baca ovu gresku samo ako se poklopi clientId i accountNumber, u ostalim slucajevima moze
         }

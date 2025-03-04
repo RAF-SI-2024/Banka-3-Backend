@@ -20,6 +20,8 @@ import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
+import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
+import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.service.AccountService;
@@ -133,5 +135,63 @@ class AccountControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errorMessage, response.getBody());
         verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
+    }
+
+    @Test
+    void testGetMyAccounts_Success() {
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(accountService).getMyAccounts("Bearer token");
+    }
+
+    @Test
+    void testGetMyAccounts_BadRequest() {
+        doThrow(new UserNotAClientException()).when(accountService).getMyAccounts("Bearer token");
+
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("User sending request is not a client.", response.getBody());
+        verify(accountService).getMyAccounts("Bearer token");
+    }
+
+    @Test
+    void testGetMyAccounts_Failure() {
+        doThrow(new RuntimeException()).when(accountService).getMyAccounts("Bearer token");
+
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(accountService).getMyAccounts("Bearer token");
+    }
+
+    @Test
+    void testGetAccountDetails_Success() {
+        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(accountService).getAccountDetails("Bearer token", "1");
+    }
+
+    @Test
+    void testGetAccountDetails_BadRequest() {
+        doThrow(new ClientNotAccountOwnerException()).when(accountService).getAccountDetails("Bearer token", "1");
+
+        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Client sending request is not the account owner.", response.getBody());
+        verify(accountService).getAccountDetails("Bearer token", "1");
+    }
+
+    @Test
+    void testGetAccountDetails_Failure() {
+        doThrow(new RuntimeException()).when(accountService).getAccountDetails("Bearer token", "1");
+
+        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(accountService).getAccountDetails("Bearer token", "1");
     }
 }
