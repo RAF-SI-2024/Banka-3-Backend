@@ -47,7 +47,7 @@ public class ClientController {
      */
 
     // GET endpoint sa opcionalnim filterima i sortiranje po prezimenu
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
     @GetMapping
     @Operation(summary = "Get all clients with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
@@ -62,7 +62,7 @@ public class ClientController {
         return ResponseEntity.ok(clients);
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
     @GetMapping("/{id}")
     @Operation(summary = "Get client by ID")
     @ApiResponses({
@@ -77,7 +77,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
     @PostMapping
     @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
@@ -96,7 +96,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
     @PutMapping("/{id}")
     @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
@@ -118,7 +118,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete client by ID")
