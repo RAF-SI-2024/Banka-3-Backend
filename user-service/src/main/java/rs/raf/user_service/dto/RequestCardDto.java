@@ -1,4 +1,4 @@
-package rs.raf.bank_service.domain.dto;
+package rs.raf.user_service.dto;
 
 
 import lombok.AllArgsConstructor;
@@ -10,9 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientDto {
-    private Long id;
-    private String firstName;
-    private String lastName;
+public class RequestCardDto {
     private String email;
 }

@@ -42,6 +42,69 @@ public class BootstrapData implements CommandLineRunner {
         currency.setActive(true);
         currencyRepository.save(currency);
 
+        Currency currency2 = new Currency();
+        currency2.setCode("RSD");
+        currency2.setName("Dinar");
+        currency2.setSymbol("RSD");
+        currency2.setCountries("Serbia");
+        currency2.setDescription("Dinar currency");
+        currency2.setActive(true);
+        currencyRepository.save(currency2);
+
+        Currency currency3 = new Currency();
+        currency3.setCode("CHF");
+        currency3.setName("Swiss Franc");
+        currency3.setSymbol("CHF");
+        currency3.setCountries("Switzerland");
+        currency3.setDescription("Swiss franc currency");
+        currency3.setActive(true);
+        currencyRepository.save(currency3);
+
+        Currency currency4 = new Currency();
+        currency4.setCode("USD");
+        currency4.setName("US Dollar");
+        currency4.setSymbol("$");
+        currency4.setCountries("United States");
+        currency4.setDescription("US Dollar currency");
+        currency4.setActive(true);
+        currencyRepository.save(currency4);
+
+        Currency currency5 = new Currency();
+        currency5.setCode("JPY");
+        currency5.setName("Yen");
+        currency5.setSymbol("¥");
+        currency5.setCountries("Japan");
+        currency5.setDescription("Yen currency");
+        currency5.setActive(true);
+        currencyRepository.save(currency5);
+
+        Currency currency6 = new Currency();
+        currency6.setCode("GBP");
+        currency6.setName("British Pound");
+        currency6.setSymbol("$");
+        currency6.setCountries("Great Britain");
+        currency6.setDescription("British pound currency");
+        currency6.setActive(true);
+        currencyRepository.save(currency6);
+
+        Currency currency7 = new Currency();
+        currency7.setCode("CAD");
+        currency7.setName("Canadian Dollar");
+        currency7.setSymbol("$");
+        currency7.setCountries("Canada");
+        currency7.setDescription("Canadian Dollar currency");
+        currency7.setActive(true);
+        currencyRepository.save(currency7);
+
+        Currency currency8 = new Currency();
+        currency8.setCode("AUD");
+        currency8.setName("Australian Dollar");
+        currency8.setSymbol("$");
+        currency8.setCountries("Australia");
+        currency8.setDescription("Australian Dollar currency");
+        currency8.setActive(true);
+        currencyRepository.save(currency8);
+
         // Postavka računa (podaci za bank service koriste ID-jeve kreiranih klijenata u client service):
         // Pretpostavljamo da je prvi klijent (Marko Markovic) sa ID 1, a drugi (Jovan Jovanovic) sa ID 2.
 

@@ -10,9 +10,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientDto {
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private String email;
+public class CardRequestResponseDto {
+
+    private String message;
+    private boolean success;
+    private String confirmationCode;
 }

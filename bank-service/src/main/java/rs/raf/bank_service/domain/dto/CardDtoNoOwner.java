@@ -1,6 +1,5 @@
 package rs.raf.bank_service.domain.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,7 +13,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CardDto {
+public class CardDtoNoOwner {
 
     private Long id;
     private String cardNumber;
@@ -26,5 +25,4 @@ public class CardDto {
     private String accountNumber;
     private CardStatus status;
     private BigDecimal cardLimit;
-    private ClientDto owner;
 }

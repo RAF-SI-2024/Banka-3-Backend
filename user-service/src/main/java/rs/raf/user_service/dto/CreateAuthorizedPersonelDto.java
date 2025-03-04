@@ -1,5 +1,4 @@
-package rs.raf.bank_service.domain.dto;
-
+package rs.raf.user_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,9 +9,13 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientDto {
-    private Long id;
+public class CreateAuthorizedPersonelDto {
     private String firstName;
     private String lastName;
+    private Long dateOfBirth;
+    private String gender;
     private String email;
+    private String phoneNumber;
+    private String address;
+    private Long companyId;
 }

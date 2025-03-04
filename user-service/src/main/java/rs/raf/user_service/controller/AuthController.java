@@ -71,7 +71,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("check-token")
+    @PostMapping("/check-token")
     @Operation(summary = "Checks if a token is still valid", description = "Checks if a token is still valid.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Valid"),
@@ -83,6 +83,21 @@ public class AuthController {
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).build();
+        }
+    }
+
+    @PostMapping("/request-card")
+    @Operation(summary = "Request card", description = "Requests card.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Request for password reset successfully sent."),
+            @ApiResponse(responseCode = "400", description = "Invalid email.")
+    })
+    public ResponseEntity<Void> requestCard(@RequestBody RequestCardDto requestCardDto) {
+        try {
+            this.authService.requestCard(requestCardDto.getEmail());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
