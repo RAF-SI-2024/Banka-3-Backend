@@ -35,3 +35,4 @@ services:
 volumes:
   postgres_data:
   postgres_data_bank:
+  postgres_data_bank:
