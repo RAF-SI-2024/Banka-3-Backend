@@ -10,9 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientDto {
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private String email;
+public class AccountTypeDto {
+    private String accountNumber;
+    private String subtype;
 }

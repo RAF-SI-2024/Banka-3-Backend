@@ -9,6 +9,5 @@ import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpecificationExecutor<Account> {
     Optional<Account> findByAccountNumber(String accountNumber);
-
     List<Account> findByClientId(Long clientId);
 }

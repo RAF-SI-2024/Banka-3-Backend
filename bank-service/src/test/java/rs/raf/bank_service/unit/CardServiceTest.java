@@ -1,5 +1,7 @@
 package rs.raf.bank_service.unit;
 
+import feign.FeignException;
+import feign.Request;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,10 @@ import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.CardStatus;
+import rs.raf.bank_service.domain.mapper.AccountMapper;
+import rs.raf.bank_service.exceptions.CardLimitExceededException;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.InvalidTokenException;
 import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
@@ -24,9 +30,7 @@ import rs.raf.bank_service.service.CardService;
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +42,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class CardServiceTest {
 
+    @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
+    private AccountMapper accountMapper;
     @Mock
     private CardRepository cardRepository;
 
@@ -125,6 +134,86 @@ public class CardServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> cardService.changeCardStatus("nonExistingCard", CardStatus.DEACTIVATED));
         assertTrue(exception.getMessage().contains("Card not found"));
+    }
+
+
+    @Test
+    public void testCreateCard_Success() {
+        // Prepare mock data
+        String accountNumber = "account123";
+        CreateCardDto createCardDto = new CreateCardDto("DEBIT", "Visa", accountNumber, new BigDecimal("1000.00"));
+        Account account = mock(Account.class); // Mocked Account object
+        account.setAccountNumber(accountNumber);
+
+        when(accountRepository.findByAccountNumber(createCardDto.getAccountNumber())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto("account123", "Personal"));
+        when(cardRepository.countByAccount(account)).thenReturn(0L); // No cards for the account
+
+        // Call the service method
+        CardDtoNoOwner result = cardService.createCard(createCardDto);
+
+        // Verify results
+        assertNotNull(result);
+        verify(cardRepository, times(1)).save(any(Card.class));
+    }
+
+    @Test
+    public void testCreateCard_AccountNotFound() {
+        // Prepare mock data
+        CreateCardDto createCardDto = new CreateCardDto("invalidAccount", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        when(accountRepository.findByAccountNumber(createCardDto.getAccountNumber())).thenReturn(Optional.empty());
+
+        // Assert exception is thrown
+        assertThrows(EntityNotFoundException.class, () -> cardService.createCard(createCardDto));
+    }
+
+    @Test
+    public void testCreateCard_CardLimitExceeded() {
+        // Prepare mock data
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+        Account account = mock(Account.class);
+        account.setAccountNumber("account123");
+
+        when(accountRepository.findByAccountNumber(createCardDto.getAccountNumber())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto("account123", "Personal"));
+        when(cardRepository.countByAccount(account)).thenReturn(2L); // Account already has 2 cards
+
+        // Assert exception is thrown
+        assertThrows(CardLimitExceededException.class, () -> cardService.createCard(createCardDto));
+    }
+
+
+    @Test
+    public void testRequestCardForAccount_AccountNotFound() {
+        // Prepare mock data
+        CreateCardDto createCardDto = new CreateCardDto("invalidAccount", "Visa", "John Doe", new BigDecimal("1000.00"));
+
+        when(accountRepository.findByAccountNumber(createCardDto.getAccountNumber())).thenReturn(Optional.empty());
+
+        // Assert exception is thrown
+        assertThrows(EntityNotFoundException.class, () -> cardService.requestCardForAccount(createCardDto));
+    }
+
+
+    @Test
+    public void testRequestCardForAccount_Success() {
+        // Prepare mock data
+        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+        Account account = mock(Account.class);
+        account.setAccountNumber("account123");
+
+        when(accountRepository.findByAccountNumber(createCardDto.getAccountNumber())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto("account123", "Personal"));
+        when(cardRepository.countByAccount(account)).thenReturn(0L);
+        when(userClient.getClientById(anyLong())).thenReturn(new ClientDto(1234L,"John","Doe","test@example.com"));
+        doNothing().when(userClient).requestCard(any(RequestCardDto.class));
+
+        // Call the service method
+        cardService.requestCardForAccount(createCardDto);
+
+        // Verify interactions
+        verify(userClient, times(1)).requestCard(any(RequestCardDto.class));
     }
 
     @Test
