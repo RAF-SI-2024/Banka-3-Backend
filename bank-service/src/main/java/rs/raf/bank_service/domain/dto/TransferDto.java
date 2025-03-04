@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Data
 public class TransferDto {
-
+    ///  Mozda moze ovde da se prosledjuje ClientId
     @NotBlank(message = "Sender account number is required.")
     private String senderAccountNumber;
 

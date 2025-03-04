@@ -6,7 +6,8 @@ import javax.validation.constraints.*;
 import java.math.BigDecimal;
 
 @Data
-public class PaymentDto {
+public class CreatePaymentDto {
+
 
     @NotBlank(message = "Sender name is required.")
     private String senderName;

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import rs.raf.bank_service.domain.enums.PaymentStatus;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -16,11 +17,17 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Entity(name = "payments")
+///  TRANSAKCIJA
 public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String senderName;
+
+    @Column(nullable = false)
+    private Long ClintId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
@@ -29,21 +36,22 @@ public class Payment {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiverAccountNumber", referencedColumnName = "accountNumber", nullable = false)
-    private Account receiverAccount;
+    /// Za prenos izmedju dva racuna istog klijenta
+    private String accountNumberReciver;
+    /// Za placanje preko uplatnice
+    @ManyToOne
+    @JoinColumn(name = "payee_id")
+    private Payee payee;
 
-    @Column(nullable = false)
     private String paymentCode;
 
-    @Column(nullable = false)
     private String purposeOfPayment;
 
-    @Column(nullable = true)
     private String referenceNumber;
 
     private LocalDateTime transactionDate;
 
+    private PaymentStatus paymentStatus;
 
     @PrePersist
     public void setTransactionDate() {
