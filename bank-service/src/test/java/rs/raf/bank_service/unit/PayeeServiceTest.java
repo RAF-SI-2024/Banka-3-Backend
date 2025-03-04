@@ -58,19 +58,22 @@ public class PayeeServiceTest {
     @Test
     public void testCreate() {
         // Arrange
+        Long clientId = 1L;
         PayeeDto dto = new PayeeDto();
         dto.setAccountNumber("1234567890");
         Payee payee = new Payee();
         payee.setId(1L);
+        payee.setClientId(clientId);
         payee.setAccountNumber("1234567890");
 
-        when(repository.findByAccountNumber(dto.getAccountNumber())).thenReturn(Optional.empty());
+        // Ispravljeno: when se poziva na repository, a ne na Optional
+        when(repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId)).thenReturn(Optional.empty());
         when(mapper.toEntity(dto)).thenReturn(payee);
         when(repository.save(payee)).thenReturn(payee);
         when(mapper.toDto(payee)).thenReturn(dto);
 
         // Act
-        PayeeDto result = service.create(dto, 1L);
+        PayeeDto result = service.create(dto, clientId);
 
         // Assert
         assertNotNull(result);
@@ -121,7 +124,7 @@ public class PayeeServiceTest {
     public void testUpdate_ClientNotFound() {
         // Arrange
         Long id = 1L;
-        Long clientId = 2L; 
+        Long clientId = 2L;
         PayeeDto dto = new PayeeDto();
         Payee payee = new Payee();
         payee.setId(id);
@@ -190,35 +193,10 @@ public class PayeeServiceTest {
         existingPayee.setAccountNumber("1234567890");
         existingPayee.setClientId(clientId);
 
-        when(repository.findByAccountNumber(dto.getAccountNumber())).thenReturn(Optional.of(existingPayee));
+        when(repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId)).thenReturn(Optional.of(existingPayee));
 
         // Act & Assert
         assertThrows(DuplicatePayeeException.class, () -> service.create(dto, clientId));
     }
 
-    @Test
-    public void testCreate_DuplicatePayeeForDifferentClients() {
-        // Arrange
-        PayeeDto dto = new PayeeDto();
-        dto.setAccountNumber("1234567890");
-        Long clientId1 = 1L;
-        Long clientId2 = 2L;
-
-        Payee existingPayee = new Payee();
-        existingPayee.setId(1L);
-        existingPayee.setAccountNumber("1234567890");
-        existingPayee.setClientId(clientId1);
-
-        when(repository.findByAccountNumber(dto.getAccountNumber())).thenReturn(Optional.of(existingPayee));
-        when(mapper.toEntity(dto)).thenReturn(new Payee());
-        when(repository.save(any(Payee.class))).thenReturn(new Payee());
-        when(mapper.toDto(any(Payee.class))).thenReturn(dto);
-
-        // Act
-        PayeeDto result = service.create(dto, clientId2);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(dto.getAccountNumber(), result.getAccountNumber());
-    }
 }

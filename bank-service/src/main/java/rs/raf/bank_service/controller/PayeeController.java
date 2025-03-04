@@ -24,11 +24,9 @@ import java.util.List;
 public class PayeeController {
 
     private final PayeeService service;
-    private final JwtTokenUtil jwtTokenUtil;
 
-    public PayeeController(PayeeService service, JwtTokenUtil jwtTokenUtil) {
+    public PayeeController(PayeeService service) {
         this.service = service;
-        this.jwtTokenUtil = jwtTokenUtil;
     }
 
     @PreAuthorize("hasAuthority('client')")
@@ -43,21 +41,8 @@ public class PayeeController {
             @Valid @RequestBody PayeeDto dto,
             @RequestHeader("Authorization") String token) {
 
-        // Ukloni "Bearer " iz tokena
-        token = token.replace("Bearer ", "");
-
-        // Proveri da li je token validan
-        if (!jwtTokenUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
-        }
-
-        // Dobavi clientId iz tokena
-        Long clientId = Long.valueOf(jwtTokenUtil.extractUserId(token));
-
-
-        // Prosledi clientId servisu
+        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
         service.create(dto, clientId);
-
         return ResponseEntity.status(HttpStatus.CREATED).body("Payee created successfully.");
     }
 
@@ -69,17 +54,7 @@ public class PayeeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<List<PayeeDto>> getPayeesByClientId(@RequestHeader("Authorization") String token) {
-        token = token.replace("Bearer ", "");
-
-
-        if (!jwtTokenUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-
-        Long clientId = Long.valueOf(jwtTokenUtil.extractUserId(token));
-
-
+        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
         List<PayeeDto> payees = service.getByClientId(clientId);
         return ResponseEntity.ok(payees);
     }
@@ -98,18 +73,7 @@ public class PayeeController {
             @Valid @RequestBody PayeeDto dto,
             @RequestHeader("Authorization") String token) {
 
-
-        token = token.replace("Bearer ", "");
-
-
-        if (!jwtTokenUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
-        }
-
-
-        Long clientId = Long.valueOf(jwtTokenUtil.extractUserId(token));
-
-
+        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
         try {
             service.update(id, dto, clientId);
             return ResponseEntity.ok("Payee updated successfully.");
@@ -130,16 +94,7 @@ public class PayeeController {
             @PathVariable Long id,
             @RequestHeader("Authorization") String token) {
 
-
-        token = token.replace("Bearer ", "");
-
-        if (!jwtTokenUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-
-        Long clientId = Long.valueOf(jwtTokenUtil.extractUserId(token));
-
+        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
         try {
             service.delete(id, clientId);
             return ResponseEntity.noContent().build();

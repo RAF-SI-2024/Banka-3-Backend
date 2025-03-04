@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface PayeeRepository extends JpaRepository<Payee, Long> {
 
-    Optional<Payee> findByAccountNumber(String accountNumber);
+    Optional<Payee> findByAccountNumberandCliendId(String accountNumber, Long clientId);
 
     List<Payee> findByClientId(Long clientId);
 }

@@ -9,6 +9,7 @@ import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
 import rs.raf.bank_service.domain.mapper.PayeeMapper;
 import rs.raf.bank_service.repository.PayeeRepository;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,16 @@ public class PayeeService {
 
     private final PayeeRepository repository;
     private final PayeeMapper mapper;
+    private final JwtTokenUtil jwtTokenUtil;
+
+
+    public Long getClientIdFromToken(String token) {
+        token = token.replace("Bearer ", "");
+        if (!jwtTokenUtil.validateToken(token)) {
+            throw new SecurityException("Invalid token");
+        }
+        return Long.valueOf(jwtTokenUtil.extractUserId(token));
+    }
 
     public List<PayeeDto> getByClientId(Long clientId) {
         List<Payee> payees = repository.findByClientId(clientId);
@@ -29,8 +40,8 @@ public class PayeeService {
 
     public PayeeDto create(PayeeDto dto, Long clientId) {
 
-        Optional<Payee> existingPayee = repository.findByAccountNumber(dto.getAccountNumber());
-        if (existingPayee.isPresent() && existingPayee.get().getClientId().equals(clientId)) {
+        Optional<Payee> existingPayee = repository.findByAccountNumberandCliendId(dto.getAccountNumber(), clientId); //ispravljena metoda u PayeeRepository
+        if (existingPayee.isPresent()) {
             throw new DuplicatePayeeException(dto.getAccountNumber()); //baca ovu gresku samo ako se poklopi clientId i accountNumber, u ostalim slucajevima moze
         }
 
