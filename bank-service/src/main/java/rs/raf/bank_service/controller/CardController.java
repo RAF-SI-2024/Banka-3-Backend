@@ -12,6 +12,7 @@ import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.service.CardService;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 @RestController
@@ -47,8 +48,13 @@ public class CardController {
         })
         public ResponseEntity<Void> blockCard(
                         @Parameter(description = "Card number to block", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
-                cardService.changeCardStatus(cardNumber, CardStatus.BLOCKED);
-                return ResponseEntity.ok().build();
+                try {
+                        cardService.changeCardStatus(cardNumber, CardStatus.BLOCKED);
+                        return ResponseEntity.ok().build();
+                } catch (EntityNotFoundException e) {
+                        return ResponseEntity.notFound().build();
+                }
+
         }
 
         @PreAuthorize("hasAuthority('admin')")
@@ -61,8 +67,13 @@ public class CardController {
         })
         public ResponseEntity<Void> unblockCard(
                         @Parameter(description = "Card number to unblock", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
-                cardService.changeCardStatus(cardNumber, CardStatus.ACTIVE);
-                return ResponseEntity.ok().build();
+                try {
+                        cardService.changeCardStatus(cardNumber, CardStatus.ACTIVE);
+                        return ResponseEntity.ok().build();
+                }
+                catch (EntityNotFoundException e) {
+                        return ResponseEntity.notFound().build();
+                }
         }
 
         @PreAuthorize("hasAuthority('admin')")
@@ -75,8 +86,13 @@ public class CardController {
         })
         public ResponseEntity<Void> deactivateCard(
                         @Parameter(description = "Card number to deactivate", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
-                cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
-                return ResponseEntity.ok().build();
+                try {
+                        cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
+                        return ResponseEntity.ok().build();
+                } catch (EntityNotFoundException e) {
+                        return ResponseEntity.notFound().build();
+                }
+
         }
 
         @PreAuthorize("hasAuthority('client')")
@@ -90,8 +106,13 @@ public class CardController {
         public ResponseEntity<Void> blockCardByUser(
                         @Parameter(description = "Card number to block", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber,
                         @RequestHeader("Authorization") String authHeader) {
-                cardService.blockCardByUser(cardNumber, authHeader);
-                return ResponseEntity.ok().build();
+                try {
+                        cardService.blockCardByUser(cardNumber, authHeader);
+                        return ResponseEntity.ok().build();
+                } catch (EntityNotFoundException e) {
+                        return ResponseEntity.notFound().build();
+                }
+
         }
 
         @PreAuthorize("hasAuthority('client')")
