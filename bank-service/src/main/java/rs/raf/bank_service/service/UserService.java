@@ -3,25 +3,20 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-<<<<<<< HEAD
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
-import okhttp3.Response;
-=======
+
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
->>>>>>> upstream/main
+
 import rs.raf.bank_service.domain.dto.UserDto;
 
 import java.io.IOException;
 
 @Service
 public class UserService {
-<<<<<<< HEAD
-=======
+
     private final OkHttpClient client;
->>>>>>> upstream/main
+
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
     @Value("http://localhost:8080/api/") // za sad hardcoded ovde
     private String USER_SERVICE_URL;
@@ -51,8 +46,7 @@ public class UserService {
     }
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
-<<<<<<< HEAD
-=======
+
     public UserService() {
         this.client = new OkHttpClient();
     }
@@ -77,7 +71,7 @@ public class UserService {
     }
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
->>>>>>> upstream/main
+
     public UserDto parseResponse(String responseBody) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {

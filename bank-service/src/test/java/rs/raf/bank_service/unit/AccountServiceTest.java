@@ -1,16 +1,6 @@
 package rs.raf.bank_service.unit;
 
-<<<<<<< HEAD
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-=======
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,30 +16,21 @@ import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
->>>>>>> upstream/main
+
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.domain.dto.UserDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Currency;
-<<<<<<< HEAD
-=======
+
 import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
->>>>>>> upstream/main
+
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.UserService;
-<<<<<<< HEAD
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-=======
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 
@@ -61,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
->>>>>>> upstream/main
+
 
 @ExtendWith(MockitoExtension.class)
 public class AccountServiceTest {
@@ -78,11 +59,7 @@ public class AccountServiceTest {
     @InjectMocks
     private AccountService accountService;
 
-<<<<<<< HEAD
-    @Test
-    public void testCreateNewBankAccount_Success() {
-        // Given
-=======
+
     @Mock
     private UserClient userClient;
 
@@ -245,7 +222,7 @@ public class AccountServiceTest {
 
     @Test
     public void testCreateNewBankAccount_Success() {
->>>>>>> upstream/main
+
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         newBankAccountDto.setClientId(1L);
         newBankAccountDto.setAccountType("CURRENT");
@@ -260,21 +237,7 @@ public class AccountServiceTest {
         currency.setCode("EUR");
 
         when(userService.getUserById(1L, "Bearer token")).thenReturn(userDto);
-<<<<<<< HEAD
-        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(currency));
 
-        // When
-        accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
-
-        // Then
-        verify(accountRepository, times(1)).save(any(Account.class));
-    }
-    @Test
-    public void testCreateNewBankAccount_ClientNotFound() {
-        // Given
-        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-        newBankAccountDto.setClientId(999L); // Nepostojeći klijent
-=======
         // Use eq() to match the exact "EUR" string.
         when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(currency));
 
@@ -287,24 +250,13 @@ public class AccountServiceTest {
     public void testCreateNewBankAccount_ClientNotFound() {
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         newBankAccountDto.setClientId(999L);
->>>>>>> upstream/main
+
         newBankAccountDto.setAccountType("PERSONAL");
         newBankAccountDto.setCurrency("USD");
 
         when(userService.getUserById(999L, "Bearer token")).thenReturn(null);
 
-<<<<<<< HEAD
-        Exception exception = assertThrows(NoSuchElementException.class, () -> {
-            accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
-        });
 
-        assertEquals("Client not found with ID: 999", exception.getMessage());
-        verify(accountRepository, never()).save(any(Account.class));
-    }
-    @Test
-    public void testCreateNewBankAccount_InvalidCurrency() {
-        // Given
-=======
         Exception exception = assertThrows(ClientNotFoundException.class, () -> {
             accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
         });
@@ -315,7 +267,7 @@ public class AccountServiceTest {
 
     @Test
     public void testCreateNewBankAccount_InvalidCurrency() {
->>>>>>> upstream/main
+
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         newBankAccountDto.setClientId(1L);
         newBankAccountDto.setAccountType("PERSONAL");
@@ -325,19 +277,7 @@ public class AccountServiceTest {
         userDto.setId(1L);
 
         when(userService.getUserById(1L, "Bearer token")).thenReturn(userDto);
-<<<<<<< HEAD
-        when(currencyRepository.findByCode("INVALID")).thenReturn(java.util.Optional.empty());
 
-        Exception exception = assertThrows(NoSuchElementException.class, () -> {
-            accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
-        });
-
-        assertEquals("Invalid currency.", exception.getMessage());
-        verify(accountRepository, never()).save(any(Account.class));
-    }
-
-}
-=======
         // Mark this stubbing as lenient to avoid unnecessary stubbing exception.
         lenient().when(currencyRepository.findByCode("INVALID")).thenReturn(Optional.empty());
 
@@ -349,4 +289,4 @@ public class AccountServiceTest {
         verify(accountRepository, never()).save(any(Account.class));
     }
 }
->>>>>>> upstream/main
+
