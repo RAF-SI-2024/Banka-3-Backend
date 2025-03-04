@@ -44,8 +44,6 @@ public class AccountService {
         private final AccountRepository accountRepository;
         @Autowired
         private final UserClient userClient;
-        @Autowired
-        UserService userService;
 
         @Operation(summary = "Retrieve accounts with filtering and pagination", description = "Returns a paginated list of accounts filtered by account number and owner's first and last name.")
         @ApiResponses(value = {
@@ -98,8 +96,8 @@ public class AccountService {
 
         public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
                 Long userId = newBankAccountDto.getClientId();
-                UserDto userDto = userService.getUserById(userId, authorizationHeader);
-                if (userDto == null)
+                ClientDto clientDto = userClient.getClientById(userId);
+                if (clientDto == null)
                         throw new ClientNotFoundException(userId);
                 Account newAccount;
                 if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {

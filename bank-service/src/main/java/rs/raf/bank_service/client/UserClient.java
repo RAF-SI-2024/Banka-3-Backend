@@ -14,7 +14,7 @@ import rs.raf.bank_service.domain.dto.CompanyDto;
 import java.util.List;
 
 /// Klasa koja sluzi za slanje HTTP poziva na userService
-@FeignClient(name = "user-service", url = "${user.service.url:http://localhost:8080}")
+@FeignClient(name = "user-service", url = "${user.service.url:http://localhost:8080}",fallbackFactory = UserClientFallbackFactory.class,decode404 = true)
 public interface UserClient {
 
     @GetMapping("/api/admin/clients/{id}")
