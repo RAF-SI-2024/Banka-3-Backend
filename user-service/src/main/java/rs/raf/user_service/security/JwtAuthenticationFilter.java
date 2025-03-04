@@ -37,6 +37,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = getJwtFromRequest(request);
 
+        System.out.println(token);
+
         if (token != null && jwtTokenUtil.validateToken(token)) {
             Claims claims = jwtTokenUtil.getClaimsFromToken(token);
             String email = claims.getSubject();
@@ -47,11 +49,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
+            System.out.println(permissions);
+
             UserDetails userDetails = new org.springframework.security.core.userdetails.User(email, "", authorities);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            System.out.println(userDetails);
             //  System.out.println("Authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
         }
 
@@ -61,6 +67,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        System.out.println(bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }

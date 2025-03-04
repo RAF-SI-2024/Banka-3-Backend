@@ -8,12 +8,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
-import rs.raf.bank_service.utils.DummyAuthenticationFilter;
 
 import java.util.List;
 
@@ -24,11 +24,6 @@ import java.util.List;
 public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    // SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE
-    // USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
-    @Autowired
-    private DummyAuthenticationFilter dummyAuthenticationFilter;
 
     public SpringSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -51,13 +46,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().headers()
                 .frameOptions().disable()
-                // .and().addFilterBefore(jwtAuthenticationFilter,
-                // UsernamePasswordAuthenticationFilter.class);
-                // SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE
-                // USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
-                .and().addFilterBefore(dummyAuthenticationFilter,
-                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
-        //
+                 .and().addFilterBefore(jwtAuthenticationFilter,
+                 UsernamePasswordAuthenticationFilter.class);
+
 
     }
 
