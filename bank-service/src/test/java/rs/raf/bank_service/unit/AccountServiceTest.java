@@ -17,6 +17,8 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.UserService;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -65,23 +67,25 @@ public class AccountServiceTest {
         // Then
         verify(accountRepository, times(1)).save(any(Account.class));
     }
+
     @Test
     public void testCreateNewBankAccount_ClientNotFound() {
         // Given
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-        newBankAccountDto.setClientId(999L); // Nepostojeći klijent
+        newBankAccountDto.setClientId(999L);
         newBankAccountDto.setAccountType("PERSONAL");
         newBankAccountDto.setCurrency("USD");
 
         when(userService.getUserById(999L, "Bearer token")).thenReturn(null);
 
-        Exception exception = assertThrows(NoSuchElementException.class, () -> {
+        Exception exception = assertThrows(ClientNotFoundException.class, () -> {
             accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
         });
 
-        assertEquals("Client not found with ID: 999", exception.getMessage());
+        assertEquals("Cannot find client with id: 999", exception.getMessage());
         verify(accountRepository, never()).save(any(Account.class));
     }
+
     @Test
     public void testCreateNewBankAccount_InvalidCurrency() {
         // Given
@@ -96,11 +100,11 @@ public class AccountServiceTest {
         when(userService.getUserById(1L, "Bearer token")).thenReturn(userDto);
         when(currencyRepository.findByCode("INVALID")).thenReturn(java.util.Optional.empty());
 
-        Exception exception = assertThrows(NoSuchElementException.class, () -> {
+        Exception exception = assertThrows(CurrencyNotFoundException.class, () -> {
             accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
         });
 
-        assertEquals("Invalid currency.", exception.getMessage());
+        assertEquals("Cannot find currency with id: INVALID", exception.getMessage());
         verify(accountRepository, never()).save(any(Account.class));
     }
 
