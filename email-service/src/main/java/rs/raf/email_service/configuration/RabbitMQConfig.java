@@ -32,6 +32,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue cardCreationQueue() {
+        return new Queue("card-creation", false);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
