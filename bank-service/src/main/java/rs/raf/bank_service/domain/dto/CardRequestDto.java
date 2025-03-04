@@ -10,9 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CardRequestResponseDto {
-
-    private String message;
-    private boolean success;
-    private String confirmationCode;
+public class CardRequestDto {
+    private String token;
+    private CreateCardDto createCardDto;
 }
