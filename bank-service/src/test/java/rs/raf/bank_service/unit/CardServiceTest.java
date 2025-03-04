@@ -56,6 +56,7 @@ public class CardServiceTest {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
+
     @Mock
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
