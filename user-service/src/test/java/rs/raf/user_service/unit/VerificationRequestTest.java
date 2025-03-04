@@ -36,7 +36,7 @@ public class VerificationRequestTest {
                 .id(1L)
                 .userId(100L)
                 .email("test@example.com")
-                .transactionId(200L)
+                .targetId(200L)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
                 .build();

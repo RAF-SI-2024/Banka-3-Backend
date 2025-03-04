@@ -20,7 +20,7 @@ public class VerificationRequestService {
         VerificationRequest request = VerificationRequest.builder()
                 .userId(userId)
                 .email(email)
-                .transactionId(transactionId)
+                .targetId(transactionId)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
                 .build();

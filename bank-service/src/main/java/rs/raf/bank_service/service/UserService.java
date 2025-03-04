@@ -20,31 +20,6 @@ public class UserService {
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
     @Value("http://localhost:8080/api/") // za sad hardcoded ovde
     private String USER_SERVICE_URL;
-    private final OkHttpClient client;
-
-    public UserService() {
-        this.client = new OkHttpClient();
-    }
-
-    // @todo use feign client
-    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
-    public UserDto getUserById(Long id, String token) {
-        Request request = new Request.Builder()
-                .url(USER_SERVICE_URL + "admin/clients/" + id)
-                .header("Authorization", token)
-                .build();
-        try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                return parseResponse(response.body().string());
-            } else {
-                return null;
-            }
-        } catch (IOException | RuntimeException ie) {
-            return null;
-        }
-
-    }
-    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
 
     public UserService() {
@@ -71,6 +46,8 @@ public class UserService {
     }
     // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
+
+    // ! !!  ! ! ! NE RADITI OVAKO, POGLEDATI client/UserClient KLASU !!! ! ! ! ! !  !  1 !!!!!!!
 
     public UserDto parseResponse(String responseBody) {
         ObjectMapper objectMapper = new ObjectMapper();

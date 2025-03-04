@@ -1,18 +1,6 @@
 package rs.raf.bank_service.unit;
 
-<<<<<<< HEAD
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import rs.raf.bank_service.controller.AccountController;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.service.AccountService;
 
-=======
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,20 +28,13 @@ import rs.raf.bank_service.service.AccountService;
 import java.util.Arrays;
 import java.util.List;
 
->>>>>>> upstream/main
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-<<<<<<< HEAD
 
-class AccountControllerTest {
-
-    @Mock
-    private AccountService accountService;
-
-=======
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,7 +51,7 @@ class AccountControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
->>>>>>> upstream/main
+
     @InjectMocks
     private AccountController accountController;
 
@@ -80,8 +61,7 @@ class AccountControllerTest {
     }
 
     @Test
-<<<<<<< HEAD
-=======
+
     @WithMockUser(authorities = "admin")
     void testGetAccounts() throws Exception {
         ClientDto clientDto = new ClientDto();
@@ -112,7 +92,7 @@ class AccountControllerTest {
     }
 
     @Test
->>>>>>> upstream/main
+
     void testCreateBankAccount_Success() {
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
@@ -124,9 +104,7 @@ class AccountControllerTest {
     }
 
     @Test
-<<<<<<< HEAD
-    void testCreateBankAccount_Failure() {
-=======
+
     void testCreateBankAccount_ClientNotFound() {
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
@@ -147,19 +125,15 @@ class AccountControllerTest {
 
     @Test
     void testCreateBankAccount_InvalidCurrency() {
->>>>>>> upstream/main
+
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
 
-<<<<<<< HEAD
-        String errorMessage = "Invalid input data";
-        doThrow(new RuntimeException(errorMessage)).when(accountService).createNewBankAccount(any(NewBankAccountDto.class), anyString());
-=======
         String errorMessage = "Cannot find currency with id: INVALID";
         doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
                 .createNewBankAccount(any(NewBankAccountDto.class), anyString());
->>>>>>> upstream/main
+
 
         // Act
         ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
