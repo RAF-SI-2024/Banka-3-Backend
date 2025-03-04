@@ -1,37 +1,38 @@
 package rs.raf.bank_service.unit;
 
+import feign.FeignException;
+import feign.Request;
+import feign.RequestTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.domain.dto.UserDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -45,15 +46,14 @@ public class AccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
-    @InjectMocks
-    private AccountService accountService;
-
     @Mock
     private UserClient userClient;
 
+    private AccountService accountService;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        accountService = new AccountService(currencyRepository, accountRepository, userClient);
     }
 
     @Test
@@ -269,5 +269,85 @@ public class AccountServiceTest {
         // Adjusted expected message:
         assertEquals("Cannot find currency with id: INVALID", exception.getMessage());
         verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    public void testGetAccounts_Success() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        List<Account> accountList = new ArrayList<>();
+        for (long i = 1; i <= 5; i++) {
+            PersonalAccount account = new PersonalAccount();
+            account.setAccountNumber(String.valueOf(i));
+            account.setClientId(clientDto.getId());
+
+            accountList.add(account);
+        }
+        when(accountRepository.findAllByClientId(clientDto.getId())).thenReturn(accountList);
+
+        List<AccountDto> accounts = accountService.getAccounts("Bearer token");
+        assertNotNull(accounts);
+        assertEquals(5, accountList.size());
+    }
+
+    @Test
+    public void testGetAccounts_UserNotAClient() {
+        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
+
+        when(userClient.getClient("Bearer token")).thenThrow(
+                new FeignException.NotFound("User not found", request, null, null));
+
+        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
+                accountService.getAccounts("Bearer token"));
+        assertEquals("User sending request is not a client.", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAccountDetails_Success() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        PersonalAccount account = new PersonalAccount();
+        account.setAccountNumber("1");
+        account.setClientId(clientDto.getId());
+        account.setBalance(BigDecimal.TEN);
+        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
+
+        AccountDetailsDto accountDetails = accountService.getAccountDetails("Bearer token", "1");
+        assertNotNull(accountDetails);
+        assertEquals(account.getBalance(), accountDetails.getBalance());
+    }
+
+    @Test
+    public void testGetAccountDetails_UserNotAClient() {
+        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
+
+        when(userClient.getClient("Bearer token")).thenThrow(
+                new FeignException.NotFound("User not found", request, null, null));
+
+        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
+                accountService.getAccountDetails("Bearer token", "1"));
+        assertEquals("User sending request is not a client.", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAccountDetails_ClientNotAccountOwner() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        PersonalAccount account = new PersonalAccount();
+        account.setAccountNumber("1");
+        account.setClientId(99L);
+        account.setBalance(BigDecimal.TEN);
+        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
+
+        ClientNotAccountOwnerException exception = assertThrows(ClientNotAccountOwnerException.class, () ->
+                accountService.getAccountDetails("Bearer token", "1"));
+
+        assertEquals("Client sending request is not the account owner.", exception.getMessage());
     }
 }

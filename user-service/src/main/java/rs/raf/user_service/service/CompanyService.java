@@ -2,12 +2,15 @@ package rs.raf.user_service.service;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import rs.raf.user_service.dto.CompanyDto;
 import rs.raf.user_service.dto.CreateCompanyDto;
 import rs.raf.user_service.entity.ActivityCode;
 import rs.raf.user_service.entity.Client;
 import rs.raf.user_service.entity.Company;
+import rs.raf.user_service.exceptions.CompanyNotFoundException;
 import rs.raf.user_service.exceptions.CompanyRegNumExistsException;
 import rs.raf.user_service.exceptions.TaxIdAlreadyExistsException;
+import rs.raf.user_service.mapper.CompanyMapper;
 import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.CompanyRepository;
@@ -44,4 +47,12 @@ public class CompanyService {
 
         companyRepository.save(company);
     }
+
+    public CompanyDto getCompanyById(Long id){
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new CompanyNotFoundException(id));
+        return CompanyMapper.toDto(company);
+    }
+
+
 }
