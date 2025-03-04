@@ -39,7 +39,7 @@ public class VerificationRequest {
 
     private Long userId;
     private String email;
-    private Long transactionId; // Veza ka konkretnoj transakciji
+    private Long targetId;
 
     @Enumerated(EnumType.STRING)
     private VerificationStatus status; // PENDING, APPROVED, DENIED

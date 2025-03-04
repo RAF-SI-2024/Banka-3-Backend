@@ -46,7 +46,7 @@ class CompanyServiceTest {
         CreateCompanyDto createCompanyDto = new CreateCompanyDto();
         createCompanyDto.setName("Test Company");
         createCompanyDto.setRegistrationNumber("12345");
-        createCompanyDto.setTaxId(Long.valueOf("67890"));
+        //createCompanyDto.setTaxId(Long.valueOf("67890"));
         createCompanyDto.setActivityCode(String.valueOf(1L));
         createCompanyDto.setAddress("Test Address");
         createCompanyDto.setMajorityOwner(1L);

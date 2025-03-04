@@ -17,6 +17,7 @@ public class VerificationRequestDto {
     private String code;
     private LocalDateTime expirationTime;
     private int attempts;
+    private Long targetId;
 
     private VerificationStatus status;
     private VerificationType verificationType;
