@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -47,7 +48,9 @@ class CompanyServiceTest {
         CreateCompanyDto createCompanyDto = new CreateCompanyDto();
         createCompanyDto.setName("Test Company");
         createCompanyDto.setRegistrationNumber("12345");
+
         createCompanyDto.setTaxId(String.valueOf(Long.valueOf("67890")));
+
         createCompanyDto.setActivityCode(String.valueOf(1L));
         createCompanyDto.setAddress("Test Address");
         createCompanyDto.setMajorityOwner(1L);

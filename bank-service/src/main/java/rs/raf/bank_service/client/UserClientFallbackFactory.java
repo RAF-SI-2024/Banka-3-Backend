@@ -38,15 +38,6 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 return Collections.emptyList();
             }
 
-            @Override
-            public ClientDto getClient(String authorizationHeader) {
-                throw new RuntimeException(cause);
-            }
-
-            @Override
-            public CompanyDto getCompanyById(String authorizationHeader, Long id) {
-                throw new RuntimeException(cause);
-            }
         };
     }
 }

@@ -26,7 +26,9 @@ import java.util.List;
 public abstract class Account {
     @Id
     // @Column(unique = true, length = 18)
+
     // @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     @Column(updatable = false)
     private String accountNumber;
 
@@ -35,6 +37,7 @@ public abstract class Account {
 
     private LocalDate creationDate;
     private LocalDate expirationDate;
+
 
     @ManyToOne
     private Currency currency;
@@ -46,6 +49,7 @@ public abstract class Account {
     @Enumerated(EnumType.STRING)
     private AccountType type;
     // personal/company...
+
     @Enumerated(EnumType.STRING)
     private AccountOwnerType accountOwnerType;
 
@@ -56,6 +60,7 @@ public abstract class Account {
     private BigDecimal dailySpending;
     private BigDecimal monthlySpending;
 
+
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Card> cards = new ArrayList<>();
 
@@ -63,6 +68,7 @@ public abstract class Account {
             Currency currency, AccountStatus status, AccountType type, AccountOwnerType accountOwnerType,
             BigDecimal balance, BigDecimal availableBalance, BigDecimal dailyLimit, BigDecimal monthlyLimit,
             BigDecimal dailySpending, BigDecimal monthlySpending) {
+
         this.clientId = clientId;
         this.createdByEmployeeId = createdByEmployeeId;
         this.creationDate = creationDate;
@@ -78,4 +84,5 @@ public abstract class Account {
         this.dailySpending = dailySpending;
         this.monthlySpending = monthlySpending;
     }
+
 }

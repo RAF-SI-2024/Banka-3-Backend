@@ -20,6 +20,9 @@ import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.domain.enums.AccountType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
+
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
@@ -28,7 +31,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -136,11 +138,11 @@ public class AccountService {
                 accountRepository.save(newAccount);
         }
 
-    public List<AccountDto> getAccounts(String authorizationHeader) {
+    public List<AccountDto> getMyAccounts(Long clientId) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
 
-            return accountRepository.findAllByClientId(clientDto.getId()).stream().map(account ->
+            return accountRepository.findAllByClientId(clientId).stream().map(account ->
                     AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
                     Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
         } catch (FeignException.NotFound e){
@@ -148,9 +150,9 @@ public class AccountService {
         }
     }
 
-    public AccountDetailsDto getAccountDetails(String authorizationHeader, String accountNumber) {
+    public AccountDetailsDto getAccountDetails(Long clientId, String accountNumber) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
             Account account = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(AccountNotFoundException::new);
 
@@ -167,7 +169,7 @@ public class AccountService {
                 CompanyAccountDetailsDto companyAccountDetailsDto = (CompanyAccountDetailsDto) accountDetailsDto;
 
                 CompanyAccount companyAccount = (CompanyAccount) account;
-                CompanyDto companyDto = userClient.getCompanyById(authorizationHeader, companyAccount.getCompanyId());
+                CompanyDto companyDto = userClient.getCompanyById(companyAccount.getCompanyId());
 
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
@@ -181,9 +183,9 @@ public class AccountService {
     }
 
     //Verovatno ce da ide u TransactionService ali ne znam jer nemam Transaction entitet
-    public void getAccountTransactions(String authorizationHeader, String accountNumber) {
+    public void getAccountTransactions(Long clientId, String accountNumber) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
             Account account = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(AccountNotFoundException::new);
 

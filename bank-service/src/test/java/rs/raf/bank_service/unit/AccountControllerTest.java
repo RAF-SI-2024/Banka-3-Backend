@@ -1,5 +1,6 @@
 package rs.raf.bank_service.unit;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,11 +30,13 @@ import rs.raf.bank_service.service.AccountService;
 import java.util.Arrays;
 import java.util.List;
 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -50,6 +53,7 @@ class AccountControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+
     @InjectMocks
     private AccountController accountController;
 
@@ -59,6 +63,7 @@ class AccountControllerTest {
     }
 
     @Test
+
     @WithMockUser(authorities = "admin")
     void testGetAccounts() throws Exception {
         ClientDto clientDto = new ClientDto();
@@ -89,6 +94,7 @@ class AccountControllerTest {
     }
 
     @Test
+
     void testCreateBankAccount_Success() {
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
@@ -100,6 +106,7 @@ class AccountControllerTest {
     }
 
     @Test
+
     void testCreateBankAccount_ClientNotFound() {
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
@@ -120,6 +127,7 @@ class AccountControllerTest {
 
     @Test
     void testCreateBankAccount_InvalidCurrency() {
+
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
@@ -127,6 +135,7 @@ class AccountControllerTest {
         String errorMessage = "Cannot find currency with id: INVALID";
         doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
                 .createNewBankAccount(any(NewBankAccountDto.class), anyString());
+
 
         // Act
         ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
@@ -138,32 +147,32 @@ class AccountControllerTest {
     }
 
     @Test
-    void testGetAccounts_Success() {
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+    void testGetMyAccounts_Success() {
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test
-    void testGetAccounts_BadRequest() {
-        doThrow(new UserNotAClientException()).when(accountService).getAccounts("Bearer token");
+    void testGetMyAccounts_BadRequest() {
+        doThrow(new UserNotAClientException()).when(accountService).getMyAccounts("Bearer token");
 
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("User sending request is not a client.", response.getBody());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test
-    void testGetAccounts_Failure() {
-        doThrow(new RuntimeException()).when(accountService).getAccounts("Bearer token");
+    void testGetMyAccounts_Failure() {
+        doThrow(new RuntimeException()).when(accountService).getMyAccounts("Bearer token");
 
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test

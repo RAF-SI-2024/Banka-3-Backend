@@ -1,6 +1,7 @@
 package rs.raf.user_service.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -35,13 +36,16 @@ public class EmployeeController {
         this.employeeService = employeeService;
     }
 
+
     @PreAuthorize("hasAuthority('admin')")
+
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
     @GetMapping("/{id}")
+
     public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().body(employeeService.findById(id));
@@ -52,11 +56,13 @@ public class EmployeeController {
     }
 
     @PreAuthorize("hasAuthority('admin')")
+
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
     })
     @GetMapping
+
     public ResponseEntity<Page<EmployeeDto>> getAllEmployees(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -184,5 +190,6 @@ public class EmployeeController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+
     }
 }

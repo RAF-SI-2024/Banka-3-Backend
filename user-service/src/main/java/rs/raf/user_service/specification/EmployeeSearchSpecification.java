@@ -5,6 +5,7 @@ import rs.raf.user_service.entity.Employee;
 
 public class EmployeeSearchSpecification {
 
+
     // Pretraga po imenu, koristi startsWith
     public static Specification<Employee> startsWithFirstName(String firstName) {
         return (root, query, criteriaBuilder) -> firstName == null ? null :
@@ -29,4 +30,5 @@ public class EmployeeSearchSpecification {
                 criteriaBuilder.like(criteriaBuilder.lower(root.get("position")), position.toLowerCase());
     }
 }
+
 

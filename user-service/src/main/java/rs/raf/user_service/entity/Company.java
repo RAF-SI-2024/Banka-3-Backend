@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
 import lombok.Builder;
+
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -24,11 +26,13 @@ public class Company {
 
     private String name;
 
+
     @Column(updatable = false, unique = true)
     private String registrationNumber;
 
     @Column(updatable = false, unique = true)
     private String taxId;
+
 
     private String activityCode;
 

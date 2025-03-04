@@ -13,8 +13,8 @@ public class JwtTokenUtil {
 
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
 
-    public String extractUserId(String token) {
-        return getClaimsFromToken(token).get("userId", String.class);
+    public Long extractUserId(String token) {
+        return getClaimsFromToken(token).get("userId", Long.class);
     }
 
     private Claims getClaimsFromToken(String token) {
@@ -32,5 +32,14 @@ public class JwtTokenUtil {
         } catch (Exception e) {
             return false;
         }
+    }
+
+
+    public Long getUserIdFromAuthHeader(String authHeader) {
+        authHeader = authHeader.replace("Bearer ", "");
+        if (!validateToken(authHeader)) {
+            throw new SecurityException("Invalid token");
+        }
+        return extractUserId(authHeader);
     }
 }

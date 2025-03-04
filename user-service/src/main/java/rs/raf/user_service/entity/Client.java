@@ -1,5 +1,6 @@
 package rs.raf.user_service.entity;
 
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

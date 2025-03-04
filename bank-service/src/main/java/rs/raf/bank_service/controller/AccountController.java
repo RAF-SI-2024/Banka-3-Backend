@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,25 +17,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.AccountDto;
+
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.service.AccountService;
-
-import java.util.List;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
 @RequestMapping("/api/account")
+@AllArgsConstructor
 public class AccountController {
 
-    @Autowired
     private AccountService accountService;
+    private final JwtTokenUtil jwtTokenUtil;
+
 
     /// GET endpoint sa opcionalnim filterima i paginacijom/sortiranjem po prezimenu vlasnika
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAuthority('employee')")
     @Operation(summary = "Get all accounts with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -49,6 +53,7 @@ public class AccountController {
         return ResponseEntity.ok(accounts);
     }
 
+
     @PreAuthorize("hasAuthority('employee')")
     @PostMapping
     @Operation(summary = "Add new bank account.")
@@ -56,14 +61,18 @@ public class AccountController {
             @ApiResponse(responseCode = "201", description = "Account created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
+
     public ResponseEntity<String> createBankAccount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NewBankAccountDto newBankAccountDto) {
         try {
             accountService.createNewBankAccount(newBankAccountDto, authorizationHeader);
+
 //            if(newBankAccountDto.isCreateCard()){
 //                accountService.createCard...
 //            }
             return ResponseEntity.status(HttpStatus.CREATED).build();
+
         } catch (ClientNotFoundException | CurrencyNotFoundException e) {
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
@@ -76,9 +85,11 @@ public class AccountController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "500", description = "Account list retrieval failed")
     })
-    public ResponseEntity<?> getAccounts(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> getMyAccounts(@RequestHeader("Authorization") String auth){
         try {
-            return ResponseEntity.ok(accountService.getAccounts(authorizationHeader));
+            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+            System.out.println(clientId);
+            return ResponseEntity.ok(accountService.getMyAccounts(clientId));
         }catch (UserNotAClientException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (RuntimeException e){
@@ -97,10 +108,11 @@ public class AccountController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "500", description = "Account details retrieval failed")
     })
-    public ResponseEntity<?> getAccountDetails(@RequestHeader("Authorization") String authorizationHeader,
+    public ResponseEntity<?> getAccountDetails(@RequestHeader("Authorization") String auth,
                                                @PathVariable("accountNumber") String accountNumber){
         try {
-            return ResponseEntity.ok(accountService.getAccountDetails(authorizationHeader, accountNumber));
+            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+            return ResponseEntity.ok(accountService.getAccountDetails(clientId, accountNumber));
         }catch (UserNotAClientException | ClientNotAccountOwnerException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (RuntimeException e){

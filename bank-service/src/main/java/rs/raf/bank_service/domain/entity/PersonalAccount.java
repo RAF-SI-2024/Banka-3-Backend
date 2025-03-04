@@ -15,7 +15,7 @@ import javax.persistence.Entity;
 @Setter
 @SuperBuilder
 @RequiredArgsConstructor
-@NoArgsConstructor
+ Novo-placanje,interni-prenos
 public class PersonalAccount extends Account {
 
 
