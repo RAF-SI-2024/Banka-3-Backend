@@ -41,8 +41,6 @@ public class CardService {
     private final RabbitTemplate rabbitTemplate;
     private final AccountRepository accountRepository;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    @Autowired
-    UserService userService;
     AccountMapper accountMapper;
 
     public static String generateCVV() {
