@@ -26,6 +26,8 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.UserService;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,7 +123,6 @@ public class AccountServiceTest {
         List<Account> accountList = List.of(account1, account2);
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
         // Postavljamo ClientDto objekte
         ClientDto client1 = new ClientDto();
         client1.setFirstName("Marko");
@@ -158,7 +159,6 @@ public class AccountServiceTest {
         List<Account> accountList = List.of(account1, account2);
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
         // Postavljamo ClientDto objekte
         ClientDto client1 = new ClientDto();
         client1.setFirstName("Marko");
@@ -192,8 +192,8 @@ public class AccountServiceTest {
         }
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
-        // Kreiramo odgovarajuće ClientDto objekte sa različitim prezimenima radi sortiranja
+        // Kreiramo odgovarajuće ClientDto objekte sa različitim prezimenima radi
+        // sortiranja
         for (long i = 1; i <= 5; i++) {
             ClientDto client = new ClientDto();
             client.setFirstName("First" + i);

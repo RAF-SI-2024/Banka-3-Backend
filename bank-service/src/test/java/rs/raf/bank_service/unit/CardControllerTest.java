@@ -25,60 +25,63 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CardController.class)
 public class CardControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private CardService cardService;
+        @MockBean
+        private CardService cardService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Test
-    @WithMockUser(authorities = "admin")
-    public void testGetCardsByAccount() throws Exception {
-        CardDto cardDto = new CardDto();
-        cardDto.setId(1L);
-        cardDto.setCardNumber("1111222233334444");
-        cardDto.setStatus(CardStatus.ACTIVE);
+        @Test
+        @WithMockUser(authorities = "admin")
+        public void testGetCardsByAccount() throws Exception {
+                CardDto cardDto = new CardDto();
+                cardDto.setId(1L);
+                cardDto.setCardNumber("1111222233334444");
+                cardDto.setStatus(CardStatus.ACTIVE);
 
-        List<CardDto> cards = Arrays.asList(cardDto);
-        Mockito.when(cardService.getCardsByAccount(Mockito.anyString())).thenReturn(cards);
+                List<CardDto> cards = Arrays.asList(cardDto);
+                Mockito.when(cardService.getCardsByAccount(Mockito.anyString())).thenReturn(cards);
 
-        mockMvc.perform(get("/api/accounts/123456789012345678/cards")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].cardNumber").value("1111222233334444"))
-                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
-    }
+                mockMvc.perform(get("/api/account/123456789012345678/cards")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].cardNumber").value("1111222233334444"))
+                                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
+        }
 
-    @Test
-    @WithMockUser(authorities = "admin")
-    public void testBlockCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
+        @Test
+        @WithMockUser(authorities = "admin")
+        public void testBlockCard() throws Exception {
+                Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)),
+                                Mockito.eq(CardStatus.BLOCKED));
 
-        mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/block")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
+                mockMvc.perform(post("/api/account/123456789012345678/cards/1/block")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk());
+        }
 
-    @Test
-    @WithMockUser(authorities = "admin")
-    public void testUnblockCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
+        @Test
+        @WithMockUser(authorities = "admin")
+        public void testUnblockCard() throws Exception {
+                Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)),
+                                Mockito.eq(CardStatus.ACTIVE));
 
-        mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/unblock")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
+                mockMvc.perform(post("/api/account/123456789012345678/cards/1/unblock")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk());
+        }
 
-    @Test
-    @WithMockUser(authorities = "admin")
-    public void testDeactivateCard() throws Exception {
-        Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
+        @Test
+        @WithMockUser(authorities = "admin")
+        public void testDeactivateCard() throws Exception {
+                Mockito.doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)),
+                                Mockito.eq(CardStatus.DEACTIVATED));
 
-        mockMvc.perform(post("/api/accounts/123456789012345678/cards/1/deactivate")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
+                mockMvc.perform(post("/api/account/123456789012345678/cards/1/deactivate")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk());
+        }
 }

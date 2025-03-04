@@ -25,15 +25,14 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-
-    //SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
+    // SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE
+    // USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
     @Autowired
     private DummyAuthenticationFilter dummyAuthenticationFilter;
 
     public SpringSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
-
 
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {
@@ -52,8 +51,10 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().headers()
                 .frameOptions().disable()
-                //  .and().addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-                //SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
+                // .and().addFilterBefore(jwtAuthenticationFilter,
+                // UsernamePasswordAuthenticationFilter.class);
+                // SAMO ZA POTREBE TESTIRANJA KOMUNIKACIJE IZMEDJU USER I BANK SERVICE DOK SE NE
+                // USPOSTAVI PRAVILAN TOK JER OVAKO NEMAMO TOKEN
                 .and().addFilterBefore(dummyAuthenticationFilter,
                         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         //
@@ -63,7 +64,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        //Ovde postaviti lokaciju sa koje ce front pristupati
+        // Ovde postaviti lokaciju sa koje ce front pristupati
         configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
