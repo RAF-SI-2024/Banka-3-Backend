@@ -128,119 +128,6 @@ public class CardServiceTest {
     }
 
     @Test
-    public void testCreatePersonalCard_Success() {
-        // Arrange
-        CreatePersonalCardDto createDto = new CreatePersonalCardDto();
-        createDto.setAccountNumber(dummyAccount.getAccountNumber());
-        createDto.setCardLimit(BigDecimal.valueOf(1000));
-
-        when(jwtAuthenticationFilter.getClaimsFromToken(anyString())).thenReturn(claims);
-        when(claims.get("userId", Long.class)).thenReturn(1L);
-        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(dummyAccount));
-        when(cardRepository.save(any(Card.class))).thenReturn(dummyCard);
-        when(userClient.getClientById(anyLong())).thenReturn(dummyClient);
-
-        // Act
-        CardDto result = cardService.createPersonalCard(createDto, authHeader);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(dummyCard.getCardNumber(), result.getCardNumber());
-        verify(cardRepository).save(any(Card.class));
-        verify(rabbitTemplate).convertAndSend(eq("card-creation"), any(EmailRequestDto.class));
-    }
-
-    @Test
-    public void testCreateCompanyCard_Success() {
-        // Arrange
-        CreateCompanyCardDto createDto = new CreateCompanyCardDto();
-        createDto.setAccountNumber(dummyAccount.getAccountNumber());
-        createDto.setCardLimit(BigDecimal.valueOf(5000));
-        createDto.setForOwner(true);
-
-        // Create a proper CompanyAccount for this test
-        CompanyAccount companyAccount = new CompanyAccount();
-        companyAccount.setAccountNumber(dummyAccount.getAccountNumber());
-        companyAccount.setClientId(dummyAccount.getClientId());
-        companyAccount.setAccountOwnerType(AccountOwnerType.COMPANY);
-        companyAccount.setCompanyId(1L);
-
-        CompanyDto companyDto = new CompanyDto();
-        companyDto.setId(1L);
-        companyDto.setName("Test Company");
-        companyDto.setMajorityOwner(dummyClient);
-
-        when(jwtAuthenticationFilter.getClaimsFromToken(anyString())).thenReturn(claims);
-        when(claims.get("userId", Long.class)).thenReturn(1L);
-        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(companyAccount));
-        when(cardRepository.save(any(Card.class))).thenReturn(dummyCard);
-        when(userClient.getCompanyById(anyLong())).thenReturn(companyDto);
-
-        // Act
-        CardDto result = cardService.createCompanyCard(createDto, authHeader);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(dummyCard.getCardNumber(), result.getCardNumber());
-        verify(cardRepository).save(any(Card.class));
-        verify(rabbitTemplate).convertAndSend(eq("card-creation"), any(EmailRequestDto.class));
-    }
-
-    @Test
-    public void testCreateCompanyCard_ForAuthorizedPersonnel() {
-        // Arrange
-        CreateCompanyCardDto createDto = new CreateCompanyCardDto();
-        createDto.setAccountNumber(dummyAccount.getAccountNumber());
-        createDto.setCardLimit(BigDecimal.valueOf(3000));
-        createDto.setForOwner(false);
-        createDto.setAuthorizedPersonnelId(2L);
-
-        // Create a proper CompanyAccount for this test
-        CompanyAccount companyAccount = new CompanyAccount();
-        companyAccount.setAccountNumber(dummyAccount.getAccountNumber());
-        companyAccount.setClientId(dummyAccount.getClientId());
-        companyAccount.setAccountOwnerType(AccountOwnerType.COMPANY);
-        companyAccount.setCompanyId(1L);
-
-        CompanyDto companyDto = new CompanyDto();
-        companyDto.setId(1L);
-        companyDto.setName("Test Company");
-        companyDto.setMajorityOwner(dummyClient);
-
-        ClientDto authorizedPerson = new ClientDto();
-        authorizedPerson.setId(2L);
-        authorizedPerson.setFirstName("Authorized");
-        authorizedPerson.setLastName("Person");
-        authorizedPerson.setEmail("authorized@example.com");
-
-        AuthorizedPersonelDto authPersonDto = new AuthorizedPersonelDto();
-        authPersonDto.setId(2L);
-        authPersonDto.setFirstName("Authorized");
-        authPersonDto.setLastName("Person");
-        authPersonDto.setEmail("authorized@example.com");
-        authPersonDto.setCompanyId(1L);
-
-        List<AuthorizedPersonelDto> authorizedPersonnel = Arrays.asList(authPersonDto);
-
-        when(jwtAuthenticationFilter.getClaimsFromToken(anyString())).thenReturn(claims);
-        when(claims.get("userId", Long.class)).thenReturn(1L);
-        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(companyAccount));
-        when(cardRepository.save(any(Card.class))).thenReturn(dummyCard);
-        when(userClient.getClientById(2L)).thenReturn(authorizedPerson);
-        when(userClient.getCompanyById(anyLong())).thenReturn(companyDto);
-        when(userClient.getAuthorizedPersonnelByCompany(anyLong())).thenReturn(authorizedPersonnel);
-
-        // Act
-        CardDto result = cardService.createCompanyCard(createDto, authHeader);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(dummyCard.getCardNumber(), result.getCardNumber());
-        verify(cardRepository).save(any(Card.class));
-        verify(rabbitTemplate).convertAndSend(eq("card-creation"), any(EmailRequestDto.class));
-    }
-
-    @Test
     public void testGetUserCards_Success() {
         // Arrange
         List<Account> userAccounts = Arrays.asList(dummyAccount);
@@ -257,8 +144,8 @@ public class CardServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(dummyCard.getCardNumber(), result.get(0).getCardNumber());
-        assertEquals(dummyClient.getFirstName(), result.get(0).getOwner().getFirstName());
+        assertEquals("1111222233334444", result.get(0).getCardNumber());
+        assertEquals("Petar", result.get(0).getOwner().getFirstName());
     }
 
     @Test
@@ -282,7 +169,7 @@ public class CardServiceTest {
         when(jwtAuthenticationFilter.getClaimsFromToken(anyString())).thenReturn(claims);
         when(claims.get("userId", Long.class)).thenReturn(1L);
         when(cardRepository.findByCardNumber(dummyCard.getCardNumber())).thenReturn(Optional.of(dummyCard));
-        when(userClient.getClientById(1L)).thenReturn(dummyClient);
+        when(userClient.getClientById(dummyAccount.getClientId())).thenReturn(dummyClient);
 
         // Act
         cardService.blockCardByUser(dummyCard.getCardNumber(), authHeader);
@@ -296,15 +183,14 @@ public class CardServiceTest {
     @Test
     public void testBlockCardByUser_CardNotFound() {
         // Arrange
-        String nonExistentCardNumber = "9999888877776666";
-
         when(jwtAuthenticationFilter.getClaimsFromToken(anyString())).thenReturn(claims);
         when(claims.get("userId", Long.class)).thenReturn(1L);
-        when(cardRepository.findByCardNumber(nonExistentCardNumber)).thenReturn(Optional.empty());
+        when(cardRepository.findByCardNumber("nonExistingCard")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class,
-                () -> cardService.blockCardByUser(nonExistentCardNumber, authHeader));
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> cardService.blockCardByUser("nonExistingCard", authHeader));
+        assertTrue(exception.getMessage().contains("Card not found"));
     }
 
     @Test
@@ -315,7 +201,8 @@ public class CardServiceTest {
         when(cardRepository.findByCardNumber(dummyCard.getCardNumber())).thenReturn(Optional.of(dummyCard));
 
         // Act & Assert
-        assertThrows(UnauthorizedException.class,
+        UnauthorizedException exception = assertThrows(UnauthorizedException.class,
                 () -> cardService.blockCardByUser(dummyCard.getCardNumber(), authHeader));
+        assertEquals("You can only block your own cards", exception.getMessage());
     }
 }

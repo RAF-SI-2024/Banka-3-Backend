@@ -9,8 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CardDto;
-import rs.raf.bank_service.domain.dto.CreatePersonalCardDto;
-import rs.raf.bank_service.domain.dto.CreateCompanyCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.service.CardService;
 
@@ -79,36 +77,6 @@ public class CardController {
                         @Parameter(description = "Card number to deactivate", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
                 cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
                 return ResponseEntity.ok().build();
-        }
-
-        @PreAuthorize("hasAuthority('client')")
-        @PostMapping("create/personal")
-        @Operation(summary = "Create Personal Card", description = "Creates a new card for a personal account. Only the account owner can create cards.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card created successfully"),
-                        @ApiResponse(responseCode = "403", description = "Not authorized to create card for this account"),
-                        @ApiResponse(responseCode = "404", description = "Account not found")
-        })
-        public ResponseEntity<CardDto> createPersonalCard(
-                        @RequestHeader("Authorization") String authHeader,
-                        @RequestBody CreatePersonalCardDto createPersonalCardDto) {
-                CardDto card = cardService.createPersonalCard(createPersonalCardDto, authHeader);
-                return ResponseEntity.ok(card);
-        }
-
-        @PreAuthorize("hasAuthority('client')")
-        @PostMapping("create/company")
-        @Operation(summary = "Create Company Card", description = "Creates a new card for a company account. Only the majority owner can create cards for authorized personnel.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card created successfully"),
-                        @ApiResponse(responseCode = "403", description = "Not authorized to create card for this company"),
-                        @ApiResponse(responseCode = "404", description = "Account or authorized personnel not found")
-        })
-        public ResponseEntity<CardDto> createCompanyCard(
-                        @RequestHeader("Authorization") String authHeader,
-                        @RequestBody CreateCompanyCardDto createCompanyCardDto) {
-                CardDto card = cardService.createCompanyCard(createCompanyCardDto, authHeader);
-                return ResponseEntity.ok(card);
         }
 
         @PreAuthorize("hasAuthority('client')")
