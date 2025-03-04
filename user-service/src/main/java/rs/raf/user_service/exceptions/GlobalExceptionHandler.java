@@ -6,8 +6,6 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import rs.raf.user_service.dto.ErrorMessageDto;
 import rs.raf.user_service.dto.ValidationErrorMessageDto;
 
 import java.util.List;

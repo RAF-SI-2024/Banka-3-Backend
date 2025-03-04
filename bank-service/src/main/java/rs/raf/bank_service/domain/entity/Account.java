@@ -12,6 +12,8 @@ import rs.raf.bank_service.domain.enums.AccountType;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "accounts")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
@@ -24,7 +26,11 @@ import java.time.LocalDate;
 public abstract class Account {
     @Id
     // @Column(unique = true, length = 18)
+<<<<<<< HEAD
    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+=======
+    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+>>>>>>> upstream/main
     @Column(updatable = false)
     private String accountNumber;
 
@@ -34,6 +40,7 @@ public abstract class Account {
     private LocalDate creationDate;
     private LocalDate expirationDate;
 
+<<<<<<< HEAD
 
     @ManyToOne
     private Currency currency;
@@ -45,6 +52,18 @@ public abstract class Account {
     @Enumerated(EnumType.STRING)
     private AccountType type;
     //personal/company...
+=======
+    @ManyToOne
+    private Currency currency;
+
+    // active/inactive
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status;
+    // current/foreign
+    @Enumerated(EnumType.STRING)
+    private AccountType type;
+    // personal/company...
+>>>>>>> upstream/main
     @Enumerated(EnumType.STRING)
     private AccountOwnerType accountOwnerType;
 
@@ -55,7 +74,17 @@ public abstract class Account {
     private BigDecimal dailySpending;
     private BigDecimal monthlySpending;
 
+<<<<<<< HEAD
     public Account(Long clientId, Long createdByEmployeeId, LocalDate creationDate, LocalDate expirationDate, Currency currency, AccountStatus status, AccountType type, AccountOwnerType accountOwnerType, BigDecimal balance, BigDecimal availableBalance, BigDecimal dailyLimit, BigDecimal monthlyLimit, BigDecimal dailySpending, BigDecimal monthlySpending) {
+=======
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Card> cards = new ArrayList<>();
+
+    public Account(Long clientId, Long createdByEmployeeId, LocalDate creationDate, LocalDate expirationDate,
+            Currency currency, AccountStatus status, AccountType type, AccountOwnerType accountOwnerType,
+            BigDecimal balance, BigDecimal availableBalance, BigDecimal dailyLimit, BigDecimal monthlyLimit,
+            BigDecimal dailySpending, BigDecimal monthlySpending) {
+>>>>>>> upstream/main
         this.clientId = clientId;
         this.createdByEmployeeId = createdByEmployeeId;
         this.creationDate = creationDate;
@@ -71,5 +100,9 @@ public abstract class Account {
         this.dailySpending = dailySpending;
         this.monthlySpending = monthlySpending;
     }
+<<<<<<< HEAD
 }
 //TODO polje za karticu
+=======
+}
+>>>>>>> upstream/main

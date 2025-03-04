@@ -4,6 +4,10 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+<<<<<<< HEAD
+=======
+
+>>>>>>> upstream/main
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 
@@ -13,6 +17,10 @@ import javax.persistence.Entity;
 @Setter
 @SuperBuilder
 @RequiredArgsConstructor
+<<<<<<< HEAD
 public class PersonalAccount extends Account{
+=======
+public class PersonalAccount extends Account {
+>>>>>>> upstream/main
 
 }

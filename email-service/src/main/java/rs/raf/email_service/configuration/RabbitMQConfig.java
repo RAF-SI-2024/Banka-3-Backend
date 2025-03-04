@@ -27,6 +27,21 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue cardStatusChangeQueue() {
+        return new Queue("card-status-change", false);
+    }
+
+    @Bean
+    public Queue requestCardQueue() {
+        return new Queue("request-card", false);
+    }
+  
+    @Bean
+    public Queue cardCreationQueue() {
+        return new Queue("card-creation", false);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }

@@ -1,7 +1,10 @@
 package rs.raf.bank_service.domain.dto;
 
 import lombok.Data;
+<<<<<<< HEAD
 import java.time.LocalDateTime;
+=======
+>>>>>>> upstream/main
 
 @Data
 public class UserDto {

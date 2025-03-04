@@ -6,7 +6,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import lombok.Builder;
+
+
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -21,11 +26,13 @@ public class Company {
 
     private String name;
 
-    @Column(updatable = false,unique = true)
+
+    @Column(updatable = false, unique = true)
     private String registrationNumber;
 
-    @Column(updatable = false,unique = true)
-    private String  taxId;
+    @Column(updatable = false, unique = true)
+    private String taxId;
+
 
     private String activityCode;
 
@@ -33,4 +40,8 @@ public class Company {
 
     @ManyToOne
     private Client majorityOwner;
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<AuthorizedPersonel> authorizedPersonel = new ArrayList<>();
 }

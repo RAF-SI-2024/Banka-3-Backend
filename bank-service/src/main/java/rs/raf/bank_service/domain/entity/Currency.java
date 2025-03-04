@@ -1,6 +1,12 @@
 package rs.raf.bank_service.domain.entity;
 
+<<<<<<< HEAD
 import lombok.*;
+=======
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+>>>>>>> upstream/main
 import lombok.experimental.SuperBuilder;
 
 import javax.persistence.DiscriminatorValue;
