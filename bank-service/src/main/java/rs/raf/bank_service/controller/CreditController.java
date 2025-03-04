@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CreditDetailedDTO;
 import rs.raf.bank_service.domain.dto.CreditShortDTO;
-import rs.raf.bank_service.domain.entity.Credit;
 import rs.raf.bank_service.service.CreditService;
 
 import java.util.List;
@@ -31,9 +30,8 @@ public class CreditController {
     }
 
     @PostMapping
-    public ResponseEntity<Credit> createCredit(@RequestBody Credit credit) {
+    public ResponseEntity<CreditDetailedDTO> createCredit(@RequestBody CreditDetailedDTO credit) {
         return ResponseEntity.ok(creditService.createCredit(credit));
     }
 
-    //TODO prebaciti pravljenje da radi sa dto
 }

@@ -9,13 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.CreditController;
 import rs.raf.bank_service.domain.dto.CreditDetailedDTO;
-import rs.raf.bank_service.domain.entity.Credit;
+import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.service.CreditService;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 class CreditControllerTest {
@@ -32,7 +32,7 @@ class CreditControllerTest {
     }
 
     @Test
-    void testGetCreditList_Success() {
+    void testGetCreditList() {
         Long id = 1L;
 
         ResponseEntity<CreditDetailedDTO> response = creditController.getCreditById(id);
@@ -43,16 +43,25 @@ class CreditControllerTest {
     }
 
     @Test
-    void testCreateCredit_Failure() {
+    void testGetDetailedCredit() {
         // Arrange
-        Credit creditDto = new Credit();
+        Long id = 1L;
 
 
-        String errorMessage = "Failed to create credit";
-//        doThrow(new RuntimeException(errorMessage)).when(creditService).createCredit(any(Credit.class));
+        ResponseEntity<CreditDetailedDTO> response = creditController.getCreditById(id);
 
-        // Act
-        ResponseEntity<Credit> response = creditController.createCredit(creditDto);
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(creditService).getCreditById(id);
+    }
+
+    @Test
+    void testCreateCredit() {
+        // Arrange
+        CreditDetailedDTO creditDto = new CreditDetailedDTO(1L, "a", "a", new BigDecimal(1), 1, new BigDecimal(1), LocalDate.now(), LocalDate.of(3000, 1, 1), new BigDecimal(1), LocalDate.of(2030, 1, 1), new BigDecimal(1), new Currency());
+
+
+        ResponseEntity<CreditDetailedDTO> response = creditController.createCredit(creditDto);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

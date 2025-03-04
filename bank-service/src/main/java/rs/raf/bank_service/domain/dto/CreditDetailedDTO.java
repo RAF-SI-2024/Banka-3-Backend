@@ -2,6 +2,7 @@ package rs.raf.bank_service.domain.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import rs.raf.bank_service.domain.entity.Currency;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,11 +21,11 @@ public class CreditDetailedDTO {
     private BigDecimal installmentAmount;
     private LocalDate nextInstallmentDate;
     private BigDecimal remainingBalance;
-    private String currency;
+    private Currency currency;
 
     public CreditDetailedDTO(Long id, String accountNumber, String creditType, BigDecimal amount, int repaymentPeriodMonths, BigDecimal interestRate,
                              LocalDate contractDate, LocalDate dueDate, BigDecimal installmentAmount, LocalDate nextInstallmentDate,
-                             BigDecimal remainingBalance, String currency) {
+                             BigDecimal remainingBalance, Currency currency) {
         this.id = id;
         this.accountNumber = accountNumber;
         this.creditType = creditType;

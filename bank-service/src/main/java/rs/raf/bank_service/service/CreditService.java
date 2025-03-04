@@ -46,11 +46,25 @@ public class CreditService {
                         credit.getInstallmentAmount(),
                         credit.getNextInstallmentDate(),
                         credit.getRemainingBalance(),
-                        credit.getCurrency().getName()
+                        credit.getCurrency()
                 ));
     }
 
-    public Credit createCredit(Credit credit) {
-        return creditRepository.save(credit);
+    public CreditDetailedDTO createCredit(CreditDetailedDTO creditDetailedDTO) {
+        Credit credit = new Credit();
+        credit.setCreditType(creditDetailedDTO.getCreditType());
+        credit.setAmount(creditDetailedDTO.getAmount());
+        credit.setCurrency(creditDetailedDTO.getCurrency());
+        credit.setDueDate(creditDetailedDTO.getDueDate());
+        credit.setContractDate(creditDetailedDTO.getContractDate());
+        credit.setAccountNumber(creditDetailedDTO.getAccountNumber());
+        credit.setInstallmentAmount(creditDetailedDTO.getInstallmentAmount());
+        credit.setInterestRate(creditDetailedDTO.getInterestRate());
+        credit.setContractDate(creditDetailedDTO.getContractDate());
+        credit.setNextInstallmentDate(creditDetailedDTO.getNextInstallmentDate());
+        credit.setRemainingBalance(creditDetailedDTO.getRemainingBalance());
+        credit.setRepaymentPeriodMonths(creditDetailedDTO.getRepaymentPeriodMonths());
+        creditRepository.save(credit);
+        return creditDetailedDTO;
     }
 }
