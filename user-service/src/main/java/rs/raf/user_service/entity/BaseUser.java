@@ -1,10 +1,12 @@
 package rs.raf.user_service.entity;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
 
 import javax.persistence.*;
 import java.util.Date;
@@ -16,9 +18,11 @@ import java.util.Set;
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @Setter
+
 @SuperBuilder
 @RequiredArgsConstructor
 @AllArgsConstructor
+
 public abstract class BaseUser {
 
     @Id

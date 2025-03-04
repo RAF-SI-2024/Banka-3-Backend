@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.CompanyController;
 import rs.raf.user_service.dto.CreateCompanyDto;
 import rs.raf.user_service.service.CompanyService;
+
 import rs.raf.user_service.exceptions.ClientNotFoundException;
+
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,15 +52,19 @@ public class CompanyControllerTest {
         CreateCompanyDto createCompanyDto = new CreateCompanyDto();
         createCompanyDto.setName("Test Company");
 
+
         Long clientId = 1L;
         String expectedErrorMessage = "Cannot find client with id: " + clientId;
         doThrow(new ClientNotFoundException(clientId)).when(companyService).createCompany(any(CreateCompanyDto.class));
+
 
         // Act
         ResponseEntity<String> response = companyController.createCompany(createCompanyDto);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
         assertEquals(expectedErrorMessage, response.getBody());
+
     }
 }

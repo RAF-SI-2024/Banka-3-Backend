@@ -1,5 +1,6 @@
 package rs.raf.bank_service.bootstrap;
 
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.entity.Card;
@@ -170,3 +171,4 @@ public class BootstrapData implements CommandLineRunner {
         cardRepository.save(card2);
     }
 }
+

@@ -25,6 +25,7 @@ public class CompanyService {
     private final ClientRepository clientRepository;
     private final ActivityCodeRepository activityCodeRepository;
 
+
     public void createCompany(CreateCompanyDto createCompanyDto) {
         Client client = clientRepository.findById(createCompanyDto.getMajorityOwner()).orElse(null);
         if (client == null)
@@ -36,6 +37,7 @@ public class CompanyService {
         if (companyRepository.findByRegistrationNumber(createCompanyDto.getRegistrationNumber()).isPresent())
             throw new CompanyRegNumExistsException(createCompanyDto.getRegistrationNumber());
         if (companyRepository.findByTaxId(createCompanyDto.getTaxId()).isPresent())
+
             throw new TaxIdAlreadyExistsException(createCompanyDto.getTaxId());
         Company company = new Company();
         company.setName(createCompanyDto.getName());

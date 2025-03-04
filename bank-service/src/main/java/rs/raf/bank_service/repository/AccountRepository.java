@@ -1,6 +1,7 @@
 package rs.raf.bank_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 import rs.raf.bank_service.domain.entity.Account;
@@ -14,4 +15,5 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     List<Account> findAllByClientId(@Param("clientId")Long clientId);
     Optional<Account> findByAccountNumber(String accountNumber);
     List<Account> findByClientId(Long clientId);
+
 }

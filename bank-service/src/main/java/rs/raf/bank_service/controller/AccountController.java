@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.AccountDto;
+
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
@@ -29,6 +31,7 @@ public class AccountController {
 
     @Autowired
     private AccountService accountService;
+
 
     /// GET endpoint sa opcionalnim filterima i paginacijom/sortiranjem po prezimenu vlasnika
     @PreAuthorize("hasAuthority('admin')")
@@ -47,6 +50,7 @@ public class AccountController {
         return ResponseEntity.ok(accounts);
     }
 
+
     @PreAuthorize("hasAuthority('employee')")
     @PostMapping
     @Operation(summary = "Add new bank account.")
@@ -54,14 +58,18 @@ public class AccountController {
             @ApiResponse(responseCode = "201", description = "Account created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
+
     public ResponseEntity<String> createBankAccount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NewBankAccountDto newBankAccountDto) {
         try {
             accountService.createNewBankAccount(newBankAccountDto, authorizationHeader);
+
 //            if(newBankAccountDto.isCreateCard()){
 //                accountService.createCard...
 //            }
             return ResponseEntity.status(HttpStatus.CREATED).build();
+
         } catch (ClientNotFoundException | CurrencyNotFoundException e) {
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
