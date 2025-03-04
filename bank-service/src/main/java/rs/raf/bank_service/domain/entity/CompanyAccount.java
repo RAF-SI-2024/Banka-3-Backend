@@ -14,5 +14,4 @@ import javax.persistence.Entity;
 @RequiredArgsConstructor
 public class CompanyAccount extends Account {
     private Long companyId;
-
 }
