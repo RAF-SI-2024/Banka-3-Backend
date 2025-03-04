@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CardDto;
+import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.exceptions.*;
@@ -156,8 +157,8 @@ public class CardController {
             @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
             @ApiResponse(responseCode = "400", description = "Invalid arguments.")
     })
-    public ResponseEntity<CardDto> verifyAndReceiveCard(@RequestParam String token, @RequestBody @Valid CreateCardDto createCardDto) {
-        CardDto cardDto;
+    public ResponseEntity<CardDtoNoOwner> verifyAndReceiveCard(@RequestParam String token, @RequestBody @Valid CreateCardDto createCardDto) {
+        CardDtoNoOwner cardDto;
         try {
             cardDto=cardService.recieveCardForAccount(token,createCardDto);
         }catch (InvalidTokenException | EntityNotFoundException e){
@@ -180,8 +181,8 @@ public class CardController {
             @ApiResponse(responseCode = "404", description = "Invalid token."),
             @ApiResponse(responseCode = "400", description = "Invalid arguments.")
     })
-    public ResponseEntity<CardDto> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
-        CardDto cardDto;
+    public ResponseEntity<CardDtoNoOwner> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
+        CardDtoNoOwner cardDto;
         try{
             cardDto=cardService.createCard(createCardDto);
         }catch (EntityNotFoundException e){

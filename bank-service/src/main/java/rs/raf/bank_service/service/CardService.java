@@ -16,7 +16,7 @@ import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.mapper.CardMapper;
+import rs.raf.bank_service.domain.mapper.CardMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import java.util.List;
@@ -46,7 +46,7 @@ public class CardService {
         return accountTypeDto.getSubtype().equals("Company");
     }
 
-    public CardDto createCard(CreateCardDto createCardDto){
+    public CardDtoNoOwner createCard(CreateCardDto createCardDto){
         Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
         AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
@@ -81,7 +81,7 @@ public class CardService {
 
         cardRepository.save(card);
 
-        return CardMapper.toCardDto(card);
+        return CardMapper.toCardDtoNoOwner(card);
     }
 
     public void requestCardForAccount(CreateCardDto createCardDto) {
@@ -119,7 +119,7 @@ public class CardService {
         }
     }
 
-    public CardDto recieveCardForAccount(String token, CreateCardDto createCardDto){
+    public CardDtoNoOwner recieveCardForAccount(String token, CreateCardDto createCardDto){
         try {
             userClient.checkToken(new CheckTokenDto(token));
         } catch (FeignException.NotFound e) {
