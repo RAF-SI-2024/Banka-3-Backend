@@ -17,11 +17,6 @@ public interface UserClient {
     @GetMapping("/api/admin/clients/{id}")
     ClientDto getClientById(@PathVariable("id") Long id);
 
-    @GetMapping("/api/admin/clients/me")
-    ClientDto getClient(@RequestHeader("Authorization") String authorizationHeader);
-
-    @GetMapping("/api/admin/company/{id}")
-    CompanyDto getCompanyById(@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") Long id);
     @PostMapping("/api/auth/request-card")
     void requestCard(RequestCardDto requestCardDto);
 

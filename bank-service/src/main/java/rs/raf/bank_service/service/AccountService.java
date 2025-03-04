@@ -138,11 +138,11 @@ public class AccountService {
                 accountRepository.save(newAccount);
         }
 
-    public List<AccountDto> getMyAccounts(String authorizationHeader) {
+    public List<AccountDto> getMyAccounts(Long clientId) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
 
-            return accountRepository.findAllByClientId(clientDto.getId()).stream().map(account ->
+            return accountRepository.findAllByClientId(clientId).stream().map(account ->
                     AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
                     Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
         } catch (FeignException.NotFound e){
@@ -150,9 +150,9 @@ public class AccountService {
         }
     }
 
-    public AccountDetailsDto getAccountDetails(String authorizationHeader, String accountNumber) {
+    public AccountDetailsDto getAccountDetails(Long clientId, String accountNumber) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
             Account account = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(AccountNotFoundException::new);
 
@@ -169,7 +169,7 @@ public class AccountService {
                 CompanyAccountDetailsDto companyAccountDetailsDto = (CompanyAccountDetailsDto) accountDetailsDto;
 
                 CompanyAccount companyAccount = (CompanyAccount) account;
-                CompanyDto companyDto = userClient.getCompanyById(authorizationHeader, companyAccount.getCompanyId());
+                CompanyDto companyDto = userClient.getCompanyById(companyAccount.getCompanyId());
 
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
@@ -183,9 +183,9 @@ public class AccountService {
     }
 
     //Verovatno ce da ide u TransactionService ali ne znam jer nemam Transaction entitet
-    public void getAccountTransactions(String authorizationHeader, String accountNumber) {
+    public void getAccountTransactions(Long clientId, String accountNumber) {
         try {
-            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            ClientDto clientDto = userClient.getClientById(clientId);
             Account account = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(AccountNotFoundException::new);
 

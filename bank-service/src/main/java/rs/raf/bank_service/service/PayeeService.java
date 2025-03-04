@@ -20,16 +20,6 @@ public class PayeeService {
 
     private final PayeeRepository repository;
     private final PayeeMapper mapper;
-    private final JwtTokenUtil jwtTokenUtil;
-
-
-    public Long getClientIdFromToken(String token) {
-        token = token.replace("Bearer ", "");
-        if (!jwtTokenUtil.validateToken(token)) {
-            throw new SecurityException("Invalid token");
-        }
-        return Long.valueOf(jwtTokenUtil.extractUserId(token));
-    }
 
     public List<PayeeDto> getByClientId(Long clientId) {
         List<Payee> payees = repository.findByClientId(clientId);

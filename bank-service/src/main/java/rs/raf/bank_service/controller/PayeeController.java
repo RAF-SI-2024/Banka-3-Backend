@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,13 +22,11 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping("/api/payees")
+@AllArgsConstructor
 public class PayeeController {
 
     private final PayeeService service;
-
-    public PayeeController(PayeeService service) {
-        this.service = service;
-    }
+    private final JwtTokenUtil jwtTokenUtil;
 
     @PreAuthorize("hasAuthority('client')")
     @PostMapping
@@ -39,9 +38,9 @@ public class PayeeController {
     })
     public ResponseEntity<String> createPayee(
             @Valid @RequestBody PayeeDto dto,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String auth) {
 
-        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
         service.create(dto, clientId);
         return ResponseEntity.status(HttpStatus.CREATED).body("Payee created successfully.");
     }
@@ -53,8 +52,8 @@ public class PayeeController {
             @ApiResponse(responseCode = "200", description = "Payees retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<List<PayeeDto>> getPayeesByClientId(@RequestHeader("Authorization") String token) {
-        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
+    public ResponseEntity<List<PayeeDto>> getPayeesByClientId(@RequestHeader("Authorization") String auth) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
         List<PayeeDto> payees = service.getByClientId(clientId);
         return ResponseEntity.ok(payees);
     }
@@ -71,9 +70,9 @@ public class PayeeController {
     public ResponseEntity<String> updatePayee(
             @PathVariable Long id,
             @Valid @RequestBody PayeeDto dto,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String auth) {
 
-        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
         try {
             service.update(id, dto, clientId);
             return ResponseEntity.ok("Payee updated successfully.");
@@ -92,9 +91,9 @@ public class PayeeController {
     })
     public ResponseEntity<Void> deletePayee(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String auth) {
 
-        Long clientId = service.getClientIdFromToken(token); // Koristite metodu iz servisa
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
         try {
             service.delete(id, clientId);
             return ResponseEntity.noContent().build();
