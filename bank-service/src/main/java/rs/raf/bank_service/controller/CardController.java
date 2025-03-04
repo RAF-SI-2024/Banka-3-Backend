@@ -5,13 +5,18 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CardDto;
+import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.CardService;
 
+import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -113,5 +118,77 @@ public class CardController {
             @PathVariable String cardNumber) {
         cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
         return ResponseEntity.ok().build();
+    }
+
+
+    @PostMapping("/request")
+    @Operation(
+            summary = "Request a card.",
+            description = "Requests a new card for a given account."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "A confirmation email has been sent. Please verify to receive your card."),
+            @ApiResponse(responseCode = "404", description = "Account not found."),
+            @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
+            @ApiResponse(responseCode = "400", description = "Invalid arguments.")
+    })
+    public ResponseEntity<String> requestCardForAccount(@RequestBody @Valid CreateCardDto createCardDto) {
+        try {
+            cardService.requestCardForAccount(createCardDto);
+        }catch (EntityNotFoundException | ClientNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }catch (CardLimitExceededException | IllegalArgumentException | InvalidCardLimitException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (ExternalServiceException e){
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+        }
+        return ResponseEntity.ok("A confirmation email has been sent. Please verify to receive your card.");
+    }
+
+    @PostMapping("/recieve")
+    @Operation(
+            summary = "Verify the token and recieve a card.",
+            description = "Verify the token and recieve a card if the entered token is right."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token verified and card created successfully."),
+            @ApiResponse(responseCode = "404", description = "Invalid token."),
+            @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
+            @ApiResponse(responseCode = "400", description = "Invalid arguments.")
+    })
+    public ResponseEntity<CardDto> verifyAndReceiveCard(@RequestParam String token, @RequestBody @Valid CreateCardDto createCardDto) {
+        CardDto cardDto;
+        try {
+            cardDto=cardService.recieveCardForAccount(token,createCardDto);
+        }catch (InvalidTokenException | EntityNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }catch (CardLimitExceededException | InvalidCardTypeException | InvalidCardLimitException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (ExternalServiceException e){
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
+        return ResponseEntity.ok(cardDto);
+    }
+
+    @PostMapping("/create")
+    @Operation(
+            summary = "Create a card.",
+            description = "Create a new card."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card created successfully"),
+            @ApiResponse(responseCode = "404", description = "Invalid token."),
+            @ApiResponse(responseCode = "400", description = "Invalid arguments.")
+    })
+    public ResponseEntity<CardDto> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
+        CardDto cardDto;
+        try{
+            cardDto=cardService.createCard(createCardDto);
+        }catch (EntityNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }catch (CardLimitExceededException | InvalidCardLimitException | InvalidCardTypeException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok(cardDto);
     }
 }

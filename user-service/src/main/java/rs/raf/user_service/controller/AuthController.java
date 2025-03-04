@@ -71,7 +71,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("check-token")
+    @PostMapping("/check-token")
     @Operation(summary = "Checks if a token is still valid", description = "Checks if a token is still valid.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Valid"),

@@ -84,7 +84,7 @@ public class CardService {
         return CardMapper.toCardDto(card);
     }
 
-    public void requestCardForAccount(CreateCardDto createCardDto, String authorizationHeader) {
+    public void requestCardForAccount(CreateCardDto createCardDto) {
         Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
         AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
@@ -94,22 +94,41 @@ public class CardService {
         if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
             throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
         }
+        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0){
+            throw new InvalidCardLimitException();
+        }
 
-        UserDto user;
+        ClientDto client;
         try {
-            user = userService.getUserById(account.getClientId(), authorizationHeader);
+            client = userClient.getClientById(account.getClientId());
         } catch (FeignException.NotFound e) {
             throw new ClientNotFoundException(account.getClientId());
         } catch (Exception e) {
             throw new ExternalServiceException();
         }
 
-        String email = user.getEmail();
+        String email = client.getEmail();
         if (email == null || email.isEmpty()) {
             throw new IllegalArgumentException("Email address not found for user.");
         }
 
-        userClient.requestCard(new RequestCardDto(email));
+        try {
+            userClient.requestCard(new RequestCardDto(client.getEmail()));
+        } catch (FeignException e) {
+            throw new ExternalServiceException();
+        }
+    }
+
+    public CardDto recieveCardForAccount(String token, CreateCardDto createCardDto){
+        try {
+            userClient.checkToken(new CheckTokenDto(token));
+        } catch (FeignException.NotFound e) {
+            throw new InvalidTokenException();
+        } catch (Exception e) {
+            throw new ExternalServiceException();
+        }
+
+        return createCard(createCardDto);
     }
 
 
