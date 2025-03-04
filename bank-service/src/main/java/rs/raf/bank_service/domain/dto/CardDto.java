@@ -1,23 +1,30 @@
 package rs.raf.bank_service.domain.dto;
 
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import rs.raf.bank_service.domain.enums.CardStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CardDto {
+
     private Long id;
     private String cardNumber;
     private String cvv;
+    private String type;
+    private String name;
     private LocalDate creationDate;
     private LocalDate expirationDate;
+    private String accountNumber;
     private CardStatus status;
     private BigDecimal cardLimit;
-
     private ClientDto owner;
-
-    private String accountNumber;
 }

@@ -1,46 +1,44 @@
 package rs.raf.bank_service.unit;
 
+import feign.FeignException;
+import feign.Request;
+import feign.RequestTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.domain.dto.UserDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
-import rs.raf.bank_service.service.UserService;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AccountServiceTest {
 
-    @Mock
-    private UserService userService;
 
     @Mock
     private CurrencyRepository currencyRepository;
@@ -48,15 +46,14 @@ public class AccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
-    @InjectMocks
-    private AccountService accountService;
-
     @Mock
     private UserClient userClient;
 
+    private AccountService accountService;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        accountService = new AccountService(currencyRepository, accountRepository, userClient);
     }
 
     @Test
@@ -121,7 +118,6 @@ public class AccountServiceTest {
         List<Account> accountList = List.of(account1, account2);
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
         // Postavljamo ClientDto objekte
         ClientDto client1 = new ClientDto();
         client1.setFirstName("Marko");
@@ -158,7 +154,6 @@ public class AccountServiceTest {
         List<Account> accountList = List.of(account1, account2);
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
         // Postavljamo ClientDto objekte
         ClientDto client1 = new ClientDto();
         client1.setFirstName("Marko");
@@ -192,8 +187,8 @@ public class AccountServiceTest {
         }
         when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
 
-
-        // Kreiramo odgovarajuće ClientDto objekte sa različitim prezimenima radi sortiranja
+        // Kreiramo odgovarajuće ClientDto objekte sa različitim prezimenima radi
+        // sortiranja
         for (long i = 1; i <= 5; i++) {
             ClientDto client = new ClientDto();
             client.setFirstName("First" + i);
@@ -222,13 +217,13 @@ public class AccountServiceTest {
         newBankAccountDto.setIsActive("ACTIVE");
         newBankAccountDto.setAccountOwnerType("PERSONAL");
 
-        UserDto userDto = new UserDto();
-        userDto.setId(1L);
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
 
         Currency currency = new Currency();
         currency.setCode("EUR");
 
-        when(userService.getUserById(1L, "Bearer token")).thenReturn(userDto);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
         // Use eq() to match the exact "EUR" string.
         when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(currency));
 
@@ -244,7 +239,7 @@ public class AccountServiceTest {
         newBankAccountDto.setAccountType("PERSONAL");
         newBankAccountDto.setCurrency("USD");
 
-        when(userService.getUserById(999L, "Bearer token")).thenReturn(null);
+        when(userClient.getClientById(999L)).thenReturn(null);
 
         Exception exception = assertThrows(ClientNotFoundException.class, () -> {
             accountService.createNewBankAccount(newBankAccountDto, "Bearer token");
@@ -261,10 +256,10 @@ public class AccountServiceTest {
         newBankAccountDto.setAccountType("PERSONAL");
         newBankAccountDto.setCurrency("INVALID");
 
-        UserDto userDto = new UserDto();
-        userDto.setId(1L);
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
 
-        when(userService.getUserById(1L, "Bearer token")).thenReturn(userDto);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
         // Mark this stubbing as lenient to avoid unnecessary stubbing exception.
         lenient().when(currencyRepository.findByCode("INVALID")).thenReturn(Optional.empty());
 
@@ -274,5 +269,85 @@ public class AccountServiceTest {
         // Adjusted expected message:
         assertEquals("Cannot find currency with id: INVALID", exception.getMessage());
         verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    public void testGetAccounts_Success() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        List<Account> accountList = new ArrayList<>();
+        for (long i = 1; i <= 5; i++) {
+            PersonalAccount account = new PersonalAccount();
+            account.setAccountNumber(String.valueOf(i));
+            account.setClientId(clientDto.getId());
+
+            accountList.add(account);
+        }
+        when(accountRepository.findAllByClientId(clientDto.getId())).thenReturn(accountList);
+
+        List<AccountDto> accounts = accountService.getAccounts("Bearer token");
+        assertNotNull(accounts);
+        assertEquals(5, accountList.size());
+    }
+
+    @Test
+    public void testGetAccounts_UserNotAClient() {
+        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
+
+        when(userClient.getClient("Bearer token")).thenThrow(
+                new FeignException.NotFound("User not found", request, null, null));
+
+        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
+                accountService.getAccounts("Bearer token"));
+        assertEquals("User sending request is not a client.", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAccountDetails_Success() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        PersonalAccount account = new PersonalAccount();
+        account.setAccountNumber("1");
+        account.setClientId(clientDto.getId());
+        account.setBalance(BigDecimal.TEN);
+        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
+
+        AccountDetailsDto accountDetails = accountService.getAccountDetails("Bearer token", "1");
+        assertNotNull(accountDetails);
+        assertEquals(account.getBalance(), accountDetails.getBalance());
+    }
+
+    @Test
+    public void testGetAccountDetails_UserNotAClient() {
+        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
+
+        when(userClient.getClient("Bearer token")).thenThrow(
+                new FeignException.NotFound("User not found", request, null, null));
+
+        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
+                accountService.getAccountDetails("Bearer token", "1"));
+        assertEquals("User sending request is not a client.", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAccountDetails_ClientNotAccountOwner() {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(1L);
+        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+
+        PersonalAccount account = new PersonalAccount();
+        account.setAccountNumber("1");
+        account.setClientId(99L);
+        account.setBalance(BigDecimal.TEN);
+        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
+
+        ClientNotAccountOwnerException exception = assertThrows(ClientNotAccountOwnerException.class, () ->
+                accountService.getAccountDetails("Bearer token", "1"));
+
+        assertEquals("Client sending request is not the account owner.", exception.getMessage());
     }
 }

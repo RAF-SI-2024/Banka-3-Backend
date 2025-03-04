@@ -8,6 +8,7 @@ public class EmailUtils {
             case SET_PASSWORD -> "Set your password: http://localhost/" + token;
             case RESET_PASSWORD -> "Reset your password: http://localhost/" + token;
             case ACTIVATE_ACCOUNT -> "Activate your account: http://localhost/" + token;
+            case REQUEST_CARD -> "Confirm that you sent this card request: http://localhost/" + token;
         };
     }
 
@@ -17,6 +18,7 @@ public class EmailUtils {
             case SET_PASSWORD -> "Set Your Password";
             case RESET_PASSWORD -> "Reset Your Password";
             case ACTIVATE_ACCOUNT -> "Activate Your Account";
+            case REQUEST_CARD -> "Confirm card request";
         };
     }
 
@@ -38,6 +40,10 @@ public class EmailUtils {
                 title = "Activate Your Account";
                 link = "http://localhost:4200/set-password/" + token;
                 break;
+            }
+            case REQUEST_CARD: {
+                title = "Confirm that you sent this card request";
+                link = "http://localhost:4200/request-card" + token;
             }
             default: {
                 title = "Email lol";
