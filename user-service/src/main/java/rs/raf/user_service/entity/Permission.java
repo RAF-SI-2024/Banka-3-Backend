@@ -2,7 +2,6 @@ package rs.raf.user_service.entity;
 
 import lombok.*;
 
-
 import javax.persistence.*;
 
 @Entity
