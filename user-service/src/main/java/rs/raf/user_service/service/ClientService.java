@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
 import org.springframework.data.jpa.domain.Specification;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.CreateClientDto;
@@ -121,6 +124,14 @@ public class ClientService {
     public ClientDto findByEmail(String email) {
         Client client = clientRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return clientMapper.toDto(client);
+    }
+
+
+    public ClientDto getCurrentClient() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Client client = clientRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("Client not found with email: " + email));
+
         return clientMapper.toDto(client);
     }
 }

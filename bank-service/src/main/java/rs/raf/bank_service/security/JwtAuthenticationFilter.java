@@ -11,7 +11,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -45,7 +44,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            System.out.println("Authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
         }
 
         filterChain.doFilter(request, response);
@@ -59,7 +57,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
-
     public boolean validateToken(String token) {
         try {
             getClaimsFromToken(token);
@@ -69,7 +66,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
     }
-
     public Claims getClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secret)

@@ -38,7 +38,9 @@ public class BootstrapData implements CommandLineRunner {
             Permission employeePermission = Permission.builder()
                     .name("employee")
                     .build();
+
             permissionRepository.saveAll(Set.of(adminPermission, employeePermission));
+
         }
 
         Set<Permission> permissions = new HashSet<>(permissionRepository.findAll());
@@ -107,7 +109,9 @@ public class BootstrapData implements CommandLineRunner {
 
             employeeRepository.saveAll(Set.of(employee, employee2));
         }
+
         if (activityCodeRepository.count() == 0) {
+
             ActivityCode activityCode = ActivityCode.builder()
                     .id("10.01")
                     .description("Food producion")

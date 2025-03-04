@@ -1,7 +1,5 @@
-/*package rs.raf.bank_service.unit;
+package rs.raf.bank_service.unit;
 
-import feign.FeignException;
-import feign.Request;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -292,4 +290,4 @@ public class CardServiceTest {
                 () -> cardService.blockCardByUser(dummyCard.getCardNumber(), authHeader));
         assertEquals("You can only block your own cards", exception.getMessage());
     }
-}*/
+}

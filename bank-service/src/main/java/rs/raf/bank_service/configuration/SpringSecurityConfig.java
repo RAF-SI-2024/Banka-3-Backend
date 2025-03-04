@@ -1,6 +1,8 @@
 package rs.raf.bank_service.configuration;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -29,6 +31,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -47,6 +50,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().headers()
                 .frameOptions().disable()
+
                  .and().addFilterBefore(jwtAuthenticationFilter,
                  UsernamePasswordAuthenticationFilter.class);
 
@@ -57,6 +61,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Ovde postaviti lokaciju sa koje ce front pristupati
+
         configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

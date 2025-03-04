@@ -14,6 +14,8 @@ import javax.persistence.Entity;
 @Setter
 @SuperBuilder
 @RequiredArgsConstructor
+
 public class PersonalAccount extends Account {
+
 
 }

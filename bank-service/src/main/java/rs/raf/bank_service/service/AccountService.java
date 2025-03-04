@@ -20,6 +20,9 @@ import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.domain.enums.AccountType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
+
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
