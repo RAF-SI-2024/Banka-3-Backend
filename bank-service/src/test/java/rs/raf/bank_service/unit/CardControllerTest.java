@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CardController.class)
 public class CardControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 

@@ -56,4 +56,11 @@ public class EmailListener {
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
+    @RabbitListener(queues = "card-creation")
+    public void handleCardCreation(EmailRequestDto dto) throws MessagingException {
+        String subject = "Card Created Successfully";
+        String content = "Your new card has been created successfully.";
+        String plain = "Your new card has been created successfully.";
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
 }
