@@ -92,6 +92,19 @@ public class AuthService {
         } else throw new RuntimeException("Expired token.");
     }
 
+    public void requestCard(String email){
+        BaseUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        UUID token = UUID.fromString(UUID.randomUUID().toString());
+        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), email);
+        rabbitTemplate.convertAndSend("request-card", emailRequestDto);
+
+        Long createdAt = Instant.now().toEpochMilli();
+        Long expiresAt = createdAt + 86400000;//24h
+        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "request-card", user.getId());
+        authTokenRepository.save(authToken);
+    }
+
     public void checkToken(String token) {
         AuthToken currAuthToken = authTokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token."));
         if (currAuthToken.getExpiresAt() < Instant.now().toEpochMilli())

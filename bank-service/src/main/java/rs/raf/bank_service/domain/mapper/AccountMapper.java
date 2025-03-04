@@ -1,15 +1,18 @@
 package rs.raf.bank_service.domain.mapper;
 
 import rs.raf.bank_service.domain.dto.AccountDetailsDto;
+import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.AccountDto;
+import rs.raf.bank_service.domain.dto.AccountTypeDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.dto.CompanyAccountDetailsDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.enums.AccountType;
-
 import java.math.BigDecimal;
 
+@Component
 public class AccountMapper {
 
     public static AccountDto toDto(Account account, ClientDto client) {
@@ -76,5 +79,16 @@ public class AccountMapper {
                 BigDecimal.ZERO,
                 account.getBalance()
         );
+
+    public AccountTypeDto toAccountTypeDto(Account account) {
+        if (account == null) return null;
+        AccountTypeDto dto = new AccountTypeDto();
+        dto.setAccountNumber(account.getAccountNumber());
+        if (account instanceof PersonalAccount) {
+            dto.setSubtype("Personal");
+        } else if (account instanceof CompanyAccount) {
+            dto.setSubtype("Company");
+        }
+        return dto;
     }
 }

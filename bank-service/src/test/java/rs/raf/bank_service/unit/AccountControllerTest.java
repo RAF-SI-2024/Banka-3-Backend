@@ -22,6 +22,8 @@ import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.service.AccountService;
 
 import java.util.Arrays;
@@ -98,13 +100,33 @@ class AccountControllerTest {
     }
 
     @Test
-    void testCreateBankAccount_Failure() {
+    void testCreateBankAccount_ClientNotFound() {
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
 
-        String errorMessage = "Invalid input data";
-        doThrow(new RuntimeException(errorMessage)).when(accountService).createNewBankAccount(any(NewBankAccountDto.class), anyString());
+        String errorMessage = "Cannot find client with id: 999";
+        doThrow(new ClientNotFoundException(999L)).when(accountService)
+                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
+
+        // Act
+        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
+        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
+    }
+
+    @Test
+    void testCreateBankAccount_InvalidCurrency() {
+        // Arrange
+        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
+        String authorizationHeader = "Bearer token";
+
+        String errorMessage = "Cannot find currency with id: INVALID";
+        doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
+                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
 
         // Act
         ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);

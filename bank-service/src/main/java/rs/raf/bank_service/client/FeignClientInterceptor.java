@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class FeignClientInterceptor implements RequestInterceptor {
 
+    // Dugotrajni token ovde
+    private static final String STATIC_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwZXRhci5wQGV4YW1wbGUuY29tIiwicGVybWlzc2lvbnMiOlsiZW1wbG95ZWUiLCJhZG1pbiJdLCJ1c2VySWQiOjMsImlhdCI6MTc0MTA5NzA2MywiZXhwIjoyNjA1MDk3MDYzfQ.4myWYAgdkvHCMPs4wt_lBUfe2RzWHzHRXUOxxCN2FgriQlvsHJ6WktsmLhZrzYP4COTK05m-1fgsxPus_PKlNA";
+
+
     @Override
     public void apply(RequestTemplate template) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getCredentials() != null) {
-            String token = authentication.getCredentials().toString();
-            template.header("Authorization", "Bearer " + token);
-        }
+        template.header("Authorization", "Bearer " + STATIC_TOKEN);
     }
 }

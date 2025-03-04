@@ -40,6 +40,14 @@ public class EmailListener {
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
+    @RabbitListener(queues = "request-card")
+    public void handleRequestCard(EmailRequestDto dto) throws MessagingException {
+        String subject = EmailUtils.getEmailSubject(EmailType.REQUEST_CARD);
+        String content = EmailUtils.getEmailContent(EmailType.REQUEST_CARD, dto.getCode());
+        String plain = EmailUtils.getEmailPlainContent(EmailType.REQUEST_CARD, dto.getCode());
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
+
     @RabbitListener(queues = "card-status-change")
     public void handleCardStatusChange(EmailRequestDto dto) throws MessagingException {
         String subject = "Card Status Changed";
@@ -48,4 +56,11 @@ public class EmailListener {
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
 
+    @RabbitListener(queues = "card-creation")
+    public void handleCardCreation(EmailRequestDto dto) throws MessagingException {
+        String subject = "Card Created Successfully";
+        String content = "Your new card has been created successfully.";
+        String plain = "Your new card has been created successfully.";
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
 }
