@@ -1,5 +1,6 @@
 package rs.raf.bank_service.service;
 
+import feign.FeignException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,20 +13,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.domain.dto.UserDto;
-import rs.raf.bank_service.domain.entity.Account;
-import rs.raf.bank_service.domain.entity.CompanyAccount;
-import rs.raf.bank_service.domain.entity.Currency;
-import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountStatus;
 import rs.raf.bank_service.domain.enums.AccountType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
@@ -34,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -140,4 +135,64 @@ public class AccountService {
 
                 accountRepository.save(newAccount);
         }
+
+    public List<AccountDto> getAccounts(String authorizationHeader) {
+        try {
+            ClientDto clientDto = userClient.getClient(authorizationHeader);
+
+            return accountRepository.findAllByClientId(clientDto.getId()).stream().map(account ->
+                    AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
+                    Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
+        } catch (FeignException.NotFound e){
+            throw new UserNotAClientException();
+        }
+    }
+
+    public AccountDetailsDto getAccountDetails(String authorizationHeader, String accountNumber) {
+        try {
+            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            Account account = accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(AccountNotFoundException::new);
+
+            if (!clientDto.getId().equals(account.getClientId()))
+                throw new ClientNotAccountOwnerException();
+
+            AccountDetailsDto accountDetailsDto;
+
+            if (account.getAccountOwnerType() != AccountOwnerType.COMPANY){
+                accountDetailsDto =  AccountMapper.toDetailsDto(account);
+                accountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
+            } else {
+                accountDetailsDto = AccountMapper.toCompanyDetailsDto(account);
+                CompanyAccountDetailsDto companyAccountDetailsDto = (CompanyAccountDetailsDto) accountDetailsDto;
+
+                CompanyAccount companyAccount = (CompanyAccount) account;
+                CompanyDto companyDto = userClient.getCompanyById(authorizationHeader, companyAccount.getCompanyId());
+
+                companyAccountDetailsDto.setCompanyName(companyDto.getName());
+                companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
+                companyAccountDetailsDto.setTaxId(companyDto.getTaxId());
+                companyAccountDetailsDto.setAddress(companyDto.getAddress());
+            }
+            return accountDetailsDto;
+        } catch (FeignException.NotFound e){
+            throw new UserNotAClientException();
+        }
+    }
+
+    //Verovatno ce da ide u TransactionService ali ne znam jer nemam Transaction entitet
+    public void getAccountTransactions(String authorizationHeader, String accountNumber) {
+        try {
+            ClientDto clientDto = userClient.getClient(authorizationHeader);
+            Account account = accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(AccountNotFoundException::new);
+
+            if (!clientDto.getId().equals(account.getClientId()))
+                throw new ClientNotAccountOwnerException();
+
+            //Nemam entitet za transakciju tako da ovde stajem
+        } catch (FeignException.NotFound e){
+            throw new UserNotAClientException();
+        }
+    }
 }
