@@ -170,13 +170,14 @@ public class CardService {
 
         private Card createNewCard(Account account, BigDecimal cardLimit) {
                 Card card = new Card();
-                card.setAccount(account);
                 card.setCardNumber(generateCardNumber());
                 card.setCvv(generateCVV());
                 card.setCreationDate(LocalDate.now());
                 card.setExpirationDate(LocalDate.now().plusYears(3));
                 card.setStatus(CardStatus.ACTIVE);
                 card.setCardLimit(cardLimit);
+                card.setAccount(account);
+                account.getCards().add(card);
                 return card;
         }
 
@@ -199,5 +200,47 @@ public class CardService {
                 emailRequestDto.setCode("CARD_CREATED");
                 emailRequestDto.setDestination(email);
                 rabbitTemplate.convertAndSend("card-creation", emailRequestDto);
+        }
+
+        public List<CardDto> getUserCards(String authHeader) {
+
+                String token = authHeader.substring(7); // Remove "Bearer "
+                Claims claims = jwtAuthenticationFilter.getClaimsFromToken(token);
+                Long currentUserId = claims.get("userId", Long.class);
+
+                List<Account> userAccounts = accountRepository.findByClientId(currentUserId);
+
+                List<Card> userCards = userAccounts.stream()
+                                .flatMap(account -> account.getCards().stream())
+                                .collect(Collectors.toList());
+
+                ClientDto owner = userClient.getClientById(currentUserId);
+                return userCards.stream()
+                                .map(card -> CardMapper.toDto(card, owner))
+                                .collect(Collectors.toList());
+        }
+
+        public void blockCardByUser(String cardNumber, String authHeader) {
+
+                String token = authHeader.substring(7); // Remove "Bearer "
+                Claims claims = jwtAuthenticationFilter.getClaimsFromToken(token);
+                Long currentUserId = claims.get("userId", Long.class);
+
+                Card card = cardRepository.findByCardNumber(cardNumber)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Card not found with number: " + cardNumber));
+
+                if (!card.getAccount().getClientId().equals(currentUserId)) {
+                        throw new UnauthorizedException("You can only block your own cards");
+                }
+
+                card.setStatus(CardStatus.BLOCKED);
+                cardRepository.save(card);
+
+                ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
+                EmailRequestDto emailRequestDto = new EmailRequestDto();
+                emailRequestDto.setCode("CARD_BLOCKED");
+                emailRequestDto.setDestination(owner.getEmail());
+                rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
         }
 }

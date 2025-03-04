@@ -110,4 +110,31 @@ public class CardController {
                 CardDto card = cardService.createCompanyCard(createCompanyCardDto, authHeader);
                 return ResponseEntity.ok(card);
         }
+
+        @PreAuthorize("hasAuthority('client')")
+        @PostMapping("/{cardNumber}/block-by-user")
+        @Operation(summary = "Block Card by User", description = "Allows a user to block their own card.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
+                        @ApiResponse(responseCode = "404", description = "Card not found"),
+                        @ApiResponse(responseCode = "403", description = "Not authorized to block this card")
+        })
+        public ResponseEntity<Void> blockCardByUser(
+                        @Parameter(description = "Card number to block", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber,
+                        @RequestHeader("Authorization") String authHeader) {
+                cardService.blockCardByUser(cardNumber, authHeader);
+                return ResponseEntity.ok().build();
+        }
+
+        @PreAuthorize("hasAuthority('client')")
+        @GetMapping("/my-cards")
+        @Operation(summary = "Get User's Cards", description = "Retrieves all cards belonging to the authenticated user across all their accounts.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
+                        @ApiResponse(responseCode = "403", description = "Access denied")
+        })
+        public ResponseEntity<List<CardDto>> getUserCards(@RequestHeader("Authorization") String authHeader) {
+                List<CardDto> cards = cardService.getUserCards(authHeader);
+                return ResponseEntity.ok(cards);
+        }
 }
