@@ -272,7 +272,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testGetAccounts_Success() {
+    public void testGetMyAccounts_Success() {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
         when(userClient.getClient("Bearer token")).thenReturn(clientDto);
@@ -287,20 +287,20 @@ public class AccountServiceTest {
         }
         when(accountRepository.findAllByClientId(clientDto.getId())).thenReturn(accountList);
 
-        List<AccountDto> accounts = accountService.getAccounts("Bearer token");
+        List<AccountDto> accounts = accountService.getMyAccounts("Bearer token");
         assertNotNull(accounts);
         assertEquals(5, accountList.size());
     }
 
     @Test
-    public void testGetAccounts_UserNotAClient() {
+    public void testGetMyAccounts_UserNotAClient() {
         Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
 
         when(userClient.getClient("Bearer token")).thenThrow(
                 new FeignException.NotFound("User not found", request, null, null));
 
         UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
-                accountService.getAccounts("Bearer token"));
+                accountService.getMyAccounts("Bearer token"));
         assertEquals("User sending request is not a client.", exception.getMessage());
     }
 

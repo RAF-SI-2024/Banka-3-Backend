@@ -138,32 +138,32 @@ class AccountControllerTest {
     }
 
     @Test
-    void testGetAccounts_Success() {
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+    void testGetMyAccounts_Success() {
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test
-    void testGetAccounts_BadRequest() {
-        doThrow(new UserNotAClientException()).when(accountService).getAccounts("Bearer token");
+    void testGetMyAccounts_BadRequest() {
+        doThrow(new UserNotAClientException()).when(accountService).getMyAccounts("Bearer token");
 
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("User sending request is not a client.", response.getBody());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test
-    void testGetAccounts_Failure() {
-        doThrow(new RuntimeException()).when(accountService).getAccounts("Bearer token");
+    void testGetMyAccounts_Failure() {
+        doThrow(new RuntimeException()).when(accountService).getMyAccounts("Bearer token");
 
-        ResponseEntity<?> response = accountController.getAccounts("Bearer token");
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(accountService).getAccounts("Bearer token");
+        verify(accountService).getMyAccounts("Bearer token");
     }
 
     @Test

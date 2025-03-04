@@ -28,7 +28,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -136,7 +135,7 @@ public class AccountService {
                 accountRepository.save(newAccount);
         }
 
-    public List<AccountDto> getAccounts(String authorizationHeader) {
+    public List<AccountDto> getMyAccounts(String authorizationHeader) {
         try {
             ClientDto clientDto = userClient.getClient(authorizationHeader);
 

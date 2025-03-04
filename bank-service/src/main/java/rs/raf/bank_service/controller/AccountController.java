@@ -22,8 +22,6 @@ import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.service.AccountService;
 
-import java.util.List;
-
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
 @RequestMapping("/api/account")
@@ -76,9 +74,9 @@ public class AccountController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "500", description = "Account list retrieval failed")
     })
-    public ResponseEntity<?> getAccounts(@RequestHeader("Authorization") String authorizationHeader){
+    public ResponseEntity<?> getMyAccounts(@RequestHeader("Authorization") String authorizationHeader){
         try {
-            return ResponseEntity.ok(accountService.getAccounts(authorizationHeader));
+            return ResponseEntity.ok(accountService.getMyAccounts(authorizationHeader));
         }catch (UserNotAClientException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (RuntimeException e){
