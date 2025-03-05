@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import rs.raf.bank_service.domain.entity.Currency;
+import rs.raf.bank_service.domain.dto.CurrencyDto;
 import rs.raf.bank_service.service.CurrencyService;
 
 @Tag(name = "Currency controller", description = "API for managing currencies")
@@ -30,7 +30,7 @@ public class CurrencyController {
             @ApiResponse(responseCode = "200", description = "Currency created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-    public ResponseEntity<Currency> createCurrency(@RequestBody Currency currency) {
+    public ResponseEntity<CurrencyDto> createCurrency(@RequestBody CurrencyDto currency) {
         return ResponseEntity.ok(currencyService.createCurrency(currency));
     }
 }
