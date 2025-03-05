@@ -1,7 +1,7 @@
 package rs.raf.bank_service.service;
 
 import org.springframework.stereotype.Service;
-import rs.raf.bank_service.domain.dto.CreditRequestDTO;
+import rs.raf.bank_service.domain.dto.CreditRequestDto;
 import rs.raf.bank_service.domain.entity.CreditRequest;
 import rs.raf.bank_service.domain.enums.CreditRequestApproval;
 import rs.raf.bank_service.repository.CreditRequestRepository;
@@ -23,9 +23,9 @@ public class CreditRequestService {
         return creditRequestRepository.save(creditRequest);
     }
 
-    public List<CreditRequestDTO> getRequestsByStatus(CreditRequestApproval approval) {
-        return creditRequestRepository.findByApproved(approval).stream().map(
-                creditRequest -> new CreditRequestDTO(creditRequest.getId(), creditRequest.getAccountNumber(), creditRequest.getCreditType(),
+    public List<CreditRequestDto> getRequestsByStatus(CreditRequestApproval approval) {
+        return creditRequestRepository.findByApproval(approval).stream().map(
+                creditRequest -> new CreditRequestDto(creditRequest.getAccountNumber(), creditRequest.getCreditType(),
                         creditRequest.getAmount(), creditRequest.getCurrency(), creditRequest.getPurpose(), creditRequest.getMonthlySalary(), creditRequest.getEmploymentStatus(),
                         creditRequest.getEmploymentPeriod(), creditRequest.getRepaymentPeriod(), creditRequest.getBranch(), creditRequest.getPhoneNumber(), creditRequest.getApproval(), creditRequest.getBankAccountNumber())
         ).collect(Collectors.toList());

@@ -7,14 +7,14 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class CreditShortDTO {
-    private Long id;
+public class CreditShortDto {
+
     private String accountNumber;
     private BigDecimal amount;
     private String creditType;
 
-    public CreditShortDTO(Long id, String accountNumber, BigDecimal amount, String creditType) {
-        this.id = id;
+    public CreditShortDto(String accountNumber, BigDecimal amount, String creditType) {
+
         this.accountNumber = accountNumber;
         this.amount = amount;
         this.creditType = creditType;

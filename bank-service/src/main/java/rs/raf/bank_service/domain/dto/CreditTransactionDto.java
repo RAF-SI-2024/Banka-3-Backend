@@ -9,16 +9,14 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class CreditTransactionDTO {
-    private Long id;
+public class CreditTransactionDto {
     private Credit credit;
 
     private LocalDate transactionDate;
     private BigDecimal amount;
     private boolean isPaid;
 
-    public CreditTransactionDTO(Long id, Credit credit, LocalDate transactionDate, BigDecimal amount, boolean isPaid) {
-        this.id = id;
+    public CreditTransactionDto(Credit credit, LocalDate transactionDate, BigDecimal amount, boolean isPaid) {
         this.credit = credit;
         this.transactionDate = transactionDate;
         this.amount = amount;

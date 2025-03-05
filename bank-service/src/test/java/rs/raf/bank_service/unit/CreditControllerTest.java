@@ -8,7 +8,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.CreditController;
-import rs.raf.bank_service.domain.dto.CreditDetailedDTO;
+import rs.raf.bank_service.domain.dto.CreditDetailedDto;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.service.CreditService;
 
@@ -35,7 +35,7 @@ class CreditControllerTest {
     void testGetCreditList() {
         Long id = 1L;
 
-        ResponseEntity<CreditDetailedDTO> response = creditController.getCreditById(id);
+        ResponseEntity<CreditDetailedDto> response = creditController.getCreditById(id);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -48,7 +48,7 @@ class CreditControllerTest {
         Long id = 1L;
 
 
-        ResponseEntity<CreditDetailedDTO> response = creditController.getCreditById(id);
+        ResponseEntity<CreditDetailedDto> response = creditController.getCreditById(id);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -58,10 +58,10 @@ class CreditControllerTest {
     @Test
     void testCreateCredit() {
         // Arrange
-        CreditDetailedDTO creditDto = new CreditDetailedDTO(1L, "a", "a", new BigDecimal(1), 1, new BigDecimal(1), LocalDate.now(), LocalDate.of(3000, 1, 1), new BigDecimal(1), LocalDate.of(2030, 1, 1), new BigDecimal(1), new Currency());
+        CreditDetailedDto creditDto = new CreditDetailedDto( "a", "a", new BigDecimal(1), 1, new BigDecimal(1), LocalDate.now(), LocalDate.of(3000, 1, 1), new BigDecimal(1), LocalDate.of(2030, 1, 1), new BigDecimal(1), "USD");
 
 
-        ResponseEntity<CreditDetailedDTO> response = creditController.createCredit(creditDto);
+        ResponseEntity<CreditDetailedDto> response = creditController.createCredit(creditDto);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

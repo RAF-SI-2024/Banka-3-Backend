@@ -8,7 +8,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.CreditTransactionController;
-import rs.raf.bank_service.domain.dto.CreditTransactionDTO;
+import rs.raf.bank_service.domain.dto.CreditTransactionDto;
 import rs.raf.bank_service.service.CreditTransactionService;
 
 import java.util.Collections;
@@ -39,7 +39,7 @@ class CreditTransactionControllerTest {
                 .thenReturn(Collections.emptyList());
 
         // Act
-        ResponseEntity<List<CreditTransactionDTO>> response = creditTransactionController.findByCreditID(1L);
+        ResponseEntity<List<CreditTransactionDto>> response = creditTransactionController.findByCreditID(1L);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

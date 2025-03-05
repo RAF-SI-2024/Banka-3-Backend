@@ -8,7 +8,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.CreditRequestController;
-import rs.raf.bank_service.domain.dto.CreditRequestDTO;
+import rs.raf.bank_service.domain.dto.CreditRequestDto;
 import rs.raf.bank_service.domain.entity.CreditRequest;
 import rs.raf.bank_service.domain.enums.CreditRequestApproval;
 import rs.raf.bank_service.service.CreditRequestService;
@@ -56,7 +56,7 @@ class CreditRequestControllerTest {
                 .thenReturn(Collections.emptyList());
 
         // Act
-        ResponseEntity<List<CreditRequestDTO>> response = creditRequestController.getPendingRequests(CreditRequestApproval.PENDING);
+        ResponseEntity<List<CreditRequestDto>> response = creditRequestController.getPendingRequests(CreditRequestApproval.PENDING);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

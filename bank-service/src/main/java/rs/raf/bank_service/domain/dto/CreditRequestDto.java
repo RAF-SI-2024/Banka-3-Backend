@@ -10,8 +10,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 
-public class CreditRequestDTO {
-    private Long id;
+public class CreditRequestDto {
 
     private String accountNumber;
     private String creditType;
@@ -27,8 +26,7 @@ public class CreditRequestDTO {
     private CreditRequestApproval approval;
     private Long bankAccountNumber;
 
-    public CreditRequestDTO(Long id, String accountNumber, String creditType, BigDecimal amount, Currency currency, String purpose, BigDecimal monthlySalary, String employmentStatus, int employmentPeriod, int repaymentPeriod, String branch, String phoneNumber, CreditRequestApproval approval, Long bankAccountNumber) {
-        this.id = id;
+    public CreditRequestDto(String accountNumber, String creditType, BigDecimal amount, Currency currency, String purpose, BigDecimal monthlySalary, String employmentStatus, int employmentPeriod, int repaymentPeriod, String branch, String phoneNumber, CreditRequestApproval approval, Long bankAccountNumber) {
         this.accountNumber = accountNumber;
         this.creditType = creditType;
         this.amount = amount;

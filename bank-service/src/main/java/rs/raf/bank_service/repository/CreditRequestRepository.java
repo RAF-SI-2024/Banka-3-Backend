@@ -7,5 +7,5 @@ import rs.raf.bank_service.domain.enums.CreditRequestApproval;
 import java.util.List;
 
 public interface CreditRequestRepository extends JpaRepository<CreditRequest, Long> {
-    List<CreditRequest> findByApproved(CreditRequestApproval approval);
+    List<CreditRequest> findByApproval(CreditRequestApproval approval);
 }
