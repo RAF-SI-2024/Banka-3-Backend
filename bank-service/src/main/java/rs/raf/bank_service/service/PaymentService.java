@@ -3,7 +3,9 @@ package rs.raf.bank_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.CreatePaymentDto;
+import rs.raf.bank_service.domain.dto.PaymentVerificationRequestDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Payment;
@@ -28,6 +30,7 @@ public class PaymentService {
     @Autowired
     private PaymentRepository paymentRepository;
     private final JwtTokenUtil jwtTokenUtil;
+    private final UserClient userClient;
 
     public Long getClientIdFromToken(String token) {
         token = token.replace("Bearer ", "");
@@ -38,17 +41,10 @@ public class PaymentService {
     }
 
     public boolean createTransferPendingConformation(TransferDto transferDto, Long clientId) {
-
         // Preuzimanje računa za sender i receiver
-        Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber())
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
+        Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber()).stream().findFirst().orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
 
-        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber())
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
+        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber()).stream().findFirst().orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
 
         // Provera da li sender ima dovoljno sredstava
         if (sender.getBalance().compareTo(transferDto.getAmount()) < 0) {
@@ -71,13 +67,16 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
+        // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
+        PaymentVerificationRequestDto paymentVerificationRequestDto = new PaymentVerificationRequestDto(clientId, payment.getId(), "Transfer");
+        userClient.createTransferRequest(paymentVerificationRequestDto);
+
         return true;
     }
 
-    public void confirmTransferAndExecute(Long paymentId, Long clientId) {
+    public boolean confirmTransferAndExecute(Long paymentId, Long clientId) {
         // Preuzimanje payment entiteta na osnovu paymentId
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Provera da li se ClientId poklapa sa ClientId iz payment-a
         if (!payment.getClintId().equals(clientId)) {
@@ -86,10 +85,7 @@ public class PaymentService {
 
         // Preuzimanje računa za sender i receiver koristeći podatke iz payment-a
         Account sender = payment.getSenderAccount();
-        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReciver())
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReciver()));
+        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReciver()).stream().findFirst().orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReciver()));
 
         // Oduzimanje novca sa sender računa i dodavanje na receiver račun
         sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
@@ -102,7 +98,10 @@ public class PaymentService {
         // Ažuriranje statusa payment-a na "COMPLETED"
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
+
+        return true;
     }
+
 
     public boolean createPaymentBeforeConformation(CreatePaymentDto paymentDto, Long clientId) {
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
@@ -114,10 +113,7 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
+        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber()).stream().findFirst().orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
         // Provera valute
         if (!(sender.getCurrency().getCode().equals(CurrencyType.RSD.toString()))) {
@@ -143,15 +139,16 @@ public class PaymentService {
         payment.setPaymentStatus(PaymentStatus.PENDING_CONFORMATION);
         paymentRepository.save(payment);
 
-        ///  Nakon ovoga cekamo potvrdu zahteva
+        PaymentVerificationRequestDto paymentVerificationRequestDto = new PaymentVerificationRequestDto(clientId, payment.getId(), "Payment");
+        userClient.createPaymentRequest(paymentVerificationRequestDto);
+
         return true;
     }
 
 
     public void confirmPayment(Long paymentId, Long clientId) {
         // Preuzimanje payment entiteta na osnovu paymentId
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Provera da li se clientId poklapa sa clientId iz payment-a
         if (!payment.getClintId().equals(clientId)) {
@@ -181,7 +178,6 @@ public class PaymentService {
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
     }
-
 
     public static BigDecimal convert(@NotNull(message = "Amount is required.") @Positive(message = "Amount must be positive.") BigDecimal amountInRSD, CurrencyType currencyType) {
         BigDecimal convertedAmount = BigDecimal.ZERO;  // Postavi početnu vrednost kao 0

@@ -35,7 +35,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> createTransfer(
             @Valid @RequestBody TransferDto dto,
-            @RequestHeader("Authorization") String token){
+            @RequestHeader("Authorization") String token) {
 
         Long clientId = paymentService.getClientIdFromToken(token);
 
@@ -59,23 +59,19 @@ public class PaymentController {
         }
     }
 
-
-    // Metoda za potvrdu transfera nakon verifikacije
     @PreAuthorize("hasAuthority('client')")
     @PostMapping("/confirm-transfer/{paymentId}")
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Transfer completed successfully"),
-            @ApiResponse(responseCode = "404", description = "Payment not found"),
-            @ApiResponse(responseCode = "400", description = "Payment or transfer validation error"),
-            @ApiResponse(responseCode = "500", description = "Internal server error while processing transfer")
-    })
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId,
                                                   @RequestHeader("Authorization") String token) {
         Long clientId = paymentService.getClientIdFromToken(token);
         try {
-            paymentService.confirmTransferAndExecute(paymentId, clientId);
-            return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
+            boolean success = paymentService.confirmTransferAndExecute(paymentId, clientId);
+            if (success) {
+                return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer failed.");
+            }
         } catch (PaymentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found: " + e.getMessage());
         } catch (UnauthorizedTransferConormationException e) {
@@ -85,9 +81,8 @@ public class PaymentController {
         }
     }
 
-
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
-    @PostMapping("/new")
+    @PostMapping("/payment")
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment created successfully"),
@@ -98,7 +93,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> newPayment(
             @Valid @RequestBody CreatePaymentDto dto,
-            @RequestHeader("Authorization") String token){
+            @RequestHeader("Authorization") String token) {
         Long clientId = paymentService.getClientIdFromToken(token);
         try {
             boolean success = paymentService.createPaymentBeforeConformation(dto, clientId);
@@ -121,7 +116,6 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
-
 
     // Metoda za potvrdu plaćanja
     @PreAuthorize("hasAuthority('client')")
@@ -147,5 +141,4 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to complete payment: " + e.getMessage());
         }
     }
-
 }
