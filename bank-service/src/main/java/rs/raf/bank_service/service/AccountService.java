@@ -22,6 +22,7 @@ import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 
@@ -33,12 +34,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class AccountService {
         private final CurrencyRepository currencyRepository;
         private final AccountRepository accountRepository;
+        private final ChangeLimitRequestRepository changeLimitRequestRepository;
         @Autowired
         private final UserClient userClient;
 
@@ -232,7 +236,18 @@ public class AccountService {
             throw new IllegalArgumentException("Limit must be greater than zero");
         }
 
-        // Pravimo verifikacioni zahtev
+        log.info(">>> Checking if account with id {} exists...", accountId);
+        boolean accountExists = accountRepository.existsById(accountId);
+        log.info(">>> Account exists: {}", accountExists);
+        if (!accountExists) {
+            throw new AccNotFoundException("Account not found");
+        }
+
+        // Čuvamo zahtev u bazi
+        ChangeLimitRequest request = new ChangeLimitRequest(accountId, newLimit);
+        changeLimitRequestRepository.save(request);
+
+        // Kreiramo verifikacioni zahtev u user-service
         VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
                 .userId(accountId)
                 .email(email)
@@ -240,32 +255,54 @@ public class AccountService {
                 .verificationType(VerificationType.LOAN)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
-                .attempts(0)
-                .build();
+                .attempts(0).
+                build();
 
         userClient.createVerificationRequest(verificationRequest);
+
         System.out.println("Verification request created. Please approve to proceed.");
     }
 
-    public void changeAccountLimit(Long accountId, BigDecimal newLimit, String verificationCode) {
-        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Limit must be greater than zero");
-        }
+    public void changeAccountLimit(Long accountId) {
+        // Pronalazimo zahtev u bazi
+        ChangeLimitRequest request = changeLimitRequestRepository
+                .findByAccountIdAndStatus(accountId, VerificationStatus.PENDING)
+                .orElseThrow(() -> new IllegalStateException("No pending limit change request found"));
 
-        // Provera da li je 2FA odobren
-        boolean isApproved = userClient.isVerificationApproved(accountId, verificationCode);
-        if (!isApproved) {
-            throw new IllegalStateException("Verification not approved or code invalid.");
-        }
-
-        // Ako je verifikacija prošla, menjamo limit
+        // Pronalazimo nalog
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
-        account.setDailyLimit(newLimit);
+        // Menjamo limit
+        account.setDailyLimit(request.getNewLimit());
         accountRepository.save(account);
+
+        // Obeležavamo zahtev kao APPROVED
+        request.setStatus(VerificationStatus.APPROVED);
+        changeLimitRequestRepository.save(request);
     }
 
+
+
+//    public void changeAccountLimit(Long accountId, BigDecimal newLimit, String verificationCode) {
+//        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
+//            throw new IllegalArgumentException("Limit must be greater than zero");
+//        }
+//
+//        // Provera da li je 2FA odobren
+//        boolean isApproved = userClient.isVerificationApproved(accountId, verificationCode);
+//        if (!isApproved) {
+//            throw new IllegalStateException("Verification not approved or code invalid.");
+//        }
+//
+//        // Ako je verifikacija prošla, menjamo limit
+//        Account account = accountRepository.findById(accountId)
+//                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+//
+//        account.setDailyLimit(newLimit);
+//        accountRepository.save(account);
+//    }
+//
 
 
 //    public void changeAccountLimit(Long accountId, BigDecimal newLimit, String verificationCode) {

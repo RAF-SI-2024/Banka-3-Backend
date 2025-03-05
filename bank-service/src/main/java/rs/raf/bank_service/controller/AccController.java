@@ -1,5 +1,6 @@
 package rs.raf.bank_service.controller;
 
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +14,13 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.ChangeAccountLimitDto;
 import rs.raf.bank_service.domain.dto.ChangeAccountNameDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
+import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
+import rs.raf.bank_service.domain.enums.VerificationStatus;
 import rs.raf.bank_service.exceptions.AccNotFoundException;
 import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicateAccountNameException;
 import rs.raf.bank_service.exceptions.InvalidLimitException;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 
 import javax.validation.Valid;
@@ -30,6 +34,7 @@ public class AccController {
 
     private final AccountService accountService;
     private final UserClient userClient;
+    private final ChangeLimitRequestRepository changeLimitRequestRepository;
 
     @PreAuthorize("hasAuthority('CLIENT') or hasAuthority('client')")
     @PutMapping("/{id}/change-name")
@@ -64,7 +69,8 @@ public class AccController {
             @PathVariable Long id,
             @RequestBody @Valid ChangeAccountLimitDto request) {
         try {
-            accountService.changeAccountLimit(id, request.getNewLimit(), request.getVerificationCode());
+            accountService.changeAccountLimit(id);
+//            accountService.changeAccountLimit(id, request.getNewLimit(), request.getVerificationCode());
             return ResponseEntity.ok("Account limit updated successfully");
         } catch (InvalidLimitException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -76,46 +82,56 @@ public class AccController {
 
     @PreAuthorize("hasAuthority('CLIENT') or hasAuthority('client')")
     @PutMapping("/{id}/request-change-limit")
-    @Operation(summary = "Request change account limit", description = "Initiates a 2FA verification for changing the account limit.")
+    @Operation(summary = "Request change account limit", description = "Saves a limit change request for approval.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Verification request created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid limit value")
+            @ApiResponse(responseCode = "200", description = "Limit change request saved"),
+            @ApiResponse(responseCode = "400", description = "Invalid limit value"),
+            @ApiResponse(responseCode = "404", description = "Account not found")
     })
     public ResponseEntity<String> requestChangeAccountLimit(
             @PathVariable Long id,
             @RequestBody @Valid ChangeAccountLimitDto request) {
+        try {
+            if (request.getNewLimit().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new InvalidLimitException();
+            }
 
-        ClientDto client = userClient.getClientById(id); // Proveravamo korisnika
-        accountService.requestAccountLimitChange(id, client.getEmail(), request.getNewLimit());
+            // Čuvamo zahtev u bazi sa statusom PENDING
+            ChangeLimitRequest limitRequest = new ChangeLimitRequest(id, request.getNewLimit());
 
-        return ResponseEntity.ok("Verification request created. Please verify.");
+            changeLimitRequestRepository.save(limitRequest);
+
+            return ResponseEntity.ok("Limit change request saved. Awaiting approval.");
+        } catch (InvalidLimitException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
 
 
 
     // Globalni Exception Handleri
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-    }
 
     @ExceptionHandler(AccountNotFoundException.class)
     public ResponseEntity<String> handleAccountNotFoundException(AccountNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
-    @ExceptionHandler(DuplicateAccountNameException.class)
-    public ResponseEntity<String> handleDuplicateAccountNameException(DuplicateAccountNameException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-    }
-
-
     @ExceptionHandler(AccNotFoundException.class)
     public ResponseEntity<String> handleAccNotFoundException(AccNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+
+    @ExceptionHandler(DuplicateAccountNameException.class)
+    public ResponseEntity<String> handleDuplicateAccountNameException(DuplicateAccountNameException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 
 
 

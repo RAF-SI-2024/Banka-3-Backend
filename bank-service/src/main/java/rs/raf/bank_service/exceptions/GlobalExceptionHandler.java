@@ -1,6 +1,10 @@
 package rs.raf.bank_service.exceptions;
 
+
+
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -17,17 +21,28 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+//
+//    @ResponseStatus(HttpStatus.BAD_REQUEST)
+//    @ExceptionHandler(MethodArgumentNotValidException.class)
+//    public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+//        String errorMessage = "Validation failed: ";
+//        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+//            errorMessage += error.getField() + " - " + error.getDefaultMessage() + "; ";
+//        }
+//        System.out.println(">>> Validation Exception: " + errorMessage);
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
+//    }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String errorMessage = "Validation failed: ";
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errorMessage += error.getField() + " - " + error.getDefaultMessage() + "; ";
-        }
-        System.out.println(">>> Validation Exception: " + errorMessage);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
+        String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
+        logger.error(errorMessage);
+        return ResponseEntity.badRequest().body(errorMessage);
     }
+
+
 
 
     @ResponseStatus(HttpStatus.NOT_FOUND)

@@ -44,12 +44,6 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 System.err.println("Fallback: createVerificationRequest failed.");
             }
 
-            @Override
-            public boolean isVerificationApproved(Long targetId, String verificationCode) {
-                // Ako ne može da se poveže, podrazumevano vratimo false (nije odobreno)
-                System.err.println("Fallback: isVerificationApproved failed.");
-                return false;
-            }
 
 
         };

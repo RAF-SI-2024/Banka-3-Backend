@@ -5,6 +5,7 @@ import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,5 +46,10 @@ public class VerificationRequestService {
         return verificationRequestRepository.findByTargetIdAndStatus(targetId, VerificationStatus.APPROVED)
                 .filter(request -> request.getCode().equals(verificationCode))
                 .isPresent();
+    }
+
+    public VerificationRequest getRequestById(Long requestId) {
+        return verificationRequestRepository.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Verification request not found"));
     }
 }

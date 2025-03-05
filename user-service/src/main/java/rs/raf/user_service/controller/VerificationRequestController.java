@@ -3,19 +3,18 @@ package rs.raf.user_service.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.bankClient.BankClient;
 import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.VerificationRequestDto;
 import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
-import rs.raf.user_service.exceptions.ClientNotFoundException;
 import rs.raf.user_service.exceptions.VerificationClientNotFoundException;
 import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.VerificationRequestService;
 
-import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 @RestController
@@ -25,9 +24,14 @@ public class VerificationRequestController {
     private final VerificationRequestService verificationRequestService;
     private final ClientService clientService;
 
-    public VerificationRequestController(VerificationRequestService verificationRequestService, ClientService clientService) {
+
+    private final BankClient bankClient;
+
+    public VerificationRequestController(VerificationRequestService verificationRequestService, ClientService clientService, BankClient bankClient) {
         this.verificationRequestService = verificationRequestService;
         this.clientService = clientService;
+
+        this.bankClient = bankClient;
     }
 
 
@@ -51,16 +55,16 @@ public class VerificationRequestController {
 
     }
 
-    @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Verification request approved"),
-            @ApiResponse(responseCode = "400", description = "Request not found or already processed")
-    })
-    @PostMapping("/approve/{requestId}")
-    public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
-        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
-        return updated ? ResponseEntity.ok("Request approved") : ResponseEntity.badRequest().body("Request not found or already processed");
-    }
+//    @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Verification request approved"),
+//            @ApiResponse(responseCode = "400", description = "Request not found or already processed")
+//    })
+//    @PostMapping("/approve/{requestId}")
+//    public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
+//        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
+//        return updated ? ResponseEntity.ok("Request approved") : ResponseEntity.badRequest().body("Request not found or already processed");
+//    }
 
     @Operation(summary = "Deny verification request", description = "Denies a verification request for a specific transaction.")
     @ApiResponses(value = {
@@ -96,5 +100,27 @@ public class VerificationRequestController {
 
         boolean isApproved = verificationRequestService.isVerificationApproved(targetId, verificationCode);
         return ResponseEntity.ok(isApproved);
+    }
+
+
+    @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Verification request approved"),
+            @ApiResponse(responseCode = "400", description = "Request not found or already processed")
+    })
+    @PostMapping("/approve/request/{requestId}")
+    public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
+        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
+
+        if (updated) {
+            // Dohvatamo zahtev da bismo izvukli accountId (targetId)
+            VerificationRequest request = verificationRequestService.getRequestById(requestId);
+
+            // Pozivamo bank-service da promeni limit
+            bankClient.changeAccountLimit(request.getTargetId());
+
+            return ResponseEntity.ok("Request approved and account limit updated");
+        }
+        return ResponseEntity.badRequest().body("Request not found or already processed");
     }
 }

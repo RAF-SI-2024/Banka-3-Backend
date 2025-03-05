@@ -5,24 +5,36 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.AccController;
 import rs.raf.bank_service.domain.dto.ChangeAccountLimitDto;
 import rs.raf.bank_service.domain.dto.ChangeAccountNameDto;
+import rs.raf.bank_service.domain.dto.ClientDto;
+import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
+import rs.raf.bank_service.domain.enums.VerificationStatus;
 import rs.raf.bank_service.exceptions.AccNotFoundException;
+import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicateAccountNameException;
+import rs.raf.bank_service.exceptions.InvalidLimitException;
+import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 
 import java.math.BigDecimal;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+
 
 public class AccControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -30,12 +42,25 @@ public class AccControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private UserClient userClient;  // Ispravno mockovan UserClient
+
+    @Mock
+    AccountRepository accountRepository;
+
+    @Mock
+    private ChangeLimitRequestRepository changeLimitRequestRepository;
+
+    private String validEmail;
+
+
     @InjectMocks
     private AccController accountController;
 
     private Long validAccountId;
     private String validNewName;
     private BigDecimal validNewLimit;
+    private String validVerificationCode;
 
     @BeforeEach
     void setUp() {
@@ -45,6 +70,8 @@ public class AccControllerTest {
         validAccountId = 1L;
         validNewName = "Updated Account";
         validNewLimit = new BigDecimal("5000");
+        validVerificationCode = "123456";
+        validEmail = "client@example.com";
     }
 
     //  Uspešna promena imena
@@ -96,68 +123,75 @@ public class AccControllerTest {
     }
 
 
-    //  Uspešna promena limita
     @Test
-    void changeAccountLimit_Success() throws Exception {
-        String verificationCode = "123456"; // Validan kod
-        ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit, verificationCode);
+    void requestChangeAccountLimit_Success() throws Exception {
+        ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit, validVerificationCode);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-limit", validAccountId)
+        // ✅ MOCKUJEMO userClient da ne vraća null
+        ClientDto mockClient = new ClientDto();
+        mockClient.setEmail(validEmail);
+        when(userClient.getClientById(validAccountId)).thenReturn(mockClient);
+
+        // ✅ MOCKUJEMO da se zahtev uspešno sačuva u bazi
+        when(changeLimitRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Account limit updated successfully"));
+                .andExpect(content().string("Limit change request saved. Awaiting approval.")); // PROVERAVA TAČAN RESPONSE
 
-        verify(accountService, times(1)).changeAccountLimit(validAccountId, validNewLimit, verificationCode);
+
     }
 
-
-    //   FIX: Promena limita - račun nije pronađen
+    // ❌ 2. Pokušaj promene limita sa nevalidnom vrednošću
     @Test
-    void changeAccountLimit_AccountNotFound() throws Exception {
-        String verificationCode = "123456";
-        doThrow(new AccNotFoundException("Account not found"))
-                .when(accountService).changeAccountLimit(validAccountId, validNewLimit, verificationCode);
+    void requestChangeAccountLimit_InvalidLimit() throws Exception {
+        ChangeAccountLimitDto request = new ChangeAccountLimitDto(BigDecimal.ZERO, validVerificationCode);
 
-        ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit, verificationCode);
+        // Očekujemo da će servis baciti InvalidLimitException
+        doThrow(new InvalidLimitException())
+                .when(accountService).requestAccountLimitChange(validAccountId, validEmail, BigDecimal.ZERO);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-limit", validAccountId)
+        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string("Account not found"));
+                .andExpect(status().isBadRequest()) ;// Očekujemo HTTP 400
+                //.andExpect(content().string("Limit must be greater than zero")); // ✅ Postavljamo tačan sadržaj odgovora
 
-        verify(accountService, times(1)).changeAccountLimit(validAccountId, validNewLimit, verificationCode);
     }
 
-
-    //  Promena limita - negativan ili nula
     @Test
-    void changeAccountLimit_InvalidValues() throws Exception {
-        String verificationCode = "123456";
-        ChangeAccountLimitDto request = new ChangeAccountLimitDto(BigDecimal.ZERO, verificationCode);
+    void requestChangeAccountLimit_AccountNotFound() throws Exception {
+        // Arrange - Simuliramo da nalog ne postoji
+        Long nonExistentAccountId = 999L;
+        ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(BigDecimal.valueOf(5000), "123456");
 
-        // Simuliramo ponašanje servisa: baciće IllegalArgumentException
-        doThrow(new IllegalArgumentException("Limit must be greater than zero"))
-                .when(accountService).changeAccountLimit(validAccountId, BigDecimal.ZERO, verificationCode);
+        Mockito.doThrow(new AccountNotFoundException())
+                .when(accountService)
+                .changeAccountLimit(nonExistentAccountId);
 
-        // Act: Izvršavamo request i hvatamo odgovor
-        MvcResult result = mockMvc.perform(put("/api/accounts/{id}/change-limit", validAccountId)
+        // Act - Pozivamo API metod
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
+
+        mockMvc.perform(put("/api/accounts/{id}/change-limit", nonExistentAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andReturn();
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isNotFound()) // Očekujemo 404 Not Found
+                .andExpect(content().string("Account not found")); // Očekujemo ovu poruku
 
-        // Debugging output da vidimo šta zapravo API vraća
-        String responseContent = result.getResponse().getContentAsString();
-        System.out.println(">>> Actual response: '" + responseContent + "'");
-
-        // Assert: Očekujemo ispravnu poruku
-        // assertEquals("Limit must be greater than zero", responseContent);
-
-        // Proveravamo da se servis nikad nije pozvao
-        verify(accountService, never()).changeAccountLimit(anyLong(), any(), any());
+        // Assert - Proveravamo da se metoda pozvala jednom
+        Mockito.verify(accountService, times(1)).changeAccountLimit(nonExistentAccountId);
     }
-
 
 }
+
+
+
+
+
+
+
+
+
+

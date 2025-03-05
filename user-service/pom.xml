@@ -12,6 +12,18 @@
     <groupId>rs.raf.banka-3</groupId>
     <artifactId>user-service</artifactId>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>2021.0.8</version> <!-- Kompatibilna verzija za Spring Boot 2.7.x -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
 
         <dependency>
@@ -104,8 +116,6 @@
         </dependency>
 
         <!-- Cucumber - koristi se za behavior-driven testiranje (BDD) -->
-        <!-- Obavezno dodati ove dependencies u vase projekte, tj. u svaki mikroservis -->
-        <!-- Napomena: obavezno prekopirati i test/resources/junit-platform.properties fajl -->
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
@@ -135,6 +145,17 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- SPRING CLOUD FEIGN -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Context (potreban za Feign) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-context</artifactId>
+        </dependency>
 
     </dependencies>
 

@@ -29,9 +29,4 @@ public interface UserClient {
     @PostMapping("/api/verification/request")
     void createVerificationRequest(@RequestBody VerificationRequestDto request);
 
-
-    @GetMapping("/api/verification/status/{targetId}")
-    boolean isVerificationApproved(@PathVariable("targetId") Long targetId, @RequestParam("code") String verificationCode);
-
-
 }
