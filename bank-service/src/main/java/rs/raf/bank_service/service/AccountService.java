@@ -15,9 +15,7 @@ import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
-import rs.raf.bank_service.domain.enums.AccountOwnerType;
-import rs.raf.bank_service.domain.enums.AccountStatus;
-import rs.raf.bank_service.domain.enums.AccountType;
+import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
 
@@ -27,8 +25,10 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -197,4 +197,125 @@ public class AccountService {
             throw new UserNotAClientException();
         }
     }
+
+
+    public void changeAccountName(Long accountId, String newName) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        System.out.println(">>> Account found: Current Name = " + account.getAccountNumber());
+
+        // Ako je novo ime isto kao staro, nema potrebe za promenom
+        if (account.getAccountNumber().equals(newName)) {
+            System.out.println(">>> New name is the same as the current name. No changes made.");
+            return;
+        }
+
+        // Proveravamo postoji li ime već u bazi
+        boolean exists = accountRepository.existsByAccountNumberAndClientId(newName, account.getClientId());
+        System.out.println(">>> Checking if account name '" + newName + "' already exists for client ID " + account.getClientId() + ": " + exists);
+
+        if (exists) {
+            System.out.println(">>> ERROR: Account name '" + newName + "' is already in use for client ID " + account.getClientId());
+            throw new DuplicateAccountNameException("Account name already in use");
+        }
+
+        System.out.println(">>> Changing account name from '" + account.getAccountNumber() + "' to '" + newName + "'");
+        account.setAccountNumber(newName);
+        accountRepository.save(account);
+
+        System.out.println(">>> SUCCESS: Account name changed to '" + newName + "'");
+    }
+
+    public void requestAccountLimitChange(Long accountId, String email, BigDecimal newLimit) {
+        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than zero");
+        }
+
+        // Pravimo verifikacioni zahtev
+        VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
+                .userId(accountId)
+                .email(email)
+                .targetId(accountId)
+                .verificationType(VerificationType.LOAN)
+                .status(VerificationStatus.PENDING)
+                .expirationTime(LocalDateTime.now().plusMinutes(5))
+                .attempts(0)
+                .build();
+
+        userClient.createVerificationRequest(verificationRequest);
+        System.out.println("Verification request created. Please approve to proceed.");
+    }
+
+    public void changeAccountLimit(Long accountId, BigDecimal newLimit, String verificationCode) {
+        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than zero");
+        }
+
+        // Provera da li je 2FA odobren
+        boolean isApproved = userClient.isVerificationApproved(accountId, verificationCode);
+        if (!isApproved) {
+            throw new IllegalStateException("Verification not approved or code invalid.");
+        }
+
+        // Ako je verifikacija prošla, menjamo limit
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        account.setDailyLimit(newLimit);
+        accountRepository.save(account);
+    }
+
+
+
+//    public void changeAccountLimit(Long accountId, BigDecimal newLimit, String verificationCode) {
+//        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
+//            throw new IllegalArgumentException("Limit must be greater than zero");
+//        }
+//
+//        boolean isApproved = userClient.isVerificationApproved(accountId, verificationCode);
+//        if (!isApproved) {
+//            throw new IllegalStateException("Verification not approved or code invalid.");
+//        }
+//
+//        Account account = accountRepository.findById(accountId)
+//                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+//
+//        account.setDailyLimit(newLimit);
+//        accountRepository.save(account);
+//    }
+
+
+
+//    public void changeAccountLimit(Long accountId, BigDecimal newLimit) {
+//        if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
+//            System.out.println(">>> ERROR: Limit must be greater than zero");
+//            throw new IllegalArgumentException("Limit must be greater than zero");
+//        }
+//
+//
+//        // Provera da li postoji odobren verification request
+//        boolean isApproved = verificationRequestService.isVerificationApproved(accountId, verificationCode);
+//        if (!isApproved) {
+//            throw new IllegalStateException("Verification not approved or code invalid.");
+//        }
+//
+//
+//        Account account = accountRepository.findById(accountId)
+//                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+//
+//        account.setDailyLimit(newLimit);
+//        accountRepository.save(account);
+//
+//
+//        //    Umesto direktne promene, pravimo 2FA verifikacioni zahtev
+//
+//       // verificationRequestService.createRequest(account.getClientId(), "CHANGE_LIMIT", accountId, newLimit);
+//      //  System.out.println(">>> 2FA request created for account ID: " + accountId + " with new limit: " + newLimit)
+////        U approveRequest() bismo dodali stvarnu promenu limita
+////        Kad se zahtev odobri, tada se tek limit menja.
+//    }
+
+
+
 }

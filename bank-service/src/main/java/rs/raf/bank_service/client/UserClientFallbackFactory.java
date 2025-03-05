@@ -38,6 +38,20 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 return Collections.emptyList();
             }
 
+            @Override
+            public void createVerificationRequest(VerificationRequestDto request) {
+                // Fallback logika - ne radi ništa, ali možemo logovati
+                System.err.println("Fallback: createVerificationRequest failed.");
+            }
+
+            @Override
+            public boolean isVerificationApproved(Long targetId, String verificationCode) {
+                // Ako ne može da se poveže, podrazumevano vratimo false (nije odobreno)
+                System.err.println("Fallback: isVerificationApproved failed.");
+                return false;
+            }
+
+
         };
     }
 }

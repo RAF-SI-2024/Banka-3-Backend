@@ -16,10 +16,11 @@ public class VerificationRequestService {
         this.verificationRequestRepository = verificationRequestRepository;
     }
 
-    public void createVerificationRequest(Long userId, String email, Long transactionId) {
+    public void createVerificationRequest(Long userId, String email, String code, Long transactionId) {
         VerificationRequest request = VerificationRequest.builder()
                 .userId(userId)
                 .email(email)
+                .code(code)
                 .targetId(transactionId)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
@@ -38,5 +39,11 @@ public class VerificationRequestService {
             verificationRequestRepository.save(request);
             return true;
         }).orElse(false);
+    }
+
+    public boolean isVerificationApproved(Long targetId, String verificationCode) {
+        return verificationRequestRepository.findByTargetIdAndStatus(targetId, VerificationStatus.APPROVED)
+                .filter(request -> request.getCode().equals(verificationCode))
+                .isPresent();
     }
 }

@@ -39,6 +39,7 @@ public class VerificationRequest {
 
     private Long userId;
     private String email;
+    private String code;
     private Long targetId;
 
     @Enumerated(EnumType.STRING)

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.ClientDto;
+import rs.raf.user_service.dto.VerificationRequestDto;
 import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.exceptions.ClientNotFoundException;
@@ -70,5 +71,30 @@ public class VerificationRequestController {
     public ResponseEntity<String> denyRequest(@PathVariable Long requestId) {
         boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.DENIED);
         return updated ? ResponseEntity.ok("Request denied") : ResponseEntity.badRequest().body("Request not found or already processed");
+    }
+
+//    @PostMapping("/check-verification")
+//    public boolean isVerificationApproved(@RequestParam Long targetId, @RequestParam String verificationCode) {
+//        return verificationRequestService.isVerificationApproved(targetId, verificationCode);
+//    }
+
+    @PostMapping("/request")
+    public ResponseEntity<String> createVerificationRequest(@RequestBody VerificationRequestDto request) {
+        verificationRequestService.createVerificationRequest(
+                request.getUserId(),
+                request.getEmail(),
+                request.getCode(),
+                request.getTargetId()
+        );
+        return ResponseEntity.ok("Verification request created.");
+    }
+
+    @GetMapping("/status/{targetId}")
+    public ResponseEntity<Boolean> isVerificationApproved(
+            @PathVariable Long targetId,
+            @RequestParam("code") String verificationCode) {
+
+        boolean isApproved = verificationRequestService.isVerificationApproved(targetId, verificationCode);
+        return ResponseEntity.ok(isApproved);
     }
 }

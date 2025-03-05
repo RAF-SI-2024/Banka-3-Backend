@@ -44,7 +44,7 @@ public class VerificationRequestTest {
 
     @Test
     void testCreateVerificationRequest() {
-        verificationRequestService.createVerificationRequest(100L, "test@example.com", 200L);
+        verificationRequestService.createVerificationRequest(100L, "test@example.com", "4b56", 200L);
         verify(verificationRequestRepository, times(1)).save(any(VerificationRequest.class));
     }
 
