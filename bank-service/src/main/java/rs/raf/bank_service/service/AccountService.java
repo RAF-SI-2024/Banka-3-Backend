@@ -42,16 +42,8 @@ public class AccountService {
         @Autowired
         private final UserClient userClient;
 
-        @Operation(summary = "Retrieve accounts with filtering and pagination", description = "Returns a paginated list of accounts filtered by account number and owner's first and last name.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Accounts retrieved successfully"),
-                        @ApiResponse(responseCode = "404", description = "No accounts found matching the criteria")
-        })
-        public Page<AccountDto> getAccounts(
-                        @Parameter(description = "Filter accounts by part of the account number", example = "111111111111111111") String accountNumber,
-                        @Parameter(description = "Filter accounts by owner's first name", example = "Marko") String firstName,
-                        @Parameter(description = "Filter accounts by owner's last name", example = "Markovic") String lastName,
-                        Pageable pageable) {
+
+        public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
 
                 Specification<Account> spec = Specification
                                 .where(AccountSearchSpecification.accountNumberContains(accountNumber));
@@ -90,6 +82,17 @@ public class AccountService {
                 List<AccountDto> pageContent = accountDtos.subList(start, end);
                 return new PageImpl<>(pageContent, pageable, accountDtos.size());
         }
+
+    public Page<AccountDto> getAccountsForClient(String accountNumber, Long clientId, Pageable pageable) {
+        ClientDto client = userClient.getClientById(clientId);
+
+        Specification<Account> spec = Specification
+                .where(AccountSearchSpecification.accountNumberContains(accountNumber)
+                .and(AccountSearchSpecification.clientIs(clientId)));
+        Page<Account> accounts = accountRepository.findAll(spec, pageable);
+
+        return accounts.map(account -> AccountMapper.toDto(account, client));
+    }
 
         public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
                 Long userId = newBankAccountDto.getClientId();

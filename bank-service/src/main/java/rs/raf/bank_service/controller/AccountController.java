@@ -53,6 +53,22 @@ public class AccountController {
         return ResponseEntity.ok(accounts);
     }
 
+    @PreAuthorize("hasAuthority('employee')")
+    @Operation(summary = "Get client accounts with filtering and pagination")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
+    @GetMapping("/{clientId}")
+    public ResponseEntity<Page<AccountDto>> getAccountsForClient(
+            @RequestParam(required = false) String accountNumber,
+            @PathVariable Long clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
+        return ResponseEntity.ok(accounts);
+    }
+
+
 
     @PreAuthorize("hasAuthority('employee')")
     @PostMapping
@@ -101,7 +117,7 @@ public class AccountController {
     //oVO MOZDA VISE I NIJE POTREBNO JER JE KOLEGA KOJI JE MERGOVAO PRE MENE PROSIRIO aCCOUNTdTO DA UKLJUCUJE
     //I ONO STO SAM JA RAZDVOJIO U AccountDetailsDto -- izvini za Caps
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/{accountNumber}")
+    @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved account with details"),
