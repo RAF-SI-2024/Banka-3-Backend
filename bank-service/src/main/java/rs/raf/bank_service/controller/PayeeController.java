@@ -28,7 +28,7 @@ public class PayeeController {
     private final PayeeService service;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping
     @Operation(summary = "Add a new payee.")
     @ApiResponses({
@@ -45,7 +45,7 @@ public class PayeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body("Payee created successfully.");
     }
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/client")
     @Operation(summary = "Get all payees for the authenticated client.")
     @ApiResponses({
@@ -58,7 +58,7 @@ public class PayeeController {
         return ResponseEntity.ok(payees);
     }
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing payee.")
     @ApiResponses({
@@ -81,7 +81,7 @@ public class PayeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a payee.")
     @ApiResponses({
