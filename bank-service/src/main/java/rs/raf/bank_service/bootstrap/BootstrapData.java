@@ -113,10 +113,10 @@ public class BootstrapData implements CommandLineRunner {
         PersonalAccount currentAccount = new PersonalAccount();
         currentAccount.setAccountNumber("111111111111111111");
         currentAccount.setClientId(2L);             // Klijent: Marko Markovic (lični)
-        currentAccount.setCreatedByEmployeeId(100L);
+        currentAccount.setCreatedByEmployeeId(3L);
         currentAccount.setCreationDate(LocalDate.now().minusMonths(1));
         currentAccount.setExpirationDate(LocalDate.now().plusYears(5));
-        currentAccount.setCurrency(currency);
+        currentAccount.setCurrency(currency2);
         currentAccount.setStatus(AccountStatus.ACTIVE);
         currentAccount.setBalance(BigDecimal.valueOf(1000));
         currentAccount.setAvailableBalance(BigDecimal.valueOf(900));
@@ -127,6 +127,25 @@ public class BootstrapData implements CommandLineRunner {
         currentAccount.setType(AccountType.CURRENT);
         currentAccount.setAccountOwnerType(AccountOwnerType.PERSONAL);
         accountRepository.save(currentAccount);
+
+        // Tekući račun (lični) – za klijenta sa ID 1
+        PersonalAccount currentAccount2 = new PersonalAccount();
+        currentAccount2.setAccountNumber("211111111111111111");
+        currentAccount2.setClientId(1L);             // Klijent: Jovan neki (lični)
+        currentAccount2.setCreatedByEmployeeId(3L);
+        currentAccount2.setCreationDate(LocalDate.now().minusMonths(1));
+        currentAccount2.setExpirationDate(LocalDate.now().plusYears(5));
+        currentAccount2.setCurrency(currency2);
+        currentAccount2.setStatus(AccountStatus.ACTIVE);
+        currentAccount2.setBalance(BigDecimal.valueOf(1000));
+        currentAccount2.setAvailableBalance(BigDecimal.valueOf(900));
+        currentAccount2.setDailyLimit(BigDecimal.valueOf(500));
+        currentAccount2.setMonthlyLimit(BigDecimal.valueOf(5000));
+        currentAccount2.setDailySpending(BigDecimal.ZERO);
+        currentAccount2.setMonthlySpending(BigDecimal.ZERO);
+        currentAccount2.setType(AccountType.CURRENT);
+        currentAccount2.setAccountOwnerType(AccountOwnerType.PERSONAL);
+        accountRepository.save(currentAccount2);
 
         // Devizni račun (poslovni) – za klijenta sa ID 1
         CompanyAccount foreignAccount = new CompanyAccount();

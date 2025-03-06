@@ -15,30 +15,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class VerificationRequest {
-
-    /*
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long userId;
-
-    private String email; // ili e-mail servis? ; mobilna aplk?
-
-    private String code;
-
-    private LocalDateTime expirationTime;
-
-    private int attempts;
-
-     */
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private Long userId;
-    private String email;
     private Long targetId;
 
     @Enumerated(EnumType.STRING)

@@ -24,7 +24,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/transfer")
     @Operation(summary = "Transfer funds between accounts", description = "Transfers funds from one account to another. Both must " +
             "be using the same currency.")
@@ -64,11 +64,9 @@ public class PaymentController {
     @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/confirm-transfer/{paymentId}")
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
-    public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId,
-                                                  @RequestHeader("Authorization") String token) {
-        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
+    public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
         try {
-            boolean success = paymentService.confirmTransferAndExecute(paymentId, clientId);
+            boolean success = paymentService.confirmTransferAndExecute(paymentId);
             if (success) {
                 return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
             } else {
@@ -84,7 +82,7 @@ public class PaymentController {
     }
 
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
-    @PostMapping("/")
+    @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment created successfully"),
@@ -122,11 +120,9 @@ public class PaymentController {
             @ApiResponse(responseCode = "400", description = "Payment validation error"),
             @ApiResponse(responseCode = "500", description = "Internal server error while processing payment")
     })
-    public ResponseEntity<String> confirmPayment(@PathVariable Long paymentId,
-                                                 @RequestHeader("Authorization") String token) {
-        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
+    public ResponseEntity<String> confirmPayment(@PathVariable Long paymentId) {
         try {
-            paymentService.confirmPayment(paymentId, clientId);
+            paymentService.confirmPayment(paymentId);
             return ResponseEntity.status(HttpStatus.OK).body("Payment completed successfully.");
         } catch (PaymentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found: " + e.getMessage());

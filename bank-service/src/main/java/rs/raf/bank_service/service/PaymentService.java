@@ -20,6 +20,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -63,14 +64,9 @@ public class PaymentService {
         return true;
     }
 
-    public boolean confirmTransferAndExecute(Long paymentId, Long clientId) {
+    public boolean confirmTransferAndExecute(Long paymentId) {
         // Preuzimanje payment entiteta na osnovu paymentId
         Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
-
-        // Provera da li se ClientId poklapa sa ClientId iz payment-a
-        if (!payment.getClientId().equals(clientId)) {
-            throw new UnauthorizedTransferConormationException(clientId, payment.getClientId());
-        }
 
         // Preuzimanje računa za sender i receiver koristeći podatke iz payment-a
         Account sender = payment.getSenderAccount();
@@ -135,23 +131,19 @@ public class PaymentService {
     }
 
 
-    public void confirmPayment(Long paymentId, Long clientId) {
+    public void confirmPayment(Long paymentId) {
         // Preuzimanje payment entiteta na osnovu paymentId
         Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
-
-        // Provera da li se clientId poklapa sa clientId iz payment-a
-        if (!payment.getClientId().equals(clientId)) {
-            throw new UnauthorizedPaymentException(clientId, payment.getClientId());
-        }
 
         // Preuzimanje sender i receiver računa
         Account sender = payment.getSenderAccount();
         String receiverString = payment.getAccountNumberReciver();
 
-        Account receiver = (Account) accountRepository.findAllByAccountNumber(receiverString);
+        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(receiverString);
 
         // Ako je receiver u banci, izvrši transakciju
-        if (receiver != null) {
+        if (receiverOpt.isPresent()) {
+            Account receiver = receiverOpt.get();
             // Konverzija iznos sa RSD u valutu primaoca
             BigDecimal convertedAmount = convert(payment.getAmount(), CurrencyType.valueOf(receiver.getCurrency().getCode()));
 

@@ -51,6 +51,7 @@ public class Payment {
 
     private LocalDateTime transactionDate;
 
+    @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
     @PrePersist

@@ -86,9 +86,8 @@ public class VerificationRequestService {
         switch (request.getVerificationType()) {
             case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
             case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
+            case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
         }
-
-
 
         return true;
     }
@@ -110,6 +109,9 @@ public class VerificationRequestService {
             throw new SecurityException("You are not authorized to deny this request.");
         }
 
+        switch (request.getVerificationType()) {
+        // @todo cancel payment/transfer, cancel limit change
+        }
 
         return updateRequestStatus(requestId, VerificationStatus.DENIED);
     }

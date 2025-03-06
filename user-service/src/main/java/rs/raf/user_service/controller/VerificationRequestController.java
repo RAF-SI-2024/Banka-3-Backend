@@ -3,6 +3,7 @@ package rs.raf.user_service.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.client.BankClient;
@@ -18,17 +19,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/verification")
+@AllArgsConstructor
 public class VerificationRequestController {
 
     private final VerificationRequestService verificationRequestService;
     private final ClientService clientService;
-    private final BankClient bankClient;
-
-    public VerificationRequestController(VerificationRequestService verificationRequestService, ClientService clientService, BankClient bankClient) {
-        this.verificationRequestService = verificationRequestService;
-        this.clientService = clientService;
-        this.bankClient = bankClient;
-    }
 
     @Operation(summary = "Get active verification requests", description = "Returns a list of pending verification requests for the user.")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "List of active requests retrieved successfully"), @ApiResponse(responseCode = "401", description = "Unauthorized access")})
