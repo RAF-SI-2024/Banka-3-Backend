@@ -4,17 +4,26 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CreatePaymentDto;
+import rs.raf.bank_service.domain.dto.PaymentDetailsDto;
+import rs.raf.bank_service.domain.dto.PaymentOverviewDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
+import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -131,5 +140,27 @@ public class PaymentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to complete payment: " + e.getMessage());
         }
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<PaymentOverviewDto>> getPayments(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PaymentOverviewDto> payments = paymentService.getPayments(token, startDate, endDate, minAmount, maxAmount, paymentStatus, pageable);
+        return ResponseEntity.ok(payments);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PaymentDetailsDto> getPaymentDetails(@PathVariable Long id) {
+        PaymentDetailsDto details = paymentService.getPaymentDetails(id);
+        return ResponseEntity.ok(details);
     }
 }

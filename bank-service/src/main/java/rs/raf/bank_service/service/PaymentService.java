@@ -1,19 +1,22 @@
 package rs.raf.bank_service.service;
 
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.CreatePaymentDto;
-import rs.raf.bank_service.domain.dto.CreateVerificationRequestDto;
-import rs.raf.bank_service.domain.dto.TransferDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.CurrencyType;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.VerificationType;
 import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.constraints.NotNull;
@@ -27,8 +30,10 @@ import java.util.Optional;
 public class PaymentService {
 
     private final AccountRepository accountRepository;
+    private final JwtTokenUtil jwtTokenUtil;
     private PaymentRepository paymentRepository;
     private final UserClient userClient;
+    private final PaymentMapper paymentMapper;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) {
         // Preuzimanje računa za sender i receiver
@@ -52,8 +57,8 @@ public class PaymentService {
         payment.setSenderAccount(sender);  // Sender račun
         payment.setAmount(transferDto.getAmount());  // Iznos
         payment.setAccountNumberReciver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
-        payment.setPaymentStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
-        payment.setTransactionDate(LocalDateTime.now());  // Datum transakcije
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
+        payment.setDate(LocalDateTime.now());  // Datum transakcije
 
         paymentRepository.save(payment);
 
@@ -81,7 +86,7 @@ public class PaymentService {
         accountRepository.save(receiver);
 
         // Ažuriranje statusa payment-a na "COMPLETED"
-        payment.setPaymentStatus(PaymentStatus.COMPLETED);
+        payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
 
         return true;
@@ -120,8 +125,8 @@ public class PaymentService {
         payment.setPaymentCode(paymentDto.getPaymentCode());
         payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
         payment.setReferenceNumber(paymentDto.getReferenceNumber());
-        payment.setTransactionDate(LocalDateTime.now());
-        payment.setPaymentStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setDate(LocalDateTime.now());
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
         paymentRepository.save(payment);
 
         CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT);
@@ -156,7 +161,7 @@ public class PaymentService {
         accountRepository.save(sender);
 
         // Ažuriranje statusa payment-a na "COMPLETED"
-        payment.setPaymentStatus(PaymentStatus.COMPLETED);
+        payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
     }
 
@@ -184,6 +189,27 @@ public class PaymentService {
             throw new CurrencyNotFoundException(currencyType.toString());
         }
         return convertedAmount;
+    }
+
+    // Dohvatanje svih transakcija za određenog klijenta sa filtriranjem
+    public Page<PaymentOverviewDto> getPayments(
+            String token,
+            LocalDateTime startDate, LocalDateTime endDate,
+            BigDecimal minAmount, BigDecimal maxAmount,
+            PaymentStatus paymentStatus,
+            Pageable pageable
+    ) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
+        Specification<Payment> spec = PaymentSpecification.filterPayments(clientId, startDate, endDate, minAmount, maxAmount, paymentStatus);
+        Page<Payment> payments = paymentRepository.findAll(spec, pageable);
+        return payments.map(paymentMapper::toOverviewDto);
+    }
+
+    // Dohvatanje detalja transakcije po ID-u
+    public PaymentDetailsDto getPaymentDetails(Long id) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new PaymentNotFoundException(id));
+        return paymentMapper.toDetailsDto(payment);
     }
 }
 

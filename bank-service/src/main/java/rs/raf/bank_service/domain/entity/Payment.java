@@ -27,7 +27,7 @@ public class Payment {
     private String senderName;
 
     @Column(nullable = false)
-    private Long ClientId;
+    private Long clientId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
@@ -49,15 +49,15 @@ public class Payment {
 
     private String referenceNumber;
 
-    private LocalDateTime transactionDate;
+    private LocalDateTime date;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private PaymentStatus status;
 
     @PrePersist
     public void setTransactionDate() {
-        if (this.transactionDate == null) {
-            this.transactionDate = LocalDateTime.now();
+        if (this.date == null) {
+            this.date = LocalDateTime.now();
         }
     }
 
