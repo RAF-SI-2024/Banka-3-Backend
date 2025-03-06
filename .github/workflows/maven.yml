@@ -46,6 +46,14 @@ jobs:
           --health-retries 5
         ports:
           - 5433:5432
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672  # RabbitMQ port
+          - 15672:15672  # RabbitMQ management console port
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
 
     steps:
       - uses: actions/checkout@v4
