@@ -20,6 +20,7 @@ import rs.raf.user_service.dto.ErrorMessageDto;
 import rs.raf.user_service.dto.UpdateClientDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.ClientService;
 
 import javax.persistence.EntityNotFoundException;
@@ -88,7 +89,7 @@ public class ClientController {
         try {
             ClientDto clientDto = clientService.addClient(createClientDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(clientDto);
-        } catch (EmailAlreadyExistsException | JmbgAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | JmbgAlreadyExistsException | UserAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
