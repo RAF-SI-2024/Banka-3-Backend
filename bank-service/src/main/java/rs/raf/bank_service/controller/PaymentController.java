@@ -3,7 +3,7 @@ package rs.raf.bank_service.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,15 +12,17 @@ import rs.raf.bank_service.domain.dto.CreatePaymentDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/payment")
+@AllArgsConstructor
 public class PaymentController {
 
-    @Autowired
-    private PaymentService paymentService;
+    private final PaymentService paymentService;
+    private final JwtTokenUtil jwtTokenUtil;
 
     @PreAuthorize("hasAuthority('client')")
     @PostMapping("/transfer")
@@ -37,10 +39,10 @@ public class PaymentController {
             @Valid @RequestBody TransferDto dto,
             @RequestHeader("Authorization") String token) {
 
-        Long clientId = paymentService.getClientIdFromToken(token);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
 
         try {
-            boolean success = paymentService.createTransferPendingConformation(dto, clientId);
+            boolean success = paymentService.createTransferPendingConfirmation(dto, clientId);
             if (success) {
                 return ResponseEntity.status(HttpStatus.OK).body("Transfer created successfully, waiting for confirmation.");
             } else {
@@ -59,12 +61,12 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/confirm-transfer/{paymentId}")
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId,
                                                   @RequestHeader("Authorization") String token) {
-        Long clientId = paymentService.getClientIdFromToken(token);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
             boolean success = paymentService.confirmTransferAndExecute(paymentId, clientId);
             if (success) {
@@ -82,7 +84,7 @@ public class PaymentController {
     }
 
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
-    @PostMapping("/payment")
+    @PostMapping("/")
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment created successfully"),
@@ -94,31 +96,24 @@ public class PaymentController {
     public ResponseEntity<String> newPayment(
             @Valid @RequestBody CreatePaymentDto dto,
             @RequestHeader("Authorization") String token) {
-        Long clientId = paymentService.getClientIdFromToken(token);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
-            boolean success = paymentService.createPaymentBeforeConformation(dto, clientId);
+            boolean success = paymentService.createPaymentBeforeConfirmation(dto, clientId);
             if (success) {
                 return ResponseEntity.status(HttpStatus.OK).body("Payment created successfully");
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Payment failed: Insufficient funds or invalid data");
             }
-        } catch (SenderAccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Sender account not found: " + e.getMessage());
-        } catch (InsufficientFundsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient funds: " + e.getMessage());
-        } catch (PaymentCodeNotProvidedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Payment code is required: " + e.getMessage());
-        } catch (PurposeOfPaymentNotProvidedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Purpose of payment is required: " + e.getMessage());
-        } catch (SendersAccountsCurencyIsNotDinarException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sender's account must be in RSD: " + e.getMessage());
+        } catch (InsufficientFundsException | PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException | SenderAccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            // @todo FIXATI ERROR HANDLING SVUDA ROKNUCU SE
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
     }
 
     // Metoda za potvrdu plaćanja
-    @PreAuthorize("hasAuthority('client')")
+    @PreAuthorize("hasAuthority('admin')")
     @PostMapping("/confirm-payment/{paymentId}")
     @Operation(summary = "Confirm payment", description = "Confirm and execute payment once the receiver is verified.")
     @ApiResponses(value = {
@@ -129,7 +124,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> confirmPayment(@PathVariable Long paymentId,
                                                  @RequestHeader("Authorization") String token) {
-        Long clientId = paymentService.getClientIdFromToken(token);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
             paymentService.confirmPayment(paymentId, clientId);
             return ResponseEntity.status(HttpStatus.OK).body("Payment completed successfully.");

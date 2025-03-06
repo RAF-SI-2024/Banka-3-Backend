@@ -12,15 +12,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class VerificationRequestDto {
+public class CreateVerificationRequestDto {
 
     private Long userId;
-    private String email;
-    private String code;
-    private LocalDateTime expirationTime;
-    private int attempts;
     private Long targetId;
-
-    private VerificationStatus status;
     private VerificationType verificationType;
 }

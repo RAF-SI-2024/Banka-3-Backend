@@ -1,7 +1,8 @@
 package rs.raf.user_service.service;
 
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.bankClient.BankClient;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.dto.CreateVerificationRequestDto;
 import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.enums.VerificationType;
@@ -31,40 +32,16 @@ public class VerificationRequestService {
         return request.getTargetId();  // Ovo je transactionId, koje je sačuvano u targetId
     }
 
-    public void createVerificationRequest(Long userId, String email, Long transactionId) {
+    public void createVerificationRequest(CreateVerificationRequestDto createVerificationRequestDto) {
         VerificationRequest request = VerificationRequest.builder()
-                .userId(userId)
-                .email(email)
-                .targetId(transactionId)
+                .userId(createVerificationRequestDto.getUserId())
+                .targetId(createVerificationRequestDto.getTargetId())
                 .status(VerificationStatus.PENDING)
+                .verificationType(createVerificationRequestDto.getVerificationType())
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
                 .build();
 
         verificationRequestRepository.save(request);
-    }
-
-    public void createPaymentVerificationRequest(Long userId, Long transactionId) {
-        VerificationRequest request = VerificationRequest.builder()
-                .userId(userId)
-                .targetId(transactionId)
-                .verificationType(VerificationType.PAYMENT)  // Postavljanje tipa na PAYMENT
-                .status(VerificationStatus.PENDING)  // Status PENDING dok čekamo verifikaciju
-                .expirationTime(LocalDateTime.now().plusMinutes(5))  // Verifikacija je validna 5 minuta
-                .build();
-
-        verificationRequestRepository.save(request);  // Spremamo u bazu
-    }
-
-    public void createTransferVerificationRequest(Long userId, Long transactionId) {
-        VerificationRequest request = VerificationRequest.builder()
-                .userId(userId)
-                .targetId(transactionId)
-                .verificationType(VerificationType.TRANSFER)  // Postavljanje tipa na TRANSFER
-                .status(VerificationStatus.PENDING)  // Status PENDING dok čekamo verifikaciju
-                .expirationTime(LocalDateTime.now().plusMinutes(5))  // Verifikacija je validna 5 minuta
-                .build();
-
-        verificationRequestRepository.save(request);  // Spremamo u bazu
     }
 
     public VerificationType getVerificationTypeByRequestId(Long requestId) {
@@ -106,8 +83,12 @@ public class VerificationRequestService {
         request.setStatus(VerificationStatus.APPROVED);
         verificationRequestRepository.save(request);
 
+        switch (request.getVerificationType()) {
+            case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
+            case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
+        }
 
-        bankClient.changeAccountLimit(request.getTargetId());
+
 
         return true;
     }

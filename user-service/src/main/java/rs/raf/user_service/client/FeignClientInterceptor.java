@@ -1,4 +1,4 @@
-package rs.raf.user_service.bank;
+package rs.raf.user_service.client;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;

@@ -3,18 +3,14 @@ package rs.raf.user_service.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.bank.BankClient;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.PaymentVerificationRequestDto;
-import rs.raf.user_service.dto.RequestConfirmedDto;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.dto.*;
 import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
 import rs.raf.user_service.enums.VerificationType;
 import org.springframework.security.access.prepost.PreAuthorize;
-import rs.raf.user_service.dto.VerificationRequestDto;
 import rs.raf.user_service.exceptions.VerificationClientNotFoundException;
 import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.VerificationRequestService;
@@ -51,27 +47,6 @@ public class VerificationRequestController {
 
     }
 
-    @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
-    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Verification request approved"), @ApiResponse(responseCode = "400", description = "Request not found or already processed")})
-    @PostMapping("/approve/{requestId}")
-    public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
-        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
-        VerificationType verificationType = verificationRequestService.getVerificationTypeByRequestId(requestId);
-
-        if (updated) {
-            // Poziv servisne metode koja uzima requestId, iz baze uzima transactionId i prosleđuje ga ka banki
-            Long transactionId = verificationRequestService.getTransactionIdByRequestId(requestId);
-            // Slanje transactionId bank servisu za izvršenje transfera
-
-            if (verificationType == VerificationType.TRANSFER) {
-                bankClient.confirmTransfer(new RequestConfirmedDto(transactionId));
-            } else if (verificationType == VerificationType.PAYMENT) {
-                bankClient.confirmPayment(new RequestConfirmedDto(transactionId));
-            }
-        }
-        return updated ? ResponseEntity.ok("Request approved") : ResponseEntity.badRequest().body("Request not found or already processed");
-    }
-
     @Operation(summary = "Deny verification request", description = "Denies a verification request for a specific transaction.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Verification request denied"),
@@ -92,12 +67,8 @@ public class VerificationRequestController {
 
     @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('admin')")
     @PostMapping("/request")
-    public ResponseEntity<String> createVerificationRequest(@RequestBody VerificationRequestDto request) {
-        verificationRequestService.createVerificationRequest(
-                request.getUserId(),
-                request.getEmail(),
-                request.getTargetId()
-        );
+    public ResponseEntity<String> createVerificationRequest(@RequestBody CreateVerificationRequestDto createVerificationRequestDto) {
+        verificationRequestService.createVerificationRequest(createVerificationRequestDto);
         return ResponseEntity.ok("Verification request created.");
     }
 

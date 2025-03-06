@@ -112,7 +112,6 @@ public class AccountController {
     public ResponseEntity<?> getMyAccounts(@RequestHeader("Authorization") String auth){
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-            System.out.println(clientId);
             return ResponseEntity.ok(accountService.getMyAccounts(clientId));
         }catch (UserNotAClientException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

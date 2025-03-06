@@ -1,16 +1,16 @@
 package rs.raf.bank_service.service;
 
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.CreatePaymentDto;
-import rs.raf.bank_service.domain.dto.PaymentVerificationRequestDto;
+import rs.raf.bank_service.domain.dto.CreateVerificationRequestDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.CurrencyType;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
+import rs.raf.bank_service.domain.enums.VerificationType;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
@@ -25,22 +25,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentService {
 
-    @Autowired
     private final AccountRepository accountRepository;
-    @Autowired
     private PaymentRepository paymentRepository;
-    private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
 
-    public Long getClientIdFromToken(String token) {
-        token = token.replace("Bearer ", "");
-        if (!jwtTokenUtil.validateToken(token)) {
-            throw new SecurityException("Invalid token");
-        }
-        return Long.valueOf(jwtTokenUtil.extractUserId(token));
-    }
-
-    public boolean createTransferPendingConformation(TransferDto transferDto, Long clientId) {
+    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) {
         // Preuzimanje računa za sender i receiver
         Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber()).stream().findFirst().orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
 
@@ -58,18 +47,18 @@ public class PaymentService {
 
         // Kreiranje Payment entiteta za transfer
         Payment payment = new Payment();
-        payment.setClintId(clientId);  // Dodajemo Client ID
+        payment.setClientId(clientId);  // Dodajemo Client ID
         payment.setSenderAccount(sender);  // Sender račun
         payment.setAmount(transferDto.getAmount());  // Iznos
         payment.setAccountNumberReciver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
-        payment.setPaymentStatus(PaymentStatus.PENDING_CONFORMATION);  // Status je "na čekanju"
+        payment.setPaymentStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
         payment.setTransactionDate(LocalDateTime.now());  // Datum transakcije
 
         paymentRepository.save(payment);
 
         // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
-        PaymentVerificationRequestDto paymentVerificationRequestDto = new PaymentVerificationRequestDto(clientId, payment.getId(), "Transfer");
-        userClient.createTransferRequest(paymentVerificationRequestDto);
+        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.TRANSFER);
+        userClient.createVerificationRequest(paymentVerificationRequestDto);
 
         return true;
     }
@@ -79,8 +68,8 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Provera da li se ClientId poklapa sa ClientId iz payment-a
-        if (!payment.getClintId().equals(clientId)) {
-            throw new UnauthorizedTransferConormationException(clientId, payment.getClintId());
+        if (!payment.getClientId().equals(clientId)) {
+            throw new UnauthorizedTransferConormationException(clientId, payment.getClientId());
         }
 
         // Preuzimanje računa za sender i receiver koristeći podatke iz payment-a
@@ -103,7 +92,7 @@ public class PaymentService {
     }
 
 
-    public boolean createPaymentBeforeConformation(CreatePaymentDto paymentDto, Long clientId) {
+    public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) {
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
         }
@@ -128,7 +117,7 @@ public class PaymentService {
         // Kreiranje Payment entiteta
         Payment payment = new Payment();
         payment.setSenderName(paymentDto.getSenderName());
-        payment.setClintId(clientId);
+        payment.setClientId(clientId);
         payment.setSenderAccount(sender);
         payment.setAccountNumberReciver(paymentDto.getReceiverAccountNumber().toString());
         payment.setAmount(paymentDto.getAmount());
@@ -136,11 +125,11 @@ public class PaymentService {
         payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
         payment.setReferenceNumber(paymentDto.getReferenceNumber());
         payment.setTransactionDate(LocalDateTime.now());
-        payment.setPaymentStatus(PaymentStatus.PENDING_CONFORMATION);
+        payment.setPaymentStatus(PaymentStatus.PENDING_CONFIRMATION);
         paymentRepository.save(payment);
 
-        PaymentVerificationRequestDto paymentVerificationRequestDto = new PaymentVerificationRequestDto(clientId, payment.getId(), "Payment");
-        userClient.createPaymentRequest(paymentVerificationRequestDto);
+        CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT);
+        userClient.createVerificationRequest(createVerificationRequestDto);
 
         return true;
     }
@@ -151,8 +140,8 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Provera da li se clientId poklapa sa clientId iz payment-a
-        if (!payment.getClintId().equals(clientId)) {
-            throw new UnauthorizedPaymentException(clientId, payment.getClintId());
+        if (!payment.getClientId().equals(clientId)) {
+            throw new UnauthorizedPaymentException(clientId, payment.getClientId());
         }
 
         // Preuzimanje sender i receiver računa
@@ -179,6 +168,7 @@ public class PaymentService {
         paymentRepository.save(payment);
     }
 
+    // ovo ce se menjati sa menjacnicom
     public static BigDecimal convert(@NotNull(message = "Amount is required.") @Positive(message = "Amount must be positive.") BigDecimal amountInRSD, CurrencyType currencyType) {
         BigDecimal convertedAmount = BigDecimal.ZERO;  // Postavi početnu vrednost kao 0
 

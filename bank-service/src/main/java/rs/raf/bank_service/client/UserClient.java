@@ -27,6 +27,6 @@ public interface UserClient {
     List<AuthorizedPersonelDto> getAuthorizedPersonnelByCompany(@PathVariable("companyId") Long companyId);
 
     @PostMapping("/api/verification/request")
-    void createVerificationRequest(@RequestBody VerificationRequestDto request);
+    void createVerificationRequest(@RequestBody CreateVerificationRequestDto request);
 
 }

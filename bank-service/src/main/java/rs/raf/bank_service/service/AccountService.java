@@ -1,10 +1,6 @@
 package rs.raf.bank_service.service;
 
 import feign.FeignException;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -254,14 +250,10 @@ public class AccountService {
         changeLimitRequestRepository.save(request);
 
 
-        VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
+        CreateVerificationRequestDto verificationRequest = CreateVerificationRequestDto.builder()
                 .userId(clientId)
-                .email(email)
                 .targetId(request.getId())
                 .verificationType(VerificationType.CHANGE_LIMIT)
-                .status(VerificationStatus.PENDING)
-                .expirationTime(LocalDateTime.now().plusMinutes(5))
-                .attempts(0)
                 .build();
 
         userClient.createVerificationRequest(verificationRequest);

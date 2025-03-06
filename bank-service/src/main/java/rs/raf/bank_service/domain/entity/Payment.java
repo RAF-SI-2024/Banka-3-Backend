@@ -27,7 +27,7 @@ public class Payment {
     private String senderName;
 
     @Column(nullable = false)
-    private Long ClintId;
+    private Long ClientId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)

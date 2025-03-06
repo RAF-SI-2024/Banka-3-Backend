@@ -4,5 +4,6 @@ public enum VerificationType {
     LOGIN,
     LOAN,
     PAYMENT,
-    TRANSFER
+    TRANSFER,
+    CHANGE_LIMIT
 }
