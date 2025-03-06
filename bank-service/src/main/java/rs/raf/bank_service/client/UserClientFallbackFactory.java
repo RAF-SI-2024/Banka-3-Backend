@@ -39,15 +39,11 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 return Collections.emptyList();
             }
 
-            @Override
-            public void createTransferRequest(PaymentVerificationRequestDto paymentVerificationRequestDto) {
-
+            public void createVerificationRequest(VerificationRequestDto request) {
+                // Fallback logika - ne radi ništa, ali možemo logovati
+                System.err.println("Fallback: createVerificationRequest failed.");
             }
 
-            @Override
-            public void createPaymentRequest(PaymentVerificationRequestDto paymentVerificationRequestDto) {
-
-            }
         };
     }
 }

@@ -1,5 +1,6 @@
 package rs.raf.user_service.dto;
 
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,6 +41,10 @@ public class CreateClientDto {
 
     @NotNull(message = "Address cannot be null")
     private String address;
+
+    @NotNull(message = "Username cannot be null")
+    @Size(min = 2, max = 100, message = "Username must be between 2 and 100 characters")
+    private String username;
 
     @NotNull(message = "Jmbg cannot be null")
     @Pattern(

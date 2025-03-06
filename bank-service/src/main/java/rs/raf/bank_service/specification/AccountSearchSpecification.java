@@ -13,4 +13,14 @@ public class AccountSearchSpecification {
             return criteriaBuilder.like(root.get("accountNumber"), "%" + accountNumber + "%");
         };
     }
+
+
+    public static Specification<Account> clientIs(Long clientId) {
+        return (root, query, criteriaBuilder) -> {
+            if (clientId == null) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(root.get("clientId"), clientId);
+        };
+    }
 }

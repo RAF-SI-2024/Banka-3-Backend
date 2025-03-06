@@ -26,10 +26,7 @@ public interface UserClient {
     @GetMapping("/api/authorized-personnel/company/{companyId}")
     List<AuthorizedPersonelDto> getAuthorizedPersonnelByCompany(@PathVariable("companyId") Long companyId);
 
-    @PostMapping("/api/verification/create-request/transfer")
-    void createTransferRequest(@RequestBody PaymentVerificationRequestDto paymentVerificationRequestDto);
+    @PostMapping("/api/verification/request")
+    void createVerificationRequest(@RequestBody VerificationRequestDto request);
 
-    @PostMapping("/api/verification/create-request/payment")
-    void createPaymentRequest(@RequestBody PaymentVerificationRequestDto paymentVerificationRequestDto);
 }
-

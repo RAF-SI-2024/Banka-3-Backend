@@ -1,9 +1,11 @@
 package rs.raf.user_service.unit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,7 @@ import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.entity.Employee;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
@@ -28,6 +31,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EmployeeServiceTest {
 
+    @Mock
+    private UserRepository userRepository;
     @Mock
     private EmployeeRepository employeeRepository;
     @Mock
@@ -127,10 +132,8 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
 
-        // Pozivamo metodu za brisanje
         employeeService.deleteEmployee(1L);
 
-        // Proveravamo da li je delete metoda pozvana
         verify(employeeRepository, times(1)).delete(employee);
     }
 
@@ -203,7 +206,7 @@ class EmployeeServiceTest {
         String firstName = "Petar";
         String lastName = "Petrovic";
         String gender = "M";
-        String email = "petar@raf.rs";
+        String email = "petarw@raf.rs";
         String phone = "+38161123456";
         String address = "Trg Republike 5";
         String username = "petareperic90";
