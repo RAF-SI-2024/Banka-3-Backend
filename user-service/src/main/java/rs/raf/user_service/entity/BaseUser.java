@@ -30,6 +30,9 @@ public abstract class BaseUser {
     @Column(updatable = false)
     private Long id;
 
+    @Column(updatable = false, unique = true)
+    private String username;
+
     @Column(updatable = false)
     private String firstName;
 
@@ -62,7 +65,8 @@ public abstract class BaseUser {
     private Set<Permission> permissions = new HashSet<>();
 
     public BaseUser(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
-                    String address, String jmbg) {
+                    String address, String jmbg, String username) {
+        this.username = username;
         this.firstName = firstName;
         this.lastName = lastName;
         this.birthDate = birthDate;

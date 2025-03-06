@@ -71,7 +71,6 @@ public class EmployeeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        System.out.println(firstName + " " + lastName + " " + email + " " + position);
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
