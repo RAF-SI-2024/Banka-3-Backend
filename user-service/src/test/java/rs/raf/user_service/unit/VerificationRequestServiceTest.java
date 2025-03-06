@@ -46,6 +46,7 @@ public class VerificationRequestServiceTest {
         mockRequest.setUserId(userIdFromToken);
         mockRequest.setTargetId(10L);
         mockRequest.setStatus(VerificationStatus.PENDING);
+        mockRequest.setVerificationType(VerificationType.CHANGE_LIMIT);
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userIdFromToken);
         when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.of(mockRequest));

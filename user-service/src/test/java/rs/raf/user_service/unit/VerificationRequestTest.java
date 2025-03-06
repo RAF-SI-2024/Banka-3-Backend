@@ -37,7 +37,6 @@ public class VerificationRequestTest {
         request = VerificationRequest.builder()
                 .id(1L)
                 .userId(100L)
-                .email("test@example.com")
                 .targetId(200L)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))

@@ -24,8 +24,10 @@ import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -50,13 +52,19 @@ public class AccountServiceTest {
     @InjectMocks
     private AccountService accountService;
 
+    @InjectMocks
+    private ChangeLimitRequestRepository changeLimitRequestRepository;
+
+    @InjectMocks
+    private JwtTokenUtil jwtTokenUtil;
+
 
     @Mock
     private UserClient userClient;
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(currencyRepository, accountRepository, userClient);
+        accountService = new AccountService(currencyRepository, accountRepository , changeLimitRequestRepository ,jwtTokenUtil,userClient);
     }
 
     @Test
@@ -278,7 +286,7 @@ public class AccountServiceTest {
     public void testGetMyAccounts_Success() {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
-        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
 
         List<Account> accountList = new ArrayList<>();
         for (long i = 1; i <= 5; i++) {
@@ -290,7 +298,7 @@ public class AccountServiceTest {
         }
         when(accountRepository.findAllByClientId(clientDto.getId())).thenReturn(accountList);
 
-        List<AccountDto> accounts = accountService.getMyAccounts("Bearer token");
+        List<AccountDto> accounts = accountService.getMyAccounts(1L);
         assertNotNull(accounts);
         assertEquals(5, accountList.size());
     }
@@ -299,11 +307,11 @@ public class AccountServiceTest {
     public void testGetMyAccounts_UserNotAClient() {
         Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
 
-        when(userClient.getClient("Bearer token")).thenThrow(
+        when(userClient.getClientById(5L)).thenThrow(
                 new FeignException.NotFound("User not found", request, null, null));
 
         UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
-                accountService.getMyAccounts("Bearer token"));
+                accountService.getMyAccounts(5L));
         assertEquals("User sending request is not a client.", exception.getMessage());
     }
 
@@ -311,7 +319,7 @@ public class AccountServiceTest {
     public void testGetAccountDetails_Success() {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
-        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
 
         PersonalAccount account = new PersonalAccount();
         account.setAccountNumber("1");
@@ -319,7 +327,7 @@ public class AccountServiceTest {
         account.setBalance(BigDecimal.TEN);
         when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
 
-        AccountDetailsDto accountDetails = accountService.getAccountDetails("Bearer token", "1");
+        AccountDetailsDto accountDetails = accountService.getAccountDetails(1L, "1");
         assertNotNull(accountDetails);
         assertEquals(account.getBalance(), accountDetails.getBalance());
     }
@@ -328,11 +336,11 @@ public class AccountServiceTest {
     public void testGetAccountDetails_UserNotAClient() {
         Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
 
-        when(userClient.getClient("Bearer token")).thenThrow(
+        when(userClient.getClientById(5L)).thenThrow(
                 new FeignException.NotFound("User not found", request, null, null));
 
         UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
-                accountService.getAccountDetails("Bearer token", "1"));
+                accountService.getAccountDetails(5L, "1"));
         assertEquals("User sending request is not a client.", exception.getMessage());
     }
 
@@ -340,7 +348,7 @@ public class AccountServiceTest {
     public void testGetAccountDetails_ClientNotAccountOwner() {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
-        when(userClient.getClient("Bearer token")).thenReturn(clientDto);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
 
         PersonalAccount account = new PersonalAccount();
         account.setAccountNumber("1");
@@ -349,7 +357,7 @@ public class AccountServiceTest {
         when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
 
         ClientNotAccountOwnerException exception = assertThrows(ClientNotAccountOwnerException.class, () ->
-                accountService.getAccountDetails("Bearer token", "1"));
+                accountService.getAccountDetails(99L, "1"));
 
         assertEquals("Client sending request is not the account owner.", exception.getMessage());
     }

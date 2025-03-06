@@ -13,6 +13,7 @@ import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
 import rs.raf.bank_service.service.PayeeService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.util.List;
 
@@ -24,6 +25,9 @@ public class PayeeControllerTest {
 
     @Mock
     private PayeeService service;
+    
+    @Mock
+    private JwtTokenUtil jwtTokenUtil;
 
     @InjectMocks
     private PayeeController controller;
@@ -36,7 +40,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         when(service.create(dto, clientId)).thenReturn(dto);
 
         // Act
@@ -45,7 +49,7 @@ public class PayeeControllerTest {
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals("Payee created successfully.", response.getBody());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).create(dto, clientId);
     }
 
@@ -57,7 +61,7 @@ public class PayeeControllerTest {
         PayeeDto payeeDto = new PayeeDto();
         payeeDto.setAccountNumber("1234567890");
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         when(service.getByClientId(clientId)).thenReturn(List.of(payeeDto));
 
         // Act
@@ -68,7 +72,7 @@ public class PayeeControllerTest {
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
         assertEquals("1234567890", response.getBody().get(0).getAccountNumber());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).getByClientId(clientId);
     }
 
@@ -79,7 +83,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         when(service.getByClientId(clientId)).thenReturn(List.of());
 
         // Act
@@ -89,7 +93,7 @@ public class PayeeControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isEmpty());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).getByClientId(clientId);
     }
 
@@ -102,7 +106,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         when(service.update(id, dto, clientId)).thenReturn(dto);
 
         // Act
@@ -111,7 +115,7 @@ public class PayeeControllerTest {
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Payee updated successfully.", response.getBody());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).update(id, dto, clientId);
     }
 
@@ -123,7 +127,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         when(service.update(id, dto, clientId)).thenThrow(new PayeeNotFoundException(id));
 
         // Act
@@ -132,7 +136,7 @@ public class PayeeControllerTest {
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Cannot find payee with id: " + id, response.getBody());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).update(id, dto, clientId);
     }
 
@@ -145,7 +149,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         doNothing().when(service).delete(id, clientId);
 
         // Act
@@ -153,7 +157,7 @@ public class PayeeControllerTest {
 
         // Assert
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).delete(id, clientId);
     }
 
@@ -164,7 +168,7 @@ public class PayeeControllerTest {
         String token = "validToken";
         Long clientId = 1L;
 
-        when(service.getClientIdFromToken(token)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
         doThrow(new PayeeNotFoundException(id)).when(service).delete(id, clientId);
 
         // Act
@@ -172,7 +176,7 @@ public class PayeeControllerTest {
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        verify(service, times(1)).getClientIdFromToken(token);
+        verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).delete(id, clientId);
     }
 
