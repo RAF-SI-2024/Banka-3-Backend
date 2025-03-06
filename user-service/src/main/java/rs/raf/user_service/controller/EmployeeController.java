@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.dto.CreateEmployeeDto;
 import rs.raf.user_service.dto.EmployeeDto;
+import rs.raf.user_service.dto.ErrorMessageDto;
 import rs.raf.user_service.dto.UpdateEmployeeDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
@@ -144,7 +145,7 @@ public class EmployeeController {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
         } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

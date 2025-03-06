@@ -21,4 +21,5 @@ public class ClientDto {
     private String gender;
     private Date birthDate;
     private String jmbg;
+    private String username;
 }

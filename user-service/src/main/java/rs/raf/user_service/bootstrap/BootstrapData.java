@@ -56,6 +56,7 @@ public class BootstrapData implements CommandLineRunner {
                     .gender("M")
                     .password(passwordEncoder.encode("markomarko"))
                     .jmbg("0123456789126")
+                    .username("marko1")
                     .build();
 
             Client client2 = Client.builder()
@@ -68,6 +69,7 @@ public class BootstrapData implements CommandLineRunner {
                     .gender("M")
                     .password(passwordEncoder.encode("jovanjovan"))
                     .jmbg("0123456789125")
+                    .username("jovan1")
                     .build();
 
             clientRepository.saveAll(Set.of(client, client2));
