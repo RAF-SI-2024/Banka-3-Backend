@@ -142,7 +142,12 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
+    @Operation(summary = "Get payments page filtered", description = "Get filtered page of payments.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payments returned successfully"),
+    })
     public ResponseEntity<Page<PaymentOverviewDto>> getPayments(
             @RequestHeader("Authorization") String token,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -158,9 +163,21 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
-    public ResponseEntity<PaymentDetailsDto> getPaymentDetails(@PathVariable Long id) {
-        PaymentDetailsDto details = paymentService.getPaymentDetails(id);
-        return ResponseEntity.ok(details);
+    @Operation(summary = "Get payment details", description = "Get payment details.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payments returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Payment not found"),
+    })
+    public ResponseEntity<PaymentDetailsDto> getPaymentDetails(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+        try {
+            PaymentDetailsDto details = paymentService.getPaymentDetails(token, id);
+            return ResponseEntity.ok(details);
+        }
+        catch (PaymentNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+
     }
 }

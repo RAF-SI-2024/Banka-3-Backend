@@ -206,8 +206,9 @@ public class PaymentService {
     }
 
     // Dohvatanje detalja transakcije po ID-u
-    public PaymentDetailsDto getPaymentDetails(Long id) {
-        Payment payment = paymentRepository.findById(id)
+    public PaymentDetailsDto getPaymentDetails(String token,Long id) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
+        Payment payment = paymentRepository.findByIdAndClientId(id, clientId)
                 .orElseThrow(() -> new PaymentNotFoundException(id));
         return paymentMapper.toDetailsDto(payment);
     }

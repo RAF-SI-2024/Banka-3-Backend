@@ -14,5 +14,5 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
-//    Page<Payment> findAll(Specification<Payment> spec, Pageable pageable);
+    Optional<Payment> findByIdAndClientId(Long id, Long clientId);
 }
