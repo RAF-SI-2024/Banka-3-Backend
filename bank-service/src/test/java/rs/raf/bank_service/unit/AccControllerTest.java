@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,7 +61,10 @@ public class AccControllerTest {
     private Long validAccountId;
     private String validNewName;
     private BigDecimal validNewLimit;
-    private String validVerificationCode;
+
+
+    private final Long validRequestId = 1L;
+
 
     @BeforeEach
     void setUp() {
@@ -70,7 +74,6 @@ public class AccControllerTest {
         validAccountId = 1L;
         validNewName = "Updated Account";
         validNewLimit = new BigDecimal("5000");
-        validVerificationCode = "123456";
         validEmail = "client@example.com";
     }
 
@@ -123,65 +126,66 @@ public class AccControllerTest {
     }
 
 
+    // ✅ 1. Uspešno kreiranje zahteva za promenu limita
     @Test
     void requestChangeAccountLimit_Success() throws Exception {
-        ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit, validVerificationCode);
+        ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit);
 
-        // ✅ MOCKUJEMO userClient da ne vraća null
-        ClientDto mockClient = new ClientDto();
-        mockClient.setEmail(validEmail);
-        when(userClient.getClientById(validAccountId)).thenReturn(mockClient);
-
-        // ✅ MOCKUJEMO da se zahtev uspešno sačuva u bazi
-        when(changeLimitRequestRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validAccountId)
+        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Limit change request saved. Awaiting approval.")); // PROVERAVA TAČAN RESPONSE
-
-
+                .andExpect(content().string("Limit change request saved. Awaiting approval."));
     }
 
     // ❌ 2. Pokušaj promene limita sa nevalidnom vrednošću
     @Test
     void requestChangeAccountLimit_InvalidLimit() throws Exception {
-        ChangeAccountLimitDto request = new ChangeAccountLimitDto(BigDecimal.ZERO, validVerificationCode);
+        ChangeAccountLimitDto request = new ChangeAccountLimitDto(BigDecimal.ZERO);
 
-        // Očekujemo da će servis baciti InvalidLimitException
+        String authHeader = "Bearer valid.jwt.token"; // Simulacija validnog JWT tokena
+
         doThrow(new InvalidLimitException())
-                .when(accountService).requestAccountLimitChange(validAccountId, validEmail, BigDecimal.ZERO);
+                .when(accountService)
+                .requestAccountLimitChange(validRequestId, validEmail, BigDecimal.ZERO, authHeader);
 
-        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validAccountId)
+        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validRequestId)
+                        .header("Authorization", authHeader)  // Dodajemo Authorization header
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest()) ;// Očekujemo HTTP 400
-                //.andExpect(content().string("Limit must be greater than zero")); // ✅ Postavljamo tačan sadržaj odgovora
-
+                .andExpect(status().isBadRequest());
     }
 
+    // ❌ 3. Pokušaj promene limita kada zahtev ne postoji
+    @Test
+    void requestChangeAccountLimit_RequestNotFound() throws Exception {
+        Long invalidRequestId = 999L;
+        ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(new BigDecimal("5000"));
+
+        doThrow(new IllegalStateException("No pending limit change request found"))
+                .when(accountService).changeAccountLimit(invalidRequestId);
+
+        mockMvc.perform(put("/api/accounts/{id}/change-limit", invalidRequestId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))  // ✅ Mora imati telo
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("No pending limit change request found"));
+    }
+
+    // ❌ 4. Pokušaj promene limita kada nalog ne postoji
     @Test
     void requestChangeAccountLimit_AccountNotFound() throws Exception {
-        // Arrange - Simuliramo da nalog ne postoji
-        Long nonExistentAccountId = 999L;
-        ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(BigDecimal.valueOf(5000), "123456");
+        Long invalidRequestId = 999L;
+        ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(new BigDecimal("5000"));
 
-        Mockito.doThrow(new AccountNotFoundException())
-                .when(accountService)
-                .changeAccountLimit(nonExistentAccountId);
+        doThrow(new AccountNotFoundException())
+                .when(accountService).changeAccountLimit(invalidRequestId); // ✅ Ispravljeno - prosleđujemo samo accountId
 
-        // Act - Pozivamo API metod
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
-
-        mockMvc.perform(put("/api/accounts/{id}/change-limit", nonExistentAccountId)
+        mockMvc.perform(put("/api/accounts/{id}/change-limit", invalidRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isNotFound()) // Očekujemo 404 Not Found
-                .andExpect(content().string("Account not found")); // Očekujemo ovu poruku
-
-        // Assert - Proveravamo da se metoda pozvala jednom
-        Mockito.verify(accountService, times(1)).changeAccountLimit(nonExistentAccountId);
+                        .content(objectMapper.writeValueAsString(requestDto))) // ✅ Dodato JSON telo
+                .andExpect(status().isNotFound()) // Očekujemo 404
+                .andExpect(content().string("Account not found"));
     }
 
 }

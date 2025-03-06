@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import rs.raf.bank_service.client.UserClient;
+import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.dto.ClientDto;
@@ -96,34 +97,7 @@ public class AccServiceTest {
         assertThrows(DuplicateAccountNameException.class, () -> accService.changeAccountName(accountId, newName));
     }
 
-    @Test
-    void testChangeAccountLimit_Success() {
-        Long accountId = 1L;
-        BigDecimal newLimit = new BigDecimal("5000");
 
-        PersonalAccount account = new PersonalAccount();
-        account.setAccountNumber("123456789");
-        account.setDailyLimit(new BigDecimal("1000"));
-
-        ChangeLimitRequest changeRequest = new ChangeLimitRequest();
-        changeRequest.setAccountId(accountId);
-        changeRequest.setNewLimit(newLimit);
-        changeRequest.setStatus(VerificationStatus.PENDING); // Proveravamo PENDING pre odobrenja
-
-        when(changeLimitRequestRepository.findByAccountIdAndStatus(accountId, VerificationStatus.PENDING))
-                .thenReturn(Optional.of(changeRequest));
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-
-        accService.changeAccountLimit(accountId);
-
-        // ✅ Proveravamo da li je limit ažuriran
-        assertEquals(newLimit, account.getDailyLimit());
-        // ✅ Proveravamo da li je nalog sačuvan
-        verify(accountRepository, times(1)).save(account);
-        // ✅ Proveravamo da li je status zahteva promenjen u APPROVED
-        assertEquals(VerificationStatus.APPROVED, changeRequest.getStatus());
-        verify(changeLimitRequestRepository, times(1)).save(changeRequest);
-    }
 
 
     //  Pokušaj promene imena na isto ime
@@ -145,32 +119,66 @@ public class AccServiceTest {
         verify(accountRepository, never()).save(account);
     }
 
-
     @Test
-    void testChangeAccountLimit_NoPendingRequest() {
-        Long accountId = 1L;
-
-        when(changeLimitRequestRepository.findByAccountIdAndStatus(accountId, VerificationStatus.PENDING))
-                .thenReturn(Optional.empty());
-
-        assertThrows(IllegalStateException.class, () -> accService.changeAccountLimit(accountId));
-    }
-
-
-    @Test
-    void testChangeAccountLimit_AccountNotFound() {
-        Long accountId = 1L;
+    void testChangeAccountLimit_Success() {
+        Long requestId = 1L;
         BigDecimal newLimit = new BigDecimal("5000");
 
         ChangeLimitRequest changeRequest = new ChangeLimitRequest();
-        changeRequest.setAccountId(accountId);
+        changeRequest.setId(requestId);
+        changeRequest.setAccountId(10L); // ID naloga
         changeRequest.setNewLimit(newLimit);
         changeRequest.setStatus(VerificationStatus.PENDING);
 
-        when(changeLimitRequestRepository.findByAccountIdAndStatus(accountId, VerificationStatus.PENDING))
-                .thenReturn(Optional.of(changeRequest));
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+        Account account = new Account() {};
+        account.setAccountNumber("123456789");
+        account.setDailyLimit(new BigDecimal("1000"));
 
-        assertThrows(AccNotFoundException.class, () -> accService.changeAccountLimit(accountId));
+        when(changeLimitRequestRepository.findById(requestId))
+                .thenReturn(Optional.of(changeRequest));
+        when(accountRepository.findById(changeRequest.getAccountId()))
+                .thenReturn(Optional.of(account));
+
+        accService.changeAccountLimit(requestId);
+
+        // ✅ Proveravamo da li je limit ažuriran
+        assertEquals(newLimit, account.getDailyLimit());
+        // ✅ Proveravamo da li je nalog sačuvan
+        verify(accountRepository, times(1)).save(account);
+        // ✅ Proveravamo da li je status zahteva promenjen u APPROVED
+        assertEquals(VerificationStatus.APPROVED, changeRequest.getStatus());
+        verify(changeLimitRequestRepository, times(1)).save(changeRequest);
     }
+
+    @Test
+    void testChangeAccountLimit_NoPendingRequest() {
+        Long requestId = 1L;
+
+        when(changeLimitRequestRepository.findById(requestId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(IllegalStateException.class, () -> accService.changeAccountLimit(requestId));
+    }
+
+    @Test
+    void testChangeAccountLimit_AccountNotFound() {
+        Long requestId = 1L;
+        BigDecimal newLimit = new BigDecimal("5000");
+
+        ChangeLimitRequest changeRequest = new ChangeLimitRequest();
+        changeRequest.setId(requestId);
+        changeRequest.setAccountId(10L); // ID nepostojećeg naloga
+        changeRequest.setNewLimit(newLimit);
+        changeRequest.setStatus(VerificationStatus.PENDING);
+
+        when(changeLimitRequestRepository.findById(requestId))
+                .thenReturn(Optional.of(changeRequest));
+        when(accountRepository.findById(changeRequest.getAccountId()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(AccNotFoundException.class, () -> accService.changeAccountLimit(requestId));
+    }
+
+
+
 }

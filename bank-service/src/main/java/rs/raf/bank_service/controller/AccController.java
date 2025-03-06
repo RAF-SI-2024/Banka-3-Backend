@@ -36,7 +36,7 @@ public class AccController {
     private final UserClient userClient;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
 
-    @PreAuthorize("hasAuthority('CLIENT') or hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")  // Promenjena provera autentifikacije
     @PutMapping("/{id}/change-name")
     @Operation(summary = "Change account name", description = "Allows a client to change the name of their account.")
     @ApiResponses(value = {
@@ -57,7 +57,7 @@ public class AccController {
         }
     }
 
-    @PreAuthorize("hasAuthority('CLIENT') or hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")  // Promenjena provera autentifikacije
     @PutMapping("/{id}/change-limit")
     @Operation(summary = "Change account limit", description = "Allows a client to request a change in account limit.")
     @ApiResponses(value = {
@@ -65,22 +65,12 @@ public class AccController {
             @ApiResponse(responseCode = "400", description = "Invalid limit value"),
             @ApiResponse(responseCode = "404", description = "Account not found")
     })
-    public ResponseEntity<?> changeAccountLimit(
-            @PathVariable Long id,
-            @RequestBody @Valid ChangeAccountLimitDto request) {
-        try {
-            accountService.changeAccountLimit(id);
-//            accountService.changeAccountLimit(id, request.getNewLimit(), request.getVerificationCode());
-            return ResponseEntity.ok("Account limit updated successfully");
-        } catch (InvalidLimitException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<?> changeAccountLimit(@PathVariable Long id, @RequestBody @Valid ChangeAccountLimitDto request) {
+        accountService.changeAccountLimit(id); // Ova linija može baciti exception, koji se obrađuje globalno
+        return ResponseEntity.ok("Account limit updated successfully");
     }
 
-
-    @PreAuthorize("hasAuthority('CLIENT') or hasAuthority('client')")
+    @PreAuthorize("isAuthenticated()")  // Promenjena provera autentifikacije
     @PutMapping("/{id}/request-change-limit")
     @Operation(summary = "Request change account limit", description = "Saves a limit change request for approval.")
     @ApiResponses(value = {
@@ -98,7 +88,6 @@ public class AccController {
 
             // Čuvamo zahtev u bazi sa statusom PENDING
             ChangeLimitRequest limitRequest = new ChangeLimitRequest(id, request.getNewLimit());
-
             changeLimitRequestRepository.save(limitRequest);
 
             return ResponseEntity.ok("Limit change request saved. Awaiting approval.");
@@ -110,7 +99,19 @@ public class AccController {
 
 
 
+
     // Globalni Exception Handleri
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalStateException(IllegalStateException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+
+    @ExceptionHandler(InvalidLimitException.class)
+    public ResponseEntity<String> handleInvalidLimitException(InvalidLimitException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 
     @ExceptionHandler(AccountNotFoundException.class)
     public ResponseEntity<String> handleAccountNotFoundException(AccountNotFoundException e) {

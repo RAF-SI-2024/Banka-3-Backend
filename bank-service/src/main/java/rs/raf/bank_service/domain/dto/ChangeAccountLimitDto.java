@@ -18,12 +18,8 @@ public class ChangeAccountLimitDto {
     @Positive(message = "Limit must be greater than zero")
     private BigDecimal newLimit;
 
-    //@NotNull(message = "Verification code is required")
-    @Size(min = 6, max = 6, message = "Verification code must be 6 digits")
-    private String verificationCode;
-
-    public ChangeAccountLimitDto(BigDecimal newLimit, String verificationCode) {
+    public ChangeAccountLimitDto(BigDecimal newLimit) {
         this.newLimit = newLimit;
-        this.verificationCode = verificationCode;
+
     }
 }

@@ -108,19 +108,12 @@ public class VerificationRequestController {
             @ApiResponse(responseCode = "200", description = "Verification request approved"),
             @ApiResponse(responseCode = "400", description = "Request not found or already processed")
     })
-    @PostMapping("/approve/request/{requestId}")
+    @PostMapping("/approve/{requestId}")  // Ispravljena ruta
     public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
-        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
+        boolean success = verificationRequestService.processApproval(requestId);
 
-        if (updated) {
-            // Dohvatamo zahtev da bismo izvukli accountId (targetId)
-            VerificationRequest request = verificationRequestService.getRequestById(requestId);
-
-            // Pozivamo bank-service da promeni limit
-            bankClient.changeAccountLimit(request.getTargetId());
-
-            return ResponseEntity.ok("Request approved and account limit updated");
-        }
-        return ResponseEntity.badRequest().body("Request not found or already processed");
+        return success
+                ? ResponseEntity.ok("Request approved and account limit updated")
+                : ResponseEntity.badRequest().body("Request not found or already processed");
     }
 }
