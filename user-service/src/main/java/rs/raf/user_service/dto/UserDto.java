@@ -11,7 +11,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientDto {
+public class UserDto {
     private Long id;
     private String firstName;
     private String lastName;
@@ -21,5 +21,4 @@ public class ClientDto {
     private String gender;
     private Date birthDate;
     private String jmbg;
-    private String username;
 }

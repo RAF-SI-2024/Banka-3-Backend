@@ -113,7 +113,7 @@ public class ClientServiceTest {
         ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
                 client.getEmail(), client.getAddress(),
-                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg());
+                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg(), client.getUsername());
 
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
@@ -159,7 +159,7 @@ public class ClientServiceTest {
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getAddress(),
                 updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(),
-                updatedClient.getJmbg());
+                updatedClient.getJmbg(), updatedClient.getUsername());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
         doAnswer(invocation -> {

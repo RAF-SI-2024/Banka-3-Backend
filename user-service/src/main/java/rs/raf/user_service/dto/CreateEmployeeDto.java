@@ -2,6 +2,7 @@ package rs.raf.user_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.validation.constraints.*;
@@ -10,6 +11,7 @@ import java.util.Date;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class CreateEmployeeDto {
 
     @NotNull(message = "First name cannot be null")

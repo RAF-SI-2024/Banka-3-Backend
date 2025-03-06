@@ -6,12 +6,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.dto.ClientDto;
 import rs.raf.user_service.dto.PermissionDto;
 import rs.raf.user_service.dto.PermissionRequestDto;
+import rs.raf.user_service.dto.UserDto;
 import rs.raf.user_service.service.UserService;
 
 import javax.validation.Valid;
@@ -24,6 +29,17 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping
+    @Operation(summary = "Get all users with pagination")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Users retrieved successfully")})
+    public ResponseEntity<Page<UserDto>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(userService.listUsers(pageable));
+    }
 
     @PreAuthorize("hasAuthority('admin')")
     @GetMapping("/{userId}/permissions")

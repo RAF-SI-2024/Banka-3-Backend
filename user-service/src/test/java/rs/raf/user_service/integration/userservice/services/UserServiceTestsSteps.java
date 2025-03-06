@@ -56,8 +56,8 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
-    @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string} and jmbg {string}")
-    public void createdANewClientWithFirstNameSecondNameEmailAdressPhoneNumberGenderAndBirthdayOn(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7) {
+    @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string} and jmbg {string} and username {string}")
+    public void createdANewClientWithFirstNameSecondNameEmailAdressPhoneNumberGenderAndBirthdayOn(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7, String arg8) {
         CreateClientDto newClient = new CreateClientDto();
 
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
@@ -77,6 +77,7 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
         newClient.setGender(arg5);
         newClient.setBirthDate(date);
         newClient.setJmbg(arg7);
+        newClient.setUsername(arg8);
 
         addedClient = clientService.addClient(newClient);
     }
