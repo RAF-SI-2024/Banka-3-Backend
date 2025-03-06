@@ -1,10 +1,7 @@
 package rs.raf.bank_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.*;
 
 import java.util.List;
@@ -28,4 +25,8 @@ public interface UserClient {
 
     @GetMapping("/api/authorized-personnel/company/{companyId}")
     List<AuthorizedPersonelDto> getAuthorizedPersonnelByCompany(@PathVariable("companyId") Long companyId);
+
+    @PostMapping("/api/verification/request")
+    void createVerificationRequest(@RequestBody VerificationRequestDto request);
+
 }

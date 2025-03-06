@@ -1,10 +1,11 @@
-package rs.raf.user_service.dto;
+package rs.raf.bank_service.domain.dto;
 
 import lombok.*;
-import rs.raf.user_service.enums.VerificationStatus;
-import rs.raf.user_service.enums.VerificationType;
+import rs.raf.bank_service.domain.enums.VerificationStatus;
+import rs.raf.bank_service.domain.enums.VerificationType;
 
 import java.time.LocalDateTime;
+
 
 @Getter
 @Setter
@@ -12,8 +13,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class VerificationRequestDto {
+
     private Long userId;
     private String email;
+    private String code;
     private LocalDateTime expirationTime;
     private int attempts;
     private Long targetId;
@@ -21,4 +24,3 @@ public class VerificationRequestDto {
     private VerificationStatus status;
     private VerificationType verificationType;
 }
-

@@ -5,6 +5,7 @@ import rs.raf.user_service.entity.VerificationRequest;
 import rs.raf.user_service.enums.VerificationStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VerificationRequestRepository extends JpaRepository<VerificationRequest, Long> {
     /*
@@ -15,5 +16,8 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
 
 
     List<VerificationRequest> findByUserIdAndStatus(Long userId, VerificationStatus status);
+
+    Optional<VerificationRequest> findByTargetIdAndStatus(Long targetId, VerificationStatus status);
+
 }
 
