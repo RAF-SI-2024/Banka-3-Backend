@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.bankClient.BankClient;
 import rs.raf.user_service.dto.ClientDto;
@@ -71,46 +72,43 @@ public class VerificationRequestController {
             @ApiResponse(responseCode = "200", description = "Verification request denied"),
             @ApiResponse(responseCode = "400", description = "Request not found or already processed")
     })
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/deny/{requestId}")
-    public ResponseEntity<String> denyRequest(@PathVariable Long requestId) {
-        boolean updated = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.DENIED);
-        return updated ? ResponseEntity.ok("Request denied") : ResponseEntity.badRequest().body("Request not found or already processed");
+    public ResponseEntity<String> denyRequest(
+            @PathVariable Long requestId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        boolean success = verificationRequestService.denyVerificationRequest(requestId, authHeader);
+
+        return success
+                ? ResponseEntity.ok("Request denied")
+                : ResponseEntity.badRequest().body("Request not found or already processed");
     }
 
-//    @PostMapping("/check-verification")
-//    public boolean isVerificationApproved(@RequestParam Long targetId, @RequestParam String verificationCode) {
-//        return verificationRequestService.isVerificationApproved(targetId, verificationCode);
-//    }
-
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('admin')")
     @PostMapping("/request")
     public ResponseEntity<String> createVerificationRequest(@RequestBody VerificationRequestDto request) {
         verificationRequestService.createVerificationRequest(
                 request.getUserId(),
                 request.getEmail(),
-                request.getCode(),
                 request.getTargetId()
         );
         return ResponseEntity.ok("Verification request created.");
     }
 
-    @GetMapping("/status/{targetId}")
-    public ResponseEntity<Boolean> isVerificationApproved(
-            @PathVariable Long targetId,
-            @RequestParam("code") String verificationCode) {
-
-        boolean isApproved = verificationRequestService.isVerificationApproved(targetId, verificationCode);
-        return ResponseEntity.ok(isApproved);
-    }
-
-
     @Operation(summary = "Approve verification request", description = "Approves a verification request for a specific transaction.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Verification request approved"),
-            @ApiResponse(responseCode = "400", description = "Request not found or already processed")
+            @ApiResponse(responseCode = "400", description = "Request not found or already processed"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized access")
     })
-    @PostMapping("/approve/{requestId}")  // Ispravljena ruta
-    public ResponseEntity<String> approveRequest(@PathVariable Long requestId) {
-        boolean success = verificationRequestService.processApproval(requestId);
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/approve/{requestId}")
+    public ResponseEntity<String> approveRequest(
+            @PathVariable Long requestId,
+            @RequestHeader("Authorization") String authHeader) {  // ✅ Dodajemo JWT header
+
+        boolean success = verificationRequestService.processApproval(requestId, authHeader);
 
         return success
                 ? ResponseEntity.ok("Request approved and account limit updated")

@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 public class VerificationRequestDto {
     private Long userId;
     private String email;
-    private String code;
     private LocalDateTime expirationTime;
     private int attempts;
     private Long targetId;

@@ -5,19 +5,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.controller.AccController;
+import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.domain.dto.ChangeAccountLimitDto;
 import rs.raf.bank_service.domain.dto.ChangeAccountNameDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
-import rs.raf.bank_service.domain.enums.VerificationStatus;
 import rs.raf.bank_service.exceptions.AccNotFoundException;
 import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicateAccountNameException;
@@ -29,42 +24,29 @@ import rs.raf.bank_service.service.AccountService;
 import java.math.BigDecimal;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-
 public class AccControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Long validRequestId = 1L;
+    @Mock
+    AccountRepository accountRepository;
     private MockMvc mockMvc;
     @Mock
     private AccountService accountService;
-
     @Mock
     private UserClient userClient;  // Ispravno mockovan UserClient
-
-    @Mock
-    AccountRepository accountRepository;
-
     @Mock
     private ChangeLimitRequestRepository changeLimitRequestRepository;
-
     private String validEmail;
-
-
     @InjectMocks
-    private AccController accountController;
-
+    private AccountController accountController;
     private Long validAccountId;
     private String validNewName;
     private BigDecimal validNewLimit;
-
-
-    private final Long validRequestId = 1L;
-
 
     @BeforeEach
     void setUp() {
@@ -82,7 +64,7 @@ public class AccControllerTest {
     void changeAccountName_Success() throws Exception {
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -99,7 +81,7 @@ public class AccControllerTest {
 
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());  // Trebalo bi da vraća 404
@@ -115,7 +97,7 @@ public class AccControllerTest {
 
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -131,7 +113,7 @@ public class AccControllerTest {
     void requestChangeAccountLimit_Success() throws Exception {
         ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit);
 
-        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validRequestId)
+        mockMvc.perform(put("/api/account/{id}/request-change-limit", validRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -149,7 +131,7 @@ public class AccControllerTest {
                 .when(accountService)
                 .requestAccountLimitChange(validRequestId, validEmail, BigDecimal.ZERO, authHeader);
 
-        mockMvc.perform(put("/api/accounts/{id}/request-change-limit", validRequestId)
+        mockMvc.perform(put("/api/account/{id}/request-change-limit", validRequestId)
                         .header("Authorization", authHeader)  // Dodajemo Authorization header
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -165,7 +147,7 @@ public class AccControllerTest {
         doThrow(new IllegalStateException("No pending limit change request found"))
                 .when(accountService).changeAccountLimit(invalidRequestId);
 
-        mockMvc.perform(put("/api/accounts/{id}/change-limit", invalidRequestId)
+        mockMvc.perform(put("/api/account/{id}/change-limit", invalidRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))  // ✅ Mora imati telo
                 .andExpect(status().isBadRequest())
@@ -181,7 +163,7 @@ public class AccControllerTest {
         doThrow(new AccountNotFoundException())
                 .when(accountService).changeAccountLimit(invalidRequestId); // ✅ Ispravljeno - prosleđujemo samo accountId
 
-        mockMvc.perform(put("/api/accounts/{id}/change-limit", invalidRequestId)
+        mockMvc.perform(put("/api/account/{id}/change-limit", invalidRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto))) // ✅ Dodato JSON telo
                 .andExpect(status().isNotFound()) // Očekujemo 404

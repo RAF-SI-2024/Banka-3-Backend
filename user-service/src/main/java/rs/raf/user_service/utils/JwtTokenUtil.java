@@ -48,4 +48,15 @@ public class JwtTokenUtil {
             return false;
         }
     }
+
+    public Long getUserIdFromAuthHeader(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new SecurityException("Invalid or missing Authorization header");
+        }
+
+        String token = authHeader.replace("Bearer ", "").trim();
+
+        // Parsiramo token i vadimo userId
+        return getClaimsFromToken(token).get("userId", Long.class);
+    }
 }

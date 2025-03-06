@@ -239,24 +239,24 @@ public class AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
-        // Dohvatanje userId iz JWT tokena preko Authorization hedera
+
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-        // Proveravamo da li ovaj račun zaista pripada klijentu
+
         if (!account.getClientId().equals(clientId)) {
             throw new IllegalStateException("This account does not belong to the authenticated client.");
         }
 
-        // Čuvamo zahtev u bazi
+
         ChangeLimitRequest request = new ChangeLimitRequest(accountId, newLimit);
         changeLimitRequestRepository.save(request);
 
-        // Kreiramo verifikacioni zahtev u user-service
+
         VerificationRequestDto verificationRequest = VerificationRequestDto.builder()
-                .userId(clientId)  // Postavljamo clientId umesto accountId
+                .userId(clientId)
                 .email(email)
-                .targetId(request.getId())  // targetId sada sadrži ID ChangeLimitRequest entiteta
-                .verificationType(VerificationType.CHANGE_LIMIT)  // Promenjen verification type
+                .targetId(request.getId())
+                .verificationType(VerificationType.CHANGE_LIMIT)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
                 .attempts(0)
@@ -269,24 +269,24 @@ public class AccountService {
 
 
     public void changeAccountLimit(Long requestId) {
-        // Pronalazimo zahtev u bazi pomoću njegovog ID-ja
+
         ChangeLimitRequest request = changeLimitRequestRepository
                 .findById(requestId)
                 .orElseThrow(() -> new IllegalStateException("No pending limit change request found"));
 
-        // Pronalazimo nalog povezan sa zahtevom
+
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
-        // Menjamo limit na računu
+
         account.setDailyLimit(request.getNewLimit());
         accountRepository.save(account);
 
-        // Obeležavamo zahtev kao APPROVED
+
         request.setStatus(VerificationStatus.APPROVED);
         changeLimitRequestRepository.save(request);
 
-        // Umesto account.getId(), koristi account.getAccountNumber()
+
         log.info("Account limit updated successfully for account {}", account.getAccountNumber());
     }
 
