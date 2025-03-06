@@ -8,7 +8,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.CompanyController;
-import rs.raf.user_service.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.dto.CreateCompanyDto;
 import rs.raf.user_service.service.CompanyService;
 
 import rs.raf.user_service.exceptions.ClientNotFoundException;

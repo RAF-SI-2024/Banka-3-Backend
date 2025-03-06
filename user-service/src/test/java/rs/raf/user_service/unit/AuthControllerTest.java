@@ -6,10 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
-import rs.raf.user_service.dto.ActivationRequestDto;
-import rs.raf.user_service.dto.LoginRequestDto;
-import rs.raf.user_service.dto.LoginResponseDto;
-import rs.raf.user_service.dto.RequestPasswordResetDto;
+import rs.raf.user_service.domain.dto.ActivationRequestDto;
+import rs.raf.user_service.domain.dto.LoginRequestDto;
+import rs.raf.user_service.domain.dto.LoginResponseDto;
+import rs.raf.user_service.domain.dto.RequestPasswordResetDto;
 import rs.raf.user_service.service.AuthService;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import rs.raf.user_service.dto.*;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.service.AuthService;
 
 @Tag(name = "Authentication Controller", description = "API for authenticating users")

@@ -1,7 +1,6 @@
 package rs.raf.user_service.client;
 
 import org.springframework.stereotype.Component;
-import rs.raf.user_service.dto.RequestConfirmedDto;
 
 @Component
 public class BankClientFallbackFactory implements BankClient {

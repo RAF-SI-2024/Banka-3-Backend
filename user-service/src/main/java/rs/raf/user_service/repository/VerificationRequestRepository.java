@@ -1,8 +1,8 @@
 package rs.raf.user_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
 
 import java.util.List;
 import java.util.Optional;

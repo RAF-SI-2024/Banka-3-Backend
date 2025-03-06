@@ -2,7 +2,6 @@ package rs.raf.user_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.RequestConfirmedDto;
 
 @FeignClient(name = "bank-service", url = "${bank.service.url:http://localhost:8082}", fallbackFactory = BankClientFallbackFactory.class)
 public interface BankClient {

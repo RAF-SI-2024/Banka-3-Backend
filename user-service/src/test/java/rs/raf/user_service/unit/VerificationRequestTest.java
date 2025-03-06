@@ -9,10 +9,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import rs.raf.user_service.dto.CreateVerificationRequestDto;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
-import rs.raf.user_service.enums.VerificationType;
+import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
+import rs.raf.user_service.domain.enums.VerificationType;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.service.VerificationRequestService;
 

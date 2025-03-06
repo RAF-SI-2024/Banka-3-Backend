@@ -1,11 +1,9 @@
 package rs.raf.user_service.unit;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
@@ -13,10 +11,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.dto.CreateEmployeeDto;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.dto.UpdateEmployeeDto;
-import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.domain.dto.CreateEmployeeDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.UserRepository;

@@ -11,8 +11,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.AuthorizedPersonelDto;
-import rs.raf.user_service.dto.CreateAuthorizedPersonelDto;
+import rs.raf.user_service.domain.dto.AuthorizedPersonelDto;
+import rs.raf.user_service.domain.dto.CreateAuthorizedPersonelDto;
 import rs.raf.user_service.service.AuthorizedPersonelService;
 import rs.raf.user_service.service.ClientService;
 

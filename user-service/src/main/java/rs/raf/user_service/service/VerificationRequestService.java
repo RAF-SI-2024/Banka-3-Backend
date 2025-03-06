@@ -2,10 +2,10 @@ package rs.raf.user_service.service;
 
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.client.BankClient;
-import rs.raf.user_service.dto.CreateVerificationRequestDto;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
-import rs.raf.user_service.enums.VerificationType;
+import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
+import rs.raf.user_service.domain.enums.VerificationType;
 import rs.raf.user_service.exceptions.VerificationNotFoundException;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.utils.JwtTokenUtil;

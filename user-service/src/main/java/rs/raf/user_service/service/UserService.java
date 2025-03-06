@@ -1,20 +1,16 @@
 package rs.raf.user_service.service;
 
 import lombok.AllArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.PermissionDto;
-import rs.raf.user_service.dto.PermissionRequestDto;
-import rs.raf.user_service.dto.UserDto;
-import rs.raf.user_service.entity.BaseUser;
-import rs.raf.user_service.entity.Permission;
-import rs.raf.user_service.mapper.PermissionMapper;
-import rs.raf.user_service.mapper.UserMapper;
-import rs.raf.user_service.repository.AuthTokenRepository;
+import rs.raf.user_service.domain.dto.PermissionDto;
+import rs.raf.user_service.domain.dto.PermissionRequestDto;
+import rs.raf.user_service.domain.dto.UserDto;
+import rs.raf.user_service.domain.entity.BaseUser;
+import rs.raf.user_service.domain.entity.Permission;
+import rs.raf.user_service.domain.mapper.PermissionMapper;
+import rs.raf.user_service.domain.mapper.UserMapper;
 import rs.raf.user_service.repository.PermissionRepository;
 import rs.raf.user_service.repository.UserRepository;
 

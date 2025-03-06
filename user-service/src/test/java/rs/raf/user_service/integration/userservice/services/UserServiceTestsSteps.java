@@ -13,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-import rs.raf.user_service.dto.*;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.integration.userservice.UserServiceTestsConfig;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.service.AuthService;

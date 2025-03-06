@@ -13,10 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.PermissionDto;
-import rs.raf.user_service.dto.PermissionRequestDto;
-import rs.raf.user_service.dto.UserDto;
+import rs.raf.user_service.domain.dto.PermissionDto;
+import rs.raf.user_service.domain.dto.PermissionRequestDto;
+import rs.raf.user_service.domain.dto.UserDto;
 import rs.raf.user_service.service.UserService;
 
 import javax.validation.Valid;
