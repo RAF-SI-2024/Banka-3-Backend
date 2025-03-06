@@ -4,6 +4,7 @@ import feign.FeignException;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.*;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -38,13 +39,10 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 return Collections.emptyList();
             }
 
-            @Override
             public void createVerificationRequest(VerificationRequestDto request) {
                 // Fallback logika - ne radi ništa, ali možemo logovati
                 System.err.println("Fallback: createVerificationRequest failed.");
             }
-
-
 
         };
     }

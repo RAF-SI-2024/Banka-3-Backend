@@ -13,8 +13,7 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
     void deleteByUserId(Long userId);
 
      */
-
-
+    Optional<VerificationRequest> findByTargetId(Long targetId);
     List<VerificationRequest> findByUserIdAndStatus(Long userId, VerificationStatus status);
 
     Optional<VerificationRequest> findByTargetIdAndStatus(Long targetId, VerificationStatus status);

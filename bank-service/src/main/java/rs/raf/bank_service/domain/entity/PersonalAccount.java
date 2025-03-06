@@ -1,6 +1,7 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -14,7 +15,7 @@ import javax.persistence.Entity;
 @Setter
 @SuperBuilder
 @RequiredArgsConstructor
-
+ Novo-placanje,interni-prenos
 public class PersonalAccount extends Account {
 
 
