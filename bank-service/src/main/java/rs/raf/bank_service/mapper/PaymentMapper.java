@@ -15,6 +15,14 @@ public class PaymentMapper {
         dto.setAmount(payment.getAmount());
         dto.setDate(payment.getDate());
         dto.setStatus(payment.getStatus());
+
+        // Dodajte podatke o kartici
+        if (payment.getCard() != null) {
+            dto.setCardNumber(payment.getCard().getCardNumber());
+        } else {
+            dto.setCardNumber(null);
+        }
+
         return dto;
     }
 
@@ -29,6 +37,13 @@ public class PaymentMapper {
         dto.setReferenceNumber(payment.getReferenceNumber());
         dto.setDate(payment.getDate());
         dto.setStatus(payment.getStatus());
+
+        if (payment.getCard() != null) {
+            dto.setCardNumber(payment.getCard().getCardNumber());
+        } else {
+            dto.setCardNumber(null);
+        }
+
         return dto;
     }
 }

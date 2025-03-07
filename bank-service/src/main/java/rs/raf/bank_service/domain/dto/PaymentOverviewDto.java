@@ -16,4 +16,5 @@ public class PaymentOverviewDto {
     private BigDecimal amount;
     private LocalDateTime date;
     private PaymentStatus Status;
+    private String cardNumber;
 }

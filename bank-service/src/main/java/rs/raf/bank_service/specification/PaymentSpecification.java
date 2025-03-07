@@ -12,27 +12,41 @@ import java.util.List;
 
 public class PaymentSpecification {
 
-    public static Specification<Payment> filterPayments(Long clientId, 
-                                                        LocalDateTime startDate, LocalDateTime endDate, 
-                                                        BigDecimal minAmount, BigDecimal maxAmount, 
-                                                        PaymentStatus paymentStatus) {
+    public static Specification<Payment> filterPayments(
+            Long clientId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            PaymentStatus paymentStatus,
+            String accountNumber,
+            String cardNumber
+    ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (clientId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("clientId"), clientId));
-            }
+            predicates.add(criteriaBuilder.equal(root.get("clientId"), clientId));
 
-            if (startDate != null && endDate != null) {
-                predicates.add(criteriaBuilder.between(root.get("date"), startDate, endDate));
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("date"), startDate));
             }
-
-            if (minAmount != null && maxAmount != null) {
-                predicates.add(criteriaBuilder.between(root.get("amount"), minAmount, maxAmount));
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("date"), endDate));
             }
-
+            if (minAmount != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("amount"), minAmount));
+            }
+            if (maxAmount != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("amount"), maxAmount));
+            }
             if (paymentStatus != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), paymentStatus));
+            }
+            if (accountNumber != null) {
+                predicates.add(criteriaBuilder.equal(root.get("senderAccount").get("accountNumber"), accountNumber));
+            }
+            if (cardNumber != null) {
+                predicates.add(criteriaBuilder.equal(root.get("card").get("cardNumber"), cardNumber));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

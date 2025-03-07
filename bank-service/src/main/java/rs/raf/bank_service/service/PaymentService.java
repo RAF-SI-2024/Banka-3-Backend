@@ -16,6 +16,7 @@ import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -32,6 +33,7 @@ public class PaymentService {
     private final AccountRepository accountRepository;
     private final JwtTokenUtil jwtTokenUtil;
     private PaymentRepository paymentRepository;
+    private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
 
@@ -197,10 +199,24 @@ public class PaymentService {
             LocalDateTime startDate, LocalDateTime endDate,
             BigDecimal minAmount, BigDecimal maxAmount,
             PaymentStatus paymentStatus,
+            String accountNumber,
+            String cardNumber,
             Pageable pageable
     ) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
-        Specification<Payment> spec = PaymentSpecification.filterPayments(clientId, startDate, endDate, minAmount, maxAmount, paymentStatus);
+
+        if (accountNumber != null) {
+            accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(AccountNotFoundException::new);
+        }
+
+        if (cardNumber != null) {
+
+            cardRepository.findByCardNumber(cardNumber)
+                    .orElseThrow(() -> new CardNotFoundException(cardNumber));
+        }
+
+        Specification<Payment> spec = PaymentSpecification.filterPayments(clientId, startDate, endDate, minAmount, maxAmount, paymentStatus, accountNumber, cardNumber);
         Page<Payment> payments = paymentRepository.findAll(spec, pageable);
         return payments.map(paymentMapper::toOverviewDto);
     }

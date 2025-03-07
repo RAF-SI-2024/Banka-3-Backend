@@ -33,6 +33,10 @@ public class Payment {
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
     private Account senderAccount;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "card_id")
+    private Card card;
+
     @Column(nullable = false)
     private BigDecimal amount;
 
