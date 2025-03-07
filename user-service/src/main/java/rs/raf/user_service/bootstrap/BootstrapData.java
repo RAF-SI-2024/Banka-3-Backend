@@ -4,14 +4,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import rs.raf.user_service.domain.entity.ActivityCode;
-import rs.raf.user_service.domain.entity.Client;
-import rs.raf.user_service.domain.entity.Employee;
-import rs.raf.user_service.domain.entity.Permission;
-import rs.raf.user_service.repository.ActivityCodeRepository;
-import rs.raf.user_service.repository.ClientRepository;
-import rs.raf.user_service.repository.EmployeeRepository;
-import rs.raf.user_service.repository.PermissionRepository;
+import rs.raf.user_service.domain.entity.*;
+import rs.raf.user_service.repository.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -26,6 +20,7 @@ public class BootstrapData implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final ActivityCodeRepository activityCodeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CompanyRepository companyRepository;
 
     @Override
     public void run(String... args) throws ParseException {
@@ -116,10 +111,25 @@ public class BootstrapData implements CommandLineRunner {
 
             ActivityCode activityCode = ActivityCode.builder()
                     .id("10.01")
-                    .description("Food producion")
+                    .description("Food production")
                     .build();
 
             activityCodeRepository.save(activityCode);
         }
+
+        if (companyRepository.count() == 0) {
+            Company bank = Company.builder()
+                    .id(1L)
+                    .address("Adresa banke")
+                    .name("Banka 3")
+                    .activityCode("10.02")
+                    .registrationNumber("11111111")
+                    .taxId("111111111111111")
+                    .majorityOwner(null)
+                    .build();
+
+            companyRepository.save(bank);
+        }
+
     }
 }
