@@ -31,7 +31,7 @@ public class PaymentMapper {
         dto.setId(payment.getId());
         dto.setSenderName(payment.getSenderName());
         dto.setAmount(payment.getAmount());
-        dto.setAccountNumberReceiver(payment.getAccountNumberReciver());
+        dto.setAccountNumberReceiver(payment.getAccountNumberReceiver());
         dto.setPaymentCode(payment.getPaymentCode());
         dto.setPurposeOfPayment(payment.getPurposeOfPayment());
         dto.setReferenceNumber(payment.getReferenceNumber());

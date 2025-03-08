@@ -26,10 +26,12 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import rs.raf.bank_service.domain.entity.Payee;
 import rs.raf.bank_service.repository.PayeeRepository;
 
+import javax.persistence.criteria.Root;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
