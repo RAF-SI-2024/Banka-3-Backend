@@ -16,6 +16,7 @@ import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -32,14 +33,19 @@ public class PaymentService {
     private final AccountRepository accountRepository;
     private final JwtTokenUtil jwtTokenUtil;
     private PaymentRepository paymentRepository;
+    private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) {
         // Preuzimanje računa za sender i receiver
-        Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber()).stream().findFirst().orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
+        Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
 
-        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber()).stream().findFirst().orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
+        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
 
         // Provera da li sender ima dovoljno sredstava
         if (sender.getBalance().compareTo(transferDto.getAmount()) < 0) {
@@ -56,9 +62,12 @@ public class PaymentService {
         payment.setClientId(clientId);  // Dodajemo Client ID
         payment.setSenderAccount(sender);  // Sender račun
         payment.setAmount(transferDto.getAmount());  // Iznos
-        payment.setAccountNumberReciver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
+        payment.setAccountNumberReceiver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
         payment.setDate(LocalDateTime.now());  // Datum transakcije
+
+        // Postavi receiverClientId samo ako je receiver u našoj banci
+        payment.setReceiverClientId(receiver.getClientId());  // Postavljamo receiverClientId
 
         paymentRepository.save(payment);
 
@@ -71,11 +80,14 @@ public class PaymentService {
 
     public boolean confirmTransferAndExecute(Long paymentId) {
         // Preuzimanje payment entiteta na osnovu paymentId
-        Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Preuzimanje računa za sender i receiver koristeći podatke iz payment-a
         Account sender = payment.getSenderAccount();
-        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReciver()).stream().findFirst().orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReciver()));
+        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReceiver())
+                .stream().findFirst()
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReceiver()));
 
         // Oduzimanje novca sa sender računa i dodavanje na receiver račun
         sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
@@ -92,7 +104,6 @@ public class PaymentService {
         return true;
     }
 
-
     public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) {
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
@@ -103,7 +114,9 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber()).stream().findFirst().orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
+        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
         // Provera valute
         if (!(sender.getCurrency().getCode().equals(CurrencyType.RSD.toString()))) {
@@ -120,13 +133,18 @@ public class PaymentService {
         payment.setSenderName(paymentDto.getSenderName());
         payment.setClientId(clientId);
         payment.setSenderAccount(sender);
-        payment.setAccountNumberReciver(paymentDto.getReceiverAccountNumber().toString());
+        payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber().toString());
         payment.setAmount(paymentDto.getAmount());
         payment.setPaymentCode(paymentDto.getPaymentCode());
         payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
         payment.setReferenceNumber(paymentDto.getReferenceNumber());
         payment.setDate(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+
+        // Postavi receiverClientId samo ako je receiver u našoj banci
+        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber().toString());
+        receiverOpt.ifPresent(receiver -> payment.setReceiverClientId(receiver.getClientId()));
+
         paymentRepository.save(payment);
 
         CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT);
@@ -135,14 +153,14 @@ public class PaymentService {
         return true;
     }
 
-
     public void confirmPayment(Long paymentId) {
         // Preuzimanje payment entiteta na osnovu paymentId
-        Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         // Preuzimanje sender i receiver računa
         Account sender = payment.getSenderAccount();
-        String receiverString = payment.getAccountNumberReciver();
+        String receiverString = payment.getAccountNumberReceiver();
 
         Optional<Account> receiverOpt = accountRepository.findByAccountNumber(receiverString);
 
@@ -165,7 +183,6 @@ public class PaymentService {
         paymentRepository.save(payment);
     }
 
-    // ovo ce se menjati sa menjacnicom
     public static BigDecimal convert(@NotNull(message = "Amount is required.") @Positive(message = "Amount must be positive.") BigDecimal amountInRSD, CurrencyType currencyType) {
         BigDecimal convertedAmount = BigDecimal.ZERO;  // Postavi početnu vrednost kao 0
 
@@ -197,20 +214,32 @@ public class PaymentService {
             LocalDateTime startDate, LocalDateTime endDate,
             BigDecimal minAmount, BigDecimal maxAmount,
             PaymentStatus paymentStatus,
+            String accountNumber,
+            String cardNumber,
             Pageable pageable
     ) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
-        Specification<Payment> spec = PaymentSpecification.filterPayments(clientId, startDate, endDate, minAmount, maxAmount, paymentStatus);
+
+        if (accountNumber != null) {
+            accountRepository.findByAccountNumber(accountNumber)
+                    .orElseThrow(AccountNotFoundException::new);
+        }
+
+        if (cardNumber != null) {
+            cardRepository.findByCardNumber(cardNumber)
+                    .orElseThrow(() -> new CardNotFoundException(cardNumber));
+        }
+
+        Specification<Payment> spec = PaymentSpecification.filterPayments(clientId, startDate, endDate, minAmount, maxAmount, paymentStatus, accountNumber, cardNumber);
         Page<Payment> payments = paymentRepository.findAll(spec, pageable);
         return payments.map(paymentMapper::toOverviewDto);
     }
 
     // Dohvatanje detalja transakcije po ID-u
-    public PaymentDetailsDto getPaymentDetails(String token,Long id) {
+    public PaymentDetailsDto getPaymentDetails(String token, Long id) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         Payment payment = paymentRepository.findByIdAndClientId(id, clientId)
                 .orElseThrow(() -> new PaymentNotFoundException(id));
         return paymentMapper.toDetailsDto(payment);
     }
 }
-

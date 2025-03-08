@@ -19,4 +19,5 @@ public class PaymentDetailsDto {
     private String referenceNumber;
     private LocalDateTime date;
     private PaymentStatus status;
+    private String cardNumber;
 }

@@ -142,7 +142,6 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
     @GetMapping
     @Operation(summary = "Get payments page filtered", description = "Get filtered page of payments.")
     @ApiResponses(value = {
@@ -155,11 +154,13 @@ public class PaymentController {
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) String accountNumber,
+            @RequestParam(required = false) String cardNumber,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<PaymentOverviewDto> payments = paymentService.getPayments(token, startDate, endDate, minAmount, maxAmount, paymentStatus, pageable);
+        Page<PaymentOverviewDto> payments = paymentService.getPayments(token, startDate, endDate, minAmount, maxAmount, paymentStatus, accountNumber, cardNumber, pageable);
         return ResponseEntity.ok(payments);
     }
 

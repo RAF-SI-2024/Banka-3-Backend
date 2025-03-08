@@ -33,11 +33,15 @@ public class Payment {
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
     private Account senderAccount;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "card_id")
+    private Card card;
+
     @Column(nullable = false)
     private BigDecimal amount;
 
     /// Za prenos izmedju dva racuna istog klijenta
-    private String accountNumberReciver;
+    private String accountNumberReceiver;
     /// Za placanje preko uplatnice
     @ManyToOne
     @JoinColumn(name = "payee_id")
@@ -53,6 +57,9 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
+
+    @Column(nullable = true)
+    private Long receiverClientId;
 
     @PrePersist
     public void setTransactionDate() {
