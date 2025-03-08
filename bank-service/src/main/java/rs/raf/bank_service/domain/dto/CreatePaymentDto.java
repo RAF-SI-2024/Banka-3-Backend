@@ -7,11 +7,6 @@ import java.math.BigDecimal;
 
 @Data
 public class CreatePaymentDto {
-
-
-    @NotBlank(message = "Sender name is required.")
-    private String senderName;
-
     @NotBlank(message = "Sender account number is required.")
     private String senderAccountNumber;
 

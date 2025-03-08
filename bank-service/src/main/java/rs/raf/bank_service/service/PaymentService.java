@@ -118,6 +118,11 @@ public class PaymentService {
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
+        Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
+
+
         // Provera valute
         if (!(sender.getCurrency().getCode().equals(CurrencyType.RSD.toString()))) {
             throw new SendersAccountsCurencyIsNotDinarException();
@@ -128,12 +133,14 @@ public class PaymentService {
             throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
         }
 
+        ClientDto clientDto = userClient.getClientById(clientId);
+
         // Kreiranje Payment entiteta
         Payment payment = new Payment();
-        payment.setSenderName(paymentDto.getSenderName());
+        payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
         payment.setClientId(clientId);
         payment.setSenderAccount(sender);
-        payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber().toString());
+        payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
         payment.setAmount(paymentDto.getAmount());
         payment.setPaymentCode(paymentDto.getPaymentCode());
         payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
@@ -141,9 +148,8 @@ public class PaymentService {
         payment.setDate(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
 
-        // Postavi receiverClientId samo ako je receiver u našoj banci
-        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber().toString());
-        receiverOpt.ifPresent(receiver -> payment.setReceiverClientId(receiver.getClientId()));
+        // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
+        payment.setReceiverClientId(receiver.getClientId());
 
         paymentRepository.save(payment);
 
