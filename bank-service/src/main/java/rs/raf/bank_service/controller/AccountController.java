@@ -144,29 +144,6 @@ public class AccountController {
         }
     }
 
-    //Ovo je za kada se klikne na racun da prikaze sve njegove transakcije (naznaceno da nije isto kao kada se klikne detalji)
-    //Verovatno ce ovo ici u TransactionController ali nzm kako treba da bude jer nemam Transaction Entitet!!!!
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/transactions/{accountNumber}")
-    @Operation(summary = "Get account transactions", description = "Returns account transactions")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved account transactions"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data"),
-            @ApiResponse(responseCode = "500", description = "Account transaction retrieval failed")
-    })
-    public ResponseEntity<?> getAccountTransactions(@RequestHeader("Authorization") String authorizationHeader,
-                                               @PathVariable("accountNumber") String accountNumber){
-        try {
-            return ResponseEntity.ok(null);
-            //return ResponseEntity.ok(accountService.getAccountTransactions(authorizationHeader, accountNumber));
-        }catch (UserNotAClientException | ClientNotAccountOwnerException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }catch (RuntimeException e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
-    }
-
     @PreAuthorize("isAuthenticated()")  // Promenjena provera autentifikacije
     @PutMapping("/{id}/change-name")
     @Operation(summary = "Change account name", description = "Allows a client to change the name of their account.")
