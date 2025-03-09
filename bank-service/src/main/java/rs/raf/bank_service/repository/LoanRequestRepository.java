@@ -7,8 +7,9 @@ import rs.raf.bank_service.domain.enums.LoanRequestStatus;
 
 import java.util.List;
 
+
 @Repository
 public interface LoanRequestRepository extends JpaRepository<LoanRequest, Long> {
-    // Pronalazi zahteve po statusu
     List<LoanRequest> findByStatus(LoanRequestStatus status);
 }
+

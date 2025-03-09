@@ -4,7 +4,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import rs.raf.bank_service.domain.entity.Loan;
 
+import rs.raf.bank_service.domain.enums.InterestRateType;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+
+import java.util.List;
+
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, Long> {
-    // Možemo dodati custom metode ako su potrebne
+    List<Loan> findByInterestRateType(InterestRateType interestRateType);
+
+    List<Loan> findByStatus(LoanStatus status);
+
 }
