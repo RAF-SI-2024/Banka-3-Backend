@@ -6,10 +6,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import rs.raf.user_service.bankClient.BankClient;
-import rs.raf.user_service.dto.VerificationRequestDto;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
+import rs.raf.user_service.domain.enums.VerificationType;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.service.VerificationRequestService;
 import rs.raf.user_service.utils.JwtTokenUtil;
@@ -45,6 +46,7 @@ public class VerificationRequestServiceTest {
         mockRequest.setUserId(userIdFromToken);
         mockRequest.setTargetId(10L);
         mockRequest.setStatus(VerificationStatus.PENDING);
+        mockRequest.setVerificationType(VerificationType.CHANGE_LIMIT);
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userIdFromToken);
         when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.of(mockRequest));
@@ -93,16 +95,14 @@ public class VerificationRequestServiceTest {
     @Test
     void createVerificationRequest_Success() {
         Long userId = 2L;
-        String email = "user@example.com";
         Long targetId = 10L;
 
-        VerificationRequestDto requestDto = VerificationRequestDto.builder()
+        CreateVerificationRequestDto requestDto = CreateVerificationRequestDto.builder()
                 .userId(userId)
-                .email(email)
                 .targetId(targetId)
-                .attempts(0).build();
+                .verificationType(VerificationType.LOGIN).build();
 
-        verificationRequestService.createVerificationRequest(userId, email, targetId);
+        verificationRequestService.createVerificationRequest(requestDto);
 
         verify(verificationRequestRepository, times(1)).save(any(VerificationRequest.class));
     }

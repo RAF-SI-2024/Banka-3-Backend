@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.dto.CreateCompanyDto;
 import rs.raf.user_service.exceptions.*;
 import rs.raf.user_service.service.CompanyService;
 

@@ -9,8 +9,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
+import rs.raf.user_service.domain.enums.VerificationType;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.service.VerificationRequestService;
 
@@ -35,7 +37,6 @@ public class VerificationRequestTest {
         request = VerificationRequest.builder()
                 .id(1L)
                 .userId(100L)
-                .email("test@example.com")
                 .targetId(200L)
                 .status(VerificationStatus.PENDING)
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
@@ -44,7 +45,13 @@ public class VerificationRequestTest {
 
     @Test
     void testCreateVerificationRequest() {
-        verificationRequestService.createVerificationRequest(100L, "test@example.com", 200L);
+        Long userId = 2L;
+        Long targetId = 10L;
+        CreateVerificationRequestDto requestDto = CreateVerificationRequestDto.builder()
+                .userId(userId)
+                .targetId(targetId)
+                .verificationType(VerificationType.LOGIN).build();
+        verificationRequestService.createVerificationRequest(requestDto);
         verify(verificationRequestRepository, times(1)).save(any(VerificationRequest.class));
     }
 

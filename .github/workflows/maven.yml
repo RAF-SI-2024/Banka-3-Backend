@@ -33,6 +33,27 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      bank_db:
+        image: postgres:17.3-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: lozinka
+          POSTGRES_DB: bank_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672  # RabbitMQ port
+          - 15672:15672  # RabbitMQ management console port
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
 
     steps:
       - uses: actions/checkout@v4

@@ -1,9 +1,12 @@
 package rs.raf.user_service.service;
 
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.bankClient.BankClient;
-import rs.raf.user_service.entity.VerificationRequest;
-import rs.raf.user_service.enums.VerificationStatus;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.domain.enums.VerificationStatus;
+import rs.raf.user_service.domain.enums.VerificationType;
+import rs.raf.user_service.exceptions.VerificationNotFoundException;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.utils.JwtTokenUtil;
 
@@ -23,17 +26,32 @@ public class VerificationRequestService {
         this.jwtTokenUtil = jwtTokenUtil;
     }
 
-    public void createVerificationRequest(Long userId, String email, Long transactionId) {
+    public Long getTransactionIdByRequestId(Long requestId) {
+        VerificationRequest request = verificationRequestRepository.findById(requestId)
+                .orElseThrow(() -> new VerificationNotFoundException(requestId));
+        return request.getTargetId();  // Ovo je transactionId, koje je sačuvano u targetId
+    }
+
+    public void createVerificationRequest(CreateVerificationRequestDto createVerificationRequestDto) {
         VerificationRequest request = VerificationRequest.builder()
-                .userId(userId)
-                .email(email)
-                .targetId(transactionId)
+                .userId(createVerificationRequestDto.getUserId())
+                .targetId(createVerificationRequestDto.getTargetId())
                 .status(VerificationStatus.PENDING)
+                .verificationType(createVerificationRequestDto.getVerificationType())
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
                 .build();
 
         verificationRequestRepository.save(request);
     }
+
+    public VerificationType getVerificationTypeByRequestId(Long requestId) {
+        VerificationRequest request = verificationRequestRepository.findById(requestId)
+                .orElseThrow(() -> new VerificationNotFoundException(requestId));  // Ako ne nađe request, baci grešku
+
+        // Vraćamo tip verifikacije (TRANSFER ili PAYMENT)
+        return request.getVerificationType();
+    }
+
 
     public List<VerificationRequest> getActiveRequests(Long userId) {
         return verificationRequestRepository.findByUserIdAndStatus(userId, VerificationStatus.PENDING);
@@ -65,8 +83,11 @@ public class VerificationRequestService {
         request.setStatus(VerificationStatus.APPROVED);
         verificationRequestRepository.save(request);
 
-
-        bankClient.changeAccountLimit(request.getTargetId());
+        switch (request.getVerificationType()) {
+            case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
+            case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
+            case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
+        }
 
         return true;
     }
@@ -88,6 +109,9 @@ public class VerificationRequestService {
             throw new SecurityException("You are not authorized to deny this request.");
         }
 
+        switch (request.getVerificationType()) {
+        // @todo cancel payment/transfer, cancel limit change
+        }
 
         return updateRequestStatus(requestId, VerificationStatus.DENIED);
     }

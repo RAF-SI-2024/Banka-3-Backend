@@ -2,7 +2,7 @@ package rs.raf.user_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.domain.entity.Client;
 
 import java.util.Optional;
 

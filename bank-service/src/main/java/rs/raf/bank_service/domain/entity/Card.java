@@ -1,7 +1,6 @@
 package rs.raf.bank_service.domain.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 
@@ -12,6 +11,9 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Card {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,7 +1,7 @@
 package rs.raf.user_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.domain.entity.Client;
 
 public class ClientSearchSpecification {
 

@@ -9,15 +9,16 @@ import org.springframework.data.jpa.domain.Specification;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.CreateClientDto;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.UpdateClientDto;
-import rs.raf.user_service.entity.AuthToken;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.domain.dto.ClientDto;
+import rs.raf.user_service.domain.dto.CreateClientDto;
+import rs.raf.user_service.domain.dto.EmailRequestDto;
+import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.domain.entity.AuthToken;
+import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
-import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
+import rs.raf.user_service.domain.mapper.ClientMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.UserRepository;
@@ -54,9 +55,12 @@ public class ClientService {
         Client client = clientMapper.fromCreateDto(createClientDto);
         client.setPassword("");
 
-        if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
+        if (userRepository.existsByEmail(createClientDto.getEmail()))
+            throw new EmailAlreadyExistsException();
+        if (userRepository.existsByUsername(createClientDto.getUsername()))
+            throw new UserAlreadyExistsException();
+        if (userRepository.findByJmbg(createClientDto.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
-        }
         try {
             Client savedClient = clientRepository.save(client);
 

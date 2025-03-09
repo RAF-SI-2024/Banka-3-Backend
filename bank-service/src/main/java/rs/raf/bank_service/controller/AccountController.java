@@ -61,6 +61,22 @@ public class AccountController {
         return ResponseEntity.ok(accounts);
     }
 
+    @PreAuthorize("hasAuthority('employee')")
+    @Operation(summary = "Get client accounts with filtering and pagination")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
+    @GetMapping("/{clientId}")
+    public ResponseEntity<Page<AccountDto>> getAccountsForClient(
+            @RequestParam(required = false) String accountNumber,
+            @PathVariable Long clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
+        return ResponseEntity.ok(accounts);
+    }
+
+
 
     @PreAuthorize("hasAuthority('employee')")
     @PostMapping
@@ -96,7 +112,6 @@ public class AccountController {
     public ResponseEntity<?> getMyAccounts(@RequestHeader("Authorization") String auth){
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-            System.out.println(clientId);
             return ResponseEntity.ok(accountService.getMyAccounts(clientId));
         }catch (UserNotAClientException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -109,7 +124,7 @@ public class AccountController {
     //oVO MOZDA VISE I NIJE POTREBNO JER JE KOLEGA KOJI JE MERGOVAO PRE MENE PROSIRIO aCCOUNTdTO DA UKLJUCUJE
     //I ONO STO SAM JA RAZDVOJIO U AccountDetailsDto -- izvini za Caps
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/{accountNumber}")
+    @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved account with details"),
@@ -121,29 +136,6 @@ public class AccountController {
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
             return ResponseEntity.ok(accountService.getAccountDetails(clientId, accountNumber));
-        }catch (UserNotAClientException | ClientNotAccountOwnerException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }catch (RuntimeException e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
-    }
-
-    //Ovo je za kada se klikne na racun da prikaze sve njegove transakcije (naznaceno da nije isto kao kada se klikne detalji)
-    //Verovatno ce ovo ici u TransactionController ali nzm kako treba da bude jer nemam Transaction Entitet!!!!
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/transactions/{accountNumber}")
-    @Operation(summary = "Get account transactions", description = "Returns account transactions")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved account transactions"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data"),
-            @ApiResponse(responseCode = "500", description = "Account transaction retrieval failed")
-    })
-    public ResponseEntity<?> getAccountTransactions(@RequestHeader("Authorization") String authorizationHeader,
-                                               @PathVariable("accountNumber") String accountNumber){
-        try {
-            return ResponseEntity.ok(null);
-            //return ResponseEntity.ok(accountService.getAccountTransactions(authorizationHeader, accountNumber));
         }catch (UserNotAClientException | ClientNotAccountOwnerException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (RuntimeException e){

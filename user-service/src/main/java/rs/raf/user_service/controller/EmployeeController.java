@@ -14,9 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.CreateEmployeeDto;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.dto.CreateEmployeeDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.ErrorMessageDto;
+import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
@@ -71,7 +72,6 @@ public class EmployeeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        System.out.println(firstName + " " + lastName + " " + email + " " + position);
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
@@ -145,7 +145,7 @@ public class EmployeeController {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
         } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

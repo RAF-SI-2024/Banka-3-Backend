@@ -5,18 +5,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import rs.raf.user_service.dto.AuthorizedPersonelDto;
-import rs.raf.user_service.dto.CreateAuthorizedPersonelDto;
-import rs.raf.user_service.entity.AuthorizedPersonel;
-import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.entity.Company;
-import rs.raf.user_service.mapper.AuthorizedPersonelMapper;
+import rs.raf.user_service.domain.dto.AuthorizedPersonelDto;
+import rs.raf.user_service.domain.dto.CreateAuthorizedPersonelDto;
+import rs.raf.user_service.domain.entity.AuthorizedPersonel;
+import rs.raf.user_service.domain.entity.Client;
+import rs.raf.user_service.domain.entity.Company;
+import rs.raf.user_service.domain.mapper.AuthorizedPersonelMapper;
 import rs.raf.user_service.repository.AuthorizedPersonelRepository;
 import rs.raf.user_service.repository.CompanyRepository;
 import rs.raf.user_service.service.AuthorizedPersonelService;
 
 import javax.persistence.EntityNotFoundException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
