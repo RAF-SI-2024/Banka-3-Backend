@@ -3,24 +3,27 @@ package rs.raf.user_service.service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import lombok.AllArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.CreateEmployeeDto;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.dto.UpdateEmployeeDto;
-import rs.raf.user_service.entity.AuthToken;
-import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.domain.dto.CreateEmployeeDto;
+import rs.raf.user_service.domain.dto.EmailRequestDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.AuthToken;
+import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
-import rs.raf.user_service.mapper.EmployeeMapper;
+import rs.raf.user_service.domain.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
@@ -32,13 +35,16 @@ import java.util.UUID;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
+
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee list retrieved successfully")
     })
+
     public Page<EmployeeDto> findAll(String firstName, String lastName, String email, String position, Pageable pageable) {
         Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.startsWithFirstName(firstName))
                 .and(EmployeeSearchSpecification.startsWithLastName(lastName))
@@ -47,6 +53,7 @@ public class EmployeeService {
 
         return employeeRepository.findAll(spec, pageable)
                 .map(EmployeeMapper::toDto);
+
     }
 
     @Operation(summary = "Find employee by ID", description = "Fetches an employee by its unique ID")
@@ -54,6 +61,7 @@ public class EmployeeService {
             @ApiResponse(responseCode = "200", description = "Employee found"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
+
     public EmployeeDto findById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(EntityNotFoundException::new);
@@ -101,14 +109,12 @@ public class EmployeeService {
             @ApiResponse(responseCode = "400", description = "Employee username or email already exists")
     })
     public EmployeeDto createEmployee(CreateEmployeeDto createEmployeeDTO) throws EmailAlreadyExistsException {
-        if (employeeRepository.existsByEmail(createEmployeeDTO.getEmail()))
+        if (userRepository.existsByEmail(createEmployeeDTO.getEmail()))
             throw new EmailAlreadyExistsException();
-        if (employeeRepository.existsByUsername(createEmployeeDTO.getUsername()))
+        if (userRepository.existsByUsername(createEmployeeDTO.getUsername()))
             throw new UserAlreadyExistsException();
-        if (employeeRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
+        if (userRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
-
-        // @Todo hendlati constraint violation greske ovde i u clientu 😡😡😡😡😡😡😡😡
 
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
         employeeRepository.save(employee);
@@ -154,6 +160,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
         return EmployeeMapper.toDto(employee);
     }
+
 
 
 }

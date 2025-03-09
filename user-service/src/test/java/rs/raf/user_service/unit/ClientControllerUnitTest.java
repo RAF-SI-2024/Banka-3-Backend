@@ -6,16 +6,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.user_service.controller.ClientController;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.CreateClientDto;
-import rs.raf.user_service.dto.UpdateClientDto;
+import rs.raf.user_service.domain.dto.ClientDto;
+import rs.raf.user_service.domain.dto.CreateClientDto;
+import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.ClientService;
 
 import java.text.SimpleDateFormat;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +58,7 @@ public class ClientControllerUnitTest {
 
         Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("1990-05-15");
 
-        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "Adresa 1", "0611158275", "M", birthDate, "1234567890123");
+        clientDTO = new ClientDto(1L, "Marko", "Markovic", "marko@example.com", "Adresa 1", "0611158275", "M", birthDate, "1234567890123","marko12");
 
         createClientDTO = new CreateClientDto();
         createClientDTO.setFirstName("Marko");
@@ -67,8 +69,11 @@ public class ClientControllerUnitTest {
         createClientDTO.setGender("M");
         createClientDTO.setBirthDate(birthDate);
         createClientDTO.setJmbg("1234567890123");
+        createClientDTO.setUsername("marko12");
 
         updateClientDTO = new UpdateClientDto();
+        updateClientDTO.setFirstName(clientDTO.getFirstName());  // added if required by validation
+        updateClientDTO.setEmail(clientDTO.getEmail());
         updateClientDTO.setLastName("MarkovicUpdated");
         updateClientDTO.setAddress("Nova Adresa");
         updateClientDTO.setPhone("0611159999");
@@ -80,7 +85,8 @@ public class ClientControllerUnitTest {
         List<ClientDto> clients = Arrays.asList(clientDTO);
         Page<ClientDto> clientsPage = new PageImpl<>(clients);
 
-        when(clientService.listClients(PageRequest.of(0,10))).thenReturn(clientsPage);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("lastName").ascending());
+        when(clientService.listClientsWithFilters(null, null, null, pageable)).thenReturn(clientsPage);
 
         mockMvc.perform(get("/api/admin/clients")
                         .param("page", "0")
@@ -89,7 +95,7 @@ public class ClientControllerUnitTest {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].firstName", is(clientDTO.getFirstName())));
 
-        verify(clientService, times(1)).listClients(PageRequest.of(0,10));
+        verify(clientService, times(1)).listClientsWithFilters(null, null, null, pageable);
     }
 
     @Test
@@ -120,11 +126,54 @@ public class ClientControllerUnitTest {
         mockMvc.perform(post("/api/admin/clients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createClientDTO)))
+                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstName", is(clientDTO.getFirstName())))
                 .andExpect(jsonPath("$.email", is(clientDTO.getEmail())));
         verify(clientService, times(1)).addClient(any(CreateClientDto.class));
     }
+
+    @Test
+    public void testAddClient_UserAlreadyExists() throws Exception {
+        when(clientService.addClient(any(CreateClientDto.class))).thenThrow(new UserAlreadyExistsException());
+
+        mockMvc.perform(post("/api/admin/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createClientDTO)))
+                .andExpect(jsonPath("$.error").value("User with this username already exists"))
+                .andExpect(status().isBadRequest());
+
+        verify(clientService, times(1)).addClient(any(CreateClientDto.class));
+    }
+
+    @Test
+    public void testAddClient_JmbgAlreadyExists() throws Exception {
+        when(clientService.addClient(any(CreateClientDto.class))).thenThrow(new JmbgAlreadyExistsException());
+
+        mockMvc.perform(post("/api/admin/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createClientDTO)))
+                .andExpect(jsonPath("$.error").value("User with this jmbg already exists"))
+                .andExpect(status().isBadRequest());
+
+        verify(clientService, times(1)).addClient(any(CreateClientDto.class));
+    }
+
+    @Test
+    public void testAddClient_EmailAlreadyExists() throws Exception {
+        when(clientService.addClient(any(CreateClientDto.class))).thenThrow(new EmailAlreadyExistsException());
+
+        mockMvc.perform(post("/api/admin/clients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createClientDTO)))
+                .andExpect(jsonPath("$.error").value("User with this email already exists"))
+                .andExpect(status().isBadRequest());
+
+        verify(clientService, times(1)).addClient(any(CreateClientDto.class));
+    }
+
+
+
 
     @Test
     public void testUpdateClient_Success() throws Exception {

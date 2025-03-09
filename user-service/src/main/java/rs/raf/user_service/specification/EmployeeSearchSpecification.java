@@ -1,9 +1,10 @@
 package rs.raf.user_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.domain.entity.Employee;
 
 public class EmployeeSearchSpecification {
+
 
     // Pretraga po imenu, koristi startsWith
     public static Specification<Employee> startsWithFirstName(String firstName) {
@@ -29,4 +30,5 @@ public class EmployeeSearchSpecification {
                 criteriaBuilder.like(criteriaBuilder.lower(root.get("position")), position.toLowerCase());
     }
 }
+
 

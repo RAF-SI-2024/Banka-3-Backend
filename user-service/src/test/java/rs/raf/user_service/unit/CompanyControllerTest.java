@@ -8,8 +8,11 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.CompanyController;
-import rs.raf.user_service.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.dto.CreateCompanyDto;
 import rs.raf.user_service.service.CompanyService;
+
+import rs.raf.user_service.exceptions.ClientNotFoundException;
+
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,15 +52,19 @@ public class CompanyControllerTest {
         CreateCompanyDto createCompanyDto = new CreateCompanyDto();
         createCompanyDto.setName("Test Company");
 
-        String errorMessage = "Invalid data";
-        doThrow(new RuntimeException(errorMessage)).when(companyService).createCompany(any(CreateCompanyDto.class));
+
+        Long clientId = 1L;
+        String expectedErrorMessage = "Cannot find client with id: " + clientId;
+        doThrow(new ClientNotFoundException(clientId)).when(companyService).createCompany(any(CreateCompanyDto.class));
+
 
         // Act
         ResponseEntity<String> response = companyController.createCompany(createCompanyDto);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(errorMessage, response.getBody());
-        verify(companyService).createCompany(createCompanyDto);
+
+        assertEquals(expectedErrorMessage, response.getBody());
+
     }
 }

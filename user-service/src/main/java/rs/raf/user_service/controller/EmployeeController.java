@@ -1,6 +1,7 @@
 package rs.raf.user_service.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -12,11 +13,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.ObjectError;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.*;
+import rs.raf.user_service.domain.dto.CreateEmployeeDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.ErrorMessageDto;
+import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
@@ -24,8 +25,6 @@ import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/employees")
@@ -38,13 +37,16 @@ public class EmployeeController {
         this.employeeService = employeeService;
     }
 
+
     @PreAuthorize("hasAuthority('admin')")
+
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee"),
             @ApiResponse(responseCode = "404", description = "Employee not found")
     })
     @GetMapping("/{id}")
+
     public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok().body(employeeService.findById(id));
@@ -55,11 +57,13 @@ public class EmployeeController {
     }
 
     @PreAuthorize("hasAuthority('admin')")
+
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee list")
     })
     @GetMapping
+
     public ResponseEntity<Page<EmployeeDto>> getAllEmployees(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -68,7 +72,6 @@ public class EmployeeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        System.out.println(firstName + " " + lastName + " " + email + " " + position);
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
@@ -141,10 +144,9 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        }  catch(EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -168,8 +170,7 @@ public class EmployeeController {
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -189,5 +190,6 @@ public class EmployeeController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+
     }
 }

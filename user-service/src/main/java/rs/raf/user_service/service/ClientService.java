@@ -4,19 +4,25 @@ import lombok.AllArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import org.springframework.data.jpa.domain.Specification;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.CreateClientDto;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.UpdateClientDto;
-import rs.raf.user_service.entity.AuthToken;
-import rs.raf.user_service.entity.Client;
+import rs.raf.user_service.domain.dto.ClientDto;
+import rs.raf.user_service.domain.dto.CreateClientDto;
+import rs.raf.user_service.domain.dto.EmailRequestDto;
+import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.domain.entity.AuthToken;
+import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
-import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
+import rs.raf.user_service.domain.mapper.ClientMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.UserRepository;
+import rs.raf.user_service.specification.ClientSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.ConstraintViolationException;
@@ -49,9 +55,12 @@ public class ClientService {
         Client client = clientMapper.fromCreateDto(createClientDto);
         client.setPassword("");
 
-        if (clientRepository.findByJmbg(client.getJmbg()).isPresent()) {
+        if (userRepository.existsByEmail(createClientDto.getEmail()))
+            throw new EmailAlreadyExistsException();
+        if (userRepository.existsByUsername(createClientDto.getUsername()))
+            throw new UserAlreadyExistsException();
+        if (userRepository.findByJmbg(createClientDto.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
-        }
         try {
             Client savedClient = clientRepository.save(client);
 
@@ -79,6 +88,14 @@ public class ClientService {
         Client existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
 
+        if (!existingClient.getEmail().equals(updateClientDto.getEmail())) {
+            clientRepository.findByEmail(updateClientDto.getEmail())
+                    .ifPresent(c -> {
+                        throw new EmailAlreadyExistsException();
+                    });
+            existingClient.setEmail(updateClientDto.getEmail());
+        }
+
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());
         existingClient.setPhone(updateClientDto.getPhone());
@@ -88,6 +105,16 @@ public class ClientService {
         System.out.println("[updateClient] Klijent ažuriran: " + updatedClient);
 
         return clientMapper.toDto(updatedClient);
+    }
+
+    public Page<ClientDto> listClientsWithFilters(String firstName, String lastName, String email, Pageable pageable) {
+        Specification<Client> spec = Specification
+                .where(ClientSearchSpecification.firstNameContains(firstName))
+                .and(ClientSearchSpecification.lastNameContains(lastName))
+                .and(ClientSearchSpecification.emailContains(email));
+
+        Page<Client> clientsPage = clientRepository.findAll(spec, pageable);
+        return clientsPage.map(clientMapper::toDto);
     }
 
     public void deleteClient(Long id) {
@@ -101,6 +128,14 @@ public class ClientService {
     public ClientDto findByEmail(String email) {
         Client client = clientRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found with email: " + email));
+        return clientMapper.toDto(client);
+    }
+
+
+    public ClientDto getCurrentClient() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Client client = clientRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("Client not found with email: " + email));
+
         return clientMapper.toDto(client);
     }
 }

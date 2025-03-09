@@ -11,12 +11,13 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.user_service.dto.CreateEmployeeDto;
-import rs.raf.user_service.dto.EmployeeDto;
-import rs.raf.user_service.dto.UpdateEmployeeDto;
-import rs.raf.user_service.entity.Employee;
+import rs.raf.user_service.domain.dto.CreateEmployeeDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.EmployeeService;
 
 import javax.persistence.EntityNotFoundException;
@@ -28,6 +29,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EmployeeServiceTest {
 
+    @Mock
+    private UserRepository userRepository;
     @Mock
     private EmployeeRepository employeeRepository;
     @Mock
@@ -71,7 +74,7 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<EmployeeDto> result = employeeService.findAll("Jovan", "Jovanovic", "jovan456@example.com","Developer", PageRequest.of(0, 10));
+        Page<EmployeeDto> result = employeeService.findAll("Jovan", "Jovanovic", "jovan456@example.com", "Developer", PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
@@ -127,10 +130,8 @@ class EmployeeServiceTest {
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
 
-        // Pozivamo metodu za brisanje
         employeeService.deleteEmployee(1L);
 
-        // Proveravamo da li je delete metoda pozvana
         verify(employeeRepository, times(1)).delete(employee);
     }
 
@@ -203,7 +204,7 @@ class EmployeeServiceTest {
         String firstName = "Petar";
         String lastName = "Petrovic";
         String gender = "M";
-        String email = "petar@raf.rs";
+        String email = "petarw@raf.rs";
         String phone = "+38161123456";
         String address = "Trg Republike 5";
         String username = "petareperic90";

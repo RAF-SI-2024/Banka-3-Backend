@@ -32,14 +32,6 @@ public class InstallmentController {
         return ResponseEntity.ok(installmentService.getInstallmentsByLoanId(loanId));
     }
 
-    @Operation(summary = "Create a new installment")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Installment created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
-    })
-    @PostMapping("/create")
-    public ResponseEntity<InstallmentCreateDto> createInstallment(@RequestBody InstallmentCreateDto installmentDto) {
-        return ResponseEntity.ok(installmentService.createInstalment(installmentDto));
-    }
+
 }
 

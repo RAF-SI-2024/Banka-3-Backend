@@ -1,6 +1,8 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
+import rs.raf.bank_service.domain.entity.Installment;
+import rs.raf.bank_service.domain.enums.InterestRateType;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
 
@@ -40,6 +42,12 @@ public class Loan {
 
     @Enumerated(EnumType.STRING)
     private LoanStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private InterestRateType interestRateType;
+
+    @ManyToOne
+    private Account account;
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL)
     private List<Installment> installments;

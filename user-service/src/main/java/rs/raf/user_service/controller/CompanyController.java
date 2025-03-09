@@ -9,15 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.dto.CreateCompanyDto;
-import rs.raf.user_service.exceptions.ActivityCodeNotFoundException;
-import rs.raf.user_service.exceptions.ClientNotFoundException;
-import rs.raf.user_service.exceptions.CompanyRegNumExistsException;
-import rs.raf.user_service.exceptions.TaxIdAlreadyExistsException;
+import rs.raf.user_service.domain.dto.CreateCompanyDto;
+import rs.raf.user_service.exceptions.*;
 import rs.raf.user_service.service.CompanyService;
-import rs.raf.user_service.service.EmployeeService;
-
-import javax.persistence.EntityNotFoundException;
 
 @RestController
 @RequestMapping("/api/company")
@@ -41,6 +35,25 @@ public class CompanyController {
         } catch (ClientNotFoundException | ActivityCodeNotFoundException | CompanyRegNumExistsException |
                  TaxIdAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get company", description = "Retrieves company by id")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved company"),
+            @ApiResponse(responseCode = "404", description = "Company not found."),
+            @ApiResponse(responseCode = "500", description = "Company retrieval failed.")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCompanyById(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok().body(companyService.getCompanyById(id));
+        } catch (CompanyNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (RuntimeException e){
+            return ResponseEntity.internalServerError().body(e.getMessage());
         }
 
     }

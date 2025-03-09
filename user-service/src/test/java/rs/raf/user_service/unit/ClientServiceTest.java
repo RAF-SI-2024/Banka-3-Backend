@@ -9,12 +9,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import rs.raf.user_service.dto.ClientDto;
-import rs.raf.user_service.dto.CreateClientDto;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.dto.UpdateClientDto;
-import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.mapper.ClientMapper;
+import rs.raf.user_service.domain.dto.ClientDto;
+import rs.raf.user_service.domain.dto.CreateClientDto;
+import rs.raf.user_service.domain.dto.EmailRequestDto;
+import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.domain.entity.Client;
+import rs.raf.user_service.domain.mapper.ClientMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.UserRepository;
@@ -113,7 +113,7 @@ public class ClientServiceTest {
         ClientDto expectedDTO = new ClientDto(
                 client.getId(), client.getFirstName(), client.getLastName(),
                 client.getEmail(), client.getAddress(),
-                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg());
+                client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg(), client.getUsername());
 
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
@@ -159,7 +159,7 @@ public class ClientServiceTest {
                 updatedClient.getId(), updatedClient.getFirstName(), updatedClient.getLastName(),
                 updatedClient.getEmail(), updatedClient.getAddress(),
                 updatedClient.getPhone(), updatedClient.getGender(), updatedClient.getBirthDate(),
-                updatedClient.getJmbg());
+                updatedClient.getJmbg(), updatedClient.getUsername());
 
         when(clientRepository.findById(1L)).thenReturn(Optional.of(existingClient));
         doAnswer(invocation -> {

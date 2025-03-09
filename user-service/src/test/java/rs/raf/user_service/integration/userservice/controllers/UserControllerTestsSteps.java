@@ -15,14 +15,13 @@ public class UserControllerTestsSteps extends UserServiceTestsConfig {
 
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final UserControllerTestsState userControllerTestsState = new UserControllerTestsState();
     @Autowired
     ClientController clientController;
     @Autowired
     ObjectMapper objectMapper;
     String adminToken;
     ResultActions resultActions;
-    private final UserControllerTestsState userControllerTestsState = new UserControllerTestsState();
-
 
     @Given("an admin user is logged in")
     public void anAdminUserIsLoggedIn() {

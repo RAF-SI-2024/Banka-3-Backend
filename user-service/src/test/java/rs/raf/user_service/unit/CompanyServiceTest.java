@@ -5,10 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import rs.raf.user_service.dto.CreateCompanyDto;
-import rs.raf.user_service.entity.ActivityCode;
-import rs.raf.user_service.entity.Client;
-import rs.raf.user_service.entity.Company;
+import rs.raf.user_service.domain.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.entity.ActivityCode;
+import rs.raf.user_service.domain.entity.Client;
+import rs.raf.user_service.domain.entity.Company;
 import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.CompanyRepository;
@@ -17,7 +17,9 @@ import rs.raf.user_service.service.CompanyService;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -46,7 +48,9 @@ class CompanyServiceTest {
         CreateCompanyDto createCompanyDto = new CreateCompanyDto();
         createCompanyDto.setName("Test Company");
         createCompanyDto.setRegistrationNumber("12345");
-        createCompanyDto.setTaxId(Long.valueOf("67890"));
+
+        createCompanyDto.setTaxId(String.valueOf(Long.valueOf("67890")));
+
         createCompanyDto.setActivityCode(String.valueOf(1L));
         createCompanyDto.setAddress("Test Address");
         createCompanyDto.setMajorityOwner(1L);

@@ -3,8 +3,8 @@ package rs.raf.user_service.service;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import rs.raf.user_service.dto.EmailRequestDto;
-import rs.raf.user_service.entity.*;
+import rs.raf.user_service.domain.dto.EmailRequestDto;
+import rs.raf.user_service.domain.entity.*;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
@@ -90,6 +90,19 @@ public class AuthService {
                 employeeRepository.save(employee);
             }
         } else throw new RuntimeException("Expired token.");
+    }
+
+    public void requestCard(String email){
+        BaseUser user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        UUID token = UUID.fromString(UUID.randomUUID().toString());
+        EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), email);
+        rabbitTemplate.convertAndSend("request-card", emailRequestDto);
+
+        Long createdAt = Instant.now().toEpochMilli();
+        Long expiresAt = createdAt + 86400000;//24h
+        AuthToken authToken = new AuthToken(createdAt, expiresAt, token.toString(), "request-card", user.getId());
+        authTokenRepository.save(authToken);
     }
 
     public void checkToken(String token) {

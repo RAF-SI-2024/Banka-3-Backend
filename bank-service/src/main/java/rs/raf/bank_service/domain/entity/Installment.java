@@ -1,6 +1,7 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
+import rs.raf.bank_service.domain.enums.InstallmentStatus;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 
 import javax.persistence.*;
@@ -29,5 +30,5 @@ public class Installment {
     private LocalDate actualDueDate;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private InstallmentStatus installmentStatus;
 }

@@ -33,11 +33,11 @@ public class LoanRequest {
     private Integer employmentDuration;
     private Integer repaymentPeriod;
     private String contactPhone;
-    private String accountNumber;
+    @ManyToOne
+    private Account account;
     @ManyToOne
     private Currency currency;
 
     @Enumerated(EnumType.STRING)
     private LoanRequestStatus status;
 }
-

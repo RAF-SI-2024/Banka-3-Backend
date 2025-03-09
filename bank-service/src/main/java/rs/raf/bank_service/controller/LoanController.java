@@ -52,4 +52,26 @@ public class LoanController {
     public ResponseEntity<LoanDto> createLoan(@RequestBody LoanDto loanDto) {
         return ResponseEntity.ok(loanService.saveLoan(loanDto));
     }
+
+    @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
+            @ApiResponse(responseCode = "404", description = "Loan not found")
+    })
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<LoanDto> approveLoan(@PathVariable Long id) {
+        LoanDto approvedLoan = loanService.approveLoan(id);
+        return ResponseEntity.ok(approvedLoan);
+    }
+
+    @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
+            @ApiResponse(responseCode = "404", description = "Loan not found")
+    })
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<LoanDto> rejectLoan(@PathVariable Long id) {
+        LoanDto rejectedLoan = loanService.rejectLoan(id);
+        return ResponseEntity.ok(rejectedLoan);
+    }
 }

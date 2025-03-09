@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -43,7 +44,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-              System.out.println("Authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
         }
 
         filterChain.doFilter(request, response);
