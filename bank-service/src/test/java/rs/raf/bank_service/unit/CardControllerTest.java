@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
@@ -16,7 +19,9 @@ import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.exceptions.CardLimitExceededException;
 import rs.raf.bank_service.exceptions.InvalidTokenException;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.CardService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -29,7 +34,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(CardController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 public class CardControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -39,6 +45,15 @@ public class CardControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private JwtTokenUtil jwtTokenUtil;
+
+    @MockBean
+    private UserClient userClient;
+
+    @MockBean
+    private ChangeLimitRequestRepository changeLimitRequestRepository;
 
     @Test
     @WithMockUser(authorities = "admin")
@@ -92,6 +107,7 @@ public class CardControllerTest {
 
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testRequestCardForAccount_Success() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -107,6 +123,7 @@ public class CardControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -122,6 +139,7 @@ public class CardControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -138,6 +156,7 @@ public class CardControllerTest {
 
     // Test for verifyAndReceiveCard
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testVerifyAndReceiveCard_Success() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -167,6 +186,7 @@ public class CardControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testVerifyAndReceiveCard_InvalidToken() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -182,6 +202,7 @@ public class CardControllerTest {
 
     // Test for createCard
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testCreateCard_Success() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -211,6 +232,7 @@ public class CardControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void testCreateCard_EntityNotFound() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 

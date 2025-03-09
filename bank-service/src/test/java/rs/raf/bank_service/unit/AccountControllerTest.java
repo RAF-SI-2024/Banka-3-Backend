@@ -8,7 +8,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -17,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.domain.dto.AccountDto;
 import rs.raf.bank_service.domain.dto.ClientDto;
@@ -25,7 +29,9 @@ import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AccountController.class)
+@WithMockUser(username = "admin", roles = {"ADMIN"})
 class AccountControllerTest {
 
     @Autowired
@@ -53,6 +60,14 @@ class AccountControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private JwtTokenUtil jwtTokenUtil;
+
+    @MockBean
+    private UserClient userClient;
+
+    @MockBean
+    private ChangeLimitRequestRepository changeLimitRequestRepository;
 
     @InjectMocks
     private AccountController accountController;
@@ -60,11 +75,14 @@ class AccountControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(jwtTokenUtil.getUserIdFromAuthHeader(anyString())).thenReturn(5L);
+
+        accountController = new AccountController(accountService, jwtTokenUtil, userClient, changeLimitRequestRepository);
     }
 
     @Test
 
-    @WithMockUser(authorities = "admin")
+    @WithMockUser(roles = "ADMIN")
     void testGetAccounts() throws Exception {
         ClientDto clientDto = new ClientDto();
         clientDto.setFirstName("Marko");
@@ -86,7 +104,8 @@ class AccountControllerTest {
                         .param("lastName", "Markovic")
                         .param("page", "0")
                         .param("size", "10")
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer VALID_JWT_TOKEN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].accountNumber").value("123456789012345678"))
                 .andExpect(jsonPath("$.content[0].owner.firstName").value("Marko"))
@@ -132,7 +151,7 @@ class AccountControllerTest {
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
         String authorizationHeader = "Bearer token";
 
-        String errorMessage = "Cannot find currency with id: INVALID";
+        String errorMessage = "Currency not found: INVALID";
         doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
                 .createNewBankAccount(any(NewBankAccountDto.class), anyString());
 
