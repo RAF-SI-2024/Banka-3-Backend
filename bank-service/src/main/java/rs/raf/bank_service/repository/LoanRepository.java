@@ -9,6 +9,11 @@ import rs.raf.bank_service.domain.enums.LoanStatus;
 
 import java.util.List;
 
+import rs.raf.bank_service.domain.enums.InterestRateType;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+
+import java.util.List;
+
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, Long> {
     List<Loan> findByInterestRateType(InterestRateType interestRateType);

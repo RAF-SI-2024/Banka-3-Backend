@@ -4,10 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.entity.Loan;
 import rs.raf.bank_service.service.LoanService;
+
+
 
 
 @RestController
@@ -20,6 +24,7 @@ public class LoanController {
     public LoanController(LoanService loanService) {
         this.loanService = loanService;
     }
+
 
 
     @PostMapping("/approve/{loanRequestId}")
@@ -43,6 +48,7 @@ public class LoanController {
     public ResponseEntity<String> rejectLoan(@PathVariable Long loanRequestId) {
         loanService.rejectLoan(loanRequestId);
         return ResponseEntity.ok("Loan request rejected.");
+
 
     }
 }

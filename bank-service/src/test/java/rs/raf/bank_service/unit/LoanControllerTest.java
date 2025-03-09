@@ -73,6 +73,6 @@ public class LoanControllerTest {
         assertNotNull(response.getBody());
         assertEquals(newLoan.getLoanNumber(), response.getBody().getLoanNumber());
     }
-    
+
      */
 }

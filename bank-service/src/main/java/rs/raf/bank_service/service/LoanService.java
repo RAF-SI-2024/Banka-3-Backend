@@ -18,15 +18,20 @@ import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+
 @Service
 public class LoanService {
+
+
 
     private final LoanRepository loanRepository;
     private final LoanRequestRepository loanRequestRepository;
 
+
     public LoanService(LoanRepository loanRepository, LoanRequestRepository loanRequestRepository) {
         this.loanRepository = loanRepository;
         this.loanRequestRepository = loanRequestRepository;
+
     }
 
     public Loan approveLoan(Long loanRequestId) {
@@ -54,12 +59,14 @@ public class LoanService {
         return loanRepository.save(loan);
     }
 
+
     public void rejectLoan(Long loanRequestId) {
         LoanRequest request = loanRequestRepository.findById(loanRequestId)
                 .orElseThrow(() -> new LoanNotFoundException());
 
         request.setStatus(LoanRequestStatus.REJECTED);
         loanRequestRepository.save(request);
+
     }
 }
 
