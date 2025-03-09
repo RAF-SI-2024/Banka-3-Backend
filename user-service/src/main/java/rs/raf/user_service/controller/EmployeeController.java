@@ -38,7 +38,7 @@ public class EmployeeController {
     }
 
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
 
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
@@ -56,7 +56,7 @@ public class EmployeeController {
 
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
 
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
@@ -76,7 +76,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete an employee", description = "Deletes an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deleted successfully"),
@@ -94,7 +94,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Deactivate an employee", description = "Deactivates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deactivated successfully"),
@@ -112,7 +112,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Activate an employee", description = "Activates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee activated successfully"),
@@ -130,7 +130,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create an employee", description = "Creates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
@@ -152,7 +152,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update an employee", description = "Updates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee updated successfully"),

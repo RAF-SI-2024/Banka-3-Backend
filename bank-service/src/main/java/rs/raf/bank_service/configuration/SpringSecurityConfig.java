@@ -43,17 +43,14 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api-docs/**").permitAll()
-                .antMatchers("/api/account/**").authenticated()
-                .antMatchers("/api/account/*/cards/**").authenticated()
+                .antMatchers("/api/account/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/payees/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/payment/**").hasAnyRole("EMPLOYEE","CLIENT")
                 .anyRequest().authenticated()
-                .and().sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and().headers()
-                .frameOptions().disable()
-
-                 .and().addFilterBefore(jwtAuthenticationFilter,
-                 UsernamePasswordAuthenticationFilter.class);
-
+                .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and().headers().frameOptions().disable()
+                .and().addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     }
 

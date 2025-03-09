@@ -55,14 +55,9 @@ public abstract class BaseUser {
     @Column(updatable = false, unique = true)
     private String jmbg;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_permissions",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "permission_id")
-    )
-
-    private Set<Permission> permissions = new HashSet<>();
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     public BaseUser(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
                     String address, String jmbg, String username) {
