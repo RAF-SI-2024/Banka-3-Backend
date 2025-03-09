@@ -5,6 +5,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @Transactional
 @ExtendWith(MockitoExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class UserServiceTestsSteps extends UserServiceTestsConfig {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     List<ClientDto> clients;
@@ -63,6 +64,11 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
 
     @Autowired
     private ClientRepository clientRepository;
+
+    @BeforeEach
+    void clearDatabase() {
+        clientRepository.deleteAll();
+    }
 
 
     @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string} and jmbg {string} and username {string}")
