@@ -16,7 +16,7 @@ public class InstallmentMapper {
                 .interestRate(installment.getInterestRate())
                 .expectedDueDate(installment.getExpectedDueDate())
                 .actualDueDate(installment.getActualDueDate())
-                .paymentStatus(installment.getPaymentStatus())
+                .installmentStatus(installment.getInstallmentStatus())
                 .build();
     }
 
@@ -30,7 +30,7 @@ public class InstallmentMapper {
         installment.setInterestRate(installmentDto.getInterestRate());
         installment.setExpectedDueDate(installmentDto.getExpectedDueDate());
         installment.setActualDueDate(installmentDto.getActualDueDate());
-        installment.setPaymentStatus(installmentDto.getPaymentStatus());
+        installment.setInstallmentStatus(installmentDto.getInstallmentStatus());
         return installment;
     }
 }

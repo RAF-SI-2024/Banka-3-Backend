@@ -7,9 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.InstallmentController;
-import rs.raf.bank_service.domain.dto.InstallmentCreateDto;
 import rs.raf.bank_service.domain.dto.InstallmentDto;
-import rs.raf.bank_service.domain.enums.PaymentStatus;
+import rs.raf.bank_service.domain.enums.InstallmentStatus;
 import rs.raf.bank_service.service.InstallmentService;
 
 import java.math.BigDecimal;
@@ -34,8 +33,8 @@ public class InstallmentControllerTest {
     void testGetInstallmentsByLoanId() {
         Long loanId = 1L;
         List<InstallmentDto> mockInstallments = Arrays.asList(
-                new InstallmentDto(BigDecimal.valueOf(10000), BigDecimal.valueOf(5.5), LocalDate.now(), LocalDate.now().plusMonths(1), PaymentStatus.LATE),
-                new InstallmentDto(BigDecimal.valueOf(12000), BigDecimal.valueOf(5.5), LocalDate.now().plusMonths(1), LocalDate.now().plusMonths(2), PaymentStatus.UNPAID)
+                new InstallmentDto(BigDecimal.valueOf(10000), BigDecimal.valueOf(5.5), LocalDate.now(), LocalDate.now().plusMonths(1), InstallmentStatus.LATE),
+                new InstallmentDto(BigDecimal.valueOf(12000), BigDecimal.valueOf(5.5), LocalDate.now().plusMonths(1), LocalDate.now().plusMonths(2), InstallmentStatus.UNPAID)
         );
 
         when(installmentService.getInstallmentsByLoanId(loanId)).thenReturn(mockInstallments);
@@ -47,15 +46,4 @@ public class InstallmentControllerTest {
         assertEquals(2, response.getBody().size());
     }
 
-    @Test
-    void testCreateInstallment() {
-        InstallmentCreateDto createDto = new InstallmentCreateDto(BigDecimal.valueOf(15000), BigDecimal.valueOf(5.5), LocalDate.now(), LocalDate.now().plusMonths(1), PaymentStatus.UNPAID, 1L);
-        when(installmentService.createInstalment(createDto)).thenReturn(createDto);
-
-        ResponseEntity<InstallmentCreateDto> response = installmentController.createInstallment(createDto);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(createDto.getAmount(), response.getBody().getAmount());
-    }
 }

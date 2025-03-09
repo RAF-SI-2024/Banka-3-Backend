@@ -19,9 +19,9 @@ public class LoanRequestMapper {
                 .employmentDuration(loanRequest.getEmploymentDuration())
                 .repaymentPeriod(loanRequest.getRepaymentPeriod())
                 .contactPhone(loanRequest.getContactPhone())
-                .accountNumber(loanRequest.getAccountNumber())
                 .currencyCode(loanRequest.getCurrency().getCode())
                 .status(loanRequest.getStatus())
+                .accountNumber(loanRequest.getAccount().getAccountNumber())
                 .build();
     }
 
@@ -39,7 +39,6 @@ public class LoanRequestMapper {
         loanRequest.setEmploymentDuration(loanRequestDTO.getEmploymentDuration());
         loanRequest.setRepaymentPeriod(loanRequestDTO.getRepaymentPeriod());
         loanRequest.setContactPhone(loanRequestDTO.getContactPhone());
-        loanRequest.setAccountNumber(loanRequestDTO.getAccountNumber());
         loanRequest.setStatus(loanRequestDTO.getStatus());
         return loanRequest;
     }
