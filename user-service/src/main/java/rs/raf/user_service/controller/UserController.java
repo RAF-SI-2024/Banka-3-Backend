@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.domain.dto.PermissionDto;
 import rs.raf.user_service.domain.dto.PermissionRequestDto;
+import rs.raf.user_service.domain.dto.RoleRequestDto;
 import rs.raf.user_service.domain.dto.UserDto;
 import rs.raf.user_service.service.UserService;
 
@@ -23,13 +24,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/users")
-@Tag(name = "User Permissions", description = "API for managing user permissions")
+@Tag(name = "User roles", description = "API for managing user roles")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     @Operation(summary = "Get all users with pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Users retrieved successfully")})
@@ -40,54 +41,53 @@ public class UserController {
         return ResponseEntity.ok(userService.listUsers(pageable));
     }
 
-    @PreAuthorize("hasAuthority('admin')")
-    @GetMapping("/{userId}/permissions")
-    @Operation(summary = "Get user permissions", description = "Returns a list of all permissions for a specific user.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{userId}/role")
+    @Operation(summary = "Get user role", description = "Returns a role for a specific user.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Permissions retrieved successfully"),
+            @ApiResponse(responseCode = "200", description = "Role retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<List<PermissionDto>> getUserPermissions(
+    public ResponseEntity<String> getUserRole(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId) {
-        List<PermissionDto> permissions = userService.getUserPermissions(userId);
-        return ResponseEntity.ok(permissions);
+        return ResponseEntity.ok(userService.getUserRole(userId));
     }
 
-    @PreAuthorize("hasAuthority('admin')")
-    @PostMapping("/{userId}/permissions")
-    @Operation(summary = "Add permission to user", description = "Adds a permission to a user.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{userId}/role")
+    @Operation(summary = "Add role to user", description = "Adds a role to a user.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Permission added successfully"),
-            @ApiResponse(responseCode = "404", description = "User or permission not found"),
-            @ApiResponse(responseCode = "400", description = "User already has this permission")
+            @ApiResponse(responseCode = "200", description = "Role added successfully"),
+            @ApiResponse(responseCode = "404", description = "User or role not found"),
+            @ApiResponse(responseCode = "400", description = "User already has this role")
     })
-    public ResponseEntity<Void> addPermissionToUser(
+    public ResponseEntity<Void> addRoleToUser(
             @PathVariable Long userId,
-            @RequestBody @Valid PermissionRequestDto permissionRequestDto) {
+            @RequestBody @Valid RoleRequestDto roleRequestDto) {
         try {
-            userService.addPermissionToUser(userId, permissionRequestDto);
+            userService.addRoleToUser(userId, roleRequestDto);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
-    @DeleteMapping("/{userId}/permissions/{permissionId}")
-    @Operation(summary = "Remove permission from user", description = "Removes a permission from a user.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{userId}/role/{roleId}")
+    @Operation(summary = "Remove role from user", description = "Removes a role from a user.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Permission removed successfully"),
-            @ApiResponse(responseCode = "404", description = "User or permission not found"),
-            @ApiResponse(responseCode = "400", description = "User does not have this permission")
+            @ApiResponse(responseCode = "200", description = "Role removed successfully"),
+            @ApiResponse(responseCode = "404", description = "User or role not found"),
+            @ApiResponse(responseCode = "400", description = "User does not have this role")
     })
-    public ResponseEntity<Void> removePermissionFromUser(
+    public ResponseEntity<Void> removeRoleFromUser(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable Long userId,
-            @Parameter(description = "Permission ID", required = true, example = "2")
-            @PathVariable Long permissionId) {
+            @Parameter(description = "Role ID", required = true, example = "2")
+            @PathVariable Long roleId) {
         try {
-            userService.removePermissionFromUser(userId, permissionId);
+            userService.removeRoleFromUser(userId, roleId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
