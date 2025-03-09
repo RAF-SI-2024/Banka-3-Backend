@@ -6,12 +6,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.domain.dto.PermissionDto;
 import rs.raf.user_service.domain.dto.PermissionRequestDto;
+import rs.raf.user_service.domain.dto.RoleRequestDto;
 import rs.raf.user_service.domain.dto.UserDto;
 import rs.raf.user_service.domain.entity.BaseUser;
 import rs.raf.user_service.domain.entity.Permission;
+import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.domain.mapper.PermissionMapper;
 import rs.raf.user_service.domain.mapper.UserMapper;
 import rs.raf.user_service.repository.PermissionRepository;
+import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 
 import java.util.List;
@@ -22,43 +25,44 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
-    public List<PermissionDto> getUserPermissions(Long userId) {
+    public String getUserRole(Long userId) {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return user.getPermissions().stream()
-                .map(PermissionMapper::toDTO)
-                .collect(Collectors.toList());
+        return user.getRole().getName();
     }
 
-    public void addPermissionToUser(Long userId, PermissionRequestDto permissionRequestDto) {
+    public void addRoleToUser(Long userId, RoleRequestDto roleRequestDto) {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        Permission permission = permissionRepository.findById(permissionRequestDto.getId())
-                .orElseThrow(() -> new RuntimeException("Permission not found"));
 
-        if (user.getPermissions().contains(permission)) {
-            throw new RuntimeException("User already has this permission");
+        Role role = roleRepository.findById(roleRequestDto.getId())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        if (user.getRole().getName().equalsIgnoreCase(role.getName())) {
+            throw new RuntimeException("User already has this role");
         }
 
-        user.getPermissions().add(permission);
+        user.setRole(role);
         userRepository.save(user);
     }
 
-    public void removePermissionFromUser(Long userId, Long permissionId) {
+    public void removeRoleFromUser(Long userId, Long roleId) {
         BaseUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        Permission permission = permissionRepository.findById(permissionId)
-                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        if (!user.getPermissions().contains(permission)) {
-            throw new RuntimeException("User does not have this permission");
+        if (!user.getRole().getName().equalsIgnoreCase(role.getName())) {
+            throw new RuntimeException("User does not have this role");
         }
 
-        user.getPermissions().remove(permission);
+        user.setRole(null);
         userRepository.save(user);
     }
+
 
     public Page<UserDto> listUsers(Pageable pageable) {
         Page<BaseUser> usersPage = userRepository.findAll(pageable);

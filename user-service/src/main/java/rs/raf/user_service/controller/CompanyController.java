@@ -21,7 +21,7 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    //@PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @Operation(summary = "Create new company", description = "Creates new company with provided parameters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully created company"),

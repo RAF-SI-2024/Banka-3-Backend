@@ -37,32 +37,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = getJwtFromRequest(request);
 
-        System.out.println(token);
-
         if (token != null && jwtTokenUtil.validateToken(token)) {
             Claims claims = jwtTokenUtil.getClaimsFromToken(token);
             String email = claims.getSubject();
-            // System.out.println("Extracted email: " + email);
 
-            List<String> permissions = claims.get("permissions", List.class);
-            List<GrantedAuthority> authorities = permissions.stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-
-            System.out.println(permissions);
+            String role = claims.get("role", String.class);
+            GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
+            List<GrantedAuthority> authorities = List.of(authority);
 
             UserDetails userDetails = new org.springframework.security.core.userdetails.User(email, "", authorities);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            System.out.println(userDetails);
-            //  System.out.println("Authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
         }
 
         filterChain.doFilter(request, response);
     }
+
 
 
     private String getJwtFromRequest(HttpServletRequest request) {

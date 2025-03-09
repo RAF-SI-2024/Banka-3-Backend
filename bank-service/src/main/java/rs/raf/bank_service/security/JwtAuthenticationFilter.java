@@ -11,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import rs.raf.bank_service.utils.JwtTokenUtil;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -22,22 +24,29 @@ import java.util.stream.Collectors;
 
 
 @Component
-@NoArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
+
+    private final JwtTokenUtil jwtTokenUtil;
+
+    public JwtAuthenticationFilter(JwtTokenUtil jwtTokenUtil) {
+        this.jwtTokenUtil = jwtTokenUtil;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = getJwtFromRequest(request);
-        if (token != null && validateToken(token)) {
-            Claims claims = getClaimsFromToken(token);
+
+        if (token != null && jwtTokenUtil.validateToken(token)) {
+            Claims claims = jwtTokenUtil.getClaimsFromToken(token);
             String email = claims.getSubject();
 
-            List<String> permissions = claims.get("permissions", List.class);
-            List<GrantedAuthority> authorities = permissions.stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
+            String role = claims.get("role", String.class);
+            GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
+            List<GrantedAuthority> authorities = List.of(authority);
+
+            System.out.println(role);
 
             UserDetails userDetails = new org.springframework.security.core.userdetails.User(email, "", authorities);
 
