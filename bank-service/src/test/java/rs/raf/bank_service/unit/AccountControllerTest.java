@@ -26,6 +26,7 @@ import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
+import rs.raf.bank_service.service.ExchangeRateService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.util.Arrays;
@@ -42,6 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AccountController.class)
 class AccountControllerTest {
+
+    @MockBean
+    private ExchangeRateService exchangeRateService;
 
     private MockMvc mockMvc;
 

@@ -26,6 +26,7 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
 import rs.raf.bank_service.service.CardService;
+import rs.raf.bank_service.service.ExchangeRateService;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -42,6 +43,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CardController.class)
 public class CardControllerTest {
 
+    @MockBean
+    private ExchangeRateService exchangeRateService;
     @MockBean
     AccountMapper accountMapper;
     private MockMvc mockMvc;
