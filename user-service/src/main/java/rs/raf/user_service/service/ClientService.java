@@ -88,14 +88,6 @@ public class ClientService {
         Client existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
 
-        if (!existingClient.getEmail().equals(updateClientDto.getEmail())) {
-            clientRepository.findByEmail(updateClientDto.getEmail())
-                    .ifPresent(c -> {
-                        throw new EmailAlreadyExistsException();
-                    });
-            existingClient.setEmail(updateClientDto.getEmail());
-        }
-
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());
         existingClient.setPhone(updateClientDto.getPhone());
