@@ -36,6 +36,7 @@ public class PaymentService {
     private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
+    private final ExchangeRateService exchangeRateService;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) {
         // Preuzimanje računa za sender i receiver
@@ -79,25 +80,52 @@ public class PaymentService {
     }
 
     public boolean confirmTransferAndExecute(Long paymentId) {
-        // Preuzimanje payment entiteta na osnovu paymentId
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        // Preuzimanje računa za sender i receiver koristeći podatke iz payment-a
         Account sender = payment.getSenderAccount();
         Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReceiver())
-                .stream().findFirst()
                 .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReceiver()));
 
-        // Oduzimanje novca sa sender računa i dodavanje na receiver račun
-        sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
-        receiver.setBalance(receiver.getBalance().add(payment.getAmount()));
+        //  Provera da li sender ima dovoljno sredstava
+        if (sender.getBalance().compareTo(payment.getAmount()) < 0) {
+            throw new InsufficientFundsException(sender.getBalance(), payment.getAmount());
+        }
 
-        // Snimanje izmena u bazi
+        //  Oduzimanje novca sa sender računa
+        sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
         accountRepository.save(sender);
+
+        //  Pronalazak bankovnog računa u osnovnoj valuti (RSD)
+        Account bankAccount = accountRepository.findByAccountNumber("333000156732897612")
+                .orElseThrow(() -> new BankAccountNotFoundException("Bank RSD Account not found"));
+
+        //  Konverzija u RSD (ako je potrebno)
+        BigDecimal rsdAmount = payment.getAmount();
+        if (!sender.getCurrency().getCode().equals("RSD")) {
+            rsdAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), "RSD")
+                    .multiply(payment.getAmount());
+        }
+
+        // Dodavanje novca na bankovni račun
+        bankAccount.setBalance(bankAccount.getBalance().add(rsdAmount));
+        accountRepository.save(bankAccount);
+
+        //  Konverzija iz RSD u valutu ciljnog računa
+        BigDecimal convertedAmount = rsdAmount;
+        if (!receiver.getCurrency().getCode().equals("RSD")) {
+            convertedAmount = exchangeRateService.getExchangeRate("RSD", receiver.getCurrency().getCode())
+                    .multiply(rsdAmount);
+        }
+
+        //  Prebacivanje novca sa banke na ciljni račun
+        bankAccount.setBalance(bankAccount.getBalance().subtract(convertedAmount));
+        receiver.setBalance(receiver.getBalance().add(convertedAmount));
+
+        accountRepository.save(bankAccount);
         accountRepository.save(receiver);
 
-        // Ažuriranje statusa payment-a na "COMPLETED"
+        //  Ažuriranje statusa transakcije na "COMPLETED"
         payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
 
@@ -160,31 +188,56 @@ public class PaymentService {
     }
 
     public void confirmPayment(Long paymentId) {
-        // Preuzimanje payment entiteta na osnovu paymentId
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        // Preuzimanje sender i receiver računa
         Account sender = payment.getSenderAccount();
-        String receiverString = payment.getAccountNumberReceiver();
+        String receiverAccountNumber = payment.getAccountNumberReceiver();
+        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(receiverAccountNumber);
 
-        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(receiverString);
-
-        // Ako je receiver u banci, izvrši transakciju
-        if (receiverOpt.isPresent()) {
-            Account receiver = receiverOpt.get();
-            // Konverzija iznos sa RSD u valutu primaoca
-            BigDecimal convertedAmount = convert(payment.getAmount(), CurrencyType.valueOf(receiver.getCurrency().getCode()));
-
-            // Dodavanje iznosa na receiver račun u odgovarajućoj valuti
-            receiver.setBalance(receiver.getBalance().add(convertedAmount));
-            accountRepository.save(receiver);
+        //  Oduzimanje novca sa sender računa
+        if (sender.getBalance().compareTo(payment.getAmount()) < 0) {
+            throw new InsufficientFundsException(sender.getBalance(), payment.getAmount());
         }
-
         sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
         accountRepository.save(sender);
 
-        // Ažuriranje statusa payment-a na "COMPLETED"
+        // Pronalazak bankovnog računa u osnovnoj valuti (RSD)
+        Account bankAccount = accountRepository.findByAccountNumber("333000156732897612")
+                .orElseThrow(() -> new BankAccountNotFoundException("Bank RSD Account not found"));
+
+        //  Konverzija u RSD ako je potrebno
+        BigDecimal rsdAmount = payment.getAmount();
+        if (!sender.getCurrency().getCode().equals("RSD")) {
+            rsdAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), "RSD")
+                    .multiply(payment.getAmount());
+        }
+
+        //  Dodavanje novca na bankovni račun
+        bankAccount.setBalance(bankAccount.getBalance().add(rsdAmount));
+        accountRepository.save(bankAccount);
+
+        //  Ako je primalac u banci, konverzija i prebacivanje sredstava
+        if (receiverOpt.isPresent()) {
+            Account receiver = receiverOpt.get();
+
+            //  Konverzija iz RSD u valutu primaoca
+            BigDecimal convertedAmount = rsdAmount;
+            if (!receiver.getCurrency().getCode().equals("RSD")) {
+                convertedAmount = exchangeRateService.getExchangeRate("RSD", receiver.getCurrency().getCode())
+                        .multiply(rsdAmount);
+            }
+
+            //  Dodavanje na račun primaoca
+            receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            accountRepository.save(receiver);
+
+            //  Oduzimanje novca sa računa banke
+            bankAccount.setBalance(bankAccount.getBalance().subtract(convertedAmount));
+            accountRepository.save(bankAccount);
+        }
+
+        //  Ažuriranje statusa payment-a na "COMPLETED"
         payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
     }
@@ -248,4 +301,6 @@ public class PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException(id));
         return paymentMapper.toDetailsDto(payment);
     }
+
+
 }

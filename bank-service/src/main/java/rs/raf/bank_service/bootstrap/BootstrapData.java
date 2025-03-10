@@ -8,6 +8,7 @@ import rs.raf.bank_service.repository.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class BootstrapData implements CommandLineRunner {
@@ -15,11 +16,13 @@ public class BootstrapData implements CommandLineRunner {
     private final AccountRepository accountRepository;
     private final CardRepository cardRepository;
     private final CurrencyRepository currencyRepository;
+    private final ExchangeRateRepository exchangeRateRepository;
 
-    public BootstrapData(AccountRepository accountRepository, CardRepository cardRepository, CurrencyRepository currencyRepository) {
+    public BootstrapData(AccountRepository accountRepository, CardRepository cardRepository, CurrencyRepository currencyRepository, ExchangeRateRepository exchangeRateRepository) {
         this.accountRepository = accountRepository;
         this.cardRepository = cardRepository;
         this.currencyRepository = currencyRepository;
+        this.exchangeRateRepository = exchangeRateRepository;
     }
 
     @Override
@@ -275,5 +278,16 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         cardRepository.saveAll(java.util.List.of(card1, card2));
+
+        //  Dodavanje početnih kursnih lista
+        ExchangeRate eurToRsd = new ExchangeRate(null, null, currencyEUR, currencyRSD, new BigDecimal("117.5"), null, null);
+        ExchangeRate usdToRsd = new ExchangeRate(null, null, currencyUSD, currencyRSD, new BigDecimal("108.0"), null, null);
+        ExchangeRate rsdToEur = new ExchangeRate(null, null, currencyRSD, currencyEUR, new BigDecimal("0.0085"), null, null);
+        ExchangeRate rsdToUsd = new ExchangeRate(null, null, currencyRSD, currencyUSD, new BigDecimal("0.0093"), null, null);
+
+        exchangeRateRepository.saveAll(List.of(eurToRsd, usdToRsd, rsdToEur, rsdToUsd));
+
+
     }
+
 }
