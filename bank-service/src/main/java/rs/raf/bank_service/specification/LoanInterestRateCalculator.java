@@ -1,10 +1,9 @@
 package rs.raf.bank_service.specification;
 
-
 import rs.raf.bank_service.domain.entity.LoanRequest;
+import rs.raf.bank_service.domain.enums.LoanType;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 public class LoanInterestRateCalculator {
 
@@ -13,7 +12,9 @@ public class LoanInterestRateCalculator {
     }
 
     public static BigDecimal calculateEffectiveRate(LoanRequest request) {
-        return getBaseRate(request.getAmount()).multiply(new BigDecimal("1.05"));
+        BigDecimal baseRate = getBaseRate(request.getAmount());
+        BigDecimal margin = getBankMargin(request.getType());
+        return baseRate.add(margin); // marza+baza
     }
 
     private static BigDecimal getBaseRate(BigDecimal amount) {
@@ -24,5 +25,22 @@ public class LoanInterestRateCalculator {
         if (amount.compareTo(new BigDecimal("10000000")) <= 0) return new BigDecimal("5.25");
         if (amount.compareTo(new BigDecimal("20000000")) <= 0) return new BigDecimal("5.00");
         return new BigDecimal("4.75");
+    }
+
+    private static BigDecimal getBankMargin(LoanType loanType) {
+        switch (loanType) {
+            case CASH:
+                return new BigDecimal("1.75");
+            case MORTGAGE:
+                return new BigDecimal("1.50");
+            case AUTO:
+                return new BigDecimal("1.25");
+            case REFINANCING:
+                return new BigDecimal("1.00");
+            case STUDENT:
+                return new BigDecimal("0.75");
+            default:
+                throw new IllegalArgumentException("Unknown loan type: " + loanType);
+        }
     }
 }
