@@ -71,7 +71,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     void testGetAccounts() throws Exception {
         ClientDto clientDto = new ClientDto();
         clientDto.setFirstName("Marko");
@@ -101,7 +101,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     void testCreateBankAccount_Success() throws Exception {
         // Kreiramo objekat za novi bankovni račun
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
@@ -125,7 +125,7 @@ class AccountControllerTest {
 
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     void testCreateBankAccount_ClientNotFound() {
         // Arrange
         NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
@@ -145,7 +145,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     void testCreateBankAccount_InvalidCurrency() {
 
         // Arrange
@@ -167,7 +167,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_Success() {
         ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
 
@@ -175,7 +175,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "isAuthenticated()")
+    @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_BadRequest() throws Exception {
         String authHeader = "Bearer valid-token";
         Long clientId = 123L; // Simulirani clientId
@@ -194,7 +194,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_Failure() throws Exception {
         String authHeader = "Bearer valid-token";
         Long clientId = 123L; // Simulirani clientId
@@ -213,7 +213,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     void testGetAccountDetails_BadRequest() throws Exception {
         String authHeader = "Bearer valid-token";
 
@@ -234,7 +234,7 @@ class AccountControllerTest {
 
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     void testGetAccountDetails_Failure() throws Exception {
         String authHeader = "Bearer valid-token";
         String accountNumber = "1";
