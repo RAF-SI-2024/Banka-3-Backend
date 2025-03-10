@@ -1,26 +1,24 @@
 package rs.raf.bank_service.bootstrap;
 
+import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.repository.*;
+import rs.raf.bank_service.service.ExchangeRateService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Component
+@AllArgsConstructor
 public class BootstrapData implements CommandLineRunner {
 
     private final AccountRepository accountRepository;
     private final CardRepository cardRepository;
     private final CurrencyRepository currencyRepository;
-
-    public BootstrapData(AccountRepository accountRepository, CardRepository cardRepository, CurrencyRepository currencyRepository) {
-        this.accountRepository = accountRepository;
-        this.cardRepository = cardRepository;
-        this.currencyRepository = currencyRepository;
-    }
+    private final ExchangeRateService exchangeRateService;
 
     @Override
     public void run(String... args) {
@@ -275,5 +273,8 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         cardRepository.saveAll(java.util.List.of(card1, card2));
+
+        //Kreiranje kursne liste
+        exchangeRateService.updateExchangeRates();
     }
 }
