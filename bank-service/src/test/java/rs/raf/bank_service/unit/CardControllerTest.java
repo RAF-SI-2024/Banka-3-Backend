@@ -124,7 +124,7 @@ public class CardControllerTest {
 
 
     @Test
-    @WithMockUser(roles = "EMPLOYEE")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
         // Kreiranje DTO-a
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
@@ -154,7 +154,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "EMPLOYEE")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
 
@@ -182,7 +182,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "EMPLOYEE")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
 
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
@@ -234,10 +234,10 @@ public class CardControllerTest {
 
         when(cardService.recieveCardForAccount(eq(token), eq(createCardDto))).thenReturn(cardDto);
 
-        mockMvc.perform(post("/api/account/{accountNumber}/cards/recieve?token={token}", "account123", token)
+        mockMvc.perform(post("/api/account/{accountNumber}/cards/receive?token={token}", "account123", token)
                         .contentType("application/json")
                         .content(new ObjectMapper().writeValueAsString(createCardDto)))
-                .andExpect(status().isOk()); // Očekujemo status 200 (OK)
+                .andExpect(status().isOk()); // Expecting status 200 (OK)
     }
 
 
