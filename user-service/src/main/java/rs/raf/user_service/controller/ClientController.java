@@ -48,7 +48,7 @@ public class ClientController {
      */
 
     // GET endpoint sa opcionalnim filterima i sortiranje po prezimenu
-    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @GetMapping
     @Operation(summary = "Get all clients with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
@@ -63,7 +63,7 @@ public class ClientController {
         return ResponseEntity.ok(clients);
     }
 
-    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
     @Operation(summary = "Get client by ID")
     @ApiResponses({
@@ -78,7 +78,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @PostMapping
     @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
@@ -97,7 +97,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @PutMapping("/{id}")
     @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
@@ -119,7 +119,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin') or hasAuthority('employee')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete client by ID")
@@ -136,14 +136,14 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Get current client", description = "Returns the currently authenticated client's details")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved employee details"),
-            @ApiResponse(responseCode = "404", description = "Employee not found")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved client details"),
+            @ApiResponse(responseCode = "404", description = "Client not found")
     })
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentEmployee() {
+    public ResponseEntity<?> getCurrentClient() {
         try {
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             return ResponseEntity.ok().body(clientService.findByEmail(email));

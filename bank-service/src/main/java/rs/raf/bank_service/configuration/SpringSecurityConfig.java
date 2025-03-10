@@ -43,17 +43,18 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api-docs/**").permitAll()
-                .antMatchers("/api/account/**").authenticated()
-                .antMatchers("/api/account/*/cards/**").authenticated()
+                .antMatchers("/api/account/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE","ADMIN","CLIENT")
+                .antMatchers("/api/payees/**").hasAnyRole("ADMIN","EMPLOYEE","CLIENT")
+                .antMatchers("/api/payment/**").hasAnyRole("ADMIN","EMPLOYEE","CLIENT")
+                .antMatchers("/api/exchange-rates/**").authenticated()
+                .antMatchers("/api/installments/**").authenticated()
+                .antMatchers("/api/loans/**").hasAnyRole("ADMIN", "CLIENT")
+                .antMatchers("/api/loan-requests**").hasAnyRole("ADMIN", "CLIENT")
                 .anyRequest().authenticated()
-                .and().sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and().headers()
-                .frameOptions().disable()
-
-                 .and().addFilterBefore(jwtAuthenticationFilter,
-                 UsernamePasswordAuthenticationFilter.class);
-
+                .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and().headers().frameOptions().disable()
+                .and().addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     }
 

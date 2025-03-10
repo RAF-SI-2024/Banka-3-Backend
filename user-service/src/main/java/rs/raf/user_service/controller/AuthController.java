@@ -86,21 +86,6 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/request-card")
-    @Operation(summary = "Request card", description = "Requests card.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Request for password reset successfully sent."),
-            @ApiResponse(responseCode = "400", description = "Invalid email.")
-    })
-    public ResponseEntity<Void> requestCard(@RequestBody RequestCardDto requestCardDto) {
-        try {
-            this.authService.requestCard(requestCardDto.getEmail());
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
-
     @PostMapping("/set-password")
     @Operation(summary = "Sets password", description = "Sets new password for both clients and employees")
     @ApiResponses(value = {

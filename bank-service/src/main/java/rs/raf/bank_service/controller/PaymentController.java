@@ -33,7 +33,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @PostMapping("/transfer")
     @Operation(summary = "Transfer funds between accounts", description = "Transfers funds from one account to another. Both must " +
             "be using the same currency.")
@@ -70,7 +70,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/confirm-transfer/{paymentId}")
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
@@ -90,6 +90,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
     @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
@@ -120,7 +121,7 @@ public class PaymentController {
     }
 
     // Metoda za potvrdu plaćanja
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/confirm-payment/{paymentId}")
     @Operation(summary = "Confirm payment", description = "Confirm and execute payment once the receiver is verified.")
     @ApiResponses(value = {
@@ -142,6 +143,7 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasRole('CLIENT')")
     @GetMapping
     @Operation(summary = "Get payments page filtered", description = "Get filtered page of payments.")
     @ApiResponses(value = {
@@ -164,7 +166,7 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @GetMapping("/{id}")
     @Operation(summary = "Get payment details", description = "Get payment details.")
     @ApiResponses(value = {

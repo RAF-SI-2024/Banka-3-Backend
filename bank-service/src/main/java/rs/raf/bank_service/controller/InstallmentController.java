@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.InstallmentCreateDto;
 import rs.raf.bank_service.domain.dto.InstallmentDto;
@@ -14,14 +15,14 @@ import java.util.List;
 
 @Tag(name = "Installments Controller", description = "API for managing loan installments")
 @RestController
-@RequestMapping("/installments")
+@RequestMapping("/api/installments")
 public class InstallmentController {
     private final InstallmentService installmentService;
 
     public InstallmentController(InstallmentService installmentService) {
         this.installmentService = installmentService;
     }
-
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get installments by loan ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Installments retrieved successfully"),

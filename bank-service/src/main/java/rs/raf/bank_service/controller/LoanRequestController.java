@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
 import rs.raf.bank_service.domain.enums.LoanRequestStatus;
@@ -14,7 +15,7 @@ import java.util.List;
 
 @Tag(name = "Loan Requests Controller", description = "API for managing loan requests")
 @RestController
-@RequestMapping("/loan-requests")
+@RequestMapping("/api/loan-requests")
 public class LoanRequestController {
     private final LoanRequestService loanRequestService;
 
@@ -22,6 +23,7 @@ public class LoanRequestController {
         this.loanRequestService = loanRequestService;
     }
 
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get loan requests by status")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan requests retrieved successfully")
@@ -31,6 +33,7 @@ public class LoanRequestController {
         return ResponseEntity.ok(loanRequestService.getLoanRequestsByStatus(status));
     }
 
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Create a new loan request")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Loan request created successfully"),

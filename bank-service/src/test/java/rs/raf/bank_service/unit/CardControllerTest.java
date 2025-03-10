@@ -72,7 +72,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testGetCardsByAccount() throws Exception {
         // Priprema test podataka
         String token = "valid token";
@@ -93,7 +93,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testBlockCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
 
@@ -103,7 +103,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testUnblockCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
 
@@ -113,7 +113,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testDeactivateCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
 
@@ -124,7 +124,7 @@ public class CardControllerTest {
 
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testRequestCardForAccount_Success() throws Exception {
         // Kreiranje DTO-a
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
@@ -154,7 +154,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
 
@@ -182,7 +182,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
 
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
@@ -212,7 +212,7 @@ public class CardControllerTest {
 
     // Test for verifyAndReceiveCard
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testVerifyAndReceiveCard_Success() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -273,6 +273,7 @@ public class CardControllerTest {
 
     // Test for createCard
     @Test
+    @WithMockUser(roles = "EMPLOYEE")
     public void testCreateCard_Success() throws Exception {
         // Pripremi CreateCardDto objekat
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
