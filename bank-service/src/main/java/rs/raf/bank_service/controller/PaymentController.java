@@ -33,7 +33,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
     @PostMapping("/transfer")
     @Operation(summary = "Transfer funds between accounts", description = "Transfers funds from one account to another. Both must " +
             "be using the same currency.")
@@ -70,7 +70,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @PostMapping("/confirm-transfer/{paymentId}")
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
@@ -90,7 +90,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT') or hasRole('ADMIN')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
     @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
@@ -143,7 +143,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT') or hasRole('ADMIN')")
     @GetMapping
     @Operation(summary = "Get payments page filtered", description = "Get filtered page of payments.")
     @ApiResponses(value = {

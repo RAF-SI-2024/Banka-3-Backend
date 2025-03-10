@@ -101,7 +101,7 @@ public class AccountController {
         }
     }
 
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
     @GetMapping
     @Operation(summary = "Get all client's accounts", description = "Returns a list of all client's accounts")
     @ApiResponses(value = {
@@ -123,7 +123,7 @@ public class AccountController {
 
     //oVO MOZDA VISE I NIJE POTREBNO JER JE KOLEGA KOJI JE MERGOVAO PRE MENE PROSIRIO aCCOUNTdTO DA UKLJUCUJE
     //I ONO STO SAM JA RAZDVOJIO U AccountDetailsDto -- izvini za Caps
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
     @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
     @ApiResponses(value = {
@@ -144,7 +144,7 @@ public class AccountController {
         }
     }
 
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")  // Promenjena provera autentifikacije
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")  // Promenjena provera autentifikacije
     @PutMapping("/{id}/change-name")
     @Operation(summary = "Change account name", description = "Allows a client to change the name of their account.")
     @ApiResponses(value = {
@@ -165,7 +165,7 @@ public class AccountController {
         }
     }
 
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
     @PutMapping("/{id}/change-limit")
     @Operation(summary = "Change account limit", description = "Allows a client to request a change in account limit.")
     @ApiResponses(value = {
@@ -178,7 +178,7 @@ public class AccountController {
         return ResponseEntity.ok("Account limit updated successfully");
     }
 
-    @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
     @PutMapping("/{id}/request-change-limit")
     @Operation(summary = "Request change account limit", description = "Saves a limit change request for approval.")
     @ApiResponses(value = {

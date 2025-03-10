@@ -175,7 +175,7 @@ public class CardController {
 
         }
 
-        @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+        @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
         @PostMapping("/{cardNumber}/block-by-user")
         @Operation(summary = "Block Card by User", description = "Allows a user to block their own card.")
         @ApiResponses(value = {
@@ -195,7 +195,7 @@ public class CardController {
 
         }
 
-        @PreAuthorize("isAuthenticated() and hasRole('CLIENT')")
+        @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
         @GetMapping("/my-cards")
         @Operation(summary = "Get User's Cards", description = "Retrieves all cards belonging to the authenticated user across all their accounts.")
         @ApiResponses(value = {
