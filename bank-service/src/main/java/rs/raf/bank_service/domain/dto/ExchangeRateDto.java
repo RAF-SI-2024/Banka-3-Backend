@@ -17,6 +17,7 @@ public class ExchangeRateDto {
     private CurrencyDto fromCurrency;
     private CurrencyDto toCurrency;
     private BigDecimal exchangeRate;
+    private BigDecimal sellRate;
 
     public boolean equals(Object object){
         if (this == object)

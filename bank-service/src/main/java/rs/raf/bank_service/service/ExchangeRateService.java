@@ -60,6 +60,13 @@ public class ExchangeRateService {
                 if (toCurrency == null)
                     continue;
 
+                // sve ide preko RSD, tjs ako hocemo EUR -> USD, moramo EUR -> RSD -> USD
+                // tako da nam ne trebaju sve konverzije, samo sa RSD
+                if (!fromCurrency.getCode().equals("RSD") && !toCurrency.getCode().equals("RSD")) {
+                    continue;
+                }
+
+
                 ExchangeRate exchangeRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
                         .orElse(null);
 
@@ -69,7 +76,10 @@ public class ExchangeRateService {
                     exchangeRate.setToCurrency(toCurrency);
                 }
 
-                exchangeRate.setExchangeRate(conversionRates.get(currencyCode));
+                BigDecimal rate = conversionRates.get(currencyCode);
+                exchangeRate.setExchangeRate(rate);
+
+                exchangeRate.setSellRate(rate.multiply(new BigDecimal("1.01")));
                 exchangeRateRepository.save(exchangeRate);
             }
         }

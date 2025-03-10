@@ -16,7 +16,8 @@ public class ExchangeRateMapper {
         return new ExchangeRateDto(
                 CurrencyMapper.toDto(exchangeRate.getFromCurrency()),
                 CurrencyMapper.toDto(exchangeRate.getToCurrency()),
-                exchangeRate.getExchangeRate()
+                exchangeRate.getExchangeRate(),
+                exchangeRate.getSellRate()
         );
     }
 }
