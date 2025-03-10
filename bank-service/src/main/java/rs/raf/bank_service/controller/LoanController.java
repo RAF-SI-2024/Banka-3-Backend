@@ -24,7 +24,7 @@ public class LoanController {
         this.loanService = loanService;
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get all loans")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully")
@@ -34,7 +34,7 @@ public class LoanController {
         return ResponseEntity.ok(loanService.getAllLoans());
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get loan by ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan retrieved successfully"),
@@ -46,7 +46,7 @@ public class LoanController {
         return loan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Create a new loan")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Loan created successfully"),
@@ -57,7 +57,7 @@ public class LoanController {
         return ResponseEntity.ok(loanService.saveLoan(loanDto));
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
@@ -69,7 +69,7 @@ public class LoanController {
         return ResponseEntity.ok(approvedLoan);
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),

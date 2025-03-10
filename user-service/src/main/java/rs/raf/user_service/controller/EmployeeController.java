@@ -38,7 +38,7 @@ public class EmployeeController {
     }
 
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
 
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
@@ -56,7 +56,7 @@ public class EmployeeController {
 
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
 
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
@@ -176,7 +176,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee details"),

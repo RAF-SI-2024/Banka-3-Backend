@@ -23,7 +23,7 @@ public class LoanRequestController {
         this.loanRequestService = loanRequestService;
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get loan requests by status")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan requests retrieved successfully")
@@ -33,7 +33,7 @@ public class LoanRequestController {
         return ResponseEntity.ok(loanRequestService.getLoanRequestsByStatus(status));
     }
 
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Create a new loan request")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Loan request created successfully"),

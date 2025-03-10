@@ -22,7 +22,7 @@ public class InstallmentController {
     public InstallmentController(InstallmentService installmentService) {
         this.installmentService = installmentService;
     }
-    @PreAuthorize("(isAuthenticated() and hasRole('CLIENT')) or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get installments by loan ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Installments retrieved successfully"),

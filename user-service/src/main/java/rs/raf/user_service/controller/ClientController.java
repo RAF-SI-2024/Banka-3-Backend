@@ -136,14 +136,14 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Get current client", description = "Returns the currently authenticated client's details")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved employee details"),
-            @ApiResponse(responseCode = "404", description = "Employee not found")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved client details"),
+            @ApiResponse(responseCode = "404", description = "Client not found")
     })
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentEmployee() {
+    public ResponseEntity<?> getCurrentClient() {
         try {
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             return ResponseEntity.ok().body(clientService.findByEmail(email));
