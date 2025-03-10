@@ -20,10 +20,7 @@ import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.ClientService;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -72,8 +69,6 @@ public class ClientControllerUnitTest {
         createClientDTO.setUsername("marko12");
 
         updateClientDTO = new UpdateClientDto();
-        updateClientDTO.setFirstName(clientDTO.getFirstName());  // added if required by validation
-        updateClientDTO.setEmail(clientDTO.getEmail());
         updateClientDTO.setLastName("MarkovicUpdated");
         updateClientDTO.setAddress("Nova Adresa");
         updateClientDTO.setPhone("0611159999");
@@ -82,7 +77,7 @@ public class ClientControllerUnitTest {
 
     @Test
     public void testGetAllClients() throws Exception {
-        List<ClientDto> clients = Arrays.asList(clientDTO);
+        List<ClientDto> clients = Collections.singletonList(clientDTO);
         Page<ClientDto> clientsPage = new PageImpl<>(clients);
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by("lastName").ascending());
