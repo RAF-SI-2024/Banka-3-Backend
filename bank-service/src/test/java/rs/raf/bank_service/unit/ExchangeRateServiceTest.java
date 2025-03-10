@@ -54,7 +54,7 @@ public class ExchangeRateServiceTest {
     public void setUp() {
         dummyCurrency1 = new Currency("EUR", "Euro", "€", "EU", "Euro currency", true);
         dummyCurrency2 = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar currency", true);
-        dummyExchangeRate = new ExchangeRate(1L, LocalDateTime.now(), dummyCurrency1, dummyCurrency2, BigDecimal.valueOf(117));
+        dummyExchangeRate = new ExchangeRate(1L, LocalDateTime.now(), dummyCurrency1, dummyCurrency2, BigDecimal.valueOf(117), BigDecimal.valueOf(118));
 
         dummyExchangeRateDto = ExchangeRateMapper.toDto(dummyExchangeRate);
 
