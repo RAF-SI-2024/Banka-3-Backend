@@ -73,14 +73,11 @@ public class ExchangeRateServiceTest {
 
     @Test
     public void testUpdateExchangeRates_Success() {
-        when(currencyRepository.findAll()).thenReturn(Arrays.asList(dummyCurrency1, dummyCurrency2));
-        when(exchangeRateClient.getExchangeRates(dummyCurrency1.getCode())).thenReturn(dummyUpdateExchangeRateDto1);
         when(exchangeRateClient.getExchangeRates(dummyCurrency2.getCode())).thenReturn(dummyUpdateExchangeRateDto2);
         when(currencyRepository.findByCode(dummyCurrency1.getCode())).thenReturn(Optional.ofNullable(dummyCurrency1));
         when(currencyRepository.findByCode(dummyCurrency2.getCode())).thenReturn(Optional.ofNullable(dummyCurrency2));
-        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(dummyCurrency1, dummyCurrency2))
+        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(dummyCurrency2, dummyCurrency1))
                 .thenReturn(Optional.ofNullable(dummyExchangeRate));
-
         exchangeRateService.updateExchangeRates();
         verify(exchangeRateRepository, times(2)).save(any(ExchangeRate.class));
     }

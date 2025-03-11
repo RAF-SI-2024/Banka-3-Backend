@@ -18,6 +18,7 @@ import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -33,55 +34,60 @@ public class ExchangeRateService {
     private final ExchangeRateClient exchangeRateClient;
 
     public void updateExchangeRates() {
-        List<Currency> currencies = currencyRepository.findAll();
+        UpdateExchangeRateDto response = null;
 
-        for (Currency fromCurrency : currencies){
-            UpdateExchangeRateDto response = null;
+        // sve ide preko RSD, tjs ako hocemo EUR -> USD, moramo EUR -> RSD -> USD
+        // tako da nam ne trebaju sve konverzije, samo sa RSD
 
-            try{
-                response = exchangeRateClient.getExchangeRates(fromCurrency.getCode());
-            } catch (Exception e) {
-                e.printStackTrace();
+        Currency fromCurrency = currencyRepository.findByCode("RSD").orElse(null);
+
+        try{
+            response = exchangeRateClient.getExchangeRates(fromCurrency.getCode());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (response == null || response.getConversionRates() == null || !response.getResult().equals("success")) {
+            return;
+        }
+
+        Map<String, BigDecimal> conversionRates = response.getConversionRates();
+
+        for (String currencyCode : conversionRates.keySet()) {
+            //Ne znam da li treba ili ne treba da se cuva ExchangeRate Valute u istu Valutu - ako treba izbrisati
+            if (currencyCode.equals(fromCurrency.getCode()))
+                continue;
+
+            Currency toCurrency = currencyRepository.findByCode(currencyCode).orElse(null);
+
+            if (toCurrency == null)
+                continue;
+
+            ExchangeRate exchangeRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
+                    .orElse(null);
+
+            if (exchangeRate == null) {
+                exchangeRate = new ExchangeRate();
+                exchangeRate.setFromCurrency(fromCurrency);
+                exchangeRate.setToCurrency(toCurrency);
             }
 
-            if (response == null || response.getConversionRates() == null || !response.getResult().equals("success")) {
-                return;
-            }
+            BigDecimal rate = conversionRates.get(currencyCode);
+            exchangeRate.setExchangeRate(rate);
 
-            Map<String, BigDecimal> conversionRates = response.getConversionRates();
+            exchangeRate.setSellRate(rate.multiply(new BigDecimal("1.01")));
+            exchangeRateRepository.save(exchangeRate);
 
-            for (String currencyCode : conversionRates.keySet()) {
-                //Ne znam da li treba ili ne treba da se cuva ExchangeRate Valute u istu Valutu - ako treba izbrisati
-                if (currencyCode.equals(fromCurrency.getCode()))
-                    continue;
+            ExchangeRate mirrored = ExchangeRate.builder()
+                    .fromCurrency(exchangeRate.getToCurrency())
+                    .toCurrency(exchangeRate.getFromCurrency())
+                    .exchangeRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP))
+                    .sellRate(BigDecimal.ONE.divide(
+                            exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
+                            .multiply(new BigDecimal("1.01")))
+                    .build();
 
-                Currency toCurrency = currencyRepository.findByCode(currencyCode).orElse(null);
-
-                if (toCurrency == null)
-                    continue;
-
-                // sve ide preko RSD, tjs ako hocemo EUR -> USD, moramo EUR -> RSD -> USD
-                // tako da nam ne trebaju sve konverzije, samo sa RSD
-                if (!fromCurrency.getCode().equals("RSD") && !toCurrency.getCode().equals("RSD")) {
-                    continue;
-                }
-
-
-                ExchangeRate exchangeRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
-                        .orElse(null);
-
-                if (exchangeRate == null) {
-                    exchangeRate = new ExchangeRate();
-                    exchangeRate.setFromCurrency(fromCurrency);
-                    exchangeRate.setToCurrency(toCurrency);
-                }
-
-                BigDecimal rate = conversionRates.get(currencyCode);
-                exchangeRate.setExchangeRate(rate);
-
-                exchangeRate.setSellRate(rate.multiply(new BigDecimal("1.01")));
-                exchangeRateRepository.save(exchangeRate);
-            }
+            exchangeRateRepository.save(mirrored);
         }
     }
 
