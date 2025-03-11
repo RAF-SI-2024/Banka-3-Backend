@@ -22,6 +22,7 @@ public class BankServiceApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        exchangeRateService.updateExchangeRates();
+        // da ne trosimo api pozive
+//        exchangeRateService.updateExchangeRates();
     }
 }
