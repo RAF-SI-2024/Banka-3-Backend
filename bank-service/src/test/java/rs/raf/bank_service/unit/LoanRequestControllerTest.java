@@ -73,24 +73,13 @@ public class LoanRequestControllerTest {
         assertEquals(mockLoan.getLoanNumber(), response.getBody().getLoanNumber());
     }
 
-    @Test
-    void testCreateLoan() {
-        LoanDto newLoan = new LoanDto("54321", LoanType.REFINANCING, BigDecimal.valueOf(300000), 48, BigDecimal.valueOf(5.5), BigDecimal.valueOf(6.0), LocalDate.now(), LocalDate.now().plusYears(4), BigDecimal.valueOf(8000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(250000), "EUR", LoanStatus.APPROVED);
-        when(loanService.saveLoan(newLoan)).thenReturn(newLoan);
-
-        ResponseEntity<LoanDto> response = loanController.createLoan(newLoan);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(newLoan.getLoanNumber(), response.getBody().getLoanNumber());
-    }
 
     @Test
     void testGetLoanRequestsByStatus() {
         LoanRequestStatus status = LoanRequestStatus.PENDING;
         List<LoanRequestDto> mockRequests = Arrays.asList(
-                new LoanRequestDto(LoanType.CASH, BigDecimal.valueOf(500000), "Home Renovation", BigDecimal.valueOf(75000), EmploymentStatus.PERMANENT, 24, 60, "+381641234567", "265000000111111111111", "RSD", LoanRequestStatus.PENDING),
-                new LoanRequestDto(LoanType.REFINANCING, BigDecimal.valueOf(300000), "Car Purchase", BigDecimal.valueOf(65000), EmploymentStatus.UNEMPLOYED, 12, 48, "+381641234567", "265000000222222222222", "EUR", LoanRequestStatus.APPROVED)
+                new LoanRequestDto(LoanType.CASH.toString(), BigDecimal.valueOf(500000), "Home Renovation", BigDecimal.valueOf(75000), EmploymentStatus.PERMANENT.toString(), 24, 60, "+381641234567", "265000000111111111111", "RSD", LoanRequestStatus.PENDING.toString()),
+                new LoanRequestDto(LoanType.REFINANCING.toString(), BigDecimal.valueOf(300000), "Car Purchase", BigDecimal.valueOf(65000), EmploymentStatus.UNEMPLOYED.toString(), 12, 48, "+381641234567", "265000000222222222222", "EUR", LoanRequestStatus.APPROVED.toString())
         );
 
         when(loanRequestService.getLoanRequestsByStatus(status)).thenReturn(mockRequests);
@@ -104,12 +93,12 @@ public class LoanRequestControllerTest {
 
     @Test
     void testCreateLoanRequest() {
-        LoanRequestDto newRequest = new LoanRequestDto(LoanType.REFINANCING, BigDecimal.valueOf(500000), "Education", BigDecimal.valueOf(85000), EmploymentStatus.PERMANENT, 36, 72, "+381641234567", "265000000333333333333", "USD", LoanRequestStatus.APPROVED);
+        LoanRequestDto newRequest = new LoanRequestDto(LoanType.REFINANCING.toString(), BigDecimal.valueOf(500000), "Education", BigDecimal.valueOf(85000), EmploymentStatus.PERMANENT.toString(), 36, 72, "+381641234567", "265000000333333333333", "USD", LoanRequestStatus.APPROVED.toString());
         when(loanRequestService.saveLoanRequest(newRequest)).thenReturn(newRequest);
 
-        ResponseEntity<LoanRequestDto> response = loanRequestController.createLoanRequest(newRequest);
+        ResponseEntity<LoanRequestDto> response = (ResponseEntity<LoanRequestDto>) loanRequestController.createLoanRequest(newRequest);
 
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(201, response.getStatusCodeValue());
         assertNotNull(response.getBody());
         assertEquals(newRequest.getAmount(), response.getBody().getAmount());
     }

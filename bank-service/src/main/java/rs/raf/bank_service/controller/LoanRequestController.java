@@ -4,11 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
 import rs.raf.bank_service.domain.enums.LoanRequestStatus;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.LoanRequestService;
 
 import java.util.List;
@@ -40,7 +42,13 @@ public class LoanRequestController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     @PostMapping
-    public ResponseEntity<LoanRequestDto> createLoanRequest(@RequestBody LoanRequestDto loanRequestDto) {
-        return ResponseEntity.ok(loanRequestService.saveLoanRequest(loanRequestDto));
+    public ResponseEntity<?> createLoanRequest(@RequestBody LoanRequestDto loanRequestDto) {
+        try {
+            loanRequestService.saveLoanRequest(loanRequestDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(loanRequestDto);
+        } catch (AccountNotFoundException | CurrencyNotFoundException | InvalidLoanTypeException |
+                 InvalidEmploymentStatusException | InvalidInterestRateTypeException e ) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 }

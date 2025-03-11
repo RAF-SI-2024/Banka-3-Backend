@@ -4,13 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.LoanController;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.service.LoanService;
 
 import java.math.BigDecimal;
@@ -63,14 +66,27 @@ public class LoanControllerTest {
     }
 
     @Test
-    void testCreateLoan() {
-        LoanDto newLoan = new LoanDto("54321", LoanType.CASH, BigDecimal.valueOf(300000), 48, BigDecimal.valueOf(5.5), BigDecimal.valueOf(6.0), LocalDate.now(), LocalDate.now().plusYears(4), BigDecimal.valueOf(8000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(250000), "EUR", LoanStatus.PAID_OFF);
-        when(loanService.saveLoan(newLoan)).thenReturn(newLoan);
+    void approveLoan_Success() {
+        Long loanId = 1L;
+        LoanDto loanDto = new LoanDto();
+        Mockito.when(loanService.approveLoan(loanId)).thenReturn(loanDto);
 
-        ResponseEntity<LoanDto> response = loanController.createLoan(newLoan);
+        ResponseEntity<?> response = loanController.approveLoan(loanId);
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(newLoan.getLoanNumber(), response.getBody().getLoanNumber());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(loanDto, response.getBody());
+    }
+
+    @Test
+    void approveLoan_LoanNotFound() {
+        Long loanId = 1L;
+        String errorMessage = "The provided loan request doesnt exist.";
+
+        Mockito.when(loanService.approveLoan(loanId)).thenThrow(new LoanRequestNotFoundException());
+
+        ResponseEntity<?> response = loanController.approveLoan(loanId);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
     }
 }

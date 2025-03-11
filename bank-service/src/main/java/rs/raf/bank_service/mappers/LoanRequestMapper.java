@@ -11,16 +11,15 @@ import java.util.stream.Collectors;
 public class LoanRequestMapper {
     public LoanRequestDto toDto(LoanRequest loanRequest) {
         return LoanRequestDto.builder()
-                .type(loanRequest.getType())
+                .type(String.valueOf(loanRequest.getType()))
                 .amount(loanRequest.getAmount())
                 .purpose(loanRequest.getPurpose())
                 .monthlyIncome(loanRequest.getMonthlyIncome())
-                .employmentStatus(loanRequest.getEmploymentStatus())
+                .employmentStatus(String.valueOf(loanRequest.getEmploymentStatus()))
                 .employmentDuration(loanRequest.getEmploymentDuration())
                 .repaymentPeriod(loanRequest.getRepaymentPeriod())
                 .contactPhone(loanRequest.getContactPhone())
                 .currencyCode(loanRequest.getCurrency().getCode())
-                .status(loanRequest.getStatus())
                 .accountNumber(loanRequest.getAccount().getAccountNumber())
                 .build();
     }
@@ -31,15 +30,12 @@ public class LoanRequestMapper {
 
     public LoanRequest toEntity(LoanRequestDto loanRequestDTO) {
         LoanRequest loanRequest = new LoanRequest();
-        loanRequest.setType(loanRequestDTO.getType());
         loanRequest.setAmount(loanRequestDTO.getAmount());
         loanRequest.setPurpose(loanRequestDTO.getPurpose());
         loanRequest.setMonthlyIncome(loanRequestDTO.getMonthlyIncome());
-        loanRequest.setEmploymentStatus(loanRequestDTO.getEmploymentStatus());
         loanRequest.setEmploymentDuration(loanRequestDTO.getEmploymentDuration());
         loanRequest.setRepaymentPeriod(loanRequestDTO.getRepaymentPeriod());
         loanRequest.setContactPhone(loanRequestDTO.getContactPhone());
-        loanRequest.setStatus(loanRequestDTO.getStatus());
         return loanRequest;
     }
 }
