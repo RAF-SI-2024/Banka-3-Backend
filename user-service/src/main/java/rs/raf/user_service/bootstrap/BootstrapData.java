@@ -23,6 +23,7 @@ public class BootstrapData implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final CompanyRepository companyRepository;
     private final RoleRepository roleRepository;
+    private final AuthTokenRepository authTokenRepository;
 
     @Override
     public void run(String... args) throws ParseException {
@@ -161,6 +162,26 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             companyRepository.save(bank);
+        }
+
+        if (authTokenRepository.count() == 0){
+            AuthToken authToken = AuthToken.builder()
+                    .token("df7ff5f0-70bd-492c-9569-ac5f3fbda7ff")
+                    .type("set-password")
+                    .createdAt(1741631004271L)
+                    .expiresAt(3000000000000L)
+                    .userId(5L)
+                    .build();
+            authTokenRepository.save(authToken);
+
+            AuthToken authToken1 = AuthToken.builder()
+                    .token("df7ff5f0-70bd-492c-9569-ac5f3fbda7xd")
+                    .type("request-card")
+                    .createdAt(1741631004271L)
+                    .expiresAt(3000000000000L)
+                    .userId(5L)
+                    .build();
+            authTokenRepository.save(authToken1);
         }
 
     }

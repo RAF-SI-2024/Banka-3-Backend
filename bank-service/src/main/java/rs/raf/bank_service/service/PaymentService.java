@@ -180,7 +180,6 @@ public class PaymentService {
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
             accountRepository.save(receiver);
         }
-
         sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
         accountRepository.save(sender);
 

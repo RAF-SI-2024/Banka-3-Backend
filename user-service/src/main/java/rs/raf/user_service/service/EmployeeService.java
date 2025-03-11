@@ -23,6 +23,7 @@ import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.domain.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
@@ -38,6 +39,7 @@ public class EmployeeService {
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final RoleRepository roleRepository;
 
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
@@ -117,6 +119,7 @@ public class EmployeeService {
             throw new JmbgAlreadyExistsException();
 
         Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
+        employee.setRole(roleRepository.findByName("EMPLOYEE").get());
         employeeRepository.save(employee);
 
 
