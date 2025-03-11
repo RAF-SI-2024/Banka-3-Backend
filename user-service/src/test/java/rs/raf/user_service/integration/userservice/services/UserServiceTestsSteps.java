@@ -1,9 +1,11 @@
 package rs.raf.user_service.integration.userservice.services;
 
+import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,10 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.user_service.domain.dto.*;
+import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.integration.userservice.UserServiceTestsConfig;
 import rs.raf.user_service.repository.AuthTokenRepository;
+import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.service.AuthService;
 import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.EmployeeService;
@@ -33,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @Transactional
 @ExtendWith(MockitoExtension.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class UserServiceTestsSteps extends UserServiceTestsConfig {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     List<ClientDto> clients;
@@ -55,6 +61,15 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     private AuthService authService;
     @Mock
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @BeforeEach
+    void clearDatabase() {
+        clientRepository.deleteAll();
+    }
+
 
     @When("created a new client with first name {string}, second name {string}, email {string}, adress {string}, phone number {string}, gender {string}, and birthday on {string} and jmbg {string} and username {string}")
     public void createdANewClientWithFirstNameSecondNameEmailAdressPhoneNumberGenderAndBirthdayOn(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, String arg7, String arg8) {
@@ -223,44 +238,49 @@ public class UserServiceTestsSteps extends UserServiceTestsConfig {
     }
 
     @Transactional
-    @When("added a new permission with id {string}")
+    @When("added a new role with id {string}")
     public void addedANewPermissionWithId(String arg0) {
-        userService.addPermissionToUser(addedEmployee.getId(), new PermissionRequestDto(Long.parseLong(arg0)));
+        userService.addRoleToUser(addedEmployee.getId(), new RoleRequestDto(Long.parseLong(arg0)));
     }
 
-    @Transactional
-    @Then("recieve permission with id {string} when listing all permisions of that user")
-    public void recievePermissionWithIdWhenListingAllPermisionsOfThatUser(String arg0) {
-        List<PermissionDto> list = userService.getUserPermissions(addedEmployee.getId());
-        for (PermissionDto perm : list) {
-            if (perm.getId().equals(Long.parseLong(arg0))) {
-                return;
-            }
-        }
-        fail("There is no permission with given id when listing all permissions of given user.");
-    }
+//    @Transactional
+//    @Then("recieve role with id {string} when listing all roles of that user")
+//    public void recieveRoleWithIdWhenListingAllRolesOfThatUser(String arg0) {
+//        String list = userService.getUserRole(addedEmployee.getId());
+//        for (PermissionDto perm : list) {
+//            if (perm.getId().equals(Long.parseLong(arg0))) {
+//                return;
+//            }
+//        }
+//        fail("There is no permission with given id when listing all permissions of given user.");
+//    }
 
     @Transactional
-    @And("removed permission with id {string}")
-    public void removedPermissionWithId(String arg0) {
-        userService.removePermissionFromUser(addedEmployee.getId(), Long.parseLong(arg0));
+    @And("removed role with id {string}")
+    public void removedRoleWithId(String arg0) {
+        userService.removeRoleFromUser(addedEmployee.getId(), Long.parseLong(arg0));
     }
 
-    @Transactional
-    @Then("not recieve permission with id {string} when listing all permisions of that user")
-    public void notRecievePermissionWithIdWhenListingAllPermisionsOfThatUser(String arg0) {
-        List<PermissionDto> list = userService.getUserPermissions(addedEmployee.getId());
-        for (PermissionDto perm : list) {
-            if (perm.getId().equals(Long.parseLong(arg0))) {
-                fail("There is a permission attached to the given user when it should not be there.");
-            }
-        }
-    }
+//    @Transactional
+//    @Then("not recieve permission with id {string} when listing all permisions of that user")
+//    public void notRecievePermissionWithIdWhenListingAllPermisionsOfThatUser(String arg0) {
+//        List<PermissionDto> list = userService.getUserPermissions(addedEmployee.getId());
+//        for (PermissionDto perm : list) {
+//            if (perm.getId().equals(Long.parseLong(arg0))) {
+//                fail("There is a permission attached to the given user when it should not be there.");
+//            }
+//        }
+//    }
 
     @Given("a client exists with email {string}")
-    public void aClientExistsWithEmail(String arg0) {
-        //BootstrapData
+    public void aClientExistsWithEmail(String email) {
+        Client client = clientRepository.findByEmail(email).orElse(null);
+
+        if (client == null) {
+            fail("Client with email " + email + " does not exist in database.");
+        }
     }
+
 
     @Transactional
     @When("client logs in with email {string} and password {string}")

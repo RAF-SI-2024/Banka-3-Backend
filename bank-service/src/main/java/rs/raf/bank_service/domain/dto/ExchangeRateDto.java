@@ -1,21 +1,34 @@
 package rs.raf.bank_service.domain.dto;
 
-import lombok.Data;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExchangeRateDto {
 
-    @NotBlank(message = "From currency is required")
-    private String fromCurrency;
-
-    @NotBlank(message = "To currency is required")
-    private String toCurrency;
-
-    @NotNull(message = "Exchange rate is required")
-    @DecimalMin(value = "0.0001", message = "Exchange rate must be greater than zero")
+    private CurrencyDto fromCurrency;
+    private CurrencyDto toCurrency;
     private BigDecimal exchangeRate;
+    private BigDecimal sellRate;
+
+    public boolean equals(Object object){
+        if (this == object)
+            return true;
+
+        if (object == null || getClass() != object.getClass())
+            return false;
+
+        ExchangeRateDto exchangeRateDto = (ExchangeRateDto) object;
+
+        return fromCurrency.equals(exchangeRateDto.getFromCurrency()) && toCurrency.equals(exchangeRateDto.getToCurrency())
+                && exchangeRate.equals(exchangeRateDto.getExchangeRate());
+    }
 }

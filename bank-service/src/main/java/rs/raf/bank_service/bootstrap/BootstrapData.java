@@ -1,29 +1,28 @@
 package rs.raf.bank_service.bootstrap;
 
+import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.repository.*;
+import rs.raf.bank_service.service.ExchangeRateService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@AllArgsConstructor
 public class BootstrapData implements CommandLineRunner {
 
     private final AccountRepository accountRepository;
     private final CardRepository cardRepository;
     private final CurrencyRepository currencyRepository;
+    private final ExchangeRateService exchangeRateService;
     private final ExchangeRateRepository exchangeRateRepository;
-
-    public BootstrapData(AccountRepository accountRepository, CardRepository cardRepository, CurrencyRepository currencyRepository, ExchangeRateRepository exchangeRateRepository) {
-        this.accountRepository = accountRepository;
-        this.cardRepository = cardRepository;
-        this.currencyRepository = currencyRepository;
-        this.exchangeRateRepository = exchangeRateRepository;
-    }
 
     @Override
     public void run(String... args) {
@@ -279,15 +278,76 @@ public class BootstrapData implements CommandLineRunner {
 
         cardRepository.saveAll(java.util.List.of(card1, card2));
 
-        //  Dodavanje početnih kursnih lista
-        ExchangeRate eurToRsd = new ExchangeRate(null, null, currencyEUR, currencyRSD, new BigDecimal("117.5"), null, null);
-        ExchangeRate usdToRsd = new ExchangeRate(null, null, currencyUSD, currencyRSD, new BigDecimal("108.0"), null, null);
-        ExchangeRate rsdToEur = new ExchangeRate(null, null, currencyRSD, currencyEUR, new BigDecimal("0.0085"), null, null);
-        ExchangeRate rsdToUsd = new ExchangeRate(null, null, currencyRSD, currencyUSD, new BigDecimal("0.0093"), null, null);
+        // Kreiranje kursne liste
+//        exchangeRateService.updateExchangeRates();
 
-        exchangeRateRepository.saveAll(List.of(eurToRsd, usdToRsd, rsdToEur, rsdToUsd));
+        // Test kursna lista da ne trosimo API pozive
+        ExchangeRate rsdToEur = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyEUR)
+                .exchangeRate(new BigDecimal("0.008540"))
+                .sellRate(new BigDecimal("0.008625"))
+                .build();
 
+        ExchangeRate rsdToUsd = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyUSD)
+                .exchangeRate(new BigDecimal("0.009257"))
+                .sellRate(new BigDecimal("0.009350"))
+                .build();
 
+        ExchangeRate rsdToChf = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyCHF)
+                .exchangeRate(new BigDecimal("0.008129"))
+                .sellRate(new BigDecimal("0.008210"))
+                .build();
+
+        ExchangeRate rsdToJpy = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyJPY)
+                .exchangeRate(new BigDecimal("1.363100"))
+                .sellRate(new BigDecimal("1.376731"))
+                .build();
+
+        ExchangeRate rsdToCad = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyCAD)
+                .exchangeRate(new BigDecimal("0.013350"))
+                .sellRate(new BigDecimal("0.013484"))
+                .build();
+
+        ExchangeRate rsdToAud = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyAUD)
+                .exchangeRate(new BigDecimal("0.014670"))
+                .sellRate(new BigDecimal("0.014817"))
+                .build();
+
+        ExchangeRate rsdToGbp = ExchangeRate.builder()
+                .fromCurrency(currencyRSD)
+                .toCurrency(currencyGBP)
+                .exchangeRate(new BigDecimal("0.007172"))
+                .sellRate(new BigDecimal("0.007244"))
+                .build();
+
+        List<ExchangeRate> exchangeRates = java.util.List.of(
+                rsdToEur, rsdToUsd, rsdToChf, rsdToGbp, rsdToJpy, rsdToAud, rsdToCad
+        );
+
+        List<ExchangeRate> exchangeRates2 = new ArrayList<>();
+
+        for (ExchangeRate exchangeRate : exchangeRates) {
+            exchangeRates2.add(ExchangeRate.builder()
+                    .fromCurrency(exchangeRate.getToCurrency())
+                    .toCurrency(exchangeRate.getFromCurrency())
+                    .exchangeRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP))
+                    .sellRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP).multiply(new BigDecimal("1.01")))
+                    .build());
+        }
+
+        exchangeRateRepository.saveAll(exchangeRates);
+        exchangeRateRepository.saveAll(exchangeRates2);
+        // Test kursna lista da ne trosimo API pozive
     }
-
 }

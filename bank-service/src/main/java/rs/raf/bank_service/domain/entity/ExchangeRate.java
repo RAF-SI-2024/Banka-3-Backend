@@ -1,32 +1,24 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
-@Table(
-        name = "exchange_rate",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"from_currency_code", "to_currency_code"})
-)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ExchangeRate {
-
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
@@ -39,9 +31,10 @@ public class ExchangeRate {
     @JoinColumn(name = "to_currency_code")
     private Currency toCurrency;
 
-    @Column(nullable = false, precision = 10, scale = 4)
+    @Column(precision = 10, scale = 6)
     private BigDecimal exchangeRate;
 
-    private LocalDate validFrom;
-    private LocalDate validTo;
+    @Column(precision = 10, scale = 6)
+    private BigDecimal sellRate;
+
 }

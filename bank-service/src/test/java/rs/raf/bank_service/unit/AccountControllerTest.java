@@ -1,206 +1,255 @@
-//package rs.raf.bank_service.unit;
-//
-//
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mockito;
-//import org.mockito.MockitoAnnotations;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-//import org.springframework.boot.test.mock.mockito.MockBean;
-//import org.springframework.data.domain.Page;
-//import org.springframework.data.domain.PageImpl;
-//import org.springframework.http.HttpStatus;
-//import org.springframework.http.MediaType;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.security.test.context.support.WithMockUser;
-//import org.springframework.test.web.servlet.MockMvc;
-//import rs.raf.bank_service.controller.AccountController;
-//import rs.raf.bank_service.domain.dto.AccountDto;
-//import rs.raf.bank_service.domain.dto.ClientDto;
-//import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-//import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
-//import rs.raf.bank_service.exceptions.UserNotAClientException;
-//import rs.raf.bank_service.exceptions.ClientNotFoundException;
-//import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
-//import rs.raf.bank_service.service.AccountService;
-//
-//import java.util.Arrays;
-//import java.util.List;
-//
-//
-//import static org.junit.jupiter.api.Assertions.assertEquals;
-//import static org.mockito.ArgumentMatchers.any;
-//import static org.mockito.ArgumentMatchers.anyString;
-//import static org.mockito.Mockito.doThrow;
-//import static org.mockito.Mockito.verify;
-//
-//import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-//import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-//import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-//
-//@WebMvcTest(AccountController.class)
-//class AccountControllerTest {
-//
-//    @Autowired
-//    private MockMvc mockMvc;
-//
-//    @MockBean
-//    private AccountService accountService;
-//
-//    @Autowired
-//    private ObjectMapper objectMapper;
-//
-//
-//    @InjectMocks
-//    private AccountController accountController;
-//
-//    @BeforeEach
-//    void setUp() {
-//        MockitoAnnotations.openMocks(this);
-//    }
-//
-//    @Test
-//
-//    @WithMockUser(authorities = "admin")
-//    void testGetAccounts() throws Exception {
-//        ClientDto clientDto = new ClientDto();
-//        clientDto.setFirstName("Marko");
-//        clientDto.setLastName("Markovic");
-//
-//        AccountDto accountDto = new AccountDto();
-//        accountDto.setAccountNumber("123456789012345678");
-//        accountDto.setOwner(clientDto);
-//
-//        List<AccountDto> accounts = Arrays.asList(accountDto);
-//        Page<AccountDto> page = new PageImpl<>(accounts);
-//
-//        Mockito.when(accountService.getAccounts(anyString(), anyString(), anyString(), any()))
-//                .thenReturn(page);
-//
-//        mockMvc.perform(get("/api/account")
-//                        .param("accountNumber", "123456789012345678")
-//                        .param("firstName", "Marko")
-//                        .param("lastName", "Markovic")
-//                        .param("page", "0")
-//                        .param("size", "10")
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.content[0].accountNumber").value("123456789012345678"))
-//                .andExpect(jsonPath("$.content[0].owner.firstName").value("Marko"))
-//                .andExpect(jsonPath("$.content[0].owner.lastName").value("Markovic"));
-//    }
-//
-//    @Test
-//
-//    void testCreateBankAccount_Success() {
-//        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-//        String authorizationHeader = "Bearer token";
-//
-//        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
-//
-//        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-//        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
-//    }
-//
-//    @Test
-//
-//    void testCreateBankAccount_ClientNotFound() {
-//        // Arrange
-//        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-//        String authorizationHeader = "Bearer token";
-//
-//        String errorMessage = "Cannot find client with id: 999";
-//        doThrow(new ClientNotFoundException(999L)).when(accountService)
-//                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
-//
-//        // Act
-//        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
-//
-//        // Assert
-//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-//        assertEquals(errorMessage, response.getBody());
-//        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
-//    }
-//
-//    @Test
-//    void testCreateBankAccount_InvalidCurrency() {
-//
-//        // Arrange
-//        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-//        String authorizationHeader = "Bearer token";
-//
-//        String errorMessage = "Cannot find currency with id: INVALID";
-//        doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
-//                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
-//
-//
-//        // Act
-//        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
-//
-//        // Assert
-//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-//        assertEquals(errorMessage, response.getBody());
-//        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
-//    }
-//
-//    @Test
-//    void testGetMyAccounts_Success() {
-//        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
-//
-//        assertEquals(HttpStatus.OK, response.getStatusCode());
-//        verify(accountService).getMyAccounts("Bearer token");
-//    }
-//
-//    @Test
-//    void testGetMyAccounts_BadRequest() {
-//        doThrow(new UserNotAClientException()).when(accountService).getMyAccounts(5L);
-//
-//        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
-//
-//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-//        assertEquals("User sending request is not a client.", response.getBody());
-//        verify(accountService).getMyAccounts("Bearer token");
-//    }
-//
-//    @Test
-//    void testGetMyAccounts_Failure() {
-//        doThrow(new RuntimeException()).when(accountService).getMyAccounts(5L);
-//
-//        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
-//
-//        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-//        verify(accountService).getMyAccounts(5L);
-//    }
-//
-//    @Test
-//    void testGetAccountDetails_Success() {
-//        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
-//
-//        assertEquals(HttpStatus.OK, response.getStatusCode());
-//        verify(accountService).getAccountDetails("Bearer token", "1");
-//    }
-//
-//    @Test
-//    void testGetAccountDetails_BadRequest() {
-//        doThrow(new ClientNotAccountOwnerException()).when(accountService).getAccountDetails(5L, "1");
-//
-//        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
-//
-//        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-//        assertEquals("Client sending request is not the account owner.", response.getBody());
-//        verify(accountService).getAccountDetails(5L, "1");
-//    }
-//
-//    @Test
-//    void testGetAccountDetails_Failure() {
-//        doThrow(new RuntimeException()).when(accountService).getAccountDetails(5L, "1");
-//
-//        ResponseEntity<?> response = accountController.getAccountDetails("Bearer token", "1");
-//
-//        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-//        verify(accountService).getAccountDetails(5L, "1");
-//    }
-//}
+package rs.raf.bank_service.unit;
+
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import rs.raf.bank_service.client.UserClient;
+import rs.raf.bank_service.controller.AccountController;
+import rs.raf.bank_service.domain.dto.AccountDto;
+import rs.raf.bank_service.domain.dto.ClientDto;
+import rs.raf.bank_service.domain.dto.NewBankAccountDto;
+import rs.raf.bank_service.exceptions.ClientNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.exceptions.UserNotAClientException;
+import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
+import rs.raf.bank_service.service.AccountService;
+import rs.raf.bank_service.service.ExchangeRateService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(AccountController.class)
+class AccountControllerTest {
+
+    @MockBean
+    private ExchangeRateService exchangeRateService;
+
+    private MockMvc mockMvc;
+
+    @MockBean
+    private AccountService accountService;
+
+    @Autowired
+    private AccountController accountController;
+
+    @MockBean
+    private JwtTokenUtil jwtTokenUtil;
+
+    @MockBean
+    private UserClient userClient;
+
+    @MockBean
+    private ChangeLimitRequestRepository changeLimitRequestRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testGetAccounts() throws Exception {
+        ClientDto clientDto = new ClientDto();
+        clientDto.setFirstName("Marko");
+        clientDto.setLastName("Markovic");
+
+        String token = "Bearer valid-token";
+
+        AccountDto accountDto = new AccountDto();
+        accountDto.setAccountNumber("123456789012345678");
+        accountDto.setOwner(clientDto);
+
+        List<AccountDto> accounts = List.of(accountDto);
+        Page<AccountDto> page = new PageImpl<>(accounts);
+
+        when(accountService.getAccounts(anyString(), anyString(), anyString(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/account")
+                        .header("Authorization", token)
+                        .param("accountNumber", "123456789012345678")
+                        .param("firstName", "Marko")
+                        .param("lastName", "Markovic")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateBankAccount_Success() throws Exception {
+        // Kreiramo objekat za novi bankovni račun
+        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
+        // Pretpostavljamo da je korisnik već autentifikovan sa tokenom
+        String authorizationHeader = "Bearer token";
+
+        // Pretpostavljamo da metoda createNewBankAccount uspešno kreira novi bankovni račun
+        doNothing().when(accountService).createNewBankAccount(any(NewBankAccountDto.class), anyString());
+
+
+        // Simuliramo poziv POST zahteva na /api/account sa neophodnim parametarima
+        mockMvc.perform(post("/api/account")
+                        .header("Authorization", authorizationHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(newBankAccountDto)))
+                .andExpect(status().isCreated()); // Očekujemo HTTP status 201 (Created)
+
+        // Verifikujemo da je metoda createNewBankAccount pozvana sa odgovarajućim argumentima
+        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
+    }
+
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateBankAccount_ClientNotFound() {
+        // Arrange
+        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
+        String authorizationHeader = "Bearer token";
+
+        String errorMessage = "Cannot find client with id: 999";
+        doThrow(new ClientNotFoundException(999L)).when(accountService)
+                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
+
+        // Act
+        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
+        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateBankAccount_InvalidCurrency() {
+
+        // Arrange
+        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
+        String authorizationHeader = "Bearer token";
+
+        String errorMessage = "Currency not found: INVALID";
+        doThrow(new CurrencyNotFoundException("INVALID")).when(accountService)
+                .createNewBankAccount(any(NewBankAccountDto.class), anyString());
+
+
+        // Act
+        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errorMessage, response.getBody());
+        verify(accountService).createNewBankAccount(newBankAccountDto, authorizationHeader);
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetMyAccounts_Success() {
+        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetMyAccounts_BadRequest() throws Exception {
+        String authHeader = "Bearer valid-token";
+        Long clientId = 123L; // Simulirani clientId
+
+        // Simulacija greške u jwtTokenUtil da vrati clientId iz Authorization header-a
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+
+        // Mockovanje accountService da baci UserNotAClientException
+        when(accountService.getMyAccounts(clientId)).thenThrow(new UserNotAClientException());
+
+        // Pozivamo endpoint sa mockovanim auth headerom
+        mockMvc.perform(get("/api/account")
+                        .header("Authorization", authHeader))
+                .andExpect(status().isBadRequest()) // Očekujemo status 400
+                .andExpect(jsonPath("$").value("User sending request is not a client."));
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetMyAccounts_Failure() throws Exception {
+        String authHeader = "Bearer valid-token";
+        Long clientId = 123L; // Simulirani clientId
+
+        // Mockovanje jwtTokenUtil da vrati clientId iz Authorization header-a
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+
+        // Mockovanje accountService da baci RuntimeException kada se pozove getMyAccounts
+        when(accountService.getMyAccounts(clientId)).thenThrow(new RuntimeException("Account list retrieval failed"));
+
+        // Pozivamo endpoint i proveravamo da li se vraća 500 Internal Server Error
+        mockMvc.perform(get("/api/account")
+                        .header("Authorization", authHeader))
+                .andExpect(status().isInternalServerError()) // Očekujemo status 500
+                .andExpect(jsonPath("$").value("Account list retrieval failed")); //
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetAccountDetails_BadRequest() throws Exception {
+        String authHeader = "Bearer valid-token";
+
+        String accountNumber = "1";
+
+        // Simulacija UserNotAClientException u accountService
+        when(accountService.getAccountDetails(anyLong(), eq(accountNumber)))
+                .thenThrow(new UserNotAClientException());
+
+        // Pozivamo endpoint sa mockovanim auth headerom
+        mockMvc.perform(get("/api/account/details/{accountNumber}", accountNumber)
+                        .header("Authorization", authHeader))
+                .andExpect(status().isBadRequest()) // Očekujemo status 400 (Bad Request)
+                .andExpect(jsonPath("$").value("User sending request is not a client.")); // Očekujemo telo sa porukom greške
+
+        verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
+    }
+
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetAccountDetails_Failure() throws Exception {
+        String authHeader = "Bearer valid-token";
+        String accountNumber = "1";
+
+        // Simulacija RuntimeException
+        when(accountService.getAccountDetails(anyLong(), eq(accountNumber)))
+                .thenThrow(new RuntimeException("Account details retrieval failed"));
+
+        // Pozivamo endpoint sa mockovanim auth headerom
+        mockMvc.perform(get("/api/account/details/{accountNumber}", accountNumber)
+                        .header("Authorization", authHeader))
+                .andExpect(status().isInternalServerError()) // Očekujemo status 500 (Internal Server Error)
+                .andExpect(jsonPath("$").value("Account details retrieval failed")); // Očekujemo telo sa porukom greške
+
+        verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
+    }
+
+}
