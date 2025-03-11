@@ -77,16 +77,9 @@ public class LoanService {
                 .account(loanRequest.getAccount())
                 .build();
 
-        /*
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Loan with ID " + id + " not found"));
 
-        loan.setStatus(LoanStatus.APPROVED);
 
         loanRepository.save(loan);
-
-         */
-
         return loanMapper.toDto(loan);
     }
 
