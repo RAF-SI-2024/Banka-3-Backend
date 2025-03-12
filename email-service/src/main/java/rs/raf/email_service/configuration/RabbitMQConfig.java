@@ -35,10 +35,15 @@ public class RabbitMQConfig {
     public Queue requestCardQueue() {
         return new Queue("request-card", false);
     }
-  
+
     @Bean
     public Queue cardCreationQueue() {
         return new Queue("card-creation", false);
+    }
+
+    @Bean
+    public Queue insufficientFundsQueue() {
+        return new Queue("insufficient-funds", false);
     }
 
     @Bean

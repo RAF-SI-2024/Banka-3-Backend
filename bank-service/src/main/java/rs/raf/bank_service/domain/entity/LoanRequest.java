@@ -2,6 +2,7 @@ package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
 import rs.raf.bank_service.domain.enums.EmploymentStatus;
+import rs.raf.bank_service.domain.enums.InterestRateType;
 import rs.raf.bank_service.domain.enums.LoanRequestStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
 
@@ -40,4 +41,6 @@ public class LoanRequest {
 
     @Enumerated(EnumType.STRING)
     private LoanRequestStatus status;
+    @Enumerated
+    private InterestRateType interestRateType;
 }

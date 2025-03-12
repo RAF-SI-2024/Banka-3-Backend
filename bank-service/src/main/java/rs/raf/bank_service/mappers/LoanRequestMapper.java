@@ -20,7 +20,6 @@ public class LoanRequestMapper {
                 .repaymentPeriod(loanRequest.getRepaymentPeriod())
                 .contactPhone(loanRequest.getContactPhone())
                 .currencyCode(loanRequest.getCurrency().getCode())
-                .status(loanRequest.getStatus())
                 .accountNumber(loanRequest.getAccount().getAccountNumber())
                 .build();
     }
@@ -31,15 +30,14 @@ public class LoanRequestMapper {
 
     public LoanRequest toEntity(LoanRequestDto loanRequestDTO) {
         LoanRequest loanRequest = new LoanRequest();
-        loanRequest.setType(loanRequestDTO.getType());
         loanRequest.setAmount(loanRequestDTO.getAmount());
         loanRequest.setPurpose(loanRequestDTO.getPurpose());
         loanRequest.setMonthlyIncome(loanRequestDTO.getMonthlyIncome());
-        loanRequest.setEmploymentStatus(loanRequestDTO.getEmploymentStatus());
         loanRequest.setEmploymentDuration(loanRequestDTO.getEmploymentDuration());
         loanRequest.setRepaymentPeriod(loanRequestDTO.getRepaymentPeriod());
         loanRequest.setContactPhone(loanRequestDTO.getContactPhone());
-        loanRequest.setStatus(loanRequestDTO.getStatus());
+        loanRequest.setType(loanRequestDTO.getType());
+        loanRequest.setEmploymentStatus(loanRequestDTO.getEmploymentStatus());
         return loanRequest;
     }
 }

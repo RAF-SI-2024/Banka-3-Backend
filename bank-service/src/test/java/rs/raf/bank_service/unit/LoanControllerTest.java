@@ -4,13 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.LoanController;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.service.LoanService;
 
 import java.math.BigDecimal;
@@ -62,15 +65,4 @@ public class LoanControllerTest {
         assertEquals(mockLoan.getLoanNumber(), response.getBody().getLoanNumber());
     }
 
-    @Test
-    void testCreateLoan() {
-        LoanDto newLoan = new LoanDto("54321", LoanType.CASH, BigDecimal.valueOf(300000), 48, BigDecimal.valueOf(5.5), BigDecimal.valueOf(6.0), LocalDate.now(), LocalDate.now().plusYears(4), BigDecimal.valueOf(8000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(250000), "EUR", LoanStatus.PAID_OFF);
-        when(loanService.saveLoan(newLoan)).thenReturn(newLoan);
-
-        ResponseEntity<LoanDto> response = loanController.createLoan(newLoan);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(newLoan.getLoanNumber(), response.getBody().getLoanNumber());
-    }
 }

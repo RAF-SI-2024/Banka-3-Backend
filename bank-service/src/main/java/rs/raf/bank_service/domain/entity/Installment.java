@@ -31,4 +31,12 @@ public class Installment {
 
     @Enumerated(EnumType.STRING)
     private InstallmentStatus installmentStatus;
+
+    public Installment(Loan loan, BigDecimal amount, BigDecimal interestRate, LocalDate expectedDueDate, InstallmentStatus installmentStatus) {
+        this.loan = loan;
+        this.amount = amount;
+        this.interestRate = interestRate;
+        this.expectedDueDate = expectedDueDate;
+        this.installmentStatus = installmentStatus;
+    }
 }
