@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class CreateVerificationRequestDto {
-
     private Long userId;
     private Long targetId;
     private VerificationType verificationType;
+    private String details;
 }

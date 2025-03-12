@@ -13,12 +13,10 @@ import java.time.LocalDateTime;
 @Builder
 public class VerificationRequestDto {
     private Long userId;
-    private String email;
     private LocalDateTime expirationTime;
-    private int attempts;
     private Long targetId;
-
     private VerificationStatus status;
     private VerificationType verificationType;
+    private LocalDateTime createdAt;
 }
 
