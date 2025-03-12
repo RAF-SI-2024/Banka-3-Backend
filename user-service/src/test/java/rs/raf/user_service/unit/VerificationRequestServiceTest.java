@@ -49,7 +49,7 @@ public class VerificationRequestServiceTest {
         mockRequest.setVerificationType(VerificationType.CHANGE_LIMIT);
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userIdFromToken);
-        when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.of(mockRequest));
+        when(verificationRequestRepository.findActiveRequest(requestId, 2L)).thenReturn(Optional.of(mockRequest));
 
         boolean result = verificationRequestService.processApproval(requestId, authHeader);
 
@@ -64,8 +64,8 @@ public class VerificationRequestServiceTest {
         Long requestId = 1L;
         String authHeader = "Bearer valid.jwt.token";
 
-        when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.empty());
-
+        when(verificationRequestRepository.findActiveRequest(requestId, 1L)).thenReturn(Optional.empty());
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
         assertThrows(IllegalStateException.class, () ->
                 verificationRequestService.processApproval(requestId, authHeader)
         );
@@ -83,11 +83,12 @@ public class VerificationRequestServiceTest {
         mockRequest.setUserId(differentUserId);
         mockRequest.setTargetId(10L);
         mockRequest.setStatus(VerificationStatus.PENDING);
+        mockRequest.setVerificationType(VerificationType.CHANGE_LIMIT);
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userIdFromToken);
-        when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.of(mockRequest));
+        when(verificationRequestRepository.findActiveRequest(requestId, userIdFromToken)).thenReturn(Optional.empty());
 
-        assertThrows(SecurityException.class, () ->
+        assertThrows(IllegalStateException.class, () ->
                 verificationRequestService.processApproval(requestId, authHeader)
         );
     }
