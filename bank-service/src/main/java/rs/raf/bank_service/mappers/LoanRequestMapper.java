@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
 public class LoanRequestMapper {
     public LoanRequestDto toDto(LoanRequest loanRequest) {
         return LoanRequestDto.builder()
-                .type(String.valueOf(loanRequest.getType()))
+                .type(loanRequest.getType())
                 .amount(loanRequest.getAmount())
                 .purpose(loanRequest.getPurpose())
                 .monthlyIncome(loanRequest.getMonthlyIncome())
-                .employmentStatus(String.valueOf(loanRequest.getEmploymentStatus()))
+                .employmentStatus(loanRequest.getEmploymentStatus())
                 .employmentDuration(loanRequest.getEmploymentDuration())
                 .repaymentPeriod(loanRequest.getRepaymentPeriod())
                 .contactPhone(loanRequest.getContactPhone())
@@ -36,6 +36,8 @@ public class LoanRequestMapper {
         loanRequest.setEmploymentDuration(loanRequestDTO.getEmploymentDuration());
         loanRequest.setRepaymentPeriod(loanRequestDTO.getRepaymentPeriod());
         loanRequest.setContactPhone(loanRequestDTO.getContactPhone());
+        loanRequest.setType(loanRequestDTO.getType());
+        loanRequest.setEmploymentStatus(loanRequestDTO.getEmploymentStatus());
         return loanRequest;
     }
 }

@@ -47,31 +47,4 @@ public class LoanController {
         Optional<LoanDto> loan = loanService.getLoanById(id);
         return loan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
-
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
-    @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
-            @ApiResponse(responseCode = "404", description = "Loan not found")
-    })
-    @PutMapping("/approve/{id}")
-    public ResponseEntity<?> approveLoan(@PathVariable Long id) {
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(loanService.approveLoan(id));
-        }catch (LoanRequestNotFoundException e ) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
-
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
-    @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
-            @ApiResponse(responseCode = "404", description = "Loan not found")
-    })
-    @PutMapping("/{id}/reject")
-    public ResponseEntity<LoanDto> rejectLoan(@PathVariable Long id) {
-        LoanDto rejectedLoan = loanService.rejectLoan(id);
-        return ResponseEntity.ok(rejectedLoan);
-    }
 }

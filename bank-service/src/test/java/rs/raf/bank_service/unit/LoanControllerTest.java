@@ -65,28 +65,4 @@ public class LoanControllerTest {
         assertEquals(mockLoan.getLoanNumber(), response.getBody().getLoanNumber());
     }
 
-    @Test
-    void approveLoan_Success() {
-        Long loanId = 1L;
-        LoanDto loanDto = new LoanDto();
-        Mockito.when(loanService.approveLoan(loanId)).thenReturn(loanDto);
-
-        ResponseEntity<?> response = loanController.approveLoan(loanId);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(loanDto, response.getBody());
-    }
-
-    @Test
-    void approveLoan_LoanNotFound() {
-        Long loanId = 1L;
-        String errorMessage = "The provided loan request doesnt exist.";
-
-        Mockito.when(loanService.approveLoan(loanId)).thenThrow(new LoanRequestNotFoundException());
-
-        ResponseEntity<?> response = loanController.approveLoan(loanId);
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(errorMessage, response.getBody());
-    }
 }

@@ -52,51 +52,6 @@ public class LoanService {
         return loanRepository.findById(id).map(loanMapper::toDto);
     }
 
-    public LoanDto approveLoan(Long id) {
-        // prema specifikaciji vadimo podatke iz loanRequest?
-
-        LoanRequest loanRequest = loanRequestRepository.findById(id).orElseThrow(LoanRequestNotFoundException::new);
-        loanRequest.setStatus(LoanRequestStatus.APPROVED);
-        Loan loan = Loan.builder()
-                .loanNumber(UUID.randomUUID().toString())
-                .type(loanRequest.getType())
-                .amount(loanRequest.getAmount())
-                .repaymentPeriod(loanRequest.getRepaymentPeriod())
-                .nominalInterestRate(LoanInterestRateCalculator.calculateNominalRate(loanRequest))
-                .effectiveInterestRate(LoanInterestRateCalculator.calculateEffectiveRate(loanRequest))
-                .startDate(LocalDate.now())
-                .dueDate(LocalDate.now().plusMonths(loanRequest.getRepaymentPeriod()))
-                .nextInstallmentAmount(LoanRateCalculator.calculateMonthlyRate(
-                        loanRequest.getAmount(),
-                        LoanInterestRateCalculator.calculateEffectiveRate(loanRequest),
-                        loanRequest.getRepaymentPeriod()))
-                .nextInstallmentDate(LocalDate.now())
-                .remainingDebt(loanRequest.getAmount())
-                .currency(loanRequest.getCurrency())
-                .status(LoanStatus.APPROVED)
-                .interestRateType(loanRequest.getInterestRateType())
-                .account(loanRequest.getAccount())
-                .build();
-
-        Installment installment = new Installment(loan, loan.getNextInstallmentAmount(), loan.getEffectiveInterestRate(), loan.getNextInstallmentDate(), InstallmentStatus.UNPAID);
-        loan.setInstallments(new ArrayList<>());
-        loan.getInstallments().add(installment);
-        loanRepository.save(loan);
-        installmentRepository.save(installment);
-
-        loanRepository.save(loan);
-        return loanMapper.toDto(loan);
-    }
-
-    public LoanDto rejectLoan(Long id) {
-        Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Loan with ID " + id + " not found"));
-
-        loan.setStatus(LoanStatus.REJECTED);
-        loanRepository.save(loan);
-
-        return loanMapper.toDto(loan);
-    }
     //svakih 15 sekundi
     @Scheduled(cron = "*/15 * * * * *")
     @Transactional
