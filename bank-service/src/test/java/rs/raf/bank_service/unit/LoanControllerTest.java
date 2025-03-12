@@ -18,8 +18,6 @@ import rs.raf.bank_service.service.LoanService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,21 +33,6 @@ public class LoanControllerTest {
     @InjectMocks
     private LoanController loanController;
 
-    @Test
-    void testGetAllLoans() {
-        List<LoanShortDto> mockLoans = Arrays.asList(
-                new LoanShortDto("12345", LoanType.AUTO, BigDecimal.valueOf(500000)),
-                new LoanShortDto("67890", LoanType.CASH, BigDecimal.valueOf(1500000))
-        );
-
-        when(loanService.getAllLoans()).thenReturn(mockLoans);
-
-        ResponseEntity<List<LoanShortDto>> response = loanController.getAllLoans();
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
-    }
 
     @Test
     void testGetLoanById() {

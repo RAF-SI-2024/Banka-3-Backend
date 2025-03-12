@@ -16,5 +16,4 @@ public class LoanShortDto {
     private String loanNumber;
     private LoanType type;
     private BigDecimal amount;
-
 }

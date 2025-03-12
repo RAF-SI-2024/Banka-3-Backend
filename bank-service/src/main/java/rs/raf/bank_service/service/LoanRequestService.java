@@ -1,26 +1,32 @@
 package rs.raf.bank_service.service;
 
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.LoanDto;
+import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
+import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Installment;
 import rs.raf.bank_service.domain.entity.Loan;
 import rs.raf.bank_service.domain.entity.LoanRequest;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.mappers.LoanMapper;
-import rs.raf.bank_service.mappers.LoanRequestMapper;
+import rs.raf.bank_service.domain.mapper.LoanMapper;
+import rs.raf.bank_service.domain.mapper.LoanRequestMapper;
 import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.specification.LoanInterestRateCalculator;
 import rs.raf.bank_service.specification.LoanRateCalculator;
+import rs.raf.bank_service.specification.LoanRequestSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
-import javax.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -35,25 +41,21 @@ public class LoanRequestService {
     private final JwtTokenUtil jwtTokenUtil;
 
 
-    public List<LoanRequestDto> getLoanRequestsByStatus(LoanRequestStatus status) {
-        return loanRequestMapper.toDtoList(loanRequestRepository.findByStatus(status));
-    }
-
-    public LoanRequestDto saveLoanRequest(LoanRequestDto loanRequestDTO, String authHeader) {
+    public LoanRequestDto saveLoanRequest(CreateLoanRequestDto createLoanRequestDTO, String authHeader) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-        LoanRequest loanRequest = loanRequestMapper.toEntity(loanRequestDTO);
+        LoanRequest loanRequest = loanRequestMapper.createRequestToEntity(createLoanRequestDTO);
 
-        loanRequest.setCurrency(currencyRepository.findByCode(loanRequestDTO.getCurrencyCode()).orElseThrow(() -> new CurrencyNotFoundException(loanRequestDTO.getCurrencyCode())));
-        loanRequest.setAccount(accountRepository.findByAccountNumberAndClientId(loanRequestDTO.getAccountNumber(), clientId).orElseThrow(AccountNotFoundException::new));
+        loanRequest.setCurrency(currencyRepository.findByCode(createLoanRequestDTO.getCurrencyCode()).orElseThrow(() -> new CurrencyNotFoundException(createLoanRequestDTO.getCurrencyCode())));
+        loanRequest.setAccount(accountRepository.findByAccountNumberAndClientId(createLoanRequestDTO.getAccountNumber(), clientId).orElseThrow(AccountNotFoundException::new));
 
         loanRequest.setStatus(LoanRequestStatus.PENDING);
-        loanRequestRepository.save(loanRequest);
+        loanRequest = loanRequestRepository.save(loanRequest);
         return loanRequestMapper.toDto(loanRequest);
     }
 
     public LoanDto approveLoan(Long id) {
-        LoanRequest loanRequest = loanRequestRepository.findById(id).orElseThrow(LoanRequestNotFoundException::new);
+        LoanRequest loanRequest = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING).orElseThrow(LoanRequestNotFoundException::new);
         loanRequest.setStatus(LoanRequestStatus.APPROVED);
         Loan loan = Loan.builder()
                 .loanNumber(UUID.randomUUID().toString())
@@ -87,12 +89,24 @@ public class LoanRequestService {
     }
 
     public LoanRequestDto rejectLoan(Long id) {
-        LoanRequest loan = loanRequestRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Loan request with ID " + id + " not found"));
+        LoanRequest loan = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING).orElseThrow(LoanRequestNotFoundException::new);
 
         loan.setStatus(LoanRequestStatus.REJECTED);
         loanRequestRepository.save(loan);
 
         return loanRequestMapper.toDto(loan);
+    }
+
+    public Page<LoanRequestDto> getClientLoanRequests(String authHeader, Pageable pageable) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        List<Account> accounts = accountRepository.findByClientId(clientId);
+
+        return loanRequestRepository.findByAccountIn(accounts, pageable).map(loanRequestMapper::toDto);
+    }
+
+    public Page<LoanRequestDto> getAllLoanRequests(LoanType type, String accountNumber, Pageable pageable) {
+        Specification<LoanRequest> spec = LoanRequestSpecification.filterBy(type, accountNumber);
+
+        return loanRequestRepository.findAll(spec, pageable).map(loanRequestMapper::toDto);
     }
 }
