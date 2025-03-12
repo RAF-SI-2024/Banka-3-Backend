@@ -55,6 +55,8 @@ public class Payment {
 
     private LocalDateTime date;
 
+    private BigDecimal exchangeRate;
+
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 

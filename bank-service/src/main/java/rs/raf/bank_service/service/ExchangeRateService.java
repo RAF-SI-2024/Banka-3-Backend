@@ -4,10 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.ExchangeRateClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ConvertDto;
-import rs.raf.bank_service.domain.dto.ExchangeRateDto;
-import rs.raf.bank_service.domain.dto.UpdateExchangeRateDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
 import rs.raf.bank_service.domain.mapper.ExchangeRateMapper;
@@ -105,23 +102,33 @@ public class ExchangeRateService {
     }
 
 
-    public BigDecimal convert(ConvertDto convertDto){
-        BigDecimal exchangeRate = getExchangeRate(convertDto.getFromCurrencyCode(), convertDto.getToCurrencyCode());
-        return convertDto.getAmount().multiply(exchangeRate);
+    public BigDecimal convert(ConvertDto convertDto) {
+
+
+        ExchangeRateDto exchangeRateDto = getExchangeRate(convertDto.getFromCurrencyCode(), convertDto.getToCurrencyCode());
+
+
+        return convertDto.getAmount().multiply(exchangeRateDto.getExchangeRate());
+
     }
 
 
 
-    public BigDecimal getExchangeRate(String fromCurrencyCode, String toCurrencyCode) {
+    public ExchangeRateDto getExchangeRate(String fromCurrencyCode, String toCurrencyCode) {
         Currency fromCurrency = currencyRepository.findByCode(fromCurrencyCode)
                 .orElseThrow(() -> new CurrencyNotFoundException(fromCurrencyCode));
         Currency toCurrency = currencyRepository.findByCode(toCurrencyCode)
                 .orElseThrow(() -> new CurrencyNotFoundException(toCurrencyCode));
 
-        // Pokušaj da pronađeš direktan kurs
         Optional<ExchangeRate> directRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency);
         if (directRate.isPresent()) {
-            return applyCommission(directRate.get().getSellRate());  // Koristi prodajni kurs
+            ExchangeRate rate = directRate.get();
+            return new ExchangeRateDto(
+                    new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
+                    new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
+                    rate.getSellRate(),  // Prodajni kurs se koristi direktno, bez dodatne provizije
+                    rate.getSellRate()
+            );
         }
 
         // Ako nema direktnog kursa, koristi RSD kao međukorak
@@ -133,14 +140,15 @@ public class ExchangeRateService {
 
         if (toRsdRate.isPresent() && fromRsdRate.isPresent()) {
             BigDecimal intermediateRate = toRsdRate.get().getSellRate().multiply(fromRsdRate.get().getSellRate());
-            return applyCommission(intermediateRate);
+            return new ExchangeRateDto(
+                    new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
+                    new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
+                    intermediateRate,  // Nema dodatne provizije, samo prodajni kurs
+                    intermediateRate
+            );
         }
 
         throw new ExchangeRateNotFoundException(fromCurrencyCode, toCurrencyCode);
-    }
-
-    private BigDecimal applyCommission(BigDecimal rate) {
-        return rate.multiply(BigDecimal.valueOf(0.99));  // 1% provizije
     }
 }
 

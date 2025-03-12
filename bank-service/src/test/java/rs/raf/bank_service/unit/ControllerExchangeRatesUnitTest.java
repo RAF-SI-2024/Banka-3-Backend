@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.bank_service.controller.ExchangeRateController;
 import rs.raf.bank_service.domain.dto.ConvertDto;
+import rs.raf.bank_service.domain.dto.CurrencyDto;
 import rs.raf.bank_service.domain.dto.ExchangeRateDto;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
@@ -37,19 +38,18 @@ public class ControllerExchangeRatesUnitTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private Currency eur;
-    private Currency rsd;
-    private Currency usd;
+    private CurrencyDto eur;
+    private CurrencyDto rsd;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(exchangeRateController).build();
 
-        eur = new Currency("EUR");
-        rsd = new Currency("RSD");
-        usd = new Currency("USD");
+        eur = new CurrencyDto("EUR", "Euro", "€");
+        rsd = new CurrencyDto("RSD", "Dinar", "RSD");
     }
+
 
     /**
      * ✅ Testiranje dohvatanja postojećeg kursa sa prodajnim kursom
@@ -57,13 +57,16 @@ public class ControllerExchangeRatesUnitTest {
     @Test
     @WithMockUser
     void testGetExchangeRate_Success() throws Exception {
-        when(exchangeRateService.getExchangeRate("RSD", "EUR")).thenReturn(new BigDecimal("118.0"));
+        ExchangeRateDto exchangeRateDto = new ExchangeRateDto(rsd, eur, new BigDecimal("118.0"), new BigDecimal("119.0"));
+
+        when(exchangeRateService.getExchangeRate("RSD", "EUR")).thenReturn(exchangeRateDto);
 
         mockMvc.perform(get("/api/exchange-rates/RSD/EUR"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.toCurrency").value("EUR"))
+                .andExpect(jsonPath("$.fromCurrency.code").value("RSD"))
+                .andExpect(jsonPath("$.toCurrency.code").value("EUR"))
                 .andExpect(jsonPath("$.exchangeRate").value("118.0"))
-                .andExpect(jsonPath("$.fromCurrency").value("RSD"));
+                .andExpect(jsonPath("$.sellRate").value("119.0")); // ✅ Proveravamo i prodajni kurs (sellRate)
     }
 
     /**

@@ -68,26 +68,6 @@ public class ExchangeRateController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Add or update exchange rate", description = "Stores a new exchange rate or updates an existing one")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Exchange rate saved successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid exchange rate input"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    @PostMapping
-    public ResponseEntity<?> saveOrUpdateExchangeRate(@Valid @RequestBody ExchangeRateDto exchangeRateDto, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            for (FieldError error : bindingResult.getFieldErrors()) {
-                errors.put(error.getField(), error.getDefaultMessage());
-            }
-            return ResponseEntity.badRequest().body(Map.of("error", "Validation failed", "message", errors));
-        }
-
-
-        return ResponseEntity.ok().body("Exchange rate saved successfully");
-    }
 
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get exchange rate", description = "Returns the exchange rate between two currencies")
@@ -101,16 +81,8 @@ public class ExchangeRateController {
             @PathVariable String fromCurrency,
             @PathVariable String toCurrency) {
         try {
-            BigDecimal exchangeRate = exchangeRateService.getExchangeRate(
-                    fromCurrency, toCurrency);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("fromCurrency", fromCurrency);
-            response.put("toCurrency", toCurrency);
-            response.put("exchangeRate", exchangeRate);
-
-            return ResponseEntity.ok(response);
-
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(fromCurrency, toCurrency);
+            return ResponseEntity.ok(exchangeRateDto);
         } catch (ExchangeRateNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
         } catch (Exception e) {

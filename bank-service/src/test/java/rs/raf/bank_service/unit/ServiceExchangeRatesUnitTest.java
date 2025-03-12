@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.bank_service.domain.dto.ConvertDto;
+import rs.raf.bank_service.domain.dto.ExchangeRateDto;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
@@ -47,8 +48,9 @@ public class ServiceExchangeRatesUnitTest {
         usd = new Currency("USD");
     }
 
+
     /**
-     * ✅ Testiranje dohvatanja postojećeg kursa sa prodajnim kursom
+     * ✅ Testiranje dohvatanja postojećeg kursa koristeći prodajni kurs.
      */
     @Test
     void testGetExchangeRate_Success_WithSellRate() {
@@ -59,14 +61,14 @@ public class ServiceExchangeRatesUnitTest {
         when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur))
                 .thenReturn(Optional.of(exchangeRate));
 
-        BigDecimal result = exchangeRateService.getExchangeRate("RSD", "EUR");
+        ExchangeRateDto result = exchangeRateService.getExchangeRate("RSD", "EUR");
 
         assertNotNull(result);
-        assertEquals(new BigDecimal("116.82").setScale(3, RoundingMode.HALF_UP), result);  // 118.0 * 0.99
+        assertEquals(new BigDecimal("118.0"), result.getExchangeRate());  // Koristi prodajni kurs bez dodatne provizije
     }
 
     /**
-     * ✅ Testiranje kada kurs ne postoji direktno i koristi RSD kao međukorak
+     * ✅ Testiranje kada kurs ne postoji direktno i koristi RSD kao međukorak.
      */
     @Test
     void testGetExchangeRate_UsesIntermediateRSD() {
@@ -85,17 +87,15 @@ public class ServiceExchangeRatesUnitTest {
         when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur))
                 .thenReturn(Optional.of(rsdToEur));
 
-        BigDecimal result = exchangeRateService.getExchangeRate("USD", "EUR");
+        ExchangeRateDto result = exchangeRateService.getExchangeRate("USD", "EUR");
 
-        BigDecimal expectedValue = new BigDecimal("0.9284").setScale(3, RoundingMode.HALF_UP);  // (109.0 * 0.0086) * 0.99
-        result = result.setScale(3, RoundingMode.HALF_UP);
-
+        BigDecimal expectedValue = new BigDecimal("0.93740");  // 109.0 * 0.0086
         assertNotNull(result);
-        assertEquals(expectedValue, result);
+        assertEquals(expectedValue, result.getExchangeRate());
     }
 
     /**
-     * ✅ Testiranje kada kurs ne postoji
+     * ✅ Testiranje kada kurs ne postoji.
      */
     @Test
     void testGetExchangeRate_NotFound() {
@@ -111,7 +111,7 @@ public class ServiceExchangeRatesUnitTest {
     }
 
     /**
-     * ✅ Testiranje konverzije sa prodajnim kursom
+     * ✅ Testiranje konverzije sa prodajnim kursom.
      */
     @Test
     void testConvert_Success() {
@@ -127,11 +127,11 @@ public class ServiceExchangeRatesUnitTest {
         BigDecimal result = exchangeRateService.convert(convertDto);
 
         assertNotNull(result);
-        assertEquals(new BigDecimal("8.50000").setScale(4, RoundingMode.HALF_UP), result); // 1000 * 0.0086
+        assertEquals(new BigDecimal("8.600000").setScale(4, RoundingMode.HALF_UP), result); // 1000 * 0.0086
     }
 
     /**
-     * ✅ Testiranje kada konverzija nije moguća (nema kursa)
+     * ✅ Testiranje kada konverzija nije moguća (nema kursa).
      */
     @Test
     void testConvert_ExchangeRateNotFound() {
@@ -146,5 +146,4 @@ public class ServiceExchangeRatesUnitTest {
         assertThrows(ExchangeRateNotFoundException.class, () -> exchangeRateService.convert(convertDto));
     }
 }
-
 

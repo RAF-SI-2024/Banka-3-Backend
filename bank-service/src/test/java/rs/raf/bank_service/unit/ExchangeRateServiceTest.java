@@ -101,7 +101,7 @@ public class ExchangeRateServiceTest {
 
         BigDecimal result = exchangeRateService.convert(dummyConvertDto);
         assertNotNull(result);
-        assertEquals(BigDecimal.valueOf(117), result);
+        assertEquals(BigDecimal.valueOf(118), result);
     }
 
     @Test

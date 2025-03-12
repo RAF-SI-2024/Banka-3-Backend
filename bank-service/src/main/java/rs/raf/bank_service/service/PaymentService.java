@@ -50,32 +50,56 @@ public class PaymentService {
 
         BigDecimal amount = transferDto.getAmount();
         BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-        // Koristimo ExchangeRateService da dobijemo konvertovani iznos
+        // Ako su valute različite, koristimo kurs i idemo preko bankovnih računa
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
-            convertedAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode())
-                    .multiply(amount);
+            Account bankAccountFrom = accountRepository.findFirstByCurrency(sender.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+
+            Account bankAccountTo = accountRepository.findFirstByCurrency(receiver.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getExchangeRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+
+            // Sender  Banka
+            sender.setBalance(sender.getBalance().subtract(amount));
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            accountRepository.save(sender);
+            accountRepository.save(bankAccountFrom);
+
+            // Banka  Banka (konverzija)
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().subtract(convertedAmount));
+            bankAccountTo.setBalance(bankAccountTo.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountFrom);
+            accountRepository.save(bankAccountTo);
+
+            // Banka  Receiver
+            bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountTo);
+        } else {
+            sender.setBalance(sender.getBalance().subtract(amount));
+            receiver.setBalance(receiver.getBalance().add(amount));
         }
 
-        if (sender.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException(sender.getBalance(), amount);
-        }
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
 
-        // Kreiranje payment entiteta
+        // Kreiranje payment entiteta i čuvanje kursa
         Payment payment = new Payment();
         payment.setClientId(clientId);
         payment.setSenderAccount(sender);
-        payment.setAmount(amount);
         payment.setAccountNumberReceiver(receiver.getAccountNumber());
+        payment.setAmount(amount);
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
         payment.setDate(LocalDateTime.now());
         payment.setReceiverClientId(receiver.getClientId());
+        payment.setExchangeRate(exchangeRateValue); // Čuvamo kurs
 
         paymentRepository.save(payment);
-
-        // Kreiranje verifikacije
-        CreateVerificationRequestDto verificationRequest = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.TRANSFER);
-        userClient.createVerificationRequest(verificationRequest);
 
         return true;
     }
@@ -93,25 +117,54 @@ public class PaymentService {
 
         BigDecimal amount = payment.getAmount();
         BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-        // KORISTIMO ExchangeRateService
+
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
-            convertedAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode())
-                    .multiply(amount);
-        }
 
-        sender.setBalance(sender.getBalance().subtract(amount));
-        receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            Account bankAccountFrom = accountRepository.findFirstByCurrency(sender.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+
+            Account bankAccountTo = accountRepository.findFirstByCurrency(receiver.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+
+
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getExchangeRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+
+
+            sender.setBalance(sender.getBalance().subtract(amount));
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            accountRepository.save(sender);
+            accountRepository.save(bankAccountFrom);
+
+
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().subtract(convertedAmount));
+            bankAccountTo.setBalance(bankAccountTo.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountFrom);
+            accountRepository.save(bankAccountTo);
+
+
+            bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountTo);
+        } else {
+
+            sender.setBalance(sender.getBalance().subtract(amount));
+            receiver.setBalance(receiver.getBalance().add(amount));
+        }
 
         accountRepository.save(sender);
         accountRepository.save(receiver);
 
+
         payment.setStatus(PaymentStatus.COMPLETED);
+        payment.setExchangeRate(exchangeRateValue); // Čuvamo kurs u trenutku transakcije
         paymentRepository.save(payment);
 
         return true;
     }
-
 
     /**
      * Kreira uplatu koja čeka potvrdu.
@@ -133,16 +186,40 @@ public class PaymentService {
 
         BigDecimal amount = paymentDto.getAmount();
         BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-        // **KORISTIMO ExchangeRateService**
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
-            convertedAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode())
-                    .multiply(amount);
+            Account bankAccountFrom = accountRepository.findFirstByCurrency(sender.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+
+            Account bankAccountTo = accountRepository.findFirstByCurrency(receiver.getCurrency())
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getExchangeRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+
+            sender.setBalance(sender.getBalance().subtract(amount));
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            accountRepository.save(sender);
+            accountRepository.save(bankAccountFrom);
+
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().subtract(convertedAmount));
+            bankAccountTo.setBalance(bankAccountTo.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountFrom);
+            accountRepository.save(bankAccountTo);
+
+            bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            accountRepository.save(bankAccountTo);
+        } else {
+            sender.setBalance(sender.getBalance().subtract(amount));
+            receiver.setBalance(receiver.getBalance().add(amount));
         }
 
-        if (sender.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException(sender.getBalance(), amount);
-        }
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+
 
         Payment payment = new Payment();
         payment.setClientId(clientId);
@@ -154,12 +231,9 @@ public class PaymentService {
         payment.setReferenceNumber(paymentDto.getReferenceNumber());
         payment.setDate(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
-        payment.setReceiverClientId(receiver.getClientId());
+        payment.setExchangeRate(exchangeRateValue); // Čuvamo kurs
 
         paymentRepository.save(payment);
-
-        CreateVerificationRequestDto verificationRequest = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT);
-        userClient.createVerificationRequest(verificationRequest);
 
         return true;
     }
@@ -177,11 +251,10 @@ public class PaymentService {
 
         BigDecimal amount = payment.getAmount();
         BigDecimal convertedAmount = amount;
-
+        BigDecimal exchangeRateValue = payment.getExchangeRate(); // Koristimo kurs iz baze
 
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
-            convertedAmount = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode())
-                    .multiply(amount);
+            convertedAmount = amount.multiply(exchangeRateValue);
         }
 
         sender.setBalance(sender.getBalance().subtract(amount));
