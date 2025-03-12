@@ -1,55 +1,67 @@
 package rs.raf.bank_service.service;
 
 import lombok.AllArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.EmailRequestDto;
-import rs.raf.bank_service.domain.dto.LoanDto;
-import rs.raf.bank_service.domain.dto.LoanShortDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Installment;
 import rs.raf.bank_service.domain.entity.Loan;
-import rs.raf.bank_service.domain.entity.LoanRequest;
 import rs.raf.bank_service.domain.enums.InstallmentStatus;
-import rs.raf.bank_service.domain.enums.LoanRequestStatus;
 import rs.raf.bank_service.domain.enums.LoanStatus;
-import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
-import rs.raf.bank_service.mappers.LoanMapper;
+import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.domain.mapper.InstallmentMapper;
+import rs.raf.bank_service.domain.mapper.LoanMapper;
 import rs.raf.bank_service.repository.*;
-import rs.raf.bank_service.specification.LoanInterestRateCalculator;
 import rs.raf.bank_service.specification.LoanRateCalculator;
+import rs.raf.bank_service.specification.LoanSpecification;
+import rs.raf.bank_service.utils.JwtTokenUtil;
+
 import java.util.concurrent.ScheduledExecutorService;
-import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class LoanService {
     private final LoanRepository loanRepository;
-    private final LoanRequestRepository loanRequestRepository;
     private final LoanMapper loanMapper;
-    private final CurrencyRepository currencyRepository;
-    private final InstallmentRepository installmentRepository;
     private final AccountRepository accountRepository;
     private final UserClient userClient;
-    private final RabbitTemplate rabbitTemplate;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final JwtTokenUtil jwtTokenUtil;
+    private final InstallmentRepository installmentRepository;
+    private final InstallmentMapper installmentMapper;
 
-    public List<LoanShortDto> getAllLoans() {
-        return loanMapper.toShortDtoList(loanRepository.findAll());
+    public List<InstallmentDto> getLoanInstallments(Long loanId) {
+        return installmentRepository.findByLoanId(loanId).stream().map(installmentMapper::toDto).collect(Collectors.toList());
+    }
+
+    public Page<LoanShortDto> getClientLoans(String authHeader, Pageable pageable) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        List<Account> accounts = accountRepository.findByClientId(clientId);
+
+        return loanRepository.findByAccountIn(accounts, pageable).map(loanMapper::toShortDto);
     }
 
     public Optional<LoanDto> getLoanById(Long id) {
         return loanRepository.findById(id).map(loanMapper::toDto);
+    }
+
+    public Page<LoanDto> getAllLoans(LoanType type, String accountNumber, LoanStatus status, Pageable pageable) {
+        Specification<Loan> spec = LoanSpecification.filterBy(type, accountNumber, status);
+
+        return loanRepository.findAll(spec, pageable).map(loanMapper::toDto);
     }
 
     //svakih 15 sekundi

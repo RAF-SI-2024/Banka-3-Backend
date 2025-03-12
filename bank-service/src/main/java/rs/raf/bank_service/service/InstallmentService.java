@@ -2,7 +2,7 @@ package rs.raf.bank_service.service;
 
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.InstallmentDto;
-import rs.raf.bank_service.mappers.InstallmentMapper;
+import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.repository.InstallmentRepository;
 
 import java.util.List;
