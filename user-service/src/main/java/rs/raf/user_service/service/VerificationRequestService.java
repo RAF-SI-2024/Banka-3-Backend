@@ -1,5 +1,7 @@
 package rs.raf.user_service.service;
 
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.client.BankClient;
 import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
@@ -14,23 +16,13 @@ import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@AllArgsConstructor
 @Service
 public class VerificationRequestService {
     private final VerificationRequestRepository verificationRequestRepository;
     private final BankClient bankClient;
     private final JwtTokenUtil jwtTokenUtil;
 
-    public VerificationRequestService(VerificationRequestRepository verificationRequestRepository, BankClient bankClient, JwtTokenUtil jwtTokenUtil) {
-        this.verificationRequestRepository = verificationRequestRepository;
-        this.bankClient = bankClient;
-        this.jwtTokenUtil = jwtTokenUtil;
-    }
-
-    public Long getTransactionIdByRequestId(Long requestId) {
-        VerificationRequest request = verificationRequestRepository.findById(requestId)
-                .orElseThrow(() -> new VerificationNotFoundException(requestId));
-        return request.getTargetId();  // Ovo je transactionId, koje je sačuvano u targetId
-    }
 
     public void createVerificationRequest(CreateVerificationRequestDto createVerificationRequestDto) {
         VerificationRequest request = VerificationRequest.builder()
@@ -39,22 +31,19 @@ public class VerificationRequestService {
                 .status(VerificationStatus.PENDING)
                 .verificationType(createVerificationRequestDto.getVerificationType())
                 .expirationTime(LocalDateTime.now().plusMinutes(5))
+                .details(createVerificationRequestDto.getDetails())
                 .build();
 
         verificationRequestRepository.save(request);
     }
 
-    public VerificationType getVerificationTypeByRequestId(Long requestId) {
-        VerificationRequest request = verificationRequestRepository.findById(requestId)
-                .orElseThrow(() -> new VerificationNotFoundException(requestId));  // Ako ne nađe request, baci grešku
-
-        // Vraćamo tip verifikacije (TRANSFER ili PAYMENT)
-        return request.getVerificationType();
-    }
-
 
     public List<VerificationRequest> getActiveRequests(Long userId) {
-        return verificationRequestRepository.findByUserIdAndStatus(userId, VerificationStatus.PENDING);
+        return verificationRequestRepository.findActiveRequests(userId);
+    }
+
+    public List<VerificationRequest> getRequestHistory(Long userId) {
+        return verificationRequestRepository.findInactiveRequests(userId);
     }
 
     public boolean updateRequestStatus(Long requestId, VerificationStatus status) {
@@ -66,19 +55,13 @@ public class VerificationRequestService {
     }
 
 
-    public boolean processApproval(Long requestId, String authHeader) {
 
+
+    public boolean processApproval(Long requestId, String authHeader) {
         Long clientIdFromToken = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-
-        VerificationRequest request = verificationRequestRepository.findById(requestId)
+        VerificationRequest request = verificationRequestRepository.findActiveRequest(requestId, clientIdFromToken)
                 .orElseThrow(() -> new IllegalStateException("Verification request not found"));
-
-
-        if (!request.getUserId().equals(clientIdFromToken)) {
-            throw new SecurityException("Unauthorized: You cannot approve this request");
-        }
-
 
         request.setStatus(VerificationStatus.APPROVED);
         verificationRequestRepository.save(request);
@@ -92,22 +75,12 @@ public class VerificationRequestService {
         return true;
     }
 
-    public VerificationRequest getRequestById(Long requestId) {
-        return verificationRequestRepository.findById(requestId)
-                .orElseThrow(() -> new EntityNotFoundException("Verification request not found"));
-    }
 
     public boolean denyVerificationRequest(Long requestId, String authHeader) {
-
         Long clientIdFromToken = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-
-        VerificationRequest request = getRequestById(requestId);
-
-
-        if (!request.getUserId().equals(clientIdFromToken)) {
-            throw new SecurityException("You are not authorized to deny this request.");
-        }
+        VerificationRequest request = verificationRequestRepository.findActiveRequest(requestId, clientIdFromToken)
+                .orElseThrow(() -> new IllegalStateException("Verification request not found"));
 
         switch (request.getVerificationType()) {
         // @todo cancel payment/transfer, cancel limit change

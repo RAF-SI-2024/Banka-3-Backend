@@ -1,5 +1,7 @@
 package rs.raf.bank_service.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,8 +38,9 @@ public class PaymentService {
     private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
+    private final ObjectMapper objectMapper;
 
-    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) {
+    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver
         Account sender = accountRepository.findByAccountNumber(transferDto.getSenderAccountNumber())
                 .stream().findFirst()
@@ -71,8 +74,14 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
+        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
+                .fromAccountNumber(sender.getAccountNumber())
+                .toAccountNumber(transferDto.getReceiverAccountNumber())
+                .amount(transferDto.getAmount())
+                .build();
+
         // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
-        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.TRANSFER);
+        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.TRANSFER, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
         userClient.createVerificationRequest(paymentVerificationRequestDto);
 
         return true;
@@ -104,7 +113,7 @@ public class PaymentService {
         return true;
     }
 
-    public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) {
+    public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
         }
@@ -153,7 +162,13 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT);
+        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
+                .fromAccountNumber(sender.getAccountNumber())
+                .toAccountNumber(paymentDto.getReceiverAccountNumber())
+                .amount(paymentDto.getAmount())
+                .build();
+
+        CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
         userClient.createVerificationRequest(createVerificationRequestDto);
 
         return true;
