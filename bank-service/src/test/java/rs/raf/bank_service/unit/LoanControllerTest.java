@@ -37,7 +37,7 @@ public class LoanControllerTest {
     @Test
     void testGetLoanById() {
         Long loanId = 1L;
-        LoanDto mockLoan = new LoanDto("12345", LoanType.AUTO, BigDecimal.valueOf(500000), 60, BigDecimal.valueOf(6.75), BigDecimal.valueOf(7.25), LocalDate.now(), LocalDate.now().plusYears(5), BigDecimal.valueOf(10000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(450000), "RSD", LoanStatus.APPROVED);
+        LoanDto mockLoan = new LoanDto(1L, "12345", LoanType.AUTO, BigDecimal.valueOf(500000), 60, BigDecimal.valueOf(6.75), BigDecimal.valueOf(7.25), LocalDate.now(), LocalDate.now().plusYears(5), BigDecimal.valueOf(10000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(450000), "RSD", LoanStatus.APPROVED);
 
         when(loanService.getLoanById(loanId)).thenReturn(Optional.of(mockLoan));
 
