@@ -29,11 +29,11 @@ public class Payment {
     @Column(nullable = false)
     private Long clientId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
     private Account senderAccount;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "card_id")
     private Card card;
 
@@ -55,8 +55,6 @@ public class Payment {
 
     private LocalDateTime date;
 
-    //private BigDecimal exchangeRate;
-
     private BigDecimal outAmount;
 
     @Enumerated(EnumType.STRING)
@@ -72,4 +70,24 @@ public class Payment {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Payment{" +
+                "id=" + id +
+                ", senderName='" + senderName + '\'' +
+                ", clientId=" + clientId +
+                ", senderAccount=" + senderAccount +
+                ", card=" + card +
+                ", amount=" + amount +
+                ", accountNumberReceiver='" + accountNumberReceiver + '\'' +
+                ", payee=" + payee +
+                ", paymentCode='" + paymentCode + '\'' +
+                ", purposeOfPayment='" + purposeOfPayment + '\'' +
+                ", referenceNumber='" + referenceNumber + '\'' +
+                ", date=" + date +
+                ", outAmount=" + outAmount +
+                ", status=" + status +
+                ", receiverClientId=" + receiverClientId +
+                '}';
+    }
 }
