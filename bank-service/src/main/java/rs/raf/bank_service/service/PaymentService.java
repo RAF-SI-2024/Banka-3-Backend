@@ -61,13 +61,11 @@ public class PaymentService {
         BigDecimal convertedAmount = amount;
         BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-
-
         // Provera da li su valute različite
         if (!sender.getCurrency().equals(receiver.getCurrency())) {
             // Dobijanje kursa konverzije
             ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
-            exchangeRateValue = exchangeRateDto.getExchangeRate();
+            exchangeRateValue = exchangeRateDto.getSellRate();
 
             // Konverzija iznosa u valutu receiver-a
             convertedAmount = amount.multiply(exchangeRateValue);
@@ -95,7 +93,12 @@ public class PaymentService {
                 .build();
 
         // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
-        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.TRANSFER, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
+        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(
+                clientId,
+                payment.getId(),
+                VerificationType.TRANSFER,
+                objectMapper.writeValueAsString(paymentVerificationDetailsDto)
+        );
         userClient.createVerificationRequest(paymentVerificationRequestDto);
 
         return true;
@@ -113,15 +116,15 @@ public class PaymentService {
         BigDecimal convertedAmount = amount;
         BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-        //  Obezbeđujemo da transakcije idu preko bankovnih računa (companyId = 1)
-        CompanyAccount bankAccountFrom = accountRepository.findFirstByCurrencyAndCompanyId(sender.getCurrency(), 1L)
-                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
-
-        CompanyAccount bankAccountTo = accountRepository.findFirstByCurrencyAndCompanyId(receiver.getCurrency(), 1L)
-                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
-
         //  Ako su valute različite, koristimo kursnu listu
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
+            //  Obezbeđujemo da transakcije idu preko bankovnih računa (companyId = 1)
+            CompanyAccount bankAccountFrom = accountRepository.findFirstByCurrencyAndCompanyId(sender.getCurrency(), 1L)
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+
+            CompanyAccount bankAccountTo = accountRepository.findFirstByCurrencyAndCompanyId(receiver.getCurrency(), 1L)
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+
             ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
             exchangeRateValue = exchangeRateDto.getExchangeRate();
             convertedAmount = amount.multiply(exchangeRateValue);
@@ -131,12 +134,6 @@ public class PaymentService {
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
-
-            //  Banka konvertuje u drugu valutu
-            bankAccountFrom.setBalance(bankAccountFrom.getBalance().subtract(convertedAmount));
-            bankAccountTo.setBalance(bankAccountTo.getBalance().add(convertedAmount));
-            accountRepository.save(bankAccountFrom);
-            accountRepository.save(bankAccountTo);
 
             //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
@@ -178,17 +175,23 @@ public class PaymentService {
                 .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
 
 
-        // Provera valute
-        if (!(sender.getCurrency().getCode().equals(CurrencyType.RSD.toString()))) {
-            throw new SendersAccountsCurencyIsNotDinarException();
-        }
-
         // Provera balansa sender računa
         if (sender.getBalance().compareTo(paymentDto.getAmount()) < 0) {
             throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
         }
 
         ClientDto clientDto = userClient.getClientById(clientId);
+
+        BigDecimal amount = paymentDto.getAmount();
+        BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
+
+        // Provera da li su valute različite
+        if (!sender.getCurrency().equals(receiver.getCurrency())) {
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getSellRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+        }
 
         // Kreiranje Payment entiteta
         Payment payment = new Payment();
@@ -202,6 +205,7 @@ public class PaymentService {
         payment.setReferenceNumber(paymentDto.getReferenceNumber());
         payment.setDate(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setOutAmount(convertedAmount);
 
         // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
         payment.setReceiverClientId(receiver.getClientId());
@@ -221,31 +225,56 @@ public class PaymentService {
     }
 
     public void confirmPayment(Long paymentId) {
-        // Preuzimanje payment entiteta na osnovu paymentId
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        // Preuzimanje sender i receiver računa
         Account sender = payment.getSenderAccount();
-        String receiverString = payment.getAccountNumberReceiver();
+        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReceiver())
+                .stream().findFirst()
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReceiver()));
 
-        Optional<Account> receiverOpt = accountRepository.findByAccountNumber(receiverString);
 
-        // Ako je receiver u banci, izvrši transakciju
-        if (receiverOpt.isPresent()) {
-            Account receiver = receiverOpt.get();
-            // Konverzija iznos sa RSD u valutu primaoca
-            BigDecimal convertedAmount = convert(payment.getAmount(), CurrencyType.valueOf(receiver.getCurrency().getCode()));
+        BigDecimal amount = payment.getAmount();
+        BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-            // Dodavanje iznosa na receiver račun u odgovarajućoj valuti
+        //  Ako su valute različite, koristimo kursnu listu
+        if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
+            //  Obezbeđujemo da transakcije idu preko bankovnih računa (companyId = 1)
+            CompanyAccount bankAccountFrom = accountRepository.findFirstByCurrencyAndCompanyId(sender.getCurrency(), 1L)
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+
+            CompanyAccount bankAccountTo = accountRepository.findFirstByCurrencyAndCompanyId(receiver.getCurrency(), 1L)
+                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getExchangeRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+
+            System.out.println(amount);
+
+            System.out.println(convertedAmount);
+
+            //  Sender -> Banka (ista valuta)
+            sender.setBalance(sender.getBalance().subtract(amount));
+            bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            accountRepository.save(sender);
+            accountRepository.save(bankAccountFrom);
+
+            //  Banka -> Receiver
+            bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
-            accountRepository.save(receiver);
+            accountRepository.save(bankAccountTo);
+        } else {
+            sender.setBalance(sender.getBalance().subtract(amount));
+            receiver.setBalance(receiver.getBalance().add(amount));
         }
 
-        sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
         accountRepository.save(sender);
+        accountRepository.save(receiver);
 
-        // Ažuriranje statusa payment-a na "COMPLETED"
+        //  Čuvamo outAmount u Payment (stvarno primljen iznos)
+        payment.setOutAmount(convertedAmount);
         payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
     }

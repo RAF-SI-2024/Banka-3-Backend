@@ -126,7 +126,7 @@ public class ExchangeRateService {
             return new ExchangeRateDto(
                     new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
                     new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
-                    rate.getSellRate(),  // Prodajni kurs se koristi direktno, bez dodatne provizije
+                    rate.getExchangeRate(),
                     rate.getSellRate()
             );
         }
@@ -140,10 +140,14 @@ public class ExchangeRateService {
 
         if (toRsdRate.isPresent() && fromRsdRate.isPresent()) {
             BigDecimal intermediateRate = toRsdRate.get().getSellRate().multiply(fromRsdRate.get().getSellRate());
+            System.out.println("from sender to rsd");
+            System.out.println(toRsdRate.get().getSellRate());
+            System.out.println("from rsd to receiver");
+            System.out.println(fromRsdRate.get().getSellRate());
             return new ExchangeRateDto(
                     new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
                     new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
-                    intermediateRate,  // Nema dodatne provizije, samo prodajni kurs
+                    intermediateRate,
                     intermediateRate
             );
         }
