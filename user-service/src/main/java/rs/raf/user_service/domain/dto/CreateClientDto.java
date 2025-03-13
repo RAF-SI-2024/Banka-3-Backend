@@ -1,6 +1,7 @@
 package rs.raf.user_service.domain.dto;
 
 
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

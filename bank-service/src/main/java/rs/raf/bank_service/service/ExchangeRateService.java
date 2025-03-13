@@ -4,26 +4,21 @@ import lombok.AllArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.ExchangeRateClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ConvertDto;
-import rs.raf.bank_service.domain.dto.ExchangeRateDto;
-import rs.raf.bank_service.domain.dto.UpdateExchangeRateDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
-import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.domain.mapper.ExchangeRateMapper;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Optional;
+
 
 @Service
 @AllArgsConstructor
@@ -83,7 +78,7 @@ public class ExchangeRateService {
                     .toCurrency(exchangeRate.getFromCurrency())
                     .exchangeRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP))
                     .sellRate(BigDecimal.ONE.divide(
-                            exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
+                                    exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
                             .multiply(new BigDecimal("1.01")))
                     .build();
 
@@ -106,21 +101,60 @@ public class ExchangeRateService {
 
     }
 
-    public BigDecimal convert(ConvertDto convertDto){
-        String fromCurrencyCode = convertDto.getFromCurrencyCode();
-        Currency fromCurrency = currencyRepository.findByCode(fromCurrencyCode).
-                orElseThrow(() -> new CurrencyNotFoundException(fromCurrencyCode)
-        );
 
-        String toCurrencyCode = convertDto.getToCurrencyCode();
-        Currency toCurrency = currencyRepository.findByCode(toCurrencyCode).
-                orElseThrow(() -> new CurrencyNotFoundException(toCurrencyCode)
-        );
+    public BigDecimal convert(ConvertDto convertDto) {
 
-        ExchangeRate exchangeRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency,toCurrency)
-                .orElseThrow(() -> new ExchangeRateNotFoundException(fromCurrencyCode, toCurrencyCode)
-        );
 
-        return convertDto.getAmount().multiply(exchangeRate.getExchangeRate());
+        ExchangeRateDto exchangeRateDto = getExchangeRate(convertDto.getFromCurrencyCode(), convertDto.getToCurrencyCode());
+
+
+        return convertDto.getAmount().multiply(exchangeRateDto.getExchangeRate());
+
+    }
+
+
+
+    public ExchangeRateDto getExchangeRate(String fromCurrencyCode, String toCurrencyCode) {
+        Currency fromCurrency = currencyRepository.findByCode(fromCurrencyCode)
+                .orElseThrow(() -> new CurrencyNotFoundException(fromCurrencyCode));
+        Currency toCurrency = currencyRepository.findByCode(toCurrencyCode)
+                .orElseThrow(() -> new CurrencyNotFoundException(toCurrencyCode));
+
+        Optional<ExchangeRate> directRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency);
+        if (directRate.isPresent()) {
+            ExchangeRate rate = directRate.get();
+            return new ExchangeRateDto(
+                    new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
+                    new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
+                    rate.getExchangeRate(),
+                    rate.getSellRate()
+            );
+        }
+
+        // Ako nema direktnog kursa, koristi RSD kao međukorak
+        Currency rsd = currencyRepository.findByCode("RSD")
+                .orElseThrow(() -> new CurrencyNotFoundException("RSD"));
+
+        Optional<ExchangeRate> toRsdRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(fromCurrency, rsd);
+        Optional<ExchangeRate> fromRsdRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, toCurrency);
+
+        if (toRsdRate.isPresent() && fromRsdRate.isPresent()) {
+            BigDecimal intermediateRate = toRsdRate.get().getSellRate().multiply(fromRsdRate.get().getSellRate());
+            return new ExchangeRateDto(
+                    new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
+                    new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
+                    intermediateRate,
+                    intermediateRate
+            );
+        }
+
+        throw new ExchangeRateNotFoundException(fromCurrencyCode, toCurrencyCode);
     }
 }
+
+
+
+
+
+
+

@@ -10,12 +10,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.ConvertDto;
+import rs.raf.bank_service.domain.dto.ExchangeRateDto;
 import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
 import rs.raf.bank_service.exceptions.UserNotAClientException;
 import rs.raf.bank_service.service.ExchangeRateService;
 
 import javax.validation.Valid;
+
+import java.math.BigDecimal;
+
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import java.util.HashMap;
+import java.util.Map;
 
 @Tag(name = "Exchange rate controller", description = "API for retrieving exchange rates")
 @RestController
@@ -59,4 +67,27 @@ public class ExchangeRateController {
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
+
+
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get exchange rate", description = "Returns the exchange rate between two currencies")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Exchange rate retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Exchange rate not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/{fromCurrency}/{toCurrency}")
+    public ResponseEntity<?> getExchangeRate(
+            @PathVariable String fromCurrency,
+            @PathVariable String toCurrency) {
+        try {
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(fromCurrency, toCurrency);
+            return ResponseEntity.ok(exchangeRateDto);
+        } catch (ExchangeRateNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
+        }
+    }
+
 }
