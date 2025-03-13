@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class LoanShortDto {
+    private Long id;
     private String loanNumber;
     private LoanType type;
     private BigDecimal amount;
