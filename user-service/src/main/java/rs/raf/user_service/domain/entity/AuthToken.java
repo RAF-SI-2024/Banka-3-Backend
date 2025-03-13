@@ -3,6 +3,7 @@ package rs.raf.user_service.domain.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -13,6 +14,7 @@ import javax.persistence.Id;
 @Entity
 @AllArgsConstructor
 @RequiredArgsConstructor
+@SuperBuilder
 public class AuthToken {
     Long createdAt;
     Long expiresAt;
