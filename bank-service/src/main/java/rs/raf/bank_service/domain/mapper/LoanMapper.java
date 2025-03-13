@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 public class LoanMapper {
     public LoanDto toDto(Loan loan) {
         return LoanDto.builder()
+                .id(loan.getId())
                 .loanNumber(loan.getLoanNumber())
                 .type(loan.getType())
                 .amount(loan.getAmount())
@@ -30,6 +31,7 @@ public class LoanMapper {
 
     public LoanShortDto toShortDto(Loan loan) {
         return LoanShortDto.builder()
+                .id(loan.getId())
                 .loanNumber(loan.getLoanNumber())
                 .type(loan.getType())
                 .amount(loan.getAmount())
