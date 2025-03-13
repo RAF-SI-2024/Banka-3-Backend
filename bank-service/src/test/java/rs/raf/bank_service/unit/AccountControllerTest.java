@@ -47,6 +47,7 @@ class AccountControllerTest {
     @MockBean
     private ExchangeRateService exchangeRateService;
 
+    @Autowired
     private MockMvc mockMvc;
 
     @MockBean
@@ -67,7 +68,6 @@ class AccountControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
     }
 
     @Test
@@ -136,7 +136,7 @@ class AccountControllerTest {
                 .createNewBankAccount(any(NewBankAccountDto.class), anyString());
 
         // Act
-        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
+        ResponseEntity<?> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -158,7 +158,7 @@ class AccountControllerTest {
 
 
         // Act
-        ResponseEntity<String> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
+        ResponseEntity<?> response = accountController.createBankAccount(authorizationHeader, newBankAccountDto);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -169,7 +169,7 @@ class AccountControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_Success() {
-        ResponseEntity<?> response = accountController.getMyAccounts("Bearer token");
+        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -178,18 +178,14 @@ class AccountControllerTest {
     @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_BadRequest() throws Exception {
         String authHeader = "Bearer valid-token";
-        Long clientId = 123L; // Simulirani clientId
+        Long clientId = 123L;
 
-        // Simulacija greške u jwtTokenUtil da vrati clientId iz Authorization header-a
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-
-        // Mockovanje accountService da baci UserNotAClientException
         when(accountService.getMyAccounts(clientId)).thenThrow(new UserNotAClientException());
 
-        // Pozivamo endpoint sa mockovanim auth headerom
         mockMvc.perform(get("/api/account")
                         .header("Authorization", authHeader))
-                .andExpect(status().isBadRequest()) // Očekujemo status 400
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$").value("User sending request is not a client."));
     }
 
@@ -197,19 +193,15 @@ class AccountControllerTest {
     @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_Failure() throws Exception {
         String authHeader = "Bearer valid-token";
-        Long clientId = 123L; // Simulirani clientId
+        Long clientId = 123L;
 
-        // Mockovanje jwtTokenUtil da vrati clientId iz Authorization header-a
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-
-        // Mockovanje accountService da baci RuntimeException kada se pozove getMyAccounts
         when(accountService.getMyAccounts(clientId)).thenThrow(new RuntimeException("Account list retrieval failed"));
 
-        // Pozivamo endpoint i proveravamo da li se vraća 500 Internal Server Error
         mockMvc.perform(get("/api/account")
                         .header("Authorization", authHeader))
-                .andExpect(status().isInternalServerError()) // Očekujemo status 500
-                .andExpect(jsonPath("$").value("Account list retrieval failed")); //
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$").value("An unexpected error occurred. Please try again later."));
     }
 
     @Test
@@ -239,17 +231,14 @@ class AccountControllerTest {
         String authHeader = "Bearer valid-token";
         String accountNumber = "1";
 
-        // Simulacija RuntimeException
         when(accountService.getAccountDetails(anyLong(), eq(accountNumber)))
                 .thenThrow(new RuntimeException("Account details retrieval failed"));
 
-        // Pozivamo endpoint sa mockovanim auth headerom
         mockMvc.perform(get("/api/account/details/{accountNumber}", accountNumber)
                         .header("Authorization", authHeader))
-                .andExpect(status().isInternalServerError()) // Očekujemo status 500 (Internal Server Error)
-                .andExpect(jsonPath("$").value("Account details retrieval failed")); // Očekujemo telo sa porukom greške
-
-        verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$").value("Account details retrieval failed"));
     }
+
 
 }

@@ -43,9 +43,8 @@ public class ExchangeRateController {
     public ResponseEntity<?> getExchangeRates(){
         try {
             return ResponseEntity.ok(exchangeRateService.getExchangeRates());
-        }catch (Exception e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving exchange rates.");
         }
     }
 
@@ -88,6 +87,28 @@ public class ExchangeRateController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
         }
+    }
+
+
+    /// ExceptionHandlers
+    @ExceptionHandler(ExchangeRateNotFoundException.class)
+    public ResponseEntity<String> handleExchangeRateNotFoundException(ExchangeRateNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(CurrencyNotFoundException.class)
+    public ResponseEntity<String> handleCurrencyNotFoundException(CurrencyNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UserNotAClientException.class)
+    public ResponseEntity<String> handleUserNotAClientException(UserNotAClientException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
     }
 
 }
