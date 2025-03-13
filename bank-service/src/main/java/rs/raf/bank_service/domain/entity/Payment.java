@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 
 import javax.persistence.*;
@@ -53,6 +54,7 @@ public class Payment {
 
     private String referenceNumber;
 
+    @CreationTimestamp
     private LocalDateTime date;
 
     private BigDecimal outAmount;
@@ -60,16 +62,8 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    @Column(nullable = true)
+    @Column()
     private Long receiverClientId;
-
-    @PrePersist
-    public void setTransactionDate() {
-        if (this.date == null) {
-            this.date = LocalDateTime.now();
-        }
-    }
-
     @Override
     public String toString() {
         return "Payment{" +

@@ -12,22 +12,18 @@ import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
-import rs.raf.bank_service.domain.enums.CurrencyType;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.VerificationType;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.mapper.PaymentMapper;
+import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @AllArgsConstructor
