@@ -57,6 +57,26 @@ public class BootstrapData implements CommandLineRunner {
                 .accountOwnerType(AccountOwnerType.PERSONAL)
                 .build();
 
+        // Kreiramo račune za klijente
+        PersonalAccount foreignAccount1 = PersonalAccount.builder()
+                .accountNumber("311111111111111111")
+                .clientId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(1))
+                .expirationDate(LocalDate.now().plusYears(5))
+                .currency(currencyUSD)
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(1000))
+                .availableBalance(BigDecimal.valueOf(1000))
+                .dailyLimit(BigDecimal.valueOf(500))
+                .monthlyLimit(BigDecimal.valueOf(5000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.FOREIGN)
+                .accountOwnerType(AccountOwnerType.PERSONAL)
+                .build();
+
+
         PersonalAccount currentAccount2 = PersonalAccount.builder()
                 .accountNumber("211111111111111111")
                 .clientId(1L)
@@ -250,7 +270,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         accountRepository.saveAll(java.util.List.of(
-                currentAccount1, currentAccount2, foreignAccount,
+                currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
                 bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
                 bankAccountGBP, bankAccountCAD, bankAccountAUD
         ));
@@ -286,49 +306,49 @@ public class BootstrapData implements CommandLineRunner {
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyEUR)
                 .exchangeRate(new BigDecimal("0.008540"))
-                .sellRate(new BigDecimal("0.008625"))
+                .sellRate(new BigDecimal("0.008540").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToUsd = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyUSD)
                 .exchangeRate(new BigDecimal("0.009257"))
-                .sellRate(new BigDecimal("0.009350"))
+                .sellRate(new BigDecimal("0.009257").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToChf = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyCHF)
                 .exchangeRate(new BigDecimal("0.008129"))
-                .sellRate(new BigDecimal("0.008210"))
+                .sellRate(new BigDecimal("0.008129").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToJpy = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyJPY)
                 .exchangeRate(new BigDecimal("1.363100"))
-                .sellRate(new BigDecimal("1.376731"))
+                .sellRate(new BigDecimal("1.363100").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToCad = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyCAD)
                 .exchangeRate(new BigDecimal("0.013350"))
-                .sellRate(new BigDecimal("0.013484"))
+                .sellRate(new BigDecimal("0.013350").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToAud = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyAUD)
                 .exchangeRate(new BigDecimal("0.014670"))
-                .sellRate(new BigDecimal("0.014817"))
+                .sellRate(new BigDecimal("0.014670").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToGbp = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyGBP)
                 .exchangeRate(new BigDecimal("0.007172"))
-                .sellRate(new BigDecimal("0.007244"))
+                .sellRate(new BigDecimal("0.007172").multiply(new BigDecimal("0.995")))
                 .build();
 
         List<ExchangeRate> exchangeRates = java.util.List.of(
@@ -342,7 +362,7 @@ public class BootstrapData implements CommandLineRunner {
                     .fromCurrency(exchangeRate.getToCurrency())
                     .toCurrency(exchangeRate.getFromCurrency())
                     .exchangeRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP))
-                    .sellRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP).multiply(new BigDecimal("1.01")))
+                    .sellRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP).multiply(new BigDecimal("0.995")))
                     .build());
         }
 

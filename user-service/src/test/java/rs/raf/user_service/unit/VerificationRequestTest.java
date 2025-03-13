@@ -57,7 +57,7 @@ public class VerificationRequestTest {
 
     @Test
     void testGetActiveRequests() {
-        when(verificationRequestRepository.findByUserIdAndStatus(100L, VerificationStatus.PENDING))
+        when(verificationRequestRepository.findActiveRequests(100L))
                 .thenReturn(Arrays.asList(request));
 
         List<VerificationRequest> requests = verificationRequestService.getActiveRequests(100L);

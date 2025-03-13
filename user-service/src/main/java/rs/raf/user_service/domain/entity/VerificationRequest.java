@@ -2,10 +2,12 @@ package rs.raf.user_service.domain.entity;
 
 
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import rs.raf.user_service.domain.enums.VerificationStatus;
 import rs.raf.user_service.domain.enums.VerificationType;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,4 +31,9 @@ public class VerificationRequest {
     private VerificationType verificationType; // LOGIN, LOAN
 
     private LocalDateTime expirationTime;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    private String details;
 }

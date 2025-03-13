@@ -16,4 +16,10 @@ public class CurrencyDto {
     private String countries;
     private String description;
     private boolean active;
+
+    public CurrencyDto(String code, String name, String symbol) {
+        this.code = code;
+        this.name = name;
+        this.symbol = symbol;
+    }
 }

@@ -1,12 +1,15 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import rs.raf.bank_service.domain.enums.EmploymentStatus;
+import rs.raf.bank_service.domain.enums.InterestRateType;
 import rs.raf.bank_service.domain.enums.LoanRequestStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loan_requests")
@@ -40,4 +43,9 @@ public class LoanRequest {
 
     @Enumerated(EnumType.STRING)
     private LoanRequestStatus status;
+    @Enumerated(EnumType.STRING)
+    private InterestRateType interestRateType;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

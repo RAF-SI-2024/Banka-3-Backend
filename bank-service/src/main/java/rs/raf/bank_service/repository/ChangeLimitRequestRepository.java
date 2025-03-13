@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface ChangeLimitRequestRepository extends JpaRepository<ChangeLimitRequest, Long> {
 
-    Optional<ChangeLimitRequest> findByAccountIdAndStatus(Long accountId, VerificationStatus status);
+    Optional<ChangeLimitRequest> findByAccountNumberAndStatus(String accountNumber, VerificationStatus status);
 }

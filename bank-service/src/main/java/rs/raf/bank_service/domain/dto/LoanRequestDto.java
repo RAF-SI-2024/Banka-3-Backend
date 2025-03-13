@@ -5,17 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import rs.raf.bank_service.domain.enums.EmploymentStatus;
+import rs.raf.bank_service.domain.enums.InterestRateType;
 import rs.raf.bank_service.domain.enums.LoanRequestStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class LoanRequestDto {
-
     private LoanType type;
     private BigDecimal amount;
     private String purpose;
@@ -26,5 +27,7 @@ public class LoanRequestDto {
     private String contactPhone;
     private String accountNumber;
     private String currencyCode;
+    private InterestRateType interestRateType;
+    private LocalDateTime createdAt;
     private LoanRequestStatus status;
 }

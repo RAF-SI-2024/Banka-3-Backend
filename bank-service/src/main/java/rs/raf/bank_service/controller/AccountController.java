@@ -1,5 +1,6 @@
 package rs.raf.bank_service.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -144,7 +145,7 @@ public class AccountController {
     }
 
     @PreAuthorize("hasRole('CLIENT')")  // Promenjena provera autentifikacije
-    @PutMapping("/{id}/change-name")
+    @PutMapping("/{accountNumber}/change-name")
     @Operation(summary = "Change account name", description = "Allows a client to change the name of their account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Account name updated successfully"),
@@ -152,10 +153,11 @@ public class AccountController {
             @ApiResponse(responseCode = "404", description = "Account not found")
     })
     public ResponseEntity<?> changeAccountName(
-            @PathVariable Long id,
+            @PathVariable String accountNumber,
+            @RequestHeader("Authorization") String authHeader,
             @RequestBody @Valid ChangeAccountNameDto request) {
         try {
-            accountService.changeAccountName(id, request.getNewName());
+            accountService.changeAccountName(accountNumber, request.getNewName(), authHeader);
             return ResponseEntity.ok("Account name updated successfully");
         } catch (DuplicateAccountNameException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -173,13 +175,13 @@ public class AccountController {
             @ApiResponse(responseCode = "400", description = "Invalid limit value"),
             @ApiResponse(responseCode = "404", description = "Account not found")
     })
-    public ResponseEntity<?> changeAccountLimit(@PathVariable Long id, @RequestBody @Valid ChangeAccountLimitDto request) {
+    public ResponseEntity<?> changeAccountLimit(@PathVariable Long id) {
         accountService.changeAccountLimit(id);
         return ResponseEntity.ok("Account limit updated successfully");
     }
 
     @PreAuthorize("hasRole('CLIENT')")
-    @PutMapping("/{id}/request-change-limit")
+    @PutMapping("/{accountNumber}/request-change-limit")
     @Operation(summary = "Request change account limit", description = "Saves a limit change request for approval.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Limit change request saved"),
@@ -187,19 +189,17 @@ public class AccountController {
             @ApiResponse(responseCode = "404", description = "Account not found")
     })
     public ResponseEntity<String> requestChangeAccountLimit(
-            @PathVariable Long id,
-            @RequestBody @Valid ChangeAccountLimitDto request) {
+            @PathVariable String accountNumber,
+            @RequestBody @Valid ChangeAccountLimitDto request,
+            @RequestHeader("Authorization") String authHeader
+            ) {
         try {
-            if (request.getNewLimit().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new InvalidLimitException();
-            }
-
-            ChangeLimitRequest limitRequest = new ChangeLimitRequest(id, request.getNewLimit());
-            changeLimitRequestRepository.save(limitRequest);
-
+            accountService.requestAccountLimitChange(accountNumber, request.getNewLimit(), authHeader);
             return ResponseEntity.ok("Limit change request saved. Awaiting approval.");
         } catch (InvalidLimitException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("VALJDA SE NECE DESITI");
         }
     }
 
