@@ -11,5 +11,5 @@ import static io.cucumber.core.options.Constants.GLUE_PROPERTY_NAME;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/integration/bankservice")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "rs.raf.bank_service.integration")
-public class BankServiceTests {
+public class BankServiceTestsIT {
 }
