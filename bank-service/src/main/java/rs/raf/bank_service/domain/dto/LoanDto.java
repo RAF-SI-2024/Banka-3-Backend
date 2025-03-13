@@ -15,6 +15,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class LoanDto {
+    private Long id;
     private String loanNumber;
     private LoanType type;
     private BigDecimal amount;
