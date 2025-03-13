@@ -251,10 +251,6 @@ public class PaymentService {
             exchangeRateValue = exchangeRateDto.getExchangeRate();
             convertedAmount = amount.multiply(exchangeRateValue);
 
-            System.out.println(amount);
-
-            System.out.println(convertedAmount);
-
             //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
