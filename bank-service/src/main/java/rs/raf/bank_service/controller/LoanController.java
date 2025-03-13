@@ -4,11 +4,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.bank_service.domain.dto.InstallmentDto;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.LoanService;
 
 import java.util.List;
@@ -24,17 +33,33 @@ public class LoanController {
         this.loanService = loanService;
     }
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
-    @Operation(summary = "Get all loans")
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Get all loans for client")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully")
     })
     @GetMapping
-    public ResponseEntity<List<LoanShortDto>> getAllLoans() {
-        return ResponseEntity.ok(loanService.getAllLoans());
+    public ResponseEntity<Page<LoanShortDto>> getClientLoans(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(loanService.getClientLoans(authHeader, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "amount"))));
     }
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
+    // nema provere autorizacije sry mozda nekad fixati
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @Operation(summary = "Get all loan installments for loan")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully")
+    })
+    @GetMapping("/{id}/installments")
+    public ResponseEntity<List<InstallmentDto>> getLoanInstallments(@PathVariable Long id) {
+        return ResponseEntity.ok(loanService.getLoanInstallments(id));
+    }
+
+    // nema provere autorizacije sry mozda nekad fixati
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Get loan by ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan retrieved successfully"),
@@ -47,37 +72,21 @@ public class LoanController {
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
-    @Operation(summary = "Create a new loan")
+    @Operation(summary = "Get all loans")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Loan created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
-    })
-    @PostMapping("/create")
-    public ResponseEntity<LoanDto> createLoan(@RequestBody LoanDto loanDto) {
-        return ResponseEntity.ok(loanService.saveLoan(loanDto));
-    }
-
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
-    @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
+            @ApiResponse(responseCode = "200", description = "Loans retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Loan not found")
     })
-    @PutMapping("/{id}/approve")
-    public ResponseEntity<LoanDto> approveLoan(@PathVariable Long id) {
-        LoanDto approvedLoan = loanService.approveLoan(id);
-        return ResponseEntity.ok(approvedLoan);
-    }
+    @GetMapping("/all")
+    public ResponseEntity<Page<LoanDto>> getAllLoans(
+            @RequestParam(required = false) LoanType type,
+            @RequestParam(required = false) String accountNumber,
+            @RequestParam(required = false) LoanStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("account.accountNumber").ascending());
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
-    @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
-            @ApiResponse(responseCode = "404", description = "Loan not found")
-    })
-    @PutMapping("/{id}/reject")
-    public ResponseEntity<LoanDto> rejectLoan(@PathVariable Long id) {
-        LoanDto rejectedLoan = loanService.rejectLoan(id);
-        return ResponseEntity.ok(rejectedLoan);
+        return ResponseEntity.ok().body(loanService.getAllLoans(type, accountNumber, status, pageable));
     }
 }

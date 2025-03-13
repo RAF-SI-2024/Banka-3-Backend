@@ -63,4 +63,11 @@ public class EmailListener {
         String plain = "Your new card has been created successfully.";
         emailService.sendEmail(dto.getDestination(), subject, plain, content);
     }
+    @RabbitListener(queues = "insufficient-funds")
+    public void handleInsufficientFunds(EmailRequestDto dto) throws MessagingException {
+        String subject = "Insufficient funds";
+        String content = "Please pay your loans.";
+        String plain = "Please pay your loans.";
+        emailService.sendEmail(dto.getDestination(), subject, plain, content);
+    }
 }

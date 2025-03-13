@@ -1,4 +1,5 @@
 package rs.raf.bank_service.service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -249,30 +250,6 @@ public class PaymentService {
         paymentRepository.save(payment);
     }
 
-    public static BigDecimal convert(@NotNull(message = "Amount is required.") @Positive(message = "Amount must be positive.") BigDecimal amountInRSD, CurrencyType currencyType) {
-        BigDecimal convertedAmount = BigDecimal.ZERO;  // Postavi početnu vrednost kao 0
-
-        if (currencyType == CurrencyType.RSD) {
-            convertedAmount = amountInRSD;
-        } else if (currencyType == CurrencyType.EUR) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.0085"));
-        } else if (currencyType == CurrencyType.USD) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.010"));
-        } else if (currencyType == CurrencyType.HRK) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.064"));
-        } else if (currencyType == CurrencyType.JPY) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("1.14"));
-        } else if (currencyType == CurrencyType.GBP) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.0076"));
-        } else if (currencyType == CurrencyType.AUD) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.014"));
-        } else if (currencyType == CurrencyType.CHF) {
-            convertedAmount = amountInRSD.multiply(new BigDecimal("0.0095"));
-        } else {
-            throw new CurrencyNotFoundException(currencyType.toString());
-        }
-        return convertedAmount;
-    }
 
     // Dohvatanje svih transakcija za određenog klijenta sa filtriranjem
     public Page<PaymentOverviewDto> getPayments(

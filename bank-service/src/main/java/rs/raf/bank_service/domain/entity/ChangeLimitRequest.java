@@ -18,7 +18,7 @@ public class ChangeLimitRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long accountId;
+    private String accountNumber;
 
     @Positive(message = "Limit must be greater than zero")
     private BigDecimal newLimit;
@@ -28,8 +28,8 @@ public class ChangeLimitRequest {
 
     public ChangeLimitRequest() {}
 
-    public ChangeLimitRequest(Long accountId, BigDecimal newLimit) {
-        this.accountId = accountId;
+    public ChangeLimitRequest(String accountNumber, BigDecimal newLimit) {
+        this.accountNumber = accountNumber;
         this.newLimit = newLimit;
         this.status = VerificationStatus.PENDING;
     }
