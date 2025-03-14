@@ -36,7 +36,8 @@ public class LoanController {
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Get all loans for client")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
     })
     @GetMapping
     public ResponseEntity<Page<LoanShortDto>> getClientLoans(
@@ -44,19 +45,32 @@ public class LoanController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(loanService.getClientLoans(authHeader, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "amount"))));
+        try {
+            Page<LoanShortDto> loans = loanService.getClientLoans(authHeader,
+                    PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "amount")));
+            return ResponseEntity.ok(loans);
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     // nema provere autorizacije sry mozda nekad fixati
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Get all loan installments for loan")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Loan not found")
     })
     @GetMapping("/{id}/installments")
     public ResponseEntity<List<InstallmentDto>> getLoanInstallments(@PathVariable Long id) {
-        return ResponseEntity.ok(loanService.getLoanInstallments(id));
-    }
+        try {
+            List<InstallmentDto> installments = loanService.getLoanInstallments(id);
+            return ResponseEntity.ok(installments);
+        } catch (LoanNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }    }
 
     // nema provere autorizacije sry mozda nekad fixati
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
@@ -67,14 +81,20 @@ public class LoanController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<LoanDto> getLoanById(@PathVariable Long id) {
-        Optional<LoanDto> loan = loanService.getLoanById(id);
-        return loan.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        try {
+            Optional<LoanDto> loan = loanService.getLoanById(id);
+            return loan.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        } catch (LoanNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Get all loans")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loans retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters"),
             @ApiResponse(responseCode = "404", description = "Loan not found")
     })
     @GetMapping("/all")
@@ -85,8 +105,38 @@ public class LoanController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("account.accountNumber").ascending());
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("account.accountNumber").ascending());
+            Page<LoanDto> loans = loanService.getAllLoans(type, accountNumber, status, pageable);
+            return ResponseEntity.ok(loans);
+    } catch (InvalidLoanTypeException | InvalidLoanStatusException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
 
-        return ResponseEntity.ok().body(loanService.getAllLoans(type, accountNumber, status, pageable));
+    /// ExceptionHandlers
+    @ExceptionHandler(LoanNotFoundException.class)
+    public ResponseEntity<String> handleLoanNotFoundException(LoanNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidLoanStatusException.class)
+    public ResponseEntity<String> handleInvalidLoanStatusException(InvalidLoanStatusException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidLoanTypeException.class)
+    public ResponseEntity<String> handleInvalidLoanTypeException(InvalidLoanTypeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }

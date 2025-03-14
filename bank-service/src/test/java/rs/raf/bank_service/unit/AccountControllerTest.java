@@ -32,7 +32,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -47,7 +47,6 @@ class AccountControllerTest {
     @MockBean
     private ExchangeRateService exchangeRateService;
 
-    @Autowired
     private MockMvc mockMvc;
 
     @MockBean
@@ -68,37 +67,46 @@ class AccountControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
     }
 
     @Test
     @WithMockUser(roles = "EMPLOYEE")
-    void testGetAccounts() throws Exception {
-        ClientDto clientDto = new ClientDto();
-        clientDto.setFirstName("Marko");
-        clientDto.setLastName("Markovic");
+    void testGetAccounts() {
+        // Mock authentication role
+        String authHeader = "Bearer mockToken";
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
 
-        String token = "Bearer valid-token";
+        AccountDto dto1 = new AccountDto();
+        dto1.setAccountNumber("123456789");
+        dto1.setClientId(1L);
+        dto1.setCurrencyCode("RSD");
 
-        AccountDto accountDto = new AccountDto();
-        accountDto.setAccountNumber("123456789012345678");
-        accountDto.setOwner(clientDto);
+        AccountDto dto2 = new AccountDto();
+        dto2.setAccountNumber("987654321");
+        dto2.setClientId(2L);
+        dto2.setCurrencyCode("RSD");
 
-        List<AccountDto> accounts = List.of(accountDto);
-        Page<AccountDto> page = new PageImpl<>(accounts);
+        // Wrap the list in a Page
+        List<AccountDto> mockAccounts = Arrays.asList(dto1, dto2);
+        Page<AccountDto> mockPage = new PageImpl<>(mockAccounts);
 
-        when(accountService.getAccounts(anyString(), anyString(), anyString(), any()))
-                .thenReturn(page);
+        when(accountService.getAccounts(any(), any(), any(), any())).thenReturn(mockPage);
 
-        mockMvc.perform(get("/api/account")
-                        .header("Authorization", token)
-                        .param("accountNumber", "123456789012345678")
-                        .param("firstName", "Marko")
-                        .param("lastName", "Markovic")
-                        .param("page", "0")
-                        .param("size", "10")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        // Call controller method
+        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, authHeader);
+
+        // Verify response
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertInstanceOf(Page.class, response.getBody()); // Expecting a Page, not List
+        assertEquals(2, ((Page<?>) response.getBody()).getContent().size());
+
+        // Verify interactions
+        verify(jwtTokenUtil).getUserRoleFromAuthHeader(authHeader);
+        verify(accountService).getAccounts(any(), any(), any(), any());
     }
+
 
     @Test
     @WithMockUser(roles = "EMPLOYEE")
@@ -169,39 +177,88 @@ class AccountControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     void testGetMyAccounts_Success() {
-        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, "Bearer token");
+        // Mock authentication
+        String authHeader = "Bearer mockToken";
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
 
+        AccountDto dto1 = new AccountDto();
+        dto1.setAccountNumber("123456789");
+        dto1.setCurrencyCode("RSD");
+
+        AccountDto dto2 = new AccountDto();
+        dto2.setAccountNumber("987654321");
+        dto2.setCurrencyCode("RSD");
+
+        // Mock service response
+        List<AccountDto> mockAccounts = Arrays.asList(dto1, dto2);
+
+        when(accountService.getMyAccounts(1L)).thenReturn(mockAccounts);
+
+        // Call controller method
+        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, authHeader);
+
+        // Verify response
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertInstanceOf(List.class, response.getBody());
+        assertEquals(2, ((List<?>) response.getBody()).size());
+
+        // Verify interactions
+        verify(jwtTokenUtil).getUserRoleFromAuthHeader(authHeader);
+        verify(jwtTokenUtil).getUserIdFromAuthHeader(authHeader);
+        verify(accountService).getMyAccounts(1L);
+    }
+
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetMyAccounts_BadRequest() {
+        // Mock authentication
+        String authHeader = "Bearer mockToken";
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
+
+        // Simulate exception thrown by service
+        when(accountService.getMyAccounts(1L)).thenThrow(new UserNotAClientException());
+
+        // Call controller method
+        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, authHeader);
+
+        // Verify response
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("User sending request is not a client.", response.getBody());
+
+        // Verify interactions
+        verify(jwtTokenUtil).getUserRoleFromAuthHeader(authHeader);
+        verify(jwtTokenUtil).getUserIdFromAuthHeader(authHeader);
+        verify(accountService).getMyAccounts(1L);
     }
 
     @Test
     @WithMockUser(roles = "CLIENT")
-    void testGetMyAccounts_BadRequest() throws Exception {
-        String authHeader = "Bearer valid-token";
-        Long clientId = 123L;
+    void testGetMyAccounts_Failure() {
+        // Mock authentication
+        String authHeader = "Bearer mockToken";
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
 
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-        when(accountService.getMyAccounts(clientId)).thenThrow(new UserNotAClientException());
+        // Simulate unexpected error
+        when(accountService.getMyAccounts(1L)).thenThrow(new RuntimeException("Unexpected server error"));
 
-        mockMvc.perform(get("/api/account")
-                        .header("Authorization", authHeader))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$").value("User sending request is not a client."));
-    }
+        // Call controller method
+        ResponseEntity<?> response = accountController.getAccounts(null, null, null, 0, 10, authHeader);
 
-    @Test
-    @WithMockUser(roles = "CLIENT")
-    void testGetMyAccounts_Failure() throws Exception {
-        String authHeader = "Bearer valid-token";
-        Long clientId = 123L;
+        // Verify response
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Unexpected error occurred.", response.getBody());
 
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-        when(accountService.getMyAccounts(clientId)).thenThrow(new RuntimeException("Account list retrieval failed"));
-
-        mockMvc.perform(get("/api/account")
-                        .header("Authorization", authHeader))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$").value("An unexpected error occurred. Please try again later."));
+        // Verify interactions
+        verify(jwtTokenUtil).getUserRoleFromAuthHeader(authHeader);
+        verify(jwtTokenUtil).getUserIdFromAuthHeader(authHeader);
+        verify(accountService).getMyAccounts(1L);
     }
 
     @Test

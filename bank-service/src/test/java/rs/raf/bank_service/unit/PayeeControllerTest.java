@@ -44,7 +44,7 @@ public class PayeeControllerTest {
         when(service.create(dto, clientId)).thenReturn(dto);
 
         // Act
-        ResponseEntity<String> response = controller.createPayee(dto, token);
+        ResponseEntity<?> response = controller.createPayee(dto, token);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -65,13 +65,16 @@ public class PayeeControllerTest {
         when(service.getByClientId(clientId)).thenReturn(List.of(payeeDto));
 
         // Act
-        ResponseEntity<List<PayeeDto>> response = controller.getPayeesByClientId(token);
+        ResponseEntity<?> response = controller.getPayeesByClientId(token);
+
+        // Convert body to expected type
+        List<PayeeDto> payeeList = (List<PayeeDto>) response.getBody();
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("1234567890", response.getBody().get(0).getAccountNumber());
+        assertNotNull(payeeList);
+        assertEquals(1, payeeList.size());
+        assertEquals("1234567890", payeeList.get(0).getAccountNumber());
         verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).getByClientId(clientId);
     }
@@ -87,15 +90,17 @@ public class PayeeControllerTest {
         when(service.getByClientId(clientId)).thenReturn(List.of());
 
         // Act
-        ResponseEntity<List<PayeeDto>> response = controller.getPayeesByClientId(token);
+        ResponseEntity<?> response = controller.getPayeesByClientId(token);
+        ResponseEntity<List<PayeeDto>> castedResponse = (ResponseEntity<List<PayeeDto>>) response;
 
         // Assert
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isEmpty());
+        assertEquals(HttpStatus.OK, castedResponse.getStatusCode());
+        assertNotNull(castedResponse.getBody());
+        assertTrue(castedResponse.getBody().isEmpty());
         verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).getByClientId(clientId);
     }
+
 
     @Test
     public void testUpdatePayee_Success() {
