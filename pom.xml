@@ -34,7 +34,6 @@
         <module>bank-service</module>
     </modules>
 
-
     <build>
         <plugins>
             <plugin>
@@ -74,6 +73,43 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <!--user_service-->
+                        <exclude>**rs/raf/user_service/domain/**</exclude>
+                        <exclude>**rs/raf/user_service/repository/**</exclude>
+                        <exclude>**rs/raf/user_service/exceptions/**</exclude>
+                        <exclude>**rs/raf/user_service/configuration/**</exclude>
+                        <exclude>**rs/raf/user_service/bootstrap/**</exclude>
+                        <exclude>**rs/raf/user_service/client/**</exclude>
+                        <!--bank_service-->
+                        <exclude>**rs/raf/bank_service/domain/**</exclude>
+                        <exclude>**rs/raf/bank_service/repository/**</exclude>
+                        <exclude>**rs/raf/bank_service/exceptions/**</exclude>
+                        <exclude>**rs/raf/bank_service/configuration/**</exclude>
+                        <exclude>**rs/raf/bank_service/bootstrap/**</exclude>
+                        <exclude>**rs/raf/bank_service/client/**</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
