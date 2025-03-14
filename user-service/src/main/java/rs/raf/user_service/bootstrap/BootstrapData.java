@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -30,18 +31,8 @@ public class BootstrapData implements CommandLineRunner {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         if (permissionRepository.count() == 0) {
-            Permission adminPermission = Permission.builder()
-                    .name("admin")
-                    .build();
-            Permission employeePermission = Permission.builder()
-                    .name("employee")
-                    .build();
-
-            permissionRepository.saveAll(Set.of(adminPermission, employeePermission));
 
         }
-
-        Set<Permission> permissions = new HashSet<>(permissionRepository.findAll());
 
         if (roleRepository.count() == 0) {
             Role clientRole = Role.builder()
@@ -53,8 +44,14 @@ public class BootstrapData implements CommandLineRunner {
             Role adminRole = Role.builder()
                     .name("ADMIN")
                     .build();
+            Role agentRole = Role.builder()
+                    .name("AGENT")
+                    .build();
+            Role supervisorRole = Role.builder()
+                    .name("SUPERVISOR")
+                    .build();
 
-            roleRepository.saveAll(Arrays.asList(clientRole, employeeRole, adminRole));
+            roleRepository.saveAll(Arrays.asList(clientRole, employeeRole, adminRole, agentRole, supervisorRole));
         }
 
 
@@ -161,7 +158,17 @@ public class BootstrapData implements CommandLineRunner {
                     .majorityOwner(null)
                     .build();
 
-            companyRepository.save(bank);
+            Company state = Company.builder()
+                    .id(2L)
+                    .address("Adresa drzave")
+                    .name("Republika Srbija")
+                    .activityCode("10.02")
+                    .registrationNumber("1")
+                    .taxId("1")
+                    .majorityOwner(null)
+                    .build();
+
+            companyRepository.saveAll(List.of(bank, state));
         }
 
         if (authTokenRepository.count() == 0){

@@ -32,6 +32,7 @@
         <module>user-service</module>
         <module>email-service</module>
         <module>bank-service</module>
+        <module>stock-service</module>
     </modules>
 
     <build>
