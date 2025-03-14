@@ -8,10 +8,13 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.PayeeDto;
+import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
+import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.service.PayeeService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -34,15 +37,18 @@ public class PayeeController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Payee created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
+            @ApiResponse(responseCode = "409", description = "Payee already exists"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized")
     })
-    public ResponseEntity<String> createPayee(
-            @Valid @RequestBody PayeeDto dto,
-            @RequestHeader("Authorization") String auth) {
-
+    public ResponseEntity<?> createPayee(@Valid @RequestBody PayeeDto dto,
+                                         @RequestHeader("Authorization") String auth) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-        service.create(dto, clientId);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Payee created successfully.");
+        try {
+            service.create(dto, clientId);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Payee created successfully.");
+        } catch (DuplicatePayeeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -50,12 +56,16 @@ public class PayeeController {
     @Operation(summary = "Get all payees for the authenticated client.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Payees retrieved successfully"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
+            @ApiResponse(responseCode = "403", description = "Unauthorized")
     })
-    public ResponseEntity<List<PayeeDto>> getPayeesByClientId(@RequestHeader("Authorization") String auth) {
-        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-        List<PayeeDto> payees = service.getByClientId(clientId);
-        return ResponseEntity.ok(payees);
+    public ResponseEntity<?> getPayeesByClientId(@RequestHeader("Authorization") String auth) {
+        try {
+            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+            List<PayeeDto> payees = service.getByClientId(clientId);
+            return ResponseEntity.ok(payees);
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -65,7 +75,7 @@ public class PayeeController {
             @ApiResponse(responseCode = "200", description = "Payee updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Payee not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
+            @ApiResponse(responseCode = "403", description = "Unauthorized")
     })
     public ResponseEntity<String> updatePayee(
             @PathVariable Long id,
@@ -87,7 +97,7 @@ public class PayeeController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Payee deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Payee not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
+            @ApiResponse(responseCode = "403", description = "Unauthorized")
     })
     public ResponseEntity<Void> deletePayee(
             @PathVariable Long id,
@@ -100,5 +110,26 @@ public class PayeeController {
         } catch (PayeeNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+    }
+
+    /// ExceptionHandlers
+    @ExceptionHandler(PayeeNotFoundException.class)
+    public ResponseEntity<String> handlePayeeNotFoundException(PayeeNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(DuplicatePayeeException.class)
+    public ResponseEntity<String> handleDuplicatePayeeException(DuplicatePayeeException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }
