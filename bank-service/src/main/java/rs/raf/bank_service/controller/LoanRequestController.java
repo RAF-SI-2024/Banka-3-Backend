@@ -24,6 +24,7 @@ import javax.validation.Valid;
 @AllArgsConstructor
 @RequestMapping("/api/loan-requests")
 public class LoanRequestController {
+
     private final LoanRequestService loanRequestService;
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -35,39 +36,36 @@ public class LoanRequestController {
     public ResponseEntity<Page<LoanRequestDto>> getClientLoanRequests(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(loanRequestService.getClientLoanRequests(authHeader, PageRequest.of(page, size)));
     }
 
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Create a new loan request")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Loan request created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
+            @ApiResponse(responseCode = "201", description = "Loan request created successfully")
     })
     @PostMapping
-    public ResponseEntity<?> createLoanRequest(@RequestBody @Valid CreateLoanRequestDto createLoanRequestDto, @RequestHeader("Authorization") String authHeader) {
-            loanRequestService.saveLoanRequest(createLoanRequestDto, authHeader);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createLoanRequestDto);
+    public ResponseEntity<CreateLoanRequestDto> createLoanRequest(@RequestBody @Valid CreateLoanRequestDto createLoanRequestDto,
+                                                                  @RequestHeader("Authorization") String authHeader) {
+        loanRequestService.saveLoanRequest(createLoanRequestDto, authHeader);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createLoanRequestDto);
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
-            @ApiResponse(responseCode = "404", description = "Loan not found")
+            @ApiResponse(responseCode = "200", description = "Loan approved successfully")
     })
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.OK).body(loanRequestService.approveLoan(id));
+        return ResponseEntity.ok(loanRequestService.approveLoan(id));
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
-            @ApiResponse(responseCode = "404", description = "Loan not found")
+            @ApiResponse(responseCode = "200", description = "Loan rejected successfully")
     })
     @PutMapping("/reject/{id}")
     public ResponseEntity<LoanRequestDto> rejectLoan(@PathVariable Long id) {
@@ -85,10 +83,8 @@ public class LoanRequestController {
             @RequestParam(required = false) LoanType type,
             @RequestParam(required = false) String accountNumber,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return ResponseEntity.ok(loanRequestService.getAllLoanRequests(type, accountNumber, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))));
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(loanRequestService.getAllLoanRequests(type, accountNumber,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))));
     }
-
-
 }
