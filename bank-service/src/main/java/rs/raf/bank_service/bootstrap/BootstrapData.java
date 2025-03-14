@@ -269,10 +269,29 @@ public class BootstrapData implements CommandLineRunner {
                 .accountOwnerType(AccountOwnerType.COMPANY)
                 .build();
 
+        CompanyAccount bankAccountState = CompanyAccount.builder()
+                .accountNumber("333000100000897612")
+                .clientId(null)
+                .companyId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(2))
+                .expirationDate(LocalDate.now().plusYears(3))
+                .currency(currencyRSD)
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(50000000))
+                .availableBalance(BigDecimal.valueOf(50000000))
+                .dailyLimit(BigDecimal.valueOf(2000000))
+                .monthlyLimit(BigDecimal.valueOf(10000000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.CURRENT)
+                .accountOwnerType(AccountOwnerType.COMPANY)
+                .build();
+
         accountRepository.saveAll(java.util.List.of(
                 currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
                 bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
-                bankAccountGBP, bankAccountCAD, bankAccountAUD
+                bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState
         ));
 
         // Kreiramo kartice
