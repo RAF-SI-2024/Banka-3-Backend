@@ -10,6 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
+    <groupId>rs.raf.banka-3</groupId>
     <artifactId>bank-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
