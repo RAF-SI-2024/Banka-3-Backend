@@ -181,6 +181,21 @@ public class PaymentController {
         catch (PaymentNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
 
+    /// ExceptionHandlers
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<String> handlePaymentNotFoundException(PaymentNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedPaymentException.class)
+    public ResponseEntity<String> handleUnauthorizedPaymentException(UnauthorizedPaymentException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }
