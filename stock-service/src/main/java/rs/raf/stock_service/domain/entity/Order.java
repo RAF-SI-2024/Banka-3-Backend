@@ -21,9 +21,8 @@ public class Order {
     private Long id;
 
     @Column(nullable = false)
-    private Long user; // aktuar
-    // video sam u spec za primer ime i prezime i onda sam povezao da je string, sry
-
+    private Long userId; // aktuar
+    
     @Column(nullable = false)
     private Integer asset;
 
