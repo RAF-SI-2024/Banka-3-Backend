@@ -21,7 +21,8 @@ public class Order {
     private Long id;
 
     @Column(nullable = false)
-    private String user; // aktuar
+    private Long user; // aktuar
+    // video sam u spec za primer ime i prezime i onda sam povezao da je string, sry
 
     @Column(nullable = false)
     private Integer asset;
@@ -47,7 +48,7 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status; // pending, approved, declined
 
-    private String approvedBy;
+    private Long approvedBy;
 
     @Column(nullable = false)
     private Boolean isDone;
