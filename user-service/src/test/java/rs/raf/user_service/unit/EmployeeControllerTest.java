@@ -59,7 +59,7 @@ public class EmployeeControllerTest {
 
         Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("1990-05-15");
 
-        employeeDto = new EmployeeDto(1l,"Marko01","Menadzer", "Finansije", true, "Marko", "Markovic", "marko@raf.rs", "1234567890123", birthDate, "M", "0611158275", "Adresa 1");
+        employeeDto = new EmployeeDto(1l,"Marko01","Menadzer", "Finansije", true, "Marko", "Markovic", "marko@raf.rs", "1234567890123", birthDate, "M", "0611158275", "Adresa 1", "EMPLOYEE");
 
         createEmployeeDto = new CreateEmployeeDto();
         createEmployeeDto.setFirstName("Marko");
@@ -74,6 +74,7 @@ public class EmployeeControllerTest {
         createEmployeeDto.setBirthDate(birthDate);
         createEmployeeDto.setJmbg("1234567890123");
         createEmployeeDto.setUsername("marko12");
+        createEmployeeDto.setRole("EMPLOYEE");
     }
 
 
@@ -93,7 +94,7 @@ public class EmployeeControllerTest {
 
         ResponseEntity<?> response = employeeController.createEmployee(new CreateEmployeeDto("Petar",
                 "Petrovic", calendar.getTime(), "M", "petar@raf.rs", true, "+38161123456",
-                "Trg Republike 5", "petareperic90", "Menadzer", "Finansije", "1234567890123"));
+                "Trg Republike 5", "petareperic90", "Menadzer", "Finansije", "1234567890123", "EMPLOYEE"));
 
         // Verify that the service method was called and assert the response
         assertEquals(201, response.getStatusCodeValue());
@@ -178,7 +179,7 @@ public class EmployeeControllerTest {
     public void testUpdateEmployee() {
         // Directly call the controller method and capture the response
         UpdateEmployeeDto updateEmployeeDTO = new UpdateEmployeeDto("Peric", "F", "+38161123457",
-                "Trg Republike 6", "Programer", "Programiranje"
+                "Trg Republike 6", "Programer", "Programiranje", "EMPLOYEE"
         );
 
         ResponseEntity<?> response = employeeController.updateEmployee(1L, updateEmployeeDTO);

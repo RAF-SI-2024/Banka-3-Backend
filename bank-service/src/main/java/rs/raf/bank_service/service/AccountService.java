@@ -194,14 +194,8 @@ public class AccountService {
 
         System.out.println(">>> Account found: Current Name = " + account.getAccountNumber());
 
-        // Ako je novo ime isto kao staro, nema potrebe za promenom
-        if (account.getAccountNumber().equals(newName)) {
-            System.out.println(">>> New name is the same as the current name. No changes made.");
-            return;
-        }
-
         // Proveravamo postoji li ime već u bazi
-        boolean exists = accountRepository.existsByAccountNumberAndClientId(newName, account.getClientId());
+        boolean exists = accountRepository.existsByNameAndClientId(newName, account.getClientId());
         System.out.println(">>> Checking if account name '" + newName + "' already exists for client ID " + account.getClientId() + ": " + exists);
 
         if (exists) {
@@ -209,8 +203,8 @@ public class AccountService {
             throw new DuplicateAccountNameException("Account name already in use");
         }
 
-        System.out.println(">>> Changing account name from '" + account.getAccountNumber() + "' to '" + newName + "'");
-        account.setAccountNumber(newName);
+        System.out.println(">>> Changing account name from '" + account.getName() + "' to '" + newName + "'");
+        account.setName(newName);
         accountRepository.save(account);
 
         System.out.println(">>> SUCCESS: Account name changed to '" + newName + "'");

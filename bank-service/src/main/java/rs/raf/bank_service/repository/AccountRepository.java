@@ -24,7 +24,7 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     Optional<CompanyAccount> findFirstByCurrencyAndCompanyId(Currency currency, Long companyId);
 
-    boolean existsByAccountNumberAndClientId(String accountNumber, Long clientId);
+    boolean existsByNameAndClientId(String name, Long clientId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM accounts a WHERE a.accountNumber = :accountNumber")
     Account findByIdForUpdate(@Param("accountNumber") String accountNumber);

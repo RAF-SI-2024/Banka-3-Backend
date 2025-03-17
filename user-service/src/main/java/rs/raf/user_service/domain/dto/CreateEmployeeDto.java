@@ -63,6 +63,10 @@ public class CreateEmployeeDto {
             message = "Jmbg must be exactly 13 digits"
     )
     private String jmbg;
+
+    // EMPLOYEE, ADMIN, SUPERVISOR, AGENT
+    @NotNull(message = "Role cannot be null")
+    private String role;
 }
 
 
