@@ -121,8 +121,6 @@ public class AccountController {
         }
     }
 
-    //oVO MOZDA VISE I NIJE POTREBNO JER JE KOLEGA KOJI JE MERGOVAO PRE MENE PROSIRIO aCCOUNTdTO DA UKLJUCUJE
-    //I ONO STO SAM JA RAZDVOJIO U AccountDetailsDto -- izvini za Caps
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
