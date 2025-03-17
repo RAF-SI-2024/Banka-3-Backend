@@ -30,8 +30,9 @@ public class Employee extends BaseUser {
     private boolean active;
 
     public Employee(String firstName, String lastName, Date birthDate, String gender, String email, String phone,
-                    String address, String username, String position, String department, Boolean active, String jmbg) {
-        super(firstName, lastName, birthDate, gender, email, phone, address, jmbg,username);
+                    String address, String username, String position, String department, Boolean active,
+                    String jmbg, Role role) {
+        super(firstName, lastName, birthDate, gender, email, phone, address, jmbg,username, role);
         this.position = position;
         this.department = department;
         this.active = active;

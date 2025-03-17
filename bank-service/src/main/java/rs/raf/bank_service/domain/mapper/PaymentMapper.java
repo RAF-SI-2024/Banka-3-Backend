@@ -1,4 +1,4 @@
-package rs.raf.bank_service.mapper;
+package rs.raf.bank_service.domain.mapper;
 
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.PaymentDetailsDto;

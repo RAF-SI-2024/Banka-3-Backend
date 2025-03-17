@@ -31,7 +31,7 @@ public class CardController {
                 this.cardService = cardService;
         }
 
-        @PreAuthorize("hasAuthority('employee')")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
         @GetMapping
         @Operation(summary = "Get Cards by Account", description = "Retrieves all cards associated with the specified account number.")
         @ApiResponses(value = {
@@ -44,7 +44,7 @@ public class CardController {
                 return ResponseEntity.ok(cards);
         }
 
-        @PreAuthorize("hasAuthority('employee')")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/block")
         @Operation(summary = "Block Card", description = "Blocks the card identified by the provided card number.")
         @ApiResponses(value = {
@@ -63,6 +63,7 @@ public class CardController {
 
         }
 
+    @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/request")
     @Operation(
             summary = "Request a card.",
@@ -87,10 +88,10 @@ public class CardController {
         return ResponseEntity.ok("A confirmation email has been sent. Please verify to receive your card.");
     }
 
-    @PostMapping("/recieve")
+    @PostMapping("/receive")
     @Operation(
-            summary = "Verify the token and recieve a card.",
-            description = "Verify the token and recieve a card if the entered token is right."
+            summary = "Verify the token and receive a card.",
+            description = "Verify the token and receive a card if the entered token is right."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Token verified and card created successfully."),
@@ -112,6 +113,7 @@ public class CardController {
         return ResponseEntity.ok(cardDto);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @PostMapping("/create")
     @Operation(
             summary = "Create a card.",
@@ -134,7 +136,7 @@ public class CardController {
         return ResponseEntity.ok(cardDto);
     }
 
-        @PreAuthorize("hasAuthority('employee')")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/unblock")
         @Operation(summary = "Unblock Card", description = "Unblocks the card identified by the provided card number.")
         @ApiResponses(value = {
@@ -153,7 +155,7 @@ public class CardController {
                 }
         }
 
-        @PreAuthorize("hasAuthority('employee')")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/deactivate")
         @Operation(summary = "Deactivate Card", description = "Deactivates the card identified by the provided card number.")
         @ApiResponses(value = {
@@ -172,7 +174,7 @@ public class CardController {
 
         }
 
-        @PreAuthorize("isAuthenticated()")
+        @PreAuthorize("hasRole('CLIENT')")
         @PostMapping("/{cardNumber}/block-by-user")
         @Operation(summary = "Block Card by User", description = "Allows a user to block their own card.")
         @ApiResponses(value = {
@@ -192,7 +194,7 @@ public class CardController {
 
         }
 
-        @PreAuthorize("isAuthenticated()")
+        @PreAuthorize("hasRole('CLIENT')")
         @GetMapping("/my-cards")
         @Operation(summary = "Get User's Cards", description = "Retrieves all cards belonging to the authenticated user across all their accounts.")
         @ApiResponses(value = {

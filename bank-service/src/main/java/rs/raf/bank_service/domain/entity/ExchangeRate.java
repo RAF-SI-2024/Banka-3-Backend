@@ -1,6 +1,7 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ExchangeRate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +31,10 @@ public class ExchangeRate {
     @JoinColumn(name = "to_currency_code")
     private Currency toCurrency;
 
+    @Column(precision = 10, scale = 6)
     private BigDecimal exchangeRate;
+
+    @Column(precision = 10, scale = 6)
+    private BigDecimal sellRate;
 
 }

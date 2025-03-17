@@ -1,5 +1,6 @@
 package rs.raf.bank_service.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,11 +21,11 @@ import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -40,6 +41,7 @@ public class AccountService {
     private final JwtTokenUtil jwtTokenUtil;
     @Autowired
     private final UserClient userClient;
+    private final ObjectMapper objectMapper;
 
     public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
 
@@ -183,37 +185,17 @@ public class AccountService {
         }
     }
 
-    //Verovatno ce da ide u TransactionService ali ne znam jer nemam Transaction entitet
-    public void getAccountTransactions(Long clientId, String accountNumber) {
-        try {
-            ClientDto clientDto = userClient.getClientById(clientId);
-            Account account = accountRepository.findByAccountNumber(accountNumber)
-                    .orElseThrow(AccountNotFoundException::new);
 
-            if (!clientDto.getId().equals(account.getClientId()))
-                throw new ClientNotAccountOwnerException();
+    public void changeAccountName(String accountNumber, String newName, String authHeader) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-            //Nemam entitet za transakciju tako da ovde stajem
-        } catch (FeignException.NotFound e) {
-            throw new UserNotAClientException();
-        }
-    }
-
-
-    public void changeAccountName(Long accountId, String newName) {
-        Account account = accountRepository.findById(accountId)
+        Account account = accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
         System.out.println(">>> Account found: Current Name = " + account.getAccountNumber());
 
-        // Ako je novo ime isto kao staro, nema potrebe za promenom
-        if (account.getAccountNumber().equals(newName)) {
-            System.out.println(">>> New name is the same as the current name. No changes made.");
-            return;
-        }
-
         // Proveravamo postoji li ime već u bazi
-        boolean exists = accountRepository.existsByAccountNumberAndClientId(newName, account.getClientId());
+        boolean exists = accountRepository.existsByNameAndClientId(newName, account.getClientId());
         System.out.println(">>> Checking if account name '" + newName + "' already exists for client ID " + account.getClientId() + ": " + exists);
 
         if (exists) {
@@ -221,24 +203,25 @@ public class AccountService {
             throw new DuplicateAccountNameException("Account name already in use");
         }
 
-        System.out.println(">>> Changing account name from '" + account.getAccountNumber() + "' to '" + newName + "'");
-        account.setAccountNumber(newName);
+        System.out.println(">>> Changing account name from '" + account.getName() + "' to '" + newName + "'");
+        account.setName(newName);
         accountRepository.save(account);
 
         System.out.println(">>> SUCCESS: Account name changed to '" + newName + "'");
     }
 
-    public void requestAccountLimitChange(Long accountId, String email, BigDecimal newLimit, String authHeader) {
+    public void requestAccountLimitChange(String accountNumber, BigDecimal newLimit, String authHeader) throws JsonProcessingException {
         if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Limit must be greater than zero");
         }
 
-        log.info(">>> Checking if account with id {} exists...", accountId);
-        Account account = accountRepository.findById(accountId)
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        Account account = accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
 
-        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
 
 
         if (!account.getClientId().equals(clientId)) {
@@ -246,14 +229,22 @@ public class AccountService {
         }
 
 
-        ChangeLimitRequest request = new ChangeLimitRequest(accountId, newLimit);
+        ChangeLimitRequest request = new ChangeLimitRequest(accountNumber, newLimit);
         changeLimitRequestRepository.save(request);
+
+
+        ChangeAccountLimitDetailsDto changeAccountLimitDetailsDto = ChangeAccountLimitDetailsDto.builder()
+                .accountNumber(account.getAccountNumber())
+                .oldLimit(account.getDailyLimit())
+                .newLimit(newLimit)
+                .build();
 
 
         CreateVerificationRequestDto verificationRequest = CreateVerificationRequestDto.builder()
                 .userId(clientId)
                 .targetId(request.getId())
                 .verificationType(VerificationType.CHANGE_LIMIT)
+                .details(objectMapper.writeValueAsString(changeAccountLimitDetailsDto))
                 .build();
 
         userClient.createVerificationRequest(verificationRequest);
@@ -269,7 +260,7 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalStateException("No pending limit change request found"));
 
 
-        Account account = accountRepository.findById(request.getAccountId())
+        Account account = accountRepository.findByAccountNumber(request.getAccountNumber())
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
 

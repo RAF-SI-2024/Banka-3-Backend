@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class FeignClientInterceptor implements RequestInterceptor {
 
     // Dugotrajni token ovde
-    private static final String STATIC_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwZXRhci5wQGV4YW1wbGUuY29tIiwicGVybWlzc2lvbnMiOlsiZW1wbG95ZWUiLCJhZG1pbiJdLCJ1c2VySWQiOjMsImlhdCI6MTc0MTA5NzA2MywiZXhwIjoyNjA1MDk3MDYzfQ.4myWYAgdkvHCMPs4wt_lBUfe2RzWHzHRXUOxxCN2FgriQlvsHJ6WktsmLhZrzYP4COTK05m-1fgsxPus_PKlNA";
+    private static final String STATIC_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwZXRhci5wQGV4YW1wbGUuY29tIiwicm9sZSI6IkFETUlOIiwidXNlcklkIjozLCJpYXQiOjE3NDE1MjEwMTEsImV4cCI6MjA1NzA1MzgxMX0.3425U9QrOg04G_bZv8leJNYEOKy7C851P5pWv0k9R3rWpA0ePoeBGpLDd-vKK2qNVgi-Eu2PkfFz41WdUTdFeQ";
 
 
     @Override

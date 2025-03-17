@@ -21,6 +21,7 @@ import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.domain.mapper.ClientMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
+import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.specification.ClientSearchSpecification;
 
@@ -39,6 +40,7 @@ public class ClientService {
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final RoleRepository roleRepository;
 
     public Page<ClientDto> listClients(Pageable pageable) {
         Page<Client> clientsPage = clientRepository.findAll(pageable);
@@ -54,6 +56,7 @@ public class ClientService {
     public ClientDto addClient(CreateClientDto createClientDto) {
         Client client = clientMapper.fromCreateDto(createClientDto);
         client.setPassword("");
+        client.setRole(roleRepository.findByName("CLIENT").get());
 
         if (userRepository.existsByEmail(createClientDto.getEmail()))
             throw new EmailAlreadyExistsException();
@@ -87,14 +90,6 @@ public class ClientService {
     public ClientDto updateClient(Long id, UpdateClientDto updateClientDto) {
         Client existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Client not found with ID: " + id));
-
-        if (!existingClient.getEmail().equals(updateClientDto.getEmail())) {
-            clientRepository.findByEmail(updateClientDto.getEmail())
-                    .ifPresent(c -> {
-                        throw new EmailAlreadyExistsException();
-                    });
-            existingClient.setEmail(updateClientDto.getEmail());
-        }
 
         existingClient.setLastName(updateClientDto.getLastName());
         existingClient.setAddress(updateClientDto.getAddress());

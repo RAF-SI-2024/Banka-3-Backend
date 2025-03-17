@@ -37,7 +37,7 @@ public class JwtAuthenticationFilterTest {
         when(jwtTokenUtil.validateToken(token)).thenReturn(true);
         DefaultClaims claims = new DefaultClaims();
         claims.setSubject(email);
-        claims.put("permissions", Collections.singletonList("EMPLOYEE"));
+        claims.put("role", "ROLE_EMPLOYEE");
         when(jwtTokenUtil.getClaimsFromToken(token)).thenReturn(claims);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -61,7 +61,7 @@ public class JwtAuthenticationFilterTest {
         when(jwtTokenUtil.validateToken(token)).thenReturn(true);
         DefaultClaims claims = new DefaultClaims();
         claims.setSubject(email);
-        claims.put("permissions", Collections.singletonList("CLIENT"));
+        claims.put("role", "ROLE_CLIENT");
         when(jwtTokenUtil.getClaimsFromToken(token)).thenReturn(claims);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

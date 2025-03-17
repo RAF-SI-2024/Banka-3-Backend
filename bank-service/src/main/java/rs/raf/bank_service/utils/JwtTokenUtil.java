@@ -1,23 +1,27 @@
 package rs.raf.bank_service.utils;
 
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
 
 @Component
 public class JwtTokenUtil {
 
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
+    private final long expiration = 86400000;
 
-    public Long extractUserId(String token) {
-        return getClaimsFromToken(token).get("userId", Long.class);
+    public String getSubjectFromToken(String token) {
+        return getClaimsFromToken(token).getSubject();
     }
 
-    private Claims getClaimsFromToken(String token) {
+    public Claims getClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secret)
                 .build()
@@ -34,12 +38,14 @@ public class JwtTokenUtil {
         }
     }
 
-
     public Long getUserIdFromAuthHeader(String authHeader) {
-        authHeader = authHeader.replace("Bearer ", "");
-        if (!validateToken(authHeader)) {
-            throw new SecurityException("Invalid token");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new SecurityException("Invalid or missing Authorization header");
         }
-        return extractUserId(authHeader);
+
+        String token = authHeader.replace("Bearer ", "").trim();
+
+        // Parsiramo token i vadimo userId
+        return getClaimsFromToken(token).get("userId", Long.class);
     }
 }

@@ -28,7 +28,7 @@ public class AuthorizedPersonelController {
     private final AuthorizedPersonelService authorizedPersonelService;
     private final ClientService clientService;
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Create new authorized personnel", description = "Creates new authorized personnel for a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Successfully created authorized personnel"),
@@ -59,7 +59,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Get authorized personnel for company", description = "Gets all authorized personnel for a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved authorized personnel"),
@@ -76,7 +76,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Get authorized personnel by ID", description = "Gets an authorized personnel by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved authorized personnel"),
@@ -92,7 +92,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Update authorized personnel", description = "Updates an authorized personnel")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated authorized personnel"),
@@ -122,7 +122,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Delete authorized personnel", description = "Deletes an authorized personnel")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successfully deleted authorized personnel"),

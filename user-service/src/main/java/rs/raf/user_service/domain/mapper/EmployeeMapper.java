@@ -24,30 +24,12 @@ public class EmployeeMapper {
         dto.setActive(employee.isActive());
         dto.setUsername(employee.getUsername());
         dto.setJmbg(employee.getJmbg());
-
-        return dto;
-    }
-
-    public static Employee toEntity(EmployeeDto dto) {
-        if (dto == null) {
-            return null;
+        if (employee.getRole() != null) {
+            dto.setRole(employee.getRole().getName());
         }
 
-        Employee employee = new Employee();
-        employee.setId(dto.getId());
-        employee.setEmail(dto.getEmail());
-        employee.setFirstName(dto.getFirstName());
-        employee.setLastName(dto.getLastName());
-        employee.setAddress(dto.getAddress());
-        employee.setPhone(dto.getPhone());
-        employee.setGender(dto.getGender());
-        employee.setBirthDate(dto.getBirthDate());
-        employee.setPosition(dto.getPosition());
-        employee.setDepartment(dto.getDepartment());
-        employee.setActive(dto.isActive());
-        employee.setJmbg(dto.getJmbg());
 
-        return employee;
+        return dto;
     }
 
     public static Employee createDtoToEntity(CreateEmployeeDto dto) {
@@ -66,7 +48,8 @@ public class EmployeeMapper {
                 dto.getPosition(),
                 dto.getDepartment(),
                 dto.getActive(),
-                dto.getJmbg()
+                dto.getJmbg(),
+                null // @todo maybe set role here
         );
     }
 }

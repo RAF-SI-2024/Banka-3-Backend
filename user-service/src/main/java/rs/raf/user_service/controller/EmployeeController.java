@@ -20,6 +20,7 @@ import rs.raf.user_service.domain.dto.ErrorMessageDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.RoleNotFoundException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.service.EmployeeService;
 
@@ -38,7 +39,7 @@ public class EmployeeController {
     }
 
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
 
     @Operation(summary = "Get employee by ID", description = "Returns an employee based on the provided ID")
     @ApiResponses(value = {
@@ -56,7 +57,7 @@ public class EmployeeController {
 
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
 
     @Operation(summary = "Get all employees", description = "Returns a paginated list of employees with optional filters")
     @ApiResponses(value = {
@@ -76,7 +77,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageable));
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete an employee", description = "Deletes an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deleted successfully"),
@@ -94,7 +95,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Deactivate an employee", description = "Deactivates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee deactivated successfully"),
@@ -112,7 +113,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Activate an employee", description = "Activates an employee by their ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee activated successfully"),
@@ -130,7 +131,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create an employee", description = "Creates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Employee created successfully"),
@@ -144,7 +145,8 @@ public class EmployeeController {
         try {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
-        } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException |
+                 RoleNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
@@ -152,7 +154,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update an employee", description = "Updates an employee.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee updated successfully"),
@@ -170,13 +172,15 @@ public class EmployeeController {
             return ResponseEntity.status(HttpStatus.OK).body(employeeDto);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (RoleNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved employee details"),

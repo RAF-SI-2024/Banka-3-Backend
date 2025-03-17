@@ -26,6 +26,7 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
 import rs.raf.bank_service.service.CardService;
+import rs.raf.bank_service.service.ExchangeRateService;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -42,6 +43,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CardController.class)
 public class CardControllerTest {
 
+    @MockBean
+    private ExchangeRateService exchangeRateService;
     @MockBean
     AccountMapper accountMapper;
     private MockMvc mockMvc;
@@ -69,7 +72,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testGetCardsByAccount() throws Exception {
         // Priprema test podataka
         String token = "valid token";
@@ -90,7 +93,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testBlockCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
 
@@ -100,7 +103,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testUnblockCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
 
@@ -110,7 +113,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testDeactivateCard() throws Exception {
         doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
 
@@ -121,7 +124,7 @@ public class CardControllerTest {
 
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
         // Kreiranje DTO-a
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
@@ -151,7 +154,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
 
@@ -179,7 +182,7 @@ public class CardControllerTest {
     }
 
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
 
         CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
@@ -209,7 +212,7 @@ public class CardControllerTest {
 
     // Test for verifyAndReceiveCard
     @Test
-    @WithMockUser(authorities = "employee")
+    @WithMockUser(roles = "EMPLOYEE")
     public void testVerifyAndReceiveCard_Success() throws Exception {
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
 
@@ -231,10 +234,10 @@ public class CardControllerTest {
 
         when(cardService.recieveCardForAccount(eq(token), eq(createCardDto))).thenReturn(cardDto);
 
-        mockMvc.perform(post("/api/account/{accountNumber}/cards/recieve?token={token}", "account123", token)
+        mockMvc.perform(post("/api/account/{accountNumber}/cards/receive?token={token}", "account123", token)
                         .contentType("application/json")
                         .content(new ObjectMapper().writeValueAsString(createCardDto)))
-                .andExpect(status().isOk()); // Očekujemo status 200 (OK)
+                .andExpect(status().isOk()); // Expecting status 200 (OK)
     }
 
 
@@ -270,6 +273,7 @@ public class CardControllerTest {
 
     // Test for createCard
     @Test
+    @WithMockUser(roles = "EMPLOYEE")
     public void testCreateCard_Success() throws Exception {
         // Pripremi CreateCardDto objekat
         CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));

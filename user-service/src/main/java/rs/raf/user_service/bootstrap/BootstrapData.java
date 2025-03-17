@@ -9,7 +9,9 @@ import rs.raf.user_service.repository.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -21,26 +23,45 @@ public class BootstrapData implements CommandLineRunner {
     private final ActivityCodeRepository activityCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final CompanyRepository companyRepository;
+    private final RoleRepository roleRepository;
+    private final AuthTokenRepository authTokenRepository;
 
     @Override
     public void run(String... args) throws ParseException {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         if (permissionRepository.count() == 0) {
-            Permission adminPermission = Permission.builder()
-                    .name("admin")
-                    .build();
-            Permission employeePermission = Permission.builder()
-                    .name("employee")
-                    .build();
-
-            permissionRepository.saveAll(Set.of(adminPermission, employeePermission));
 
         }
 
-        Set<Permission> permissions = new HashSet<>(permissionRepository.findAll());
+        if (roleRepository.count() == 0) {
+            Role clientRole = Role.builder()
+                    .name("CLIENT")
+                    .build();
+            Role employeeRole = Role.builder()
+                    .name("EMPLOYEE")
+                    .build();
+            Role adminRole = Role.builder()
+                    .name("ADMIN")
+                    .build();
+            Role agentRole = Role.builder()
+                    .name("AGENT")
+                    .build();
+            Role supervisorRole = Role.builder()
+                    .name("SUPERVISOR")
+                    .build();
+
+            roleRepository.saveAll(Arrays.asList(clientRole, employeeRole, adminRole, agentRole, supervisorRole));
+        }
+
+
+
 
         if (clientRepository.count() == 0) {
+
+            Role clientRole = roleRepository.findByName("CLIENT")
+                    .orElseThrow(() -> new RuntimeException("Role CLIENT not found"));
+
             Client client = Client.builder()
                     .firstName("Marko")
                     .lastName("Markovic")
@@ -52,6 +73,7 @@ public class BootstrapData implements CommandLineRunner {
                     .password(passwordEncoder.encode("markomarko"))
                     .jmbg("0123456789126")
                     .username("marko1")
+                    .role(clientRole)
                     .build();
 
             Client client2 = Client.builder()
@@ -65,12 +87,19 @@ public class BootstrapData implements CommandLineRunner {
                     .password(passwordEncoder.encode("jovanjovan"))
                     .jmbg("0123456789125")
                     .username("jovan1")
+                    .role(clientRole)
                     .build();
 
             clientRepository.saveAll(Set.of(client, client2));
         }
 
         if (employeeRepository.count() == 0) {
+
+            Role adminRole = roleRepository.findByName("ADMIN")
+                    .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
+            Role employeeRole = roleRepository.findByName("EMPLOYEE")
+                    .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
+
             Employee employee = Employee.builder()
                     .firstName("Petar")
                     .lastName("Petrovic")
@@ -84,7 +113,7 @@ public class BootstrapData implements CommandLineRunner {
                     .position("Manager")
                     .department("HR")
                     .active(true)
-                    .permissions(permissions)
+                    .role(adminRole)
                     .jmbg("0123456789123")
                     .build();
 
@@ -102,6 +131,7 @@ public class BootstrapData implements CommandLineRunner {
                     .department("Finance")
                     .active(true)
                     .jmbg("0123456789124")
+                    .role(employeeRole)
                     .build();
 
             employeeRepository.saveAll(Set.of(employee, employee2));
@@ -128,7 +158,37 @@ public class BootstrapData implements CommandLineRunner {
                     .majorityOwner(null)
                     .build();
 
-            companyRepository.save(bank);
+            Company state = Company.builder()
+                    .id(2L)
+                    .address("Adresa drzave")
+                    .name("Republika Srbija")
+                    .activityCode("10.02")
+                    .registrationNumber("1")
+                    .taxId("1")
+                    .majorityOwner(null)
+                    .build();
+
+            companyRepository.saveAll(List.of(bank, state));
+        }
+
+        if (authTokenRepository.count() == 0){
+            AuthToken authToken = AuthToken.builder()
+                    .token("df7ff5f0-70bd-492c-9569-ac5f3fbda7ff")
+                    .type("set-password")
+                    .createdAt(1741631004271L)
+                    .expiresAt(3000000000000L)
+                    .userId(5L)
+                    .build();
+            authTokenRepository.save(authToken);
+
+            AuthToken authToken1 = AuthToken.builder()
+                    .token("df7ff5f0-70bd-492c-9569-ac5f3fbda7xd")
+                    .type("request-card")
+                    .createdAt(1741631004271L)
+                    .expiresAt(3000000000000L)
+                    .userId(5L)
+                    .build();
+            authTokenRepository.save(authToken1);
         }
 
     }
