@@ -17,6 +17,7 @@ import rs.raf.user_service.service.AuthorizedPersonelService;
 import rs.raf.user_service.service.ClientService;
 
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -38,7 +39,7 @@ public class AuthorizedPersonelController {
     })
     @PostMapping
     public ResponseEntity<?> createAuthorizedPersonnel(
-            @RequestBody CreateAuthorizedPersonelDto createAuthorizedPersonelDto) {
+            @RequestBody @Valid CreateAuthorizedPersonelDto createAuthorizedPersonelDto) {
         try {
             AuthorizedPersonelDto createdPersonnel = authorizedPersonelService
                     .createAuthorizedPersonel(createAuthorizedPersonelDto);
@@ -91,7 +92,7 @@ public class AuthorizedPersonelController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAuthorizedPersonnel(@PathVariable Long id,
-            @RequestBody CreateAuthorizedPersonelDto updateDto) {
+            @RequestBody @Valid CreateAuthorizedPersonelDto updateDto) {
         try {
             AuthorizedPersonelDto updatedPersonnel = authorizedPersonelService.updateAuthorizedPersonel(id, updateDto);
             return ResponseEntity.ok(updatedPersonnel);
