@@ -19,8 +19,8 @@ public class CompanyAccountDetailsDto extends AccountDetailsDto{
     private String  taxId;
     private String address;
 
-    public CompanyAccountDetailsDto(String accountNumber, AccountType accountType, BigDecimal availableBalance, BigDecimal reservedFunds,
+    public CompanyAccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance, BigDecimal reservedFunds,
                                     BigDecimal balance){
-        super(accountNumber, accountType, availableBalance, reservedFunds, balance);
+        super(name, accountNumber, accountType, availableBalance, reservedFunds, balance);
     }
 }

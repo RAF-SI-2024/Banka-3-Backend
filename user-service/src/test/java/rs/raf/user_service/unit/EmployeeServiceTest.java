@@ -53,6 +53,7 @@ class EmployeeServiceTest {
         employee.setPosition("Manager");
         employee.setDepartment("Finance");
         employee.setActive(true);
+        employee.setRole(new Role(1L, "EMPLOYEE", new HashSet<>()));
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
 
@@ -73,6 +74,7 @@ class EmployeeServiceTest {
         employee.setPosition("Developer");
         employee.setDepartment("IT");
         employee.setActive(true);
+        employee.setRole(new Role(1L, "EMPLOYEE", new HashSet<>()));
 
         Page<Employee> page = new PageImpl<>(Collections.singletonList(employee));
 
@@ -89,6 +91,8 @@ class EmployeeServiceTest {
 
     @Test
     void testFindAllWithoutFilters() {
+        Role role = new Role(1L, "EMPLOYEE", new HashSet<>());
+
         Employee emp1 = new Employee();
         emp1.setUsername("ana789");
         //emp1.setFirstName("Ana");
@@ -97,12 +101,14 @@ class EmployeeServiceTest {
         emp1.setPosition("HR");
         emp1.setDepartment("Human Resources");
         emp1.setActive(true);
+        emp1.setRole(role);
 
         Employee emp2 = new Employee();
         emp2.setUsername("ivan321");
         emp2.setPosition("Designer");
         emp2.setDepartment("Creative");
         emp2.setActive(false);
+        emp2.setRole(role);
 
         Page<Employee> page = new PageImpl<>(List.of(emp1, emp2));
 
@@ -215,6 +221,7 @@ class EmployeeServiceTest {
         String position = "Menadzer";
         String department = "Finansije";
         String jmbg = "1234567890123";
+        String role = "EMPLOYEE";
         Boolean active = true;
 
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -227,7 +234,7 @@ class EmployeeServiceTest {
         when(roleRepository.findByName(any())).thenReturn(Optional.of(expectedRole));
 
         employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active, phone, address,
-                username, position, department, jmbg)
+                username, position, department, jmbg, role)
         );
 
         verify(employeeRepository, times(1)).save(argThat(employee ->
@@ -251,10 +258,12 @@ class EmployeeServiceTest {
 
         Employee employee = new Employee("Petar", "Petrovic", calendar.getTime(), "M",
                 "petar@raf.rs", "+38161123456", "Trg Republike 5", "petareperic90",
-                "Menadzer", "Finansije", true, "1234567890123"
+                "Menadzer", "Finansije", true, "1234567890123",
+                new Role(1L, "EMPLOYEE", new HashSet<>())
         );
 
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+        when(roleRepository.findByName(any())).thenReturn(Optional.of(new Role(1L, "EMPLOYEE", new HashSet<>())));
 
         String lastName = "Peric";
         String gender = "F";
@@ -262,8 +271,9 @@ class EmployeeServiceTest {
         String address = "Trg Republike 6";
         String position = "Programer";
         String department = "Programiranje";
+        String role = "EMPLOYEE";
 
-        employeeService.updateEmployee(1L, new UpdateEmployeeDto(lastName, gender, phone, address, position, department));
+        employeeService.updateEmployee(1L, new UpdateEmployeeDto(lastName, gender, phone, address, position, department, role));
 
         assertAll("Employee fields should be updated correctly",
                 () -> assertEquals(lastName, employee.getLastName()),
@@ -282,7 +292,7 @@ class EmployeeServiceTest {
 
         Exception exception = assertThrows(EntityNotFoundException.class, () -> employeeService.updateEmployee(
                         99L, new UpdateEmployeeDto("Peric", "F", "+38161123457",
-                                "Trg Republike 6", "Programer", "Programiranje")
+                                "Trg Republike 6", "Programer", "Programiranje", "EMPLOYEE")
                 )
         );
 
