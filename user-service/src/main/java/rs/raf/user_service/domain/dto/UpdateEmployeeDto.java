@@ -36,6 +36,10 @@ public class UpdateEmployeeDto {
     @NotNull(message = "Department cannot be null")
     @Size(min = 2, max = 100, message = "Department must be between 2 and 100 characters")
     private String department;
+
+    // EMPLOYEE, ADMIN, SUPERVISOR, AGENT
+    @NotNull(message = "Role cannot be null")
+    private String role;
 }
 
 
