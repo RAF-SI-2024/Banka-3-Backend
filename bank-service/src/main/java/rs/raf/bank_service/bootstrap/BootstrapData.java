@@ -23,6 +23,8 @@ public class BootstrapData implements CommandLineRunner {
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateRepository exchangeRateRepository;
+    private final LoanRepository loanRepository;
+    private final LoanRequestRepository loanRequestRepository;
 
     @Override
     public void run(String... args) {
@@ -388,5 +390,61 @@ public class BootstrapData implements CommandLineRunner {
         exchangeRateRepository.saveAll(exchangeRates);
         exchangeRateRepository.saveAll(exchangeRates2);
         // Test kursna lista da ne trosimo API pozive
+
+
+        // Kreiranje primera zahteva za kredit
+        LoanRequest loanRequest = LoanRequest.builder()
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .purpose("Kupovina automobila")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        LoanRequest loanRequest2 = LoanRequest.builder()
+                .type(LoanType.CASH)
+                .amount(new BigDecimal("300000"))
+                .purpose("Kupovina necega")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.PENDING)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        loanRequestRepository.save(loanRequest);
+        loanRequestRepository.save(loanRequest2);
+
+        // Kreiranje primera odobrenog kredita
+        Loan loan = Loan.builder()
+                .loanNumber("d7742918-4b78-44eb-93b7-25adfd5123e9")
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .repaymentPeriod(24)
+                .nominalInterestRate(new BigDecimal("5.5"))
+                .effectiveInterestRate(new BigDecimal("6.0"))
+                .startDate(LocalDate.now())
+                .dueDate(LocalDate.now().plusMonths(24))
+                .nextInstallmentAmount(new BigDecimal("220"))
+                .nextInstallmentDate(LocalDate.now().plusMonths(1))
+                .remainingDebt(new BigDecimal("500000"))
+                .currency(currencyRSD)
+                .status(LoanStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .account(currentAccount1)
+                .build();
+
+        loanRepository.save(loan);
     }
 }
