@@ -121,7 +121,7 @@ public class AccServiceTest {
 
         when(jwtTokenUtil.getUserIdFromAuthHeader("")).thenReturn(account.getClientId());
         when(accountRepository.findByAccountNumberAndClientId(accountName, 5L)).thenReturn(Optional.of(account));
-        when(accountRepository.existsByNameAndClientId(existingName, account.getClientId())).thenReturn(false);
+        when(accountRepository.existsByNameAndClientId(existingName, account.getClientId())).thenReturn(true);
 
         accService.changeAccountName(accountName, existingName, "");
 
