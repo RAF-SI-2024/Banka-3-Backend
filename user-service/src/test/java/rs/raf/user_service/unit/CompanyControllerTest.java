@@ -8,16 +8,21 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.CompanyController;
+import rs.raf.user_service.domain.dto.CompanyDto;
 import rs.raf.user_service.domain.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.dto.ErrorMessageDto;
 import rs.raf.user_service.service.CompanyService;
 
 import rs.raf.user_service.exceptions.ClientNotFoundException;
 
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class CompanyControllerTest {
 
@@ -27,9 +32,15 @@ public class CompanyControllerTest {
     @InjectMocks
     private CompanyController companyController;
 
+    private List<CompanyDto> mockCompanies;
+
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        mockCompanies = Arrays.asList(
+                new CompanyDto(1L, "Company A", "11", "22", "33", "adresa"),
+                new CompanyDto(2L, "Company B","11", "22", "33", "adresa")
+        );
     }
 
     @Test
@@ -66,5 +77,28 @@ public class CompanyControllerTest {
 
         assertEquals(expectedErrorMessage, response.getBody());
 
+    }
+
+    @Test
+    void testGetCompaniesForClientId_Success() {
+        Long clientId = 1L;
+        when(companyService.getCompaniesForClientId(clientId)).thenReturn(mockCompanies);
+
+        ResponseEntity<?> response = companyController.getCompaniesForClientId(clientId);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(mockCompanies, response.getBody());
+    }
+
+    @Test
+    void testGetCompaniesForClientId_Failure() {
+        Long clientId = 1L;
+        when(companyService.getCompaniesForClientId(clientId)).thenThrow(new RuntimeException("Database error"));
+
+        ResponseEntity<?> response = companyController.getCompaniesForClientId(clientId);
+
+        assertEquals(500, response.getStatusCodeValue());
+        assertTrue(response.getBody() instanceof ErrorMessageDto);
+        assertEquals("Database error", ((ErrorMessageDto) response.getBody()).getError());
     }
 }
