@@ -73,6 +73,7 @@ public class AccountMapper {
         if (account == null || company == null) return null;
 
         CompanyAccountDetailsDto dto = new CompanyAccountDetailsDto(
+                account.getName(),
                 account.getAccountNumber(),
                 account.getType(),
                 account.getAvailableBalance(),
