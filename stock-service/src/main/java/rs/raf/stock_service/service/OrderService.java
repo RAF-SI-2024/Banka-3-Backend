@@ -1,6 +1,8 @@
 package rs.raf.stock_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderStatus;
@@ -19,15 +21,11 @@ public class OrderService {
         this.orderRepository = orderRepository;
     }
 
-    public List<Order> getOrdersByStatus(OrderStatus status) {
-        if (status != null) {
-            return orderRepository.findByStatus(status);
-        }else if (status == null){
-            throw new OrderStatusNotFoundException();
+    public Page<Order> getOrdersByStatus(OrderStatus status, Pageable pageable) {
+        if (status == null) {
+            return orderRepository.findAll(pageable);
+            // vraca paginirano sve
         }
-
-        return orderRepository.findAll();
-
-        //slucaj za all?
+        return orderRepository.findByStatus(status, pageable);
     }
 }

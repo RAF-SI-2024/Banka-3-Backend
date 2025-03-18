@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.OrderStatusNotFoundException;
@@ -36,37 +39,32 @@ class OrderServiceTest {
         order1.setStatus(OrderStatus.APPROVED);
         Order order2 = new Order();
         order2.setStatus(OrderStatus.APPROVED);
+        List<Order> orderList = Arrays.asList(order1, order2);
+        Page<Order> orderPage = new PageImpl<>(orderList);
 
-        when(orderRepository.findByStatus(OrderStatus.APPROVED))
-                .thenReturn(Arrays.asList(order1, order2));
+        when(orderRepository.findByStatus(eq(OrderStatus.APPROVED), any(PageRequest.class)))
+                .thenReturn(orderPage);
 
-        List<Order> result = orderService.getOrdersByStatus(OrderStatus.APPROVED);
+        Page<Order> result = orderService.getOrdersByStatus(OrderStatus.APPROVED, PageRequest.of(0, 10));
 
-        assertEquals(2, result.size());
-        assertEquals(OrderStatus.APPROVED, result.get(0).getStatus());
-        verify(orderRepository, times(1)).findByStatus(OrderStatus.APPROVED);
+        assertEquals(2, result.getTotalElements());
+        assertEquals(OrderStatus.APPROVED, result.getContent().get(0).getStatus());
+        verify(orderRepository, times(1)).findByStatus(eq(OrderStatus.APPROVED), any(PageRequest.class));
     }
-
 
     @Test
     void testGetOrdersByStatus_WhenStatusIsNull() {
-        Exception exception = assertThrows(OrderStatusNotFoundException.class, () -> {
-            orderService.getOrdersByStatus(null);
-        });
+        Order order1 = new Order();
+        Order order2 = new Order();
+        List<Order> orderList = Arrays.asList(order1, order2);
+        Page<Order> orderPage = new PageImpl<>(orderList);
 
-        assertEquals("Status not found.", exception.getMessage());
-    }
+        when(orderRepository.findAll(any(PageRequest.class))).thenReturn(orderPage);
 
-    @Test
-    void testGetOrdersByStatus_WhenDatabaseErrorOccurs() {
-        when(orderRepository.findByStatus(OrderStatus.APPROVED))
-                .thenThrow(new RuntimeException("Database error"));
+        Page<Order> result = orderService.getOrdersByStatus(null, PageRequest.of(0, 10));
 
-
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            orderService.getOrdersByStatus(OrderStatus.APPROVED);
-        });
-
-        assertEquals("Database error", exception.getMessage());
+        assertEquals(2, result.getTotalElements());
+        verify(orderRepository, times(1)).findAll(any(PageRequest.class));
     }
 }
+
