@@ -15,7 +15,9 @@ public class Exchange {
     private String mic;
     private String name;
     private String acronym;
-    private String polity;
+    @ManyToOne
+    private Country polity;
     private String currencyCode;
     private Long timeZone;
+
 }
