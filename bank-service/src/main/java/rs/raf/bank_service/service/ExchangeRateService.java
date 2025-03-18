@@ -126,7 +126,7 @@ public class ExchangeRateService {
             return new ExchangeRateDto(
                     new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
                     new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
-                    rate.getSellRate(),  // Prodajni kurs se koristi direktno, bez dodatne provizije
+                    rate.getExchangeRate(),
                     rate.getSellRate()
             );
         }
@@ -143,7 +143,7 @@ public class ExchangeRateService {
             return new ExchangeRateDto(
                     new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
                     new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
-                    intermediateRate,  // Nema dodatne provizije, samo prodajni kurs
+                    intermediateRate,
                     intermediateRate
             );
         }
@@ -151,10 +151,5 @@ public class ExchangeRateService {
         throw new ExchangeRateNotFoundException(fromCurrencyCode, toCurrencyCode);
     }
 }
-
-
-
-
-
 
 

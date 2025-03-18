@@ -18,4 +18,6 @@ import javax.persistence.Entity;
 @SuperBuilder
 public class CompanyAccount extends Account {
     private Long companyId;
+    private Long authorizedPersonId;
+
 }

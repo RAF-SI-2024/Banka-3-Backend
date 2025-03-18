@@ -1,11 +1,7 @@
 package rs.raf.bank_service.domain.mapper;
 
-import rs.raf.bank_service.domain.dto.AccountDetailsDto;
+import rs.raf.bank_service.domain.dto.*;
 import org.springframework.stereotype.Component;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.AccountTypeDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.CompanyAccountDetailsDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
@@ -66,19 +62,25 @@ public class AccountMapper {
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
                 account.getBalance()
+
         );
     }
 
     // ✅ Mapiranje iz Account u AccountDetailsDto (bez naziva vlasnika, to se setuje naknadno)
-    public static CompanyAccountDetailsDto toCompanyDetailsDto(Account account) {
-        if (account == null) return null;
-        return new CompanyAccountDetailsDto(
+    public static CompanyAccountDetailsDto toCompanyDetailsDto(CompanyAccount account, CompanyDto company, AuthorizedPersonelDto authorizedPerson) {
+        if (account == null || company == null) return null;
+
+        CompanyAccountDetailsDto dto = new CompanyAccountDetailsDto(
                 account.getAccountNumber(),
                 account.getType(),
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
-                account.getBalance()
+                account.getBalance(),
+                authorizedPerson //  Dodato ovlašćeno lice
         );
+
+        dto.setCompanyName(company.getName()); // Postavljamo pravi naziv firme
+        return dto;
     }
 
     public AccountTypeDto toAccountTypeDto(Account account) {

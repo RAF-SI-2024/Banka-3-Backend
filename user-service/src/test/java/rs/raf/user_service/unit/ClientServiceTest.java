@@ -14,9 +14,11 @@ import rs.raf.user_service.domain.dto.CreateClientDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
 import rs.raf.user_service.domain.dto.UpdateClientDto;
 import rs.raf.user_service.domain.entity.Client;
+import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.domain.mapper.ClientMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
+import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.ClientService;
 
@@ -42,6 +44,9 @@ public class ClientServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private AuthTokenRepository authTokenRepository;
@@ -115,12 +120,17 @@ public class ClientServiceTest {
                 client.getEmail(), client.getAddress(),
                 client.getPhone(), client.getGender(), client.getBirthDate(), client.getJmbg(), client.getUsername());
 
+        Role expectedRole = new Role();
+        expectedRole.setId(1L);
+        expectedRole.setName("CLIENT");
+
         when(clientMapper.fromCreateDto(createClientDTO)).thenReturn(client);
         when(clientRepository.save(client)).thenReturn(client);
         when(clientMapper.toDto(client)).thenReturn(expectedDTO);
         when(clientRepository.findByJmbg(any())).thenReturn(Optional.empty());
         doNothing().when(rabbitTemplate).convertAndSend(eq("set-password"), any(EmailRequestDto.class));
         when(authTokenRepository.save(any())).thenReturn(null);
+        when(roleRepository.findByName(any())).thenReturn(Optional.of(expectedRole));
 
         ClientDto result = clientService.addClient(createClientDTO);
 

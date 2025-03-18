@@ -17,6 +17,7 @@ import rs.raf.user_service.service.AuthorizedPersonelService;
 import rs.raf.user_service.service.ClientService;
 
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -26,9 +27,10 @@ import java.util.List;
 public class AuthorizedPersonelController {
 
     private final AuthorizedPersonelService authorizedPersonelService;
-    private final ClientService clientService;
 
-    @PreAuthorize("hasRole('CLIENT')")
+    // @todo za sve ovo koristiti permisije umesto role pls
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
     @Operation(summary = "Create new authorized personnel", description = "Creates new authorized personnel for a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Successfully created authorized personnel"),
@@ -37,20 +39,8 @@ public class AuthorizedPersonelController {
     })
     @PostMapping
     public ResponseEntity<?> createAuthorizedPersonnel(
-            @RequestBody CreateAuthorizedPersonelDto createAuthorizedPersonelDto) {
+            @RequestBody @Valid CreateAuthorizedPersonelDto createAuthorizedPersonelDto) {
         try {
-            // Get the current authenticated client
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long clientId = clientService.findByEmail(email).getId();
-
-            // Check if the client is the majority owner of the company
-            if (!authorizedPersonelService.isClientMajorityOwnerOfCompany(createAuthorizedPersonelDto.getCompanyId(),
-                    clientId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("You are not authorized to manage authorized personnel for this company. Only the majority owner can perform this action.");
-            }
-
             AuthorizedPersonelDto createdPersonnel = authorizedPersonelService
                     .createAuthorizedPersonel(createAuthorizedPersonelDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPersonnel);
@@ -59,7 +49,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
     @Operation(summary = "Get authorized personnel for company", description = "Gets all authorized personnel for a company")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved authorized personnel"),
@@ -76,7 +66,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
     @Operation(summary = "Get authorized personnel by ID", description = "Gets an authorized personnel by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved authorized personnel"),
@@ -92,7 +82,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
     @Operation(summary = "Update authorized personnel", description = "Updates an authorized personnel")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated authorized personnel"),
@@ -102,19 +92,8 @@ public class AuthorizedPersonelController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAuthorizedPersonnel(@PathVariable Long id,
-            @RequestBody CreateAuthorizedPersonelDto updateDto) {
+                                                       @RequestBody @Valid CreateAuthorizedPersonelDto updateDto) {
         try {
-            // Get the current authenticated client
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long clientId = clientService.findByEmail(email).getId();
-
-            // Check if the client is the majority owner of the company
-            if (!authorizedPersonelService.isClientMajorityOwnerOfCompany(updateDto.getCompanyId(), clientId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("You are not authorized to manage authorized personnel for this company. Only the majority owner can perform this action.");
-            }
-
             AuthorizedPersonelDto updatedPersonnel = authorizedPersonelService.updateAuthorizedPersonel(id, updateDto);
             return ResponseEntity.ok(updatedPersonnel);
         } catch (EntityNotFoundException e) {
@@ -122,7 +101,7 @@ public class AuthorizedPersonelController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
     @Operation(summary = "Delete authorized personnel", description = "Deletes an authorized personnel")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successfully deleted authorized personnel"),
@@ -132,21 +111,6 @@ public class AuthorizedPersonelController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAuthorizedPersonnel(@PathVariable Long id) {
         try {
-            // Get the authorized personnel to check the company
-            AuthorizedPersonelDto authorizedPersonnel = authorizedPersonelService.getAuthorizedPersonelById(id);
-
-            // Get the current authenticated client
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long clientId = clientService.findByEmail(email).getId();
-
-            // Check if the client is the majority owner of the company
-            if (!authorizedPersonelService.isClientMajorityOwnerOfCompany(authorizedPersonnel.getCompanyId(),
-                    clientId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("You are not authorized to manage authorized personnel for this company. Only the majority owner can perform this action.");
-            }
-
             authorizedPersonelService.deleteAuthorizedPersonel(id);
             return ResponseEntity.noContent().build();
         } catch (EntityNotFoundException e) {

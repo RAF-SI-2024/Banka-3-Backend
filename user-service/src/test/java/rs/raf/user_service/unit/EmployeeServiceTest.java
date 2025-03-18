@@ -15,8 +15,10 @@ import rs.raf.user_service.domain.dto.CreateEmployeeDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
 import rs.raf.user_service.domain.entity.Employee;
+import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.EmployeeService;
 
@@ -37,6 +39,8 @@ class EmployeeServiceTest {
     private AuthTokenRepository authTokenRepository;
     @Mock
     private RabbitTemplate rabbitTemplate;
+    @Mock
+    private RoleRepository roleRepository;
 
     @InjectMocks
     private EmployeeService employeeService;
@@ -216,6 +220,11 @@ class EmployeeServiceTest {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(1990, 1, 20, 0, 0, 0);
         Date birthDate = calendar.getTime();
+
+        Role expectedRole = new Role();
+        expectedRole.setId(2L);
+        expectedRole.setName("EMPLOYEE");
+        when(roleRepository.findByName(any())).thenReturn(Optional.of(expectedRole));
 
         employeeService.createEmployee(new CreateEmployeeDto(firstName, lastName, birthDate, gender, email, active, phone, address,
                 username, position, department, jmbg)

@@ -13,4 +13,14 @@ public class AuthorizedPersonelDto {
     private String phoneNumber;
     private String address;
     private Long companyId;
+
+    public AuthorizedPersonelDto(Long id, String firstName, String lastName, Long companyId) {
+    this.id = id;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.companyId = companyId;
+
+
+
+    }
 }

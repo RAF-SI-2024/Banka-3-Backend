@@ -11,6 +11,7 @@
 
     <groupId>rs.raf.banka-3</groupId>
     <artifactId>email-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
 
     <dependencies>
         <dependency>

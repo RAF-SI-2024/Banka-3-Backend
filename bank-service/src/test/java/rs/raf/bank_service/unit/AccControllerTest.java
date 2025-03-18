@@ -28,23 +28,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
 public class AccControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Long validRequestId = 1L;
+    private final String validAccountNumber = "123456789123456789";  // Changed from accountId to accountNumber
     @Mock
     AccountRepository accountRepository;
     private MockMvc mockMvc;
     @Mock
     private AccountService accountService;
     @Mock
-    private UserClient userClient;  // Ispravno mockovan UserClient
+    private UserClient userClient;  // Mocked UserClient correctly
     @Mock
     private ChangeLimitRequestRepository changeLimitRequestRepository;
     private String validEmail;
     @InjectMocks
     private AccountController accountController;
-    private Long validAccountId;
     private String validNewName;
     private BigDecimal validNewLimit;
 
@@ -53,131 +51,125 @@ public class AccControllerTest {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
 
-        validAccountId = 1L;
         validNewName = "Updated Account";
         validNewLimit = new BigDecimal("5000");
         validEmail = "client@example.com";
     }
 
-    //  Uspešna promena imena
     @Test
     void changeAccountName_Success() throws Exception {
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
+        String authorizationHeader = "Bearer token";
 
-        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", validAccountNumber)
+                        .header("Authorization", authorizationHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Account name updated successfully"));
 
-        verify(accountService, times(1)).changeAccountName(validAccountId, validNewName);
+        verify(accountService, times(1)).changeAccountName(validAccountNumber, validNewName, authorizationHeader);
     }
 
-    //  FIX: Promena imena - račun nije pronađen
+    //  FIX: Name change - account not found
     @Test
     void changeAccountName_AccountNotFound() throws Exception {
+        String authorizationHeader = "Bearer token";
         doThrow(new AccNotFoundException("Account not found"))
-                .when(accountService).changeAccountName(validAccountId, validNewName);
+                .when(accountService).changeAccountName(validAccountNumber, validNewName, authorizationHeader);  // Changed accountId to accountNumber
 
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
 
-        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", validAccountNumber)
+                        .header("Authorization", authorizationHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound());  // Trebalo bi da vraća 404
+                .andExpect(status().isNotFound())  // Should return 404
+                .andExpect(content().string("Account not found"));
 
-        verify(accountService, times(1)).changeAccountName(validAccountId, validNewName);
+        verify(accountService, times(1)).changeAccountName(validAccountNumber, validNewName, authorizationHeader);
     }
 
-    // Promena imena - duplikat imena
+    // Name change - duplicate name
     @Test
     void changeAccountName_DuplicateName() throws Exception {
+        String authorizationHeader = "Bearer token";
         doThrow(new DuplicateAccountNameException("Account name already in use"))
-                .when(accountService).changeAccountName(validAccountId, validNewName);
+                .when(accountService).changeAccountName(validAccountNumber, validNewName, authorizationHeader);  // Changed accountId to accountNumber
 
         ChangeAccountNameDto request = new ChangeAccountNameDto(validNewName);
 
-        mockMvc.perform(put("/api/account/{id}/change-name", validAccountId)
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", validAccountNumber)
+                        .header("Authorization", authorizationHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Account name already in use"));
 
-
-        verify(accountService, times(1)).changeAccountName(validAccountId, validNewName);
+        verify(accountService, times(1)).changeAccountName(validAccountNumber, validNewName, authorizationHeader);
     }
 
-
-    // ✅ 1. Uspešno kreiranje zahteva za promenu limita
+    // ✅ 1. Successful limit change request
     @Test
     void requestChangeAccountLimit_Success() throws Exception {
+        String authorizationHeader = "Bearer token";
         ChangeAccountLimitDto request = new ChangeAccountLimitDto(validNewLimit);
 
-        mockMvc.perform(put("/api/account/{id}/request-change-limit", validRequestId)
+        mockMvc.perform(put("/api/account/{accountNumber}/request-change-limit", validAccountNumber)// Changed accountId to accountNumber
+                        .header("Authorization", authorizationHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Limit change request saved. Awaiting approval."));
     }
 
-    // ❌ 2. Pokušaj promene limita sa nevalidnom vrednošću
+    // ❌ 2. Invalid limit change request
     @Test
     void requestChangeAccountLimit_InvalidLimit() throws Exception {
         ChangeAccountLimitDto request = new ChangeAccountLimitDto(BigDecimal.ZERO);
 
-        String authHeader = "Bearer valid.jwt.token"; // Simulacija validnog JWT tokena
+        String authHeader = "Bearer valid.jwt.token"; // Simulated valid JWT token
 
         doThrow(new InvalidLimitException())
                 .when(accountService)
-                .requestAccountLimitChange(validRequestId, validEmail, BigDecimal.ZERO, authHeader);
+                .requestAccountLimitChange(validAccountNumber, BigDecimal.ZERO, authHeader);  // Changed accountId to accountNumber
 
-        mockMvc.perform(put("/api/account/{id}/request-change-limit", validRequestId)
-                        .header("Authorization", authHeader)  // Dodajemo Authorization header
+        mockMvc.perform(put("/api/account/{accountNumber}/request-change-limit", validAccountNumber)  // Changed accountId to accountNumber
+                        .header("Authorization", authHeader)  // Add Authorization header
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
-    // ❌ 3. Pokušaj promene limita kada zahtev ne postoji
+    // ❌ 3. Request not found for limit change
     @Test
     void requestChangeAccountLimit_RequestNotFound() throws Exception {
-        Long invalidRequestId = 999L;
+        Long invalidRequestNumber = 1L;
         ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(new BigDecimal("5000"));
 
         doThrow(new IllegalStateException("No pending limit change request found"))
-                .when(accountService).changeAccountLimit(invalidRequestId);
+                .when(accountService).changeAccountLimit(invalidRequestNumber);  // Changed accountId to accountNumber
 
-        mockMvc.perform(put("/api/account/{id}/change-limit", invalidRequestId)
+        mockMvc.perform(put("/api/account/{accountNumber}/change-limit", invalidRequestNumber)  // Changed accountId to accountNumber
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))  // ✅ Mora imati telo
+                        .content(objectMapper.writeValueAsString(requestDto)))  // ✅ It must have a body
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("No pending limit change request found"));
     }
 
-    // ❌ 4. Pokušaj promene limita kada nalog ne postoji
+    // ❌ 4. Account not found during limit change
     @Test
     void requestChangeAccountLimit_AccountNotFound() throws Exception {
-        Long invalidRequestId = 999L;
+        Long invalidRequestNumber = 1L;
         ChangeAccountLimitDto requestDto = new ChangeAccountLimitDto(new BigDecimal("5000"));
 
         doThrow(new AccountNotFoundException())
-                .when(accountService).changeAccountLimit(invalidRequestId); // ✅ Ispravljeno - prosleđujemo samo accountId
+                .when(accountService).changeAccountLimit(invalidRequestNumber);  // Changed accountId to accountNumber
 
-        mockMvc.perform(put("/api/account/{id}/change-limit", invalidRequestId)
+        mockMvc.perform(put("/api/account/{accountNumber}/change-limit", invalidRequestNumber)  // Changed accountId to accountNumber
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto))) // ✅ Dodato JSON telo
-                .andExpect(status().isNotFound()) // Očekujemo 404
+                        .content(objectMapper.writeValueAsString(requestDto)))  // ✅ Added JSON body
+                .andExpect(status().isNotFound())  // Expecting 404
                 .andExpect(content().string("Account not found"));
     }
-
 }
-
-
-
-
-
-
-
-
-
-

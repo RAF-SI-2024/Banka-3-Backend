@@ -1,5 +1,6 @@
 package rs.raf.bank_service.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,11 +21,11 @@ import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -40,45 +41,46 @@ public class AccountService {
     private final JwtTokenUtil jwtTokenUtil;
     @Autowired
     private final UserClient userClient;
+    private final ObjectMapper objectMapper;
 
     public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
 
-            Specification<Account> spec = Specification
-                            .where(AccountSearchSpecification.accountNumberContains(accountNumber));
-            List<Account> accounts = accountRepository.findAll(spec);
+        Specification<Account> spec = Specification
+                .where(AccountSearchSpecification.accountNumberContains(accountNumber));
+        List<Account> accounts = accountRepository.findAll(spec);
 
-            List<AccountDto> accountDtos = accounts.stream().map(account -> {
-                    ClientDto client = userClient.getClientById(account.getClientId());
-                    return AccountMapper.toDto(account, client);
-            }).collect(Collectors.toList());
+        List<AccountDto> accountDtos = accounts.stream().map(account -> {
+            ClientDto client = userClient.getClientById(account.getClientId());
+            return AccountMapper.toDto(account, client);
+        }).collect(Collectors.toList());
 
-            if (firstName != null && !firstName.isEmpty()) {
-                    accountDtos = accountDtos.stream()
-                                    .filter(dto -> dto.getOwner() != null &&
-                                                    dto.getOwner().getFirstName() != null &&
-                                                    dto.getOwner().getFirstName().toLowerCase()
-                                                                    .contains(firstName.toLowerCase()))
-                                    .collect(Collectors.toList());
-            }
+        if (firstName != null && !firstName.isEmpty()) {
+            accountDtos = accountDtos.stream()
+                    .filter(dto -> dto.getOwner() != null &&
+                            dto.getOwner().getFirstName() != null &&
+                            dto.getOwner().getFirstName().toLowerCase()
+                                    .contains(firstName.toLowerCase()))
+                    .collect(Collectors.toList());
+        }
 
-            if (lastName != null && !lastName.isEmpty()) {
-                    accountDtos = accountDtos.stream()
-                                    .filter(dto -> dto.getOwner() != null &&
-                                                    dto.getOwner().getLastName() != null &&
-                                                    dto.getOwner().getLastName().toLowerCase()
-                                                                    .contains(lastName.toLowerCase()))
-                                    .collect(Collectors.toList());
-            }
+        if (lastName != null && !lastName.isEmpty()) {
+            accountDtos = accountDtos.stream()
+                    .filter(dto -> dto.getOwner() != null &&
+                            dto.getOwner().getLastName() != null &&
+                            dto.getOwner().getLastName().toLowerCase()
+                                    .contains(lastName.toLowerCase()))
+                    .collect(Collectors.toList());
+        }
 
-            accountDtos.sort(Comparator
-                            .comparing(dto -> dto.getOwner() != null && dto.getOwner().getLastName() != null
-                                            ? dto.getOwner().getLastName()
-                                            : ""));
+        accountDtos.sort(Comparator
+                .comparing(dto -> dto.getOwner() != null && dto.getOwner().getLastName() != null
+                        ? dto.getOwner().getLastName()
+                        : ""));
 
-            int start = (int) pageable.getOffset();
-            int end = Math.min(start + pageable.getPageSize(), accountDtos.size());
-            List<AccountDto> pageContent = accountDtos.subList(start, end);
-            return new PageImpl<>(pageContent, pageable, accountDtos.size());
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), accountDtos.size());
+        List<AccountDto> pageContent = accountDtos.subList(start, end);
+        return new PageImpl<>(pageContent, pageable, accountDtos.size());
     }
 
     public Page<AccountDto> getAccountsForClient(String accountNumber, Long clientId, Pageable pageable) {
@@ -86,58 +88,58 @@ public class AccountService {
 
         Specification<Account> spec = Specification
                 .where(AccountSearchSpecification.accountNumberContains(accountNumber)
-                .and(AccountSearchSpecification.clientIs(clientId)));
+                        .and(AccountSearchSpecification.clientIs(clientId)));
         Page<Account> accounts = accountRepository.findAll(spec, pageable);
 
         return accounts.map(account -> AccountMapper.toDto(account, client));
     }
 
-        public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
-                Long userId = newBankAccountDto.getClientId();
-                ClientDto clientDto = userClient.getClientById(userId);
-                if (clientDto == null)
-                        throw new ClientNotFoundException(userId);
-                Account newAccount;
-                if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
-                        newAccount = new CompanyAccount();
-                        ((CompanyAccount) newAccount).setCompanyId(newBankAccountDto.getCompanyId());
-                } else
-                        newAccount = new PersonalAccount();
+    public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
+        Long userId = newBankAccountDto.getClientId();
+        ClientDto clientDto = userClient.getClientById(userId);
+        if (clientDto == null)
+            throw new ClientNotFoundException(userId);
+        Account newAccount;
+        if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
+            newAccount = new CompanyAccount();
+            ((CompanyAccount) newAccount).setCompanyId(newBankAccountDto.getCompanyId());
+        } else
+            newAccount = new PersonalAccount();
 
-                newAccount.setClientId(newBankAccountDto.getClientId());
-                newAccount.setCreatedByEmployeeId(newBankAccountDto.getEmployeeId());
-                newAccount.setCreationDate(LocalDate.ofEpochDay(Instant.now().getEpochSecond()));
-                System.out.println(newBankAccountDto.getCurrency());
-                Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency())
-                                .orElseThrow(() -> new CurrencyNotFoundException(newBankAccountDto.getCurrency()));
-                newAccount.setCurrency(currCurrency);
-                newAccount.setStatus(AccountStatus.valueOf(newBankAccountDto.getIsActive()));
-                newAccount.setType(AccountType.valueOf(newBankAccountDto.getAccountType()));
-                newAccount.setAccountOwnerType(AccountOwnerType.valueOf(newBankAccountDto.getAccountOwnerType()));
-                newAccount.setBalance(newBankAccountDto.getInitialBalance());
-                newAccount.setAvailableBalance(newBankAccountDto.getInitialBalance());
-                newAccount.setDailyLimit(newBankAccountDto.getDailyLimit());
-                newAccount.setMonthlyLimit(newBankAccountDto.getMonthlyLimit());
-                newAccount.setDailySpending(newBankAccountDto.getDailySpending());
-                newAccount.setMonthlySpending(newBankAccountDto.getMonthlySpending());
+        newAccount.setClientId(newBankAccountDto.getClientId());
+        newAccount.setCreatedByEmployeeId(newBankAccountDto.getEmployeeId());
+        newAccount.setCreationDate(LocalDate.ofEpochDay(Instant.now().getEpochSecond()));
+        System.out.println(newBankAccountDto.getCurrency());
+        Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency())
+                .orElseThrow(() -> new CurrencyNotFoundException(newBankAccountDto.getCurrency()));
+        newAccount.setCurrency(currCurrency);
+        newAccount.setStatus(AccountStatus.valueOf(newBankAccountDto.getIsActive()));
+        newAccount.setType(AccountType.valueOf(newBankAccountDto.getAccountType()));
+        newAccount.setAccountOwnerType(AccountOwnerType.valueOf(newBankAccountDto.getAccountOwnerType()));
+        newAccount.setBalance(newBankAccountDto.getInitialBalance());
+        newAccount.setAvailableBalance(newBankAccountDto.getInitialBalance());
+        newAccount.setDailyLimit(newBankAccountDto.getDailyLimit());
+        newAccount.setMonthlyLimit(newBankAccountDto.getMonthlyLimit());
+        newAccount.setDailySpending(newBankAccountDto.getDailySpending());
+        newAccount.setMonthlySpending(newBankAccountDto.getMonthlySpending());
 
-                String random = String.format("%09d", ThreadLocalRandom.current().nextInt(0, 1_000_000_000));
-                String accountOwnerTypeNumber = "";
-                switch (newBankAccountDto.getAccountOwnerType()) {
-                        case "PERSONAL" -> accountOwnerTypeNumber = "11";
-                        case "COMPANY" -> accountOwnerTypeNumber = "12";
-                        case "SAVINGS" -> accountOwnerTypeNumber = "13";
-                        case "RETIREMENT" -> accountOwnerTypeNumber = "14";
-                        case "YOUTH" -> accountOwnerTypeNumber = "15";
-                        case "STUDENT" -> accountOwnerTypeNumber = "16";
-                        case "UNEMPLOYED" -> accountOwnerTypeNumber = "17";
-                }
-
-                String accountNumber = "3330001" + random + accountOwnerTypeNumber;
-                newAccount.setAccountNumber(accountNumber);
-
-                accountRepository.save(newAccount);
+        String random = String.format("%09d", ThreadLocalRandom.current().nextInt(0, 1_000_000_000));
+        String accountOwnerTypeNumber = "";
+        switch (newBankAccountDto.getAccountOwnerType()) {
+            case "PERSONAL" -> accountOwnerTypeNumber = "11";
+            case "COMPANY" -> accountOwnerTypeNumber = "12";
+            case "SAVINGS" -> accountOwnerTypeNumber = "13";
+            case "RETIREMENT" -> accountOwnerTypeNumber = "14";
+            case "YOUTH" -> accountOwnerTypeNumber = "15";
+            case "STUDENT" -> accountOwnerTypeNumber = "16";
+            case "UNEMPLOYED" -> accountOwnerTypeNumber = "17";
         }
+
+        String accountNumber = "3330001" + random + accountOwnerTypeNumber;
+        newAccount.setAccountNumber(accountNumber);
+
+        accountRepository.save(newAccount);
+    }
 
     public List<AccountDto> getMyAccounts(Long clientId) {
         try {
@@ -166,54 +168,53 @@ public class AccountService {
                 accountDetailsDto = AccountMapper.toDetailsDto(account);
                 accountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
             } else {
-                accountDetailsDto = AccountMapper.toCompanyDetailsDto(account);
-                CompanyAccountDetailsDto companyAccountDetailsDto = (CompanyAccountDetailsDto) accountDetailsDto;
-
                 CompanyAccount companyAccount = (CompanyAccount) account;
                 CompanyDto companyDto = userClient.getCompanyById(companyAccount.getCompanyId());
+
+                // Dohvati ovlašćenog korisnika ako postoji
+                AuthorizedPersonelDto authorizedPersonnelDto = null;
+                if (companyAccount.getAuthorizedPersonId() != null) {
+                    authorizedPersonnelDto = userClient.getAuthorizedPersonnelById(companyAccount.getAuthorizedPersonId());
+                }
+
+                //  Prosledimo dodatni parametar u mapper
+                CompanyAccountDetailsDto companyAccountDetailsDto = AccountMapper.toCompanyDetailsDto(
+                        companyAccount,
+                        companyDto,
+                        authorizedPersonnelDto
+                );
+
 
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
                 companyAccountDetailsDto.setTaxId(companyDto.getTaxId());
                 companyAccountDetailsDto.setAddress(companyDto.getAddress());
+
+                accountDetailsDto = companyAccountDetailsDto;
             }
+
             return accountDetailsDto;
         } catch (FeignException.NotFound e) {
             throw new UserNotAClientException();
         }
     }
 
-    //Verovatno ce da ide u TransactionService ali ne znam jer nemam Transaction entitet
-    public void getAccountTransactions(Long clientId, String accountNumber) {
-        try {
-            ClientDto clientDto = userClient.getClientById(clientId);
-            Account account = accountRepository.findByAccountNumber(accountNumber)
-                    .orElseThrow(AccountNotFoundException::new);
 
-            if (!clientDto.getId().equals(account.getClientId()))
-                throw new ClientNotAccountOwnerException();
+    public void changeAccountName(String accountNumber, String newName, String authHeader) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-            //Nemam entitet za transakciju tako da ovde stajem
-        } catch (FeignException.NotFound e) {
-            throw new UserNotAClientException();
-        }
-    }
-
-
-    public void changeAccountName(Long accountId, String newName) {
-        Account account = accountRepository.findById(accountId)
+        Account account = accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
-        System.out.println(">>> Account found: Current Name = " + account.getAccountNumber());
+        System.out.println(">>> Account found: Current Name = " + account.getName());
 
-        // Ako je novo ime isto kao staro, nema potrebe za promenom
-        if (account.getAccountNumber().equals(newName)) {
-            System.out.println(">>> New name is the same as the current name. No changes made.");
+        if (account.getName().equals(newName)) {
+            System.out.println(">>> No change needed. Account name is already the same.");
             return;
         }
 
         // Proveravamo postoji li ime već u bazi
-        boolean exists = accountRepository.existsByAccountNumberAndClientId(newName, account.getClientId());
+        boolean exists = accountRepository.existsByNameAndClientId(newName, account.getClientId());
         System.out.println(">>> Checking if account name '" + newName + "' already exists for client ID " + account.getClientId() + ": " + exists);
 
         if (exists) {
@@ -221,24 +222,22 @@ public class AccountService {
             throw new DuplicateAccountNameException("Account name already in use");
         }
 
-        System.out.println(">>> Changing account name from '" + account.getAccountNumber() + "' to '" + newName + "'");
-        account.setAccountNumber(newName);
+        System.out.println(">>> Changing account name from '" + account.getName() + "' to '" + newName + "'");
+        account.setName(newName);
         accountRepository.save(account);
 
         System.out.println(">>> SUCCESS: Account name changed to '" + newName + "'");
     }
 
-    public void requestAccountLimitChange(Long accountId, String email, BigDecimal newLimit, String authHeader) {
+    public void requestAccountLimitChange(String accountNumber, BigDecimal newLimit, String authHeader) throws JsonProcessingException {
         if (newLimit.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Limit must be greater than zero");
         }
 
-        log.info(">>> Checking if account with id {} exists...", accountId);
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AccNotFoundException("Account not found"));
-
-
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        Account account = accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
 
         if (!account.getClientId().equals(clientId)) {
@@ -246,14 +245,22 @@ public class AccountService {
         }
 
 
-        ChangeLimitRequest request = new ChangeLimitRequest(accountId, newLimit);
+        ChangeLimitRequest request = new ChangeLimitRequest(accountNumber, newLimit);
         changeLimitRequestRepository.save(request);
+
+
+        ChangeAccountLimitDetailsDto changeAccountLimitDetailsDto = ChangeAccountLimitDetailsDto.builder()
+                .accountNumber(account.getAccountNumber())
+                .oldLimit(account.getDailyLimit())
+                .newLimit(newLimit)
+                .build();
 
 
         CreateVerificationRequestDto verificationRequest = CreateVerificationRequestDto.builder()
                 .userId(clientId)
                 .targetId(request.getId())
                 .verificationType(VerificationType.CHANGE_LIMIT)
+                .details(objectMapper.writeValueAsString(changeAccountLimitDetailsDto))
                 .build();
 
         userClient.createVerificationRequest(verificationRequest);
@@ -269,7 +276,7 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalStateException("No pending limit change request found"));
 
 
-        Account account = accountRepository.findById(request.getAccountId())
+        Account account = accountRepository.findByAccountNumber(request.getAccountNumber())
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
 
@@ -284,4 +291,38 @@ public class AccountService {
         log.info("Account limit updated successfully for account {}", account.getAccountNumber());
     }
 
+    public void setAuthorizedPerson(Long accountId, Long authorizedPersonId, Long employeeId) {
+
+        System.out.println("Pozvana metoda setAuthorizedPerson sa companyAccountId: " + accountId +
+                ", authorizedPersonId: " + authorizedPersonId + ", employeeId: " + employeeId);
+
+
+        CompanyAccount companyAccount = (CompanyAccount) accountRepository.findById(accountId)
+                .orElseThrow(AccountNotFoundException::new);
+
+        System.out.println("Pronađen račun: " + companyAccount.getAccountNumber());
+
+        //  Proveri da li je korisnik vlasnik firme
+        CompanyDto companyDto = userClient.getCompanyById(companyAccount.getCompanyId());
+        if (!companyDto.getMajorityOwner().getId().equals(employeeId)) {
+            throw new UnauthorizedException("Only the company owner can set an authorized person.");
+        }
+        System.out.println("Korisnik sa id-em: " + employeeId + " je vlasnik firme.");
+
+        //  Provera da li ovlašćeno lice pripada istoj firmi
+        List<AuthorizedPersonelDto> personnelList = userClient.getAuthorizedPersonnelByCompany(companyAccount.getCompanyId());
+        AuthorizedPersonelDto authorizedPerson = personnelList.stream()
+                .filter(person -> person.getId().equals(authorizedPersonId))
+                .findFirst()
+                .orElseThrow(InvalidAuthorizedPersonException::new);
+
+        System.out.println("Pronađeno ovlašćeno lice: " + authorizedPerson.getFirstName() + " " + authorizedPerson.getLastName());
+
+        //  Postavi authorizedPersonId i sačuvaj
+        companyAccount.setAuthorizedPersonId(authorizedPerson.getId());
+        accountRepository.save(companyAccount);
+
+        System.out.println("Uspešno postavljeno ovlašćeno lice " + authorizedPerson.getFirstName() + " za račun " + accountId);
+
+    }
 }

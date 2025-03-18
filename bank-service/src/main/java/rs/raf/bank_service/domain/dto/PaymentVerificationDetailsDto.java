@@ -1,6 +1,5 @@
 package rs.raf.bank_service.domain.dto;
 
-
 import lombok.Builder;
 import lombok.Data;
 

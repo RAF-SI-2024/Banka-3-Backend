@@ -1,4 +1,4 @@
-package rs.raf.bank_service.mappers;
+package rs.raf.bank_service.domain.mapper;
 
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.LoanDto;
@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 public class LoanMapper {
     public LoanDto toDto(Loan loan) {
         return LoanDto.builder()
+                .id(loan.getId())
                 .loanNumber(loan.getLoanNumber())
                 .type(loan.getType())
                 .amount(loan.getAmount())
@@ -28,17 +29,15 @@ public class LoanMapper {
                 .build();
     }
 
-    public List<LoanDto> toDtoList(List<Loan> loans) {
-        return loans.stream().map(this::toDto).collect(Collectors.toList());
-    }
-
     public LoanShortDto toShortDto(Loan loan) {
-        return LoanShortDto.builder().loanNumber(loan.getLoanNumber()).type(loan.getType()).amount(loan.getAmount()).build();
+        return LoanShortDto.builder()
+                .id(loan.getId())
+                .loanNumber(loan.getLoanNumber())
+                .type(loan.getType())
+                .amount(loan.getAmount())
+                .build();
     }
 
-    public List<LoanShortDto> toShortDtoList(List<Loan> loans) {
-        return loans.stream().map(this::toShortDto).collect(Collectors.toList());
-    }
 
     public Loan toEntity(LoanDto loanDto) {
         Loan loan = new Loan();

@@ -2,6 +2,9 @@ package rs.raf.bank_service.client;
 
 import feign.FeignException;
 import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.*;
 
@@ -43,6 +46,37 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 // Fallback logika - ne radi ništa, ali možemo logovati
                 System.err.println("Fallback: createVerificationRequest failed.");
             }
+
+            @Override
+            public LoginResponseDto employeeLogin(LoginRequestDto request) {
+                return null;
+            }
+
+            @Override
+            public ClientDto addClient(CreateClientDto createClientDto) {
+                return null;
+            }
+
+            @Override
+            public void activateUser(ActivationRequestDto activationRequestDto) {
+
+            }
+
+            @Override
+            public ResponseEntity<Page<ClientDto>> getAllClients(String firstName, String lastName, String email, int page, int size) {
+                return null;
+            }
+
+            @Override
+            public LoginResponseDto clientLogin(LoginRequestDto request) {
+                return null;
+            }
+
+            @Override
+            public AuthorizedPersonelDto getAuthorizedPersonnelById(Long id) {
+                return null;
+            }
+
 
         };
     }

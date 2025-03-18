@@ -23,6 +23,8 @@ public class BootstrapData implements CommandLineRunner {
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateRepository exchangeRateRepository;
+    private final LoanRepository loanRepository;
+    private final LoanRequestRepository loanRequestRepository;
 
     @Override
     public void run(String... args) {
@@ -56,6 +58,26 @@ public class BootstrapData implements CommandLineRunner {
                 .type(AccountType.CURRENT)
                 .accountOwnerType(AccountOwnerType.PERSONAL)
                 .build();
+
+        // Kreiramo račune za klijente
+        PersonalAccount foreignAccount1 = PersonalAccount.builder()
+                .accountNumber("311111111111111111")
+                .clientId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(1))
+                .expirationDate(LocalDate.now().plusYears(5))
+                .currency(currencyUSD)
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(1000))
+                .availableBalance(BigDecimal.valueOf(1000))
+                .dailyLimit(BigDecimal.valueOf(500))
+                .monthlyLimit(BigDecimal.valueOf(5000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.FOREIGN)
+                .accountOwnerType(AccountOwnerType.PERSONAL)
+                .build();
+
 
         PersonalAccount currentAccount2 = PersonalAccount.builder()
                 .accountNumber("211111111111111111")
@@ -249,10 +271,29 @@ public class BootstrapData implements CommandLineRunner {
                 .accountOwnerType(AccountOwnerType.COMPANY)
                 .build();
 
+        CompanyAccount bankAccountState = CompanyAccount.builder()
+                .accountNumber("333000100000897612")
+                .clientId(null)
+                .companyId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(2))
+                .expirationDate(LocalDate.now().plusYears(3))
+                .currency(currencyRSD)
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(50000000))
+                .availableBalance(BigDecimal.valueOf(50000000))
+                .dailyLimit(BigDecimal.valueOf(2000000))
+                .monthlyLimit(BigDecimal.valueOf(10000000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.CURRENT)
+                .accountOwnerType(AccountOwnerType.COMPANY)
+                .build();
+
         accountRepository.saveAll(java.util.List.of(
-                currentAccount1, currentAccount2, foreignAccount,
+                currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
                 bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
-                bankAccountGBP, bankAccountCAD, bankAccountAUD
+                bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState
         ));
 
         // Kreiramo kartice
@@ -286,49 +327,49 @@ public class BootstrapData implements CommandLineRunner {
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyEUR)
                 .exchangeRate(new BigDecimal("0.008540"))
-                .sellRate(new BigDecimal("0.008625"))
+                .sellRate(new BigDecimal("0.008540").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToUsd = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyUSD)
                 .exchangeRate(new BigDecimal("0.009257"))
-                .sellRate(new BigDecimal("0.009350"))
+                .sellRate(new BigDecimal("0.009257").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToChf = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyCHF)
                 .exchangeRate(new BigDecimal("0.008129"))
-                .sellRate(new BigDecimal("0.008210"))
+                .sellRate(new BigDecimal("0.008129").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToJpy = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyJPY)
                 .exchangeRate(new BigDecimal("1.363100"))
-                .sellRate(new BigDecimal("1.376731"))
+                .sellRate(new BigDecimal("1.363100").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToCad = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyCAD)
                 .exchangeRate(new BigDecimal("0.013350"))
-                .sellRate(new BigDecimal("0.013484"))
+                .sellRate(new BigDecimal("0.013350").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToAud = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyAUD)
                 .exchangeRate(new BigDecimal("0.014670"))
-                .sellRate(new BigDecimal("0.014817"))
+                .sellRate(new BigDecimal("0.014670").multiply(new BigDecimal("0.995")))
                 .build();
 
         ExchangeRate rsdToGbp = ExchangeRate.builder()
                 .fromCurrency(currencyRSD)
                 .toCurrency(currencyGBP)
                 .exchangeRate(new BigDecimal("0.007172"))
-                .sellRate(new BigDecimal("0.007244"))
+                .sellRate(new BigDecimal("0.007172").multiply(new BigDecimal("0.995")))
                 .build();
 
         List<ExchangeRate> exchangeRates = java.util.List.of(
@@ -342,12 +383,68 @@ public class BootstrapData implements CommandLineRunner {
                     .fromCurrency(exchangeRate.getToCurrency())
                     .toCurrency(exchangeRate.getFromCurrency())
                     .exchangeRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP))
-                    .sellRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP).multiply(new BigDecimal("1.01")))
+                    .sellRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP).multiply(new BigDecimal("0.995")))
                     .build());
         }
 
         exchangeRateRepository.saveAll(exchangeRates);
         exchangeRateRepository.saveAll(exchangeRates2);
         // Test kursna lista da ne trosimo API pozive
+
+
+        // Kreiranje primera zahteva za kredit
+        LoanRequest loanRequest = LoanRequest.builder()
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .purpose("Kupovina automobila")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        LoanRequest loanRequest2 = LoanRequest.builder()
+                .type(LoanType.CASH)
+                .amount(new BigDecimal("300000"))
+                .purpose("Kupovina necega")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.PENDING)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        loanRequestRepository.save(loanRequest);
+        loanRequestRepository.save(loanRequest2);
+
+        // Kreiranje primera odobrenog kredita
+        Loan loan = Loan.builder()
+                .loanNumber("d7742918-4b78-44eb-93b7-25adfd5123e9")
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .repaymentPeriod(24)
+                .nominalInterestRate(new BigDecimal("5.5"))
+                .effectiveInterestRate(new BigDecimal("6.0"))
+                .startDate(LocalDate.now())
+                .dueDate(LocalDate.now().plusMonths(24))
+                .nextInstallmentAmount(new BigDecimal("220"))
+                .nextInstallmentDate(LocalDate.now().plusMonths(1))
+                .remainingDebt(new BigDecimal("500000"))
+                .currency(currencyRSD)
+                .status(LoanStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .account(currentAccount1)
+                .build();
+
+        loanRepository.save(loan);
     }
 }

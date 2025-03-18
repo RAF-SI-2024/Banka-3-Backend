@@ -64,7 +64,7 @@ public class ServiceExchangeRatesUnitTest {
         ExchangeRateDto result = exchangeRateService.getExchangeRate("RSD", "EUR");
 
         assertNotNull(result);
-        assertEquals(new BigDecimal("118.0"), result.getExchangeRate());  // Koristi prodajni kurs bez dodatne provizije
+        assertEquals(new BigDecimal("117.5"), result.getExchangeRate());  // Koristi prodajni kurs bez dodatne provizije
     }
 
     /**
@@ -127,7 +127,7 @@ public class ServiceExchangeRatesUnitTest {
         BigDecimal result = exchangeRateService.convert(convertDto);
 
         assertNotNull(result);
-        assertEquals(new BigDecimal("8.600000").setScale(4, RoundingMode.HALF_UP), result); // 1000 * 0.0086
+        assertEquals(new BigDecimal("8.500000").setScale(4, RoundingMode.HALF_UP), result); // 1000 * 0.0086
     }
 
     /**
@@ -146,4 +146,3 @@ public class ServiceExchangeRatesUnitTest {
         assertThrows(ExchangeRateNotFoundException.class, () -> exchangeRateService.convert(convertDto));
     }
 }
-

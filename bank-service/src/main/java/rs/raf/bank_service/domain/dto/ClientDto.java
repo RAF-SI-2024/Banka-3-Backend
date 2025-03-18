@@ -15,4 +15,10 @@ public class ClientDto {
     private String firstName;
     private String lastName;
     private String email;
+
+    public ClientDto(long id, String firstName, String lastName) {
+        this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }

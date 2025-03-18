@@ -20,7 +20,7 @@ import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicateAccountNameException;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
-
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -34,10 +34,13 @@ public class AccServiceTest {
     private ChangeLimitRequestRepository changeLimitRequestRepository;
 
     @Mock
-    private UserClient userClient; // Novi naziv Feign Clienta
+    private UserClient userClient;
 
     @InjectMocks
-    private AccountService accService; // Novi naziv servisa
+    private AccountService accService;
+
+    @Mock
+    private JwtTokenUtil jwtTokenUtil;
 
     @BeforeEach
     void setUp() {
@@ -45,77 +48,84 @@ public class AccServiceTest {
     }
 
 
-    /// Uspešna promena imena naloga
     @Test
     void testChangeAccountName_Success() {
-        Long accountId = 1L;
-        String newName = "New Account Name";
+        String accountName = "Old Account name";
+        String newName = "New Account name";
+        String authHeader = "someAuthToken";
 
-        PersonalAccount account = new PersonalAccount(); // Zameni odgovarajućom klasom
-        account.setAccountNumber("123456789");
+        PersonalAccount account = new PersonalAccount();
+        account.setName(accountName);
         account.setClientId(5L);
 
         ClientDto clientDto = new ClientDto();
         clientDto.setId(5L);
 
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-        when(accountRepository.existsByAccountNumberAndClientId(newName, account.getClientId())).thenReturn(false);
-        when(userClient.getClientById(account.getClientId())).thenReturn(clientDto);
 
-        accService.changeAccountName(accountId, newName);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(5L);
+        when(accountRepository.findByAccountNumberAndClientId(accountName, 5L))
+                .thenReturn(Optional.of(account));
+        when(accountRepository.existsByNameAndClientId(newName, account.getClientId()))
+                .thenReturn(false);
 
-        assertEquals(newName, account.getAccountNumber());
+
+        when(userClient.getClientById(account.getClientId()))
+                .thenReturn(clientDto);
+
+        accService.changeAccountName(accountName, newName, authHeader);
+
+        assertEquals(newName, account.getName());
+
         verify(accountRepository, times(1)).save(account);
     }
 
-    /// Pokušaj promene imena za nepostojeći nalog
+    // Pokušaj promene imena za nepostojeći nalog
     @Test
     void testChangeAccountName_AccountNotFound() {
-        Long accountId = 1L;
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+        String accountName = "Account_name";
+        when(accountRepository.findByAccountNumber(accountName)).thenReturn(Optional.empty());
 
-        assertThrows(AccNotFoundException.class, () -> accService.changeAccountName(accountId, "New Name"));
+        assertThrows(AccNotFoundException.class, () -> accService.changeAccountName(accountName, "New Name", ""));
     }
 
-    /// Pokušaj promene u ime koje već postoji
+   //  Pokušaj promene u ime koje već postoji
     @Test
     void testChangeAccountName_DuplicateName() {
-        Long accountId = 1L;
-        String newName = "Duplicate Name";
+        String accountName = "Old Account Name";
+        String newName = "New Account name";
 
         PersonalAccount account = new PersonalAccount();
-        account.setAccountNumber("123456789");
+        account.setName(accountName);
         account.setClientId(5L);
 
         ClientDto clientDto = new ClientDto();
         clientDto.setId(5L);
 
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-        when(accountRepository.existsByAccountNumberAndClientId(eq(newName), eq(account.getClientId()))).thenReturn(true);
+        when(jwtTokenUtil.getUserIdFromAuthHeader("")).thenReturn(account.getClientId());
+        when(accountRepository.findByAccountNumberAndClientId(accountName, 5L)).thenReturn(Optional.of(account));
+        when(accountRepository.existsByNameAndClientId(newName, account.getClientId())).thenReturn(true);
         when(userClient.getClientById(account.getClientId())).thenReturn(clientDto);
 
-        assertThrows(DuplicateAccountNameException.class, () -> accService.changeAccountName(accountId, newName));
+        assertThrows(DuplicateAccountNameException.class, () -> accService.changeAccountName(accountName, newName, ""));
     }
 
-
-
-
-    //  Pokušaj promene imena na isto ime
+    // Pokušaj promene imena na isto ime
     @Test
     void testChangeAccountName_SameName() {
-        Long accountId = 1L;
-        String existingName = "Same Name";
+        String accountName = "My raf account";
+        String existingName = "My raf account";
 
         PersonalAccount account = new PersonalAccount();
-        account.setAccountNumber(existingName);
+        account.setName(existingName);
         account.setClientId(5L);
 
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-        when(accountRepository.existsByAccountNumberAndClientId(existingName, account.getClientId())).thenReturn(false);
+        when(jwtTokenUtil.getUserIdFromAuthHeader("")).thenReturn(account.getClientId());
+        when(accountRepository.findByAccountNumberAndClientId(accountName, 5L)).thenReturn(Optional.of(account));
+        when(accountRepository.existsByNameAndClientId(existingName, account.getClientId())).thenReturn(false);
 
-        accService.changeAccountName(accountId, existingName);
+        accService.changeAccountName(accountName, existingName, "");
 
-        assertEquals(existingName, account.getAccountNumber());
+        assertEquals(existingName, account.getName());
         verify(accountRepository, never()).save(account);
     }
 
@@ -126,7 +136,7 @@ public class AccServiceTest {
 
         ChangeLimitRequest changeRequest = new ChangeLimitRequest();
         changeRequest.setId(requestId);
-        changeRequest.setAccountId(10L); // ID naloga
+        changeRequest.setAccountNumber("123456789");  // Changed to accountNumber
         changeRequest.setNewLimit(newLimit);
         changeRequest.setStatus(VerificationStatus.PENDING);
 
@@ -136,7 +146,7 @@ public class AccServiceTest {
 
         when(changeLimitRequestRepository.findById(requestId))
                 .thenReturn(Optional.of(changeRequest));
-        when(accountRepository.findById(changeRequest.getAccountId()))
+        when(accountRepository.findByAccountNumber(changeRequest.getAccountNumber()))
                 .thenReturn(Optional.of(account));
 
         accService.changeAccountLimit(requestId);
@@ -167,18 +177,15 @@ public class AccServiceTest {
 
         ChangeLimitRequest changeRequest = new ChangeLimitRequest();
         changeRequest.setId(requestId);
-        changeRequest.setAccountId(10L); // ID nepostojećeg naloga
+        changeRequest.setAccountNumber("123456789");  // Changed to accountNumber
         changeRequest.setNewLimit(newLimit);
         changeRequest.setStatus(VerificationStatus.PENDING);
 
         when(changeLimitRequestRepository.findById(requestId))
                 .thenReturn(Optional.of(changeRequest));
-        when(accountRepository.findById(changeRequest.getAccountId()))
+        when(accountRepository.findByAccountNumber(changeRequest.getAccountNumber()))
                 .thenReturn(Optional.empty());
 
         assertThrows(AccNotFoundException.class, () -> accService.changeAccountLimit(requestId));
     }
-
-
-
 }
