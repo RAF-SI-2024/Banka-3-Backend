@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,26 +19,21 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.AccountController;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
-import rs.raf.bank_service.exceptions.UserNotAClientException;
+import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.ExchangeRateService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -251,5 +247,145 @@ class AccountControllerTest {
 
         verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
     }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testGetAccountsForClient_Success() throws Exception {
+        Long clientId = 1L;
+        String accountNumber = "123456789012345678";
+
+        // Dummy account
+        AccountDto accountDto = new AccountDto();
+        accountDto.setAccountNumber(accountNumber);
+
+        Page<AccountDto> page = new PageImpl<>(List.of(accountDto));
+
+        when(accountService.getAccountsForClient(eq(accountNumber), eq(clientId), any(Pageable.class)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/account/{clientId}", clientId)
+                        .param("accountNumber", accountNumber)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].accountNumber").value(accountNumber));
+
+        verify(accountService).getAccountsForClient(eq(accountNumber), eq(clientId), any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testChangeAccountName_Success() throws Exception {
+        String accountNumber = "123456789012345678";
+        String authHeader = "Bearer valid-token";
+
+        ChangeAccountNameDto dto = new ChangeAccountNameDto();
+        dto.setNewName("My Savings");
+
+        // Mock da metoda prolazi bez exceptiona
+        doNothing().when(accountService).changeAccountName(eq(accountNumber), eq(dto.getNewName()), eq(authHeader));
+
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", accountNumber)
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("Account name updated successfully"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testChangeAccountName_DuplicateName() throws Exception {
+        String accountNumber = "123456789012345678";
+        String authHeader = "Bearer valid-token";
+
+        ChangeAccountNameDto dto = new ChangeAccountNameDto();
+        dto.setNewName("Duplicate Name");
+
+        doThrow(new DuplicateAccountNameException("Name already exists")).when(accountService)
+                .changeAccountName(eq(accountNumber), eq(dto.getNewName()), eq(authHeader));
+
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", accountNumber)
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$").value("Name already exists"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testChangeAccountName_AccountNotFound() throws Exception {
+        String accountNumber = "123456789012345678";
+        String authHeader = "Bearer valid-token";
+
+        ChangeAccountNameDto dto = new ChangeAccountNameDto();
+        dto.setNewName("New Name");
+
+        doThrow(new AccountNotFoundException()).when(accountService)
+                .changeAccountName(eq(accountNumber), eq(dto.getNewName()), eq(authHeader));
+
+        mockMvc.perform(put("/api/account/{accountNumber}/change-name", accountNumber)
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$").value("Account not found"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void testChangeAccountLimit_Success() throws Exception {
+        Long accountId = 1L;
+
+        doNothing().when(accountService).changeAccountLimit(accountId);
+
+        mockMvc.perform(put("/api/account/{id}/change-limit", accountId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("Account limit updated successfully"));
+
+        verify(accountService, times(1)).changeAccountLimit(accountId);
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testRequestChangeAccountLimit_Success() throws Exception {
+        String accountNumber = "123456789";
+        String authHeader = "Bearer valid-token";
+
+        ChangeAccountLimitDto dto = new ChangeAccountLimitDto();
+        dto.setNewLimit(new BigDecimal("1000.0"));
+
+        doNothing().when(accountService).requestAccountLimitChange(eq(accountNumber), eq(BigDecimal.valueOf(1000.0)), eq(authHeader));
+
+        mockMvc.perform(put("/api/account/{accountNumber}/request-change-limit", accountNumber)
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("Limit change request saved. Awaiting approval."));
+
+        verify(accountService, times(1)).requestAccountLimitChange(accountNumber, dto.getNewLimit(), authHeader);
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testRequestChangeAccountLimit_InvalidLimit() throws Exception {
+        String authHeader = "Bearer valid-token";
+
+        ChangeAccountLimitDto request = new ChangeAccountLimitDto();
+        request.setNewLimit(BigDecimal.valueOf(-100)); // Negativan limit da baci validation error
+
+        mockMvc.perform(put("/api/account/123456789/request-change-limit")
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(accountService);
+    }
+
 
 }
