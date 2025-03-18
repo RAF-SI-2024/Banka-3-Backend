@@ -38,5 +38,3 @@ public class EmployeeSearchSpecification {
                 cb.equal(cb.lower(root.join("role").get("name")), roleName.toLowerCase());
     }
 }
-
-

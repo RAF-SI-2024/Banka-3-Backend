@@ -33,7 +33,7 @@ public class CompanyController {
             companyService.createCompany(createCompanyDto);
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (ClientNotFoundException | ActivityCodeNotFoundException | CompanyRegNumExistsException |
-                 TaxIdAlreadyExistsException e) {
+                TaxIdAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
 

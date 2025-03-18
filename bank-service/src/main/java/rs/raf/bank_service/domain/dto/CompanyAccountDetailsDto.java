@@ -12,15 +12,17 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CompanyAccountDetailsDto extends AccountDetailsDto{
+public class CompanyAccountDetailsDto extends AccountDetailsDto {
 
     private String companyName;
     private String registrationNumber;
-    private String  taxId;
+    private String taxId;
     private String address;
+    private AuthorizedPersonelDto authorizedPerson;
 
-    public CompanyAccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance, BigDecimal reservedFunds,
-                                    BigDecimal balance){
+    public CompanyAccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance,
+                                    BigDecimal reservedFunds, BigDecimal balance, AuthorizedPersonelDto authorizedPerson) {
         super(name, accountNumber, accountType, availableBalance, reservedFunds, balance);
+        this.authorizedPerson = authorizedPerson;
     }
 }

@@ -49,6 +49,7 @@ class AuthorizedPersonelServiceTest {
         CreateAuthorizedPersonelDto createDto = new CreateAuthorizedPersonelDto();
         createDto.setFirstName("John");
         createDto.setLastName("Doe");
+//         createDto.setDateOfBirth(LocalDate.of(2000, 1, 1).toEpochDay());
         createDto.setDateOfBirth(LocalDate.of(2000,1,1)); // 2000-01-01
         createDto.setGender("Male");
         createDto.setEmail("john.doe@example.com");
@@ -248,3 +249,4 @@ class AuthorizedPersonelServiceTest {
         verify(authorizedPersonelRepository, never()).deleteById(any());
     }
 }
+

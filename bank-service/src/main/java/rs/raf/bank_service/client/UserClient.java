@@ -52,4 +52,9 @@ public interface UserClient {
     @PostMapping("/api/auth/login/client")
     LoginResponseDto clientLogin(@RequestBody LoginRequestDto request);
 
+    @GetMapping("/api/authorized-personnel/{id}")
+    AuthorizedPersonelDto getAuthorizedPersonnelById(@PathVariable("id") Long id);
+
 }
+
+

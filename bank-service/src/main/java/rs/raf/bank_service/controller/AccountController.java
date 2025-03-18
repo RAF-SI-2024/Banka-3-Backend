@@ -185,7 +185,7 @@ public class AccountController {
             @PathVariable String accountNumber,
             @RequestBody @Valid ChangeAccountLimitDto request,
             @RequestHeader("Authorization") String authHeader
-            ) {
+    ) {
         try {
             accountService.requestAccountLimitChange(accountNumber, request.getNewLimit(), authHeader);
             return ResponseEntity.ok("Limit change request saved. Awaiting approval.");
@@ -193,6 +193,35 @@ public class AccountController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("VALJDA SE NECE DESITI");
+        }
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @Operation(summary = "Set authorized person for an account", description = "Assigns an authorized person to a company's account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Authorized person set successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input values"),
+            @ApiResponse(responseCode = "404", description = "Account or authorized person not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Unauthorized access")
+    })
+    @PutMapping("/{companyAccountId}/set-authorized-person")
+    public ResponseEntity<?> setAuthorizedPerson(
+            @PathVariable Long companyAccountId,
+            @RequestParam Long authorizedPersonId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        try {
+            accountService.setAuthorizedPerson(companyAccountId, authorizedPersonId, employeeId);
+            return ResponseEntity.ok("Authorized person successfully assigned to account.");
+        } catch (AccountNotFoundException | AuthorizedPersonNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (InvalidAuthorizedPersonException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
