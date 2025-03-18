@@ -22,7 +22,7 @@ public class Order {
 
     @Column(nullable = false)
     private Long userId; // aktuar
-    
+
     @Column(nullable = false)
     private Integer asset;
 

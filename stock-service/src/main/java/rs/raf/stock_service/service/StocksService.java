@@ -138,7 +138,7 @@ public class StocksService {
         dto.setDividendYield(stock.getDividendYield());
         dto.setMarketCap(stock.getMarketCap());
         dto.setMaintenanceMargin(stock.getMaintenanceMargin());
-       // dto.setExchange(stock.getExchange());
+        // dto.setExchange(stock.getExchange());
         return dto;
     }
 }

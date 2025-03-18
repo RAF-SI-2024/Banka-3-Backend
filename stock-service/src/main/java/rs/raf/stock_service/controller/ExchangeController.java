@@ -6,12 +6,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import rs.raf.stock_service.domain.dto.ConversionResponseDto;
 import rs.raf.stock_service.service.ForexService;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @Tag(name = "Exchange API", description = "Operations for currency conversion and retrieving latest rates")
 @RestController

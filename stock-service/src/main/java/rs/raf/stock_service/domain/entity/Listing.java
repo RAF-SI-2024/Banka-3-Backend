@@ -20,11 +20,11 @@ public abstract class Listing {
     private Long id;
     private String ticker;
     private String name;
-    
+
     @ManyToOne
     @JoinColumn(name = "exchange_id")
     private Exchange exchange;
-    
+
     private LocalDateTime lastRefresh;
     private BigDecimal price;
     private BigDecimal ask;
