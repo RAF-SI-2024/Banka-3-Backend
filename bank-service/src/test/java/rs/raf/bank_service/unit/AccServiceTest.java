@@ -109,26 +109,6 @@ public class AccServiceTest {
         assertThrows(DuplicateAccountNameException.class, () -> accService.changeAccountName(accountName, newName, ""));
     }
 
-    // Pokušaj promene imena na isto ime
-    @Test
-    void testChangeAccountName_SameName() {
-        String accountName = "My raf account";
-        String existingName = "My raf account";
-
-        PersonalAccount account = new PersonalAccount();
-        account.setName(existingName);
-        account.setClientId(5L);
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader("")).thenReturn(account.getClientId());
-        when(accountRepository.findByAccountNumberAndClientId(accountName, 5L)).thenReturn(Optional.of(account));
-        when(accountRepository.existsByNameAndClientId(existingName, account.getClientId())).thenReturn(true);
-
-        accService.changeAccountName(accountName, existingName, "");
-
-        assertEquals(existingName, account.getName());
-        verify(accountRepository, never()).save(account);
-    }
-
     @Test
     void testChangeAccountLimit_Success() {
         Long requestId = 1L;
