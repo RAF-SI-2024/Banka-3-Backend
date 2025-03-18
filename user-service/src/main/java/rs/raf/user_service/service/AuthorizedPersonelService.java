@@ -108,20 +108,4 @@ public class AuthorizedPersonelService {
         }
         authorizedPersonelRepository.deleteById(id);
     }
-
-    /**
-     * Check if a client is the majority owner of a company
-     * 
-     * @param companyId ID of the company
-     * @param clientId  ID of the client
-     * @return true if the client is the majority owner of the company, false
-     *         otherwise
-     */
-    public boolean isClientMajorityOwnerOfCompany(Long companyId, Long clientId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new EntityNotFoundException("Company not found with id: " + companyId));
-
-        // Check if the client is the majority owner of the company
-        return company.getMajorityOwner() != null && company.getMajorityOwner().getId().equals(clientId);
-    }
 }

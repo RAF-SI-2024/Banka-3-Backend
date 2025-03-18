@@ -27,6 +27,8 @@ public abstract class Account {
     @Column(updatable = false)
     private String accountNumber;
 
+    private String name;
+
     private Long clientId;
     private Long createdByEmployeeId;
 

@@ -33,7 +33,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/transfer")
     @Operation(summary = "Transfer funds between accounts", description = "Transfers funds from one account to another. Both must " +
             "be using the same currency.")
@@ -90,7 +90,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
     @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")

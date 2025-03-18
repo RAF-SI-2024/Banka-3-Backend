@@ -22,7 +22,7 @@ Feature: Testing the services in user-service
 
   #EmployeeService
   #Scenario: Adding a new employee
-  # When created a new employee with first name "Luka", second name "Basrak", email "employee@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", birthday on "14.07.2001.", username "Username", position "Position" and department "Department 1" and jmbg "1111111111114"
+  # When created a new employee with first name "Luka", second name "Basrak", email "employee@example.com", adress "Sample Adress 3", phone number "1234567", gender "M", birthday on "14.07.2001.", username "Username", position "Position" and department "Department 1" and jmbg "1111111111114" and role "EMPLOYEE"
   #  And list all employees
   #  Then recieve employee with email "employee@example.com"
 

@@ -17,8 +17,10 @@ import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
 import rs.raf.user_service.domain.entity.AuthToken;
 import rs.raf.user_service.domain.entity.Employee;
+import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.RoleNotFoundException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.domain.mapper.EmployeeMapper;
 import rs.raf.user_service.repository.AuthTokenRepository;
@@ -118,10 +120,11 @@ public class EmployeeService {
         if (userRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
 
-        Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
-        employee.setRole(roleRepository.findByName("EMPLOYEE").get());
-        employeeRepository.save(employee);
+        Role role = roleRepository.findByName(createEmployeeDTO.getRole()).orElseThrow(RoleNotFoundException::new);
 
+        Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
+        employee.setRole(role);
+        employeeRepository.save(employee);
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());
@@ -146,12 +149,15 @@ public class EmployeeService {
     public EmployeeDto updateEmployee(Long id, UpdateEmployeeDto updateEmployeeDTO) {
         Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
+        Role role = roleRepository.findByName(updateEmployeeDTO.getRole()).orElseThrow(RoleNotFoundException::new);
+
         employee.setLastName(updateEmployeeDTO.getLastName());
         employee.setGender(updateEmployeeDTO.getGender());
         employee.setPhone(updateEmployeeDTO.getPhone());
         employee.setAddress(updateEmployeeDTO.getAddress());
         employee.setPosition(updateEmployeeDTO.getPosition());
         employee.setDepartment(updateEmployeeDTO.getDepartment());
+        employee.setRole(role);
 
         employee = employeeRepository.save(employee);
 
