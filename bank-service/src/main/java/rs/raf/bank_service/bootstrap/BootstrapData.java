@@ -43,6 +43,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Kreiramo račune za klijente
         PersonalAccount currentAccount1 = PersonalAccount.builder()
+                .name("My RSD account")
                 .accountNumber("111111111111111111")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
@@ -62,6 +63,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Kreiramo račune za klijente
         PersonalAccount foreignAccount1 = PersonalAccount.builder()
+                .name("My USD account")
                 .accountNumber("311111111111111111")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
@@ -81,6 +83,7 @@ public class BootstrapData implements CommandLineRunner {
 
 
         PersonalAccount currentAccount2 = PersonalAccount.builder()
+                .name("My RSD account")
                 .accountNumber("211111111111111111")
                 .clientId(1L)
                 .createdByEmployeeId(3L)
@@ -99,6 +102,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount foreignAccount = CompanyAccount.builder()
+                .name("My company's EUR account")
                 .accountNumber("222222222222222222")
                 .clientId(1L)
                 .companyId(200L)
@@ -120,6 +124,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // RACUNI NASE BANKE
         CompanyAccount bankAccountRSD = CompanyAccount.builder()
+                .name("Bank account for RSD")
                 .accountNumber("333000156732897612")
                 .clientId(null)
                 .companyId(1L)
@@ -139,6 +144,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountEUR = CompanyAccount.builder()
+                .name("Bank account for EUR")
                 .accountNumber("333000177732897122")
                 .clientId(null)
                 .companyId(1L)
@@ -158,6 +164,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountCHF = CompanyAccount.builder()
+                .name("Bank account for CHF")
                 .accountNumber("333000137755897822")
                 .clientId(null)
                 .companyId(1L)
@@ -177,6 +184,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountUSD = CompanyAccount.builder()
+                .name("Bank account for USD")
                 .accountNumber("333000157555885522")
                 .clientId(null)
                 .companyId(1L)
@@ -196,6 +204,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountJPY = CompanyAccount.builder()
+                .name("Bank account for JPY")
                 .accountNumber("333000117755885122")
                 .clientId(null)
                 .companyId(1L)
@@ -215,6 +224,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountGBP = CompanyAccount.builder()
+                .name("Bank account for GBP")
                 .accountNumber("333000166675885622")
                 .clientId(null)
                 .companyId(1L)
@@ -235,6 +245,7 @@ public class BootstrapData implements CommandLineRunner {
 
 
         CompanyAccount bankAccountCAD = CompanyAccount.builder()
+                .name("Bank account for CAD")
                 .accountNumber("333000188875885822")
                 .clientId(null)
                 .companyId(1L)
@@ -254,6 +265,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountAUD = CompanyAccount.builder()
+                .name("Bank account for AUD")
                 .accountNumber("333000199975899922")
                 .clientId(null)
                 .companyId(1L)
@@ -273,6 +285,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountState = CompanyAccount.builder()
+                .name("State bank account")
                 .accountNumber("333000100000897612")
                 .clientId(null)
                 .companyId(2L)
