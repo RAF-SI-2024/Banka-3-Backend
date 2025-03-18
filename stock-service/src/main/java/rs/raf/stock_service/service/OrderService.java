@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.OrderStatusNotFoundException;
@@ -21,11 +22,15 @@ public class OrderService {
         this.orderRepository = orderRepository;
     }
 
-    public Page<Order> getOrdersByStatus(OrderStatus status, Pageable pageable) {
+    public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
+        Page<Order> ordersPage;
+
         if (status == null) {
-            return orderRepository.findAll(pageable);
-            // vraca paginirano sve
+            ordersPage = orderRepository.findAll(pageable);
+        } else {
+            ordersPage = orderRepository.findByStatus(status, pageable);
         }
-        return orderRepository.findByStatus(status, pageable);
+
+        return ordersPage.map(OrderDto::new);
     }
 }

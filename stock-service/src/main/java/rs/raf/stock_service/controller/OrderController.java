@@ -40,12 +40,9 @@ public class OrderController {
     @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<OrderDto>> getOrders(
-            @RequestParam OrderStatus status,
+            @RequestParam(required = false) OrderStatus status,
             Pageable pageable) {
 
-        Page<Order> ordersPage = orderService.getOrdersByStatus(status, pageable);
-        Page<OrderDto> dtoPage = ordersPage.map(OrderDto::new);
-
-        return ResponseEntity.ok(dtoPage);
+        return ResponseEntity.ok(orderService.getOrdersByStatus(status, pageable));
     }
 }
