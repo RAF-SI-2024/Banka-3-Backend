@@ -11,6 +11,7 @@ import rs.raf.stock_service.domain.dto.ListingDetailsDto;
 import rs.raf.stock_service.domain.dto.ListingDto;
 import rs.raf.stock_service.domain.dto.ListingFilterDto;
 import rs.raf.stock_service.domain.dto.ListingUpdateDto;
+import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -100,6 +101,10 @@ public class ListingController {
             @PathVariable Long id,
             @RequestBody ListingUpdateDto updateDto
     ) {
-        return ResponseEntity.ok(listingService.updateListing(id, updateDto, authHeader));
+        try {
+            return ResponseEntity.ok(listingService.updateListing(id, updateDto, authHeader));
+        } catch (ListingNotFoundException ex) {
+            throw ex;
+        }
     }
 }
