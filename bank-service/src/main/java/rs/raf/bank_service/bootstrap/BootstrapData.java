@@ -25,6 +25,7 @@ public class BootstrapData implements CommandLineRunner {
     private final ExchangeRateRepository exchangeRateRepository;
     private final LoanRepository loanRepository;
     private final LoanRequestRepository loanRequestRepository;
+    private final InstallmentRepository installmentRepository;
 
     @Override
     public void run(String... args) {
@@ -446,5 +447,15 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         loanRepository.save(loan);
+
+        Installment installment = Installment.builder()
+                .amount(new BigDecimal("220"))
+                .installmentStatus(InstallmentStatus.UNPAID)
+                .loan(loan)
+                .expectedDueDate(LocalDate.now().plusMonths(1))
+                .interestRate(new BigDecimal("6.0"))
+                .build();
+
+        installmentRepository.save(installment);
     }
 }
