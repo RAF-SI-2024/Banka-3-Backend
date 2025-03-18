@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import rs.raf.bank_service.domain.enums.AccountOwnerType;
 
 @Getter
 @Setter
@@ -12,5 +13,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AccountTypeDto {
     private String accountNumber;
-    private String subtype;
+    private AccountOwnerType subtype;
 }

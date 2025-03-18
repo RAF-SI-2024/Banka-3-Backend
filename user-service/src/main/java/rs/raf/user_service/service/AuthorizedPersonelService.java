@@ -24,7 +24,7 @@ public class AuthorizedPersonelService {
 
     /**
      * Create a new AuthorizedPersonel
-     * 
+     *
      * @param createAuthorizedPersonelDto DTO containing the data for the new
      *                                    AuthorizedPersonel
      * @return DTO of the created AuthorizedPersonel
@@ -42,7 +42,7 @@ public class AuthorizedPersonelService {
 
     /**
      * Get all AuthorizedPersonel for a company
-     * 
+     *
      * @param companyId ID of the company
      * @return List of AuthorizedPersonelDto
      */
@@ -58,7 +58,7 @@ public class AuthorizedPersonelService {
 
     /**
      * Get an AuthorizedPersonel by ID
-     * 
+     *
      * @param id ID of the AuthorizedPersonel
      * @return DTO of the AuthorizedPersonel
      */
@@ -71,7 +71,7 @@ public class AuthorizedPersonelService {
 
     /**
      * Update an AuthorizedPersonel
-     * 
+     *
      * @param id        ID of the AuthorizedPersonel to update
      * @param updateDto DTO containing the updated data
      * @return DTO of the updated AuthorizedPersonel
@@ -99,7 +99,7 @@ public class AuthorizedPersonelService {
 
     /**
      * Delete an AuthorizedPersonel
-     * 
+     *
      * @param id ID of the AuthorizedPersonel to delete
      */
     public void deleteAuthorizedPersonel(Long id) {
