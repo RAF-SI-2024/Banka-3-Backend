@@ -13,6 +13,7 @@ public class AccountMapper {
 
     public static AccountDto toDto(Account account, ClientDto client) {
         AccountDto dto = new AccountDto();
+        dto.setName(account.getName());
         dto.setAccountNumber(account.getAccountNumber());
         dto.setClientId(account.getClientId());
         if (account instanceof CompanyAccount) {
@@ -57,6 +58,7 @@ public class AccountMapper {
     public static AccountDetailsDto toDetailsDto(Account account) {
         if (account == null) return null;
         return new AccountDetailsDto(
+                account.getName(),
                 account.getAccountNumber(),
                 account.getType(),
                 account.getAvailableBalance(),

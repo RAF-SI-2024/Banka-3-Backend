@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 @Data
 public class AccountDto {
+    private String name;
     private String accountNumber;
     private Long clientId;
     private Long companyId;

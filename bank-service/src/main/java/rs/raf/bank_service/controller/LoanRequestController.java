@@ -13,8 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
+import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
 import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
+import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
+import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.service.LoanRequestService;
 
 import javax.validation.Valid;
@@ -29,15 +33,21 @@ public class LoanRequestController {
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Get all loan requests for client")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
     })
     @GetMapping
-    public ResponseEntity<Page<LoanRequestDto>> getClientLoanRequests(
+    public ResponseEntity<?> getClientLoanRequests(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(loanRequestService.getClientLoanRequests(authHeader, PageRequest.of(page, size)));
+        try {
+            Page<LoanRequestDto> loanRequests = loanRequestService.getClientLoanRequests(authHeader, PageRequest.of(page, size));
+            return ResponseEntity.ok(loanRequests);
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -48,8 +58,12 @@ public class LoanRequestController {
     })
     @PostMapping
     public ResponseEntity<?> createLoanRequest(@RequestBody @Valid CreateLoanRequestDto createLoanRequestDto, @RequestHeader("Authorization") String authHeader) {
+        try {
             loanRequestService.saveLoanRequest(createLoanRequestDto, authHeader);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createLoanRequestDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Loan request created successfully.");
+        } catch (InvalidLoanTypeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
@@ -60,7 +74,12 @@ public class LoanRequestController {
     })
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.OK).body(loanRequestService.approveLoan(id));
+        try {
+        LoanDto approvedLoan = loanRequestService.approveLoan(id);
+        return ResponseEntity.ok(approvedLoan);
+    } catch (LoanRequestNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
@@ -71,14 +90,19 @@ public class LoanRequestController {
     })
     @PutMapping("/reject/{id}")
     public ResponseEntity<LoanRequestDto> rejectLoan(@PathVariable Long id) {
-        LoanRequestDto rejectedLoan = loanRequestService.rejectLoan(id);
-        return ResponseEntity.ok(rejectedLoan);
+        try {
+            LoanRequestDto rejectedLoan = loanRequestService.rejectLoan(id);
+            return ResponseEntity.ok(rejectedLoan);
+        } catch (LoanRequestNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @Operation(summary = "Get all loan requests")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters")
     })
     @GetMapping("/all")
     public ResponseEntity<Page<LoanRequestDto>> getAllLoanRequests(
@@ -87,8 +111,32 @@ public class LoanRequestController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(loanRequestService.getAllLoanRequests(type, accountNumber, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))));
+        try {
+            Page<LoanRequestDto> loanRequests = loanRequestService.getAllLoanRequests(
+                    type, accountNumber, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+            return ResponseEntity.ok(loanRequests);
+        } catch (InvalidLoanTypeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }    }
+
+    /// ExceptionHandlers
+    @ExceptionHandler(LoanRequestNotFoundException.class)
+    public ResponseEntity<String> handleLoanRequestNotFoundException(LoanRequestNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
+    @ExceptionHandler(InvalidLoanTypeException.class)
+    public ResponseEntity<String> handleInvalidLoanTypeException(InvalidLoanTypeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+    }
 }

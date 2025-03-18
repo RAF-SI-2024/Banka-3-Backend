@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -20,7 +21,7 @@ public class AuthorizedPersonel {
 
     private String firstName;
     private String lastName;
-    private Long dateOfBirth;
+    private LocalDate dateOfBirth;
     private String gender;
     private String email;
     private String phoneNumber;

@@ -20,9 +20,9 @@ public class CompanyAccountDetailsDto extends AccountDetailsDto {
     private String address;
     private AuthorizedPersonelDto authorizedPerson;
 
-    public CompanyAccountDetailsDto(String accountNumber, AccountType accountType, BigDecimal availableBalance,
+    public CompanyAccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance,
                                     BigDecimal reservedFunds, BigDecimal balance, AuthorizedPersonelDto authorizedPerson) {
-        super(accountNumber, accountType, availableBalance, reservedFunds, balance);
+        super(name, accountNumber, accountType, availableBalance, reservedFunds, balance);
         this.authorizedPerson = authorizedPerson;
     }
 }

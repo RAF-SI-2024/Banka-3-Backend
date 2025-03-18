@@ -29,16 +29,33 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorMessageDto(errorMessage));
     }
 
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler({PayeeNotFoundException.class, LoanRequestNotFoundException.class})
-    public ResponseEntity<ErrorMessageDto> handleNotFound(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(ex.getMessage()));
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<ErrorMessageDto> handleAccountNotFoundException(AccountNotFoundException e) {
+        return new ResponseEntity<>(new ErrorMessageDto(e.getMessage()), HttpStatus.NOT_FOUND);
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({AccountNotFoundException.class, CurrencyNotFoundException.class})
-    public ResponseEntity<ErrorMessageDto> handleBadRequest(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(ex.getMessage()));
+    @ExceptionHandler(CardNotFoundException.class)
+    public ResponseEntity<ErrorMessageDto> handleCardNotFoundException(CardNotFoundException e) {
+        return new ResponseEntity<>(new ErrorMessageDto(e.getMessage()), HttpStatus.NOT_FOUND);
+    }
 
+    @ExceptionHandler(ClientNotFoundException.class)
+    public ResponseEntity<ErrorMessageDto> handleClientNotFoundException(ClientNotFoundException e) {
+        return new ResponseEntity<>(new ErrorMessageDto(e.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorMessageDto> handleUnauthorizedException(UnauthorizedException e) {
+        return new ResponseEntity<>(new ErrorMessageDto(e.getMessage()), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorMessageDto> handleIllegalArgumentException(IllegalArgumentException e) {
+        return new ResponseEntity<>(new ErrorMessageDto(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorMessageDto> handleGeneralException(Exception e) {
+        return new ResponseEntity<>(new ErrorMessageDto("Internal Server Error: " + e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

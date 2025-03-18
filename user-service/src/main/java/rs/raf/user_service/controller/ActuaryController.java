@@ -1,0 +1,100 @@
+package rs.raf.user_service.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.domain.dto.ChangeAgentLimitDto;
+import rs.raf.user_service.domain.dto.ClientDto;
+import rs.raf.user_service.domain.dto.EmployeeDto;
+import rs.raf.user_service.domain.dto.SetApprovalDto;
+import rs.raf.user_service.exceptions.ActuaryLimitNotFoundException;
+import rs.raf.user_service.exceptions.EmployeeNotFoundException;
+import rs.raf.user_service.exceptions.UserNotAgentException;
+import rs.raf.user_service.service.ActuaryService;
+import javax.validation.Valid;
+
+@RestController
+@RequestMapping("/api/admin/actuaries")
+@Tag(name = "Actuary Management", description = "API for managing actuaries")
+@AllArgsConstructor
+public class ActuaryController {
+
+    private final ActuaryService actuaryService;
+
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PutMapping("change-limit/{id}")
+    @Operation(summary = "Change agent limit.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent limit changed successfully."),
+            @ApiResponse(responseCode = "404", description = "Agent not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<?> changeAgentLimit(@PathVariable Long id, @Valid @RequestBody ChangeAgentLimitDto changeAgentLimitDto) {
+        try {
+            actuaryService.changeAgentLimit(id, changeAgentLimitDto.getNewLimit());
+            return ResponseEntity.ok().build();
+        } catch (ActuaryLimitNotFoundException | EmployeeNotFoundException | UserNotAgentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PutMapping("reset-limit/{id}")
+    @Operation(summary = "Reset daily limit for an agent.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent daily limit reset successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<?> resetDailyLimit(@PathVariable Long id) {
+        try {
+            actuaryService.resetDailyLimit(id);
+            return ResponseEntity.ok().build();
+        } catch (ActuaryLimitNotFoundException | EmployeeNotFoundException | UserNotAgentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PutMapping("set-approval/{id}")
+    @Operation(summary = "Set approval value for an agent.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent approval value set successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<?> setApprovalValue(@PathVariable Long id, @Valid @RequestBody SetApprovalDto setApprovalDto) {
+        try {
+            actuaryService.setApproval(id,setApprovalDto.getNeedApproval());
+            return ResponseEntity.ok().build();
+        } catch (ActuaryLimitNotFoundException | EmployeeNotFoundException | UserNotAgentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
+    @GetMapping
+    @Operation(summary = "Get all agents with filtering.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agents retrieved successfully")
+    })
+    public ResponseEntity<Page<EmployeeDto>> getAllAgents(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String position,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(actuaryService.findAll(firstName, lastName, email, position, pageable));
+    }
+
+}

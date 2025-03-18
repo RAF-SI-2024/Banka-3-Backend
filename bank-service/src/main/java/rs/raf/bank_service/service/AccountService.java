@@ -208,11 +208,6 @@ public class AccountService {
 
         System.out.println(">>> Account found: Current Name = " + account.getName());
 
-        if (account.getName().equals(newName)) {
-            System.out.println(">>> No change needed. Account name is already the same.");
-            return;
-        }
-
         // Proveravamo postoji li ime već u bazi
         boolean exists = accountRepository.existsByNameAndClientId(newName, account.getClientId());
         System.out.println(">>> Checking if account name '" + newName + "' already exists for client ID " + account.getClientId() + ": " + exists);

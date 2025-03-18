@@ -92,7 +92,7 @@ public class AuthorizedPersonelController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAuthorizedPersonnel(@PathVariable Long id,
-                                                       @RequestBody @Valid CreateAuthorizedPersonelDto updateDto) {
+            @RequestBody @Valid CreateAuthorizedPersonelDto updateDto) {
         try {
             AuthorizedPersonelDto updatedPersonnel = authorizedPersonelService.updateAuthorizedPersonel(id, updateDto);
             return ResponseEntity.ok(updatedPersonnel);
