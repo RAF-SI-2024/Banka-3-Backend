@@ -1,24 +1,19 @@
-package rs.raf.stock_service.domain.entity;
+package rs.raf.stock_service.domain.dto;
 
-import lombok.*;
-
-import javax.persistence.*;
+import lombok.Data;
 import java.math.BigDecimal;
 
-@Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@DiscriminatorValue("STOCK")
-public class Stock extends Listing {
+@Data
+public class StockDto {
     private String symbol;
+    private String name;
+    private String ticker;
     private BigDecimal price;
     private BigDecimal change;
     private long volume;
     private long outstandingShares;
     private BigDecimal dividendYield;
     private BigDecimal marketCap;
-    private int contractSize = 1;
     private BigDecimal maintenanceMargin;
+    private String exchange;
 }
