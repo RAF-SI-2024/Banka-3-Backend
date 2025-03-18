@@ -52,7 +52,7 @@ public class ListingService {
     public ListingDto updateListing(Long id, ListingUpdateDto updateDto, String authHeader) {
 
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
-        if (!"SUPERVISOR".equals(role)) {
+        if (!"SUPERVISOR".equals(role) && !"ADMIN".equals(role)) {
             throw new UnauthorizedException("Only supervisors can update listings.");
         }
 

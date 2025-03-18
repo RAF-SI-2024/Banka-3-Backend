@@ -87,7 +87,7 @@ public class ListingController {
         return ResponseEntity.ok(listingService.getListingDetails(id));
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Update a security", description = "Allows a supervisor to update the price and ask values of a listing.")
     @ApiResponses(value = {
