@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountType;
 import java.math.BigDecimal;
 
@@ -37,19 +38,8 @@ public class AccountMapper {
 
         dto.setOwner(client);
 
-        if (account instanceof CompanyAccount) {
-            dto.setOwnershipType("poslovni");
-        } else {
-            dto.setOwnershipType("licni");
-        }
-
-        if (account.getType() == AccountType.CURRENT) {
-            dto.setAccountCategory("tekuci");
-        } else if (account.getType() == AccountType.FOREIGN) {
-            dto.setAccountCategory("devizni");
-        } else {
-            dto.setAccountCategory("nepoznato");
-        }
+        dto.setOwnershipType(account.getAccountOwnerType());
+        dto.setAccountCategory(account.getType());
 
         return dto;
     }
@@ -90,11 +80,7 @@ public class AccountMapper {
         if (account == null) return null;
         AccountTypeDto dto = new AccountTypeDto();
         dto.setAccountNumber(account.getAccountNumber());
-        if (account instanceof PersonalAccount) {
-            dto.setSubtype("Personal");
-        } else if (account instanceof CompanyAccount) {
-            dto.setSubtype("Company");
-        }
+        dto.setSubtype(account.getAccountOwnerType());
         return dto;
     }
 }
