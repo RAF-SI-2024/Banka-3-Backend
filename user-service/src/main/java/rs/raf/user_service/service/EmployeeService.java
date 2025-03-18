@@ -15,22 +15,19 @@ import rs.raf.user_service.domain.dto.CreateEmployeeDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.AuthToken;
 import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.domain.entity.Role;
-import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
-import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
-import rs.raf.user_service.exceptions.RoleNotFoundException;
-import rs.raf.user_service.exceptions.UserAlreadyExistsException;
+import rs.raf.user_service.exceptions.*;
 import rs.raf.user_service.domain.mapper.EmployeeMapper;
-import rs.raf.user_service.repository.AuthTokenRepository;
-import rs.raf.user_service.repository.EmployeeRepository;
-import rs.raf.user_service.repository.RoleRepository;
-import rs.raf.user_service.repository.UserRepository;
+import rs.raf.user_service.repository.*;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -42,6 +39,7 @@ public class EmployeeService {
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
     private final RoleRepository roleRepository;
+    private final ActuaryLimitRepository actuaryLimitRepository;
 
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
@@ -157,8 +155,17 @@ public class EmployeeService {
         employee.setAddress(updateEmployeeDTO.getAddress());
         employee.setPosition(updateEmployeeDTO.getPosition());
         employee.setDepartment(updateEmployeeDTO.getDepartment());
-        employee.setRole(role);
 
+        if (role.getName().equals("AGENT") && !Objects.equals(employee.getRole().getName(), "AGENT")) {
+            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(100000), new BigDecimal(0), true, employee);
+            actuaryLimitRepository.save(actuaryLimit);
+        }
+        if (!role.getName().equals("AGENT") && employee.getRole().getName().equals("AGENT")) {
+            ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(id).orElseThrow(RuntimeException::new);
+            actuaryLimitRepository.delete(actuaryLimit);
+        }
+
+        employee.setRole(role);
         employee = employeeRepository.save(employee);
 
         return EmployeeMapper.toDto(employee);

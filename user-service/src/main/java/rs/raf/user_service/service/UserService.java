@@ -43,16 +43,6 @@ public class UserService {
         if (user.getRole() != null && user.getRole().getName().equalsIgnoreCase(role.getName())) {
             throw new RuntimeException("User already has this role");
         }
-        if (role.getName().equals("AGENT")) {
-            if (!(user instanceof Employee))
-                throw new ClientCannotBeAgentException(userId);
-            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(100000), new BigDecimal(0), true, (Employee) user);
-            actuaryLimitRepository.save(actuaryLimit);
-        }
-        if (user.getRole() != null && !role.getName().equals("AGENT") && user.getRole().getName().equals("AGENT")) {
-            ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(userId).orElseThrow(RuntimeException::new);
-            actuaryLimitRepository.delete(actuaryLimit);
-        }
         user.setRole(role);
         userRepository.save(user);
     }
@@ -65,10 +55,6 @@ public class UserService {
 
         if (!user.getRole().getName().equalsIgnoreCase(role.getName())) {
             throw new RuntimeException("User does not have this role");
-        }
-        if (role.getName().equals("AGENT")) {
-            ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(userId).orElseThrow(RuntimeException::new);
-            actuaryLimitRepository.delete(actuaryLimit);
         }
         user.setRole(null);
         userRepository.save(user);
