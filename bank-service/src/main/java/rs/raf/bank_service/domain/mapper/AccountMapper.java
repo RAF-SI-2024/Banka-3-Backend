@@ -1,14 +1,11 @@
 package rs.raf.bank_service.domain.mapper;
 
-import rs.raf.bank_service.domain.dto.AccountDetailsDto;
+import rs.raf.bank_service.domain.dto.*;
 import org.springframework.stereotype.Component;
-import rs.raf.bank_service.domain.dto.AccountDto;
-import rs.raf.bank_service.domain.dto.AccountTypeDto;
-import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.CompanyAccountDetailsDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.AccountType;
 import java.math.BigDecimal;
 
@@ -41,19 +38,8 @@ public class AccountMapper {
 
         dto.setOwner(client);
 
-        if (account instanceof CompanyAccount) {
-            dto.setOwnershipType("poslovni");
-        } else {
-            dto.setOwnershipType("licni");
-        }
-
-        if (account.getType() == AccountType.CURRENT) {
-            dto.setAccountCategory("tekuci");
-        } else if (account.getType() == AccountType.FOREIGN) {
-            dto.setAccountCategory("devizni");
-        } else {
-            dto.setAccountCategory("nepoznato");
-        }
+        dto.setOwnershipType(account.getAccountOwnerType());
+        dto.setAccountCategory(account.getType());
 
         return dto;
     }
@@ -68,31 +54,33 @@ public class AccountMapper {
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
                 account.getBalance()
+
         );
     }
 
     // ✅ Mapiranje iz Account u AccountDetailsDto (bez naziva vlasnika, to se setuje naknadno)
-    public static CompanyAccountDetailsDto toCompanyDetailsDto(Account account) {
-        if (account == null) return null;
-        return new CompanyAccountDetailsDto(
+    public static CompanyAccountDetailsDto toCompanyDetailsDto(CompanyAccount account, CompanyDto company, AuthorizedPersonelDto authorizedPerson) {
+        if (account == null || company == null) return null;
+
+        CompanyAccountDetailsDto dto = new CompanyAccountDetailsDto(
                 account.getName(),
                 account.getAccountNumber(),
                 account.getType(),
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
-                account.getBalance()
+                account.getBalance(),
+                authorizedPerson //  Dodato ovlašćeno lice
         );
+
+        dto.setCompanyName(company.getName()); // Postavljamo pravi naziv firme
+        return dto;
     }
 
     public AccountTypeDto toAccountTypeDto(Account account) {
         if (account == null) return null;
         AccountTypeDto dto = new AccountTypeDto();
         dto.setAccountNumber(account.getAccountNumber());
-        if (account instanceof PersonalAccount) {
-            dto.setSubtype("Personal");
-        } else if (account instanceof CompanyAccount) {
-            dto.setSubtype("Company");
-        }
+        dto.setSubtype(account.getAccountOwnerType());
         return dto;
     }
 }

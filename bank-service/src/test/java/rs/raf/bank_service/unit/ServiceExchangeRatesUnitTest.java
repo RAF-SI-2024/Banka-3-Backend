@@ -146,4 +146,3 @@ public class ServiceExchangeRatesUnitTest {
         assertThrows(ExchangeRateNotFoundException.class, () -> exchangeRateService.convert(convertDto));
     }
 }
-

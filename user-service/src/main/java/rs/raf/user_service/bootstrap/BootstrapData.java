@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import rs.raf.user_service.domain.entity.*;
 import rs.raf.user_service.repository.*;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -25,6 +26,7 @@ public class BootstrapData implements CommandLineRunner {
     private final CompanyRepository companyRepository;
     private final RoleRepository roleRepository;
     private final AuthTokenRepository authTokenRepository;
+    private final ActuaryLimitRepository actuaryLimitRepository;
 
     @Override
     public void run(String... args) throws ParseException {
@@ -99,6 +101,8 @@ public class BootstrapData implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
             Role employeeRole = roleRepository.findByName("EMPLOYEE")
                     .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
+            Role agentRole = roleRepository.findByName("AGENT")
+                    .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
 
             Employee employee = Employee.builder()
                     .firstName("Petar")
@@ -134,7 +138,24 @@ public class BootstrapData implements CommandLineRunner {
                     .role(employeeRole)
                     .build();
 
-            employeeRepository.saveAll(Set.of(employee, employee2));
+            Employee employee3 = Employee.builder()
+                    .firstName("Zika")
+                    .lastName("Petrović")
+                    .email("zika.p@example.com")
+                    .phone("0641234567")
+                    .address("Kralja Petra 10")
+                    .birthDate(dateFormat.parse("1992-05-15"))
+                    .gender("M")
+                    .username("zika92")
+                    .password(passwordEncoder.encode("zikazika"))
+                    .position("")
+                    .department("IT")
+                    .active(true)
+                    .jmbg("1505923891234")
+                    .role(agentRole)
+                    .build();
+
+            employeeRepository.saveAll(Set.of(employee, employee2,employee3));
         }
 
         if (activityCodeRepository.count() == 0) {
@@ -168,7 +189,17 @@ public class BootstrapData implements CommandLineRunner {
                     .majorityOwner(null)
                     .build();
 
-            companyRepository.saveAll(List.of(bank, state));
+            Company company1 = Company.builder()
+                    .id(3L)
+                    .address("Adresa microsofta")
+                    .name("Microsoft")
+                    .activityCode("10.01")
+                    .registrationNumber("3351361632441")
+                    .taxId("36232343")
+                    .majorityOwner(clientRepository.findById(1L).get())
+                    .build();
+
+            companyRepository.saveAll(List.of(bank, state, company1));
         }
 
         if (authTokenRepository.count() == 0){
@@ -189,6 +220,14 @@ public class BootstrapData implements CommandLineRunner {
                     .userId(5L)
                     .build();
             authTokenRepository.save(authToken1);
+        }
+
+        if (actuaryLimitRepository.count() == 0) {
+            Employee e2 = employeeRepository.findByEmail("zika.p@example.com").orElseThrow();
+            ActuaryLimit al2 = new ActuaryLimit(null, new BigDecimal("10000.00"), new BigDecimal("2500.00"), false, e2);
+
+            actuaryLimitRepository.save(al2);
+
         }
 
     }

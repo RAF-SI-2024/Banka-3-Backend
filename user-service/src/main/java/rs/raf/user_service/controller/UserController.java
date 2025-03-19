@@ -13,14 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.domain.dto.PermissionDto;
-import rs.raf.user_service.domain.dto.PermissionRequestDto;
 import rs.raf.user_service.domain.dto.RoleRequestDto;
 import rs.raf.user_service.domain.dto.UserDto;
 import rs.raf.user_service.service.UserService;
-
 import javax.validation.Valid;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -40,7 +36,8 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(userService.listUsers(pageable));
     }
-
+    //Ne koristiti, setovanje role-a za zaposlenog je prebaceno u update employee. Klijent nam jos uvek nema setovanje role, uvek je CLIENT
+    //Verovatno ce biti obrisano
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{userId}/role")
     @Operation(summary = "Get user role", description = "Returns a role for a specific user.")
@@ -53,7 +50,8 @@ public class UserController {
             @PathVariable Long userId) {
         return ResponseEntity.ok(userService.getUserRole(userId));
     }
-
+    //Ne koristiti, setovanje role-a za zaposlenog je prebaceno u update employee. Klijent nam jos uvek nema setovanje role, uvek je CLIENT
+    //Verovatno ce biti obrisano
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{userId}/role")
     @Operation(summary = "Add role to user", description = "Adds a role to a user.")
@@ -72,7 +70,8 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-
+    //Ne koristiti, setovanje role-a za zaposlenog je prebaceno u update employee. Klijent nam jos uvek nema setovanje role, uvek je CLIENT
+    //Verovatno ce biti obrisano
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{userId}/role/{roleId}")
     @Operation(summary = "Remove role from user", description = "Removes a role from a user.")

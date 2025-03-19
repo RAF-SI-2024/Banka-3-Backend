@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,7 +15,7 @@ public class AuthorizedPersonelDto {
     private Long id;
     private String firstName;
     private String lastName;
-    private Long dateOfBirth;
+    private LocalDate dateOfBirth;
     private String gender;
     private String email;
     private String phoneNumber;

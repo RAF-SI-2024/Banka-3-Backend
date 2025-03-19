@@ -15,7 +15,9 @@ import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.CompanyRepository;
 
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -54,6 +56,10 @@ public class CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
         return CompanyMapper.toDto(company);
+    }
+
+    public List<CompanyDto> getCompaniesForClientId(Long id){
+        return companyRepository.findByMajorityOwner_Id(id).stream().map(CompanyMapper::toDto).collect(Collectors.toList());
     }
 
 

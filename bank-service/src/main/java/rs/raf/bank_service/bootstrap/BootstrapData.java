@@ -23,6 +23,9 @@ public class BootstrapData implements CommandLineRunner {
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateRepository exchangeRateRepository;
+    private final LoanRepository loanRepository;
+    private final LoanRequestRepository loanRequestRepository;
+    private final InstallmentRepository installmentRepository;
 
     @Override
     public void run(String... args) {
@@ -40,6 +43,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Kreiramo račune za klijente
         PersonalAccount currentAccount1 = PersonalAccount.builder()
+                .name("My RSD account")
                 .accountNumber("111111111111111111")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
@@ -59,6 +63,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Kreiramo račune za klijente
         PersonalAccount foreignAccount1 = PersonalAccount.builder()
+                .name("My USD account")
                 .accountNumber("311111111111111111")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
@@ -78,6 +83,7 @@ public class BootstrapData implements CommandLineRunner {
 
 
         PersonalAccount currentAccount2 = PersonalAccount.builder()
+                .name("My RSD account")
                 .accountNumber("211111111111111111")
                 .clientId(1L)
                 .createdByEmployeeId(3L)
@@ -96,6 +102,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount foreignAccount = CompanyAccount.builder()
+                .name("My company's EUR account")
                 .accountNumber("222222222222222222")
                 .clientId(1L)
                 .companyId(200L)
@@ -117,6 +124,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // RACUNI NASE BANKE
         CompanyAccount bankAccountRSD = CompanyAccount.builder()
+                .name("Bank account for RSD")
                 .accountNumber("333000156732897612")
                 .clientId(null)
                 .companyId(1L)
@@ -136,6 +144,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountEUR = CompanyAccount.builder()
+                .name("Bank account for EUR")
                 .accountNumber("333000177732897122")
                 .clientId(null)
                 .companyId(1L)
@@ -155,6 +164,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountCHF = CompanyAccount.builder()
+                .name("Bank account for CHF")
                 .accountNumber("333000137755897822")
                 .clientId(null)
                 .companyId(1L)
@@ -174,6 +184,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountUSD = CompanyAccount.builder()
+                .name("Bank account for USD")
                 .accountNumber("333000157555885522")
                 .clientId(null)
                 .companyId(1L)
@@ -193,6 +204,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountJPY = CompanyAccount.builder()
+                .name("Bank account for JPY")
                 .accountNumber("333000117755885122")
                 .clientId(null)
                 .companyId(1L)
@@ -212,6 +224,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountGBP = CompanyAccount.builder()
+                .name("Bank account for GBP")
                 .accountNumber("333000166675885622")
                 .clientId(null)
                 .companyId(1L)
@@ -232,6 +245,7 @@ public class BootstrapData implements CommandLineRunner {
 
 
         CompanyAccount bankAccountCAD = CompanyAccount.builder()
+                .name("Bank account for CAD")
                 .accountNumber("333000188875885822")
                 .clientId(null)
                 .companyId(1L)
@@ -251,6 +265,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountAUD = CompanyAccount.builder()
+                .name("Bank account for AUD")
                 .accountNumber("333000199975899922")
                 .clientId(null)
                 .companyId(1L)
@@ -270,6 +285,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         CompanyAccount bankAccountState = CompanyAccount.builder()
+                .name("State bank account")
                 .accountNumber("333000100000897612")
                 .clientId(null)
                 .companyId(2L)
@@ -388,5 +404,71 @@ public class BootstrapData implements CommandLineRunner {
         exchangeRateRepository.saveAll(exchangeRates);
         exchangeRateRepository.saveAll(exchangeRates2);
         // Test kursna lista da ne trosimo API pozive
+
+
+        // Kreiranje primera zahteva za kredit
+        LoanRequest loanRequest = LoanRequest.builder()
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .purpose("Kupovina automobila")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        LoanRequest loanRequest2 = LoanRequest.builder()
+                .type(LoanType.CASH)
+                .amount(new BigDecimal("300000"))
+                .purpose("Kupovina necega")
+                .monthlyIncome(new BigDecimal("1000"))
+                .employmentStatus(EmploymentStatus.PERMANENT)
+                .employmentDuration(36)
+                .repaymentPeriod(24)
+                .contactPhone("+381641234567")
+                .account(currentAccount1)
+                .currency(currencyRSD)
+                .status(LoanRequestStatus.PENDING)
+                .interestRateType(InterestRateType.FIXED)
+                .build();
+
+        loanRequestRepository.save(loanRequest);
+        loanRequestRepository.save(loanRequest2);
+
+        // Kreiranje primera odobrenog kredita
+        Loan loan = Loan.builder()
+                .loanNumber("d7742918-4b78-44eb-93b7-25adfd5123e9")
+                .type(LoanType.AUTO)
+                .amount(new BigDecimal("500000"))
+                .repaymentPeriod(24)
+                .nominalInterestRate(new BigDecimal("5.5"))
+                .effectiveInterestRate(new BigDecimal("6.0"))
+                .startDate(LocalDate.now())
+                .dueDate(LocalDate.now().plusMonths(24))
+                .nextInstallmentAmount(new BigDecimal("220"))
+                .nextInstallmentDate(LocalDate.now().plusMonths(1))
+                .remainingDebt(new BigDecimal("500000"))
+                .currency(currencyRSD)
+                .status(LoanStatus.APPROVED)
+                .interestRateType(InterestRateType.FIXED)
+                .account(currentAccount1)
+                .build();
+
+        loanRepository.save(loan);
+
+        Installment installment = Installment.builder()
+                .amount(new BigDecimal("220"))
+                .installmentStatus(InstallmentStatus.UNPAID)
+                .loan(loan)
+                .expectedDueDate(LocalDate.now().plusMonths(1))
+                .interestRate(new BigDecimal("6.0"))
+                .build();
+
+        installmentRepository.save(installment);
     }
 }

@@ -72,6 +72,11 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 return null;
             }
 
+            @Override
+            public AuthorizedPersonelDto getAuthorizedPersonnelById(Long id) {
+                return null;
+            }
+
 
         };
     }

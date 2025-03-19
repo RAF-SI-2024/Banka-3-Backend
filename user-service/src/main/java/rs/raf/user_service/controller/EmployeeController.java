@@ -146,7 +146,8 @@ public class EmployeeController {
             EmployeeDto employeeDto = employeeService.createEmployee(createEmployeeDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(employeeDto);
         } catch (EmailAlreadyExistsException | UserAlreadyExistsException | JmbgAlreadyExistsException |
-                 RoleNotFoundException e) {
+                RoleNotFoundException e) {
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
