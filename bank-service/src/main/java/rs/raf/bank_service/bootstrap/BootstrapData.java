@@ -312,6 +312,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Kreiramo kartice
         Card card1 = Card.builder()
+                .name("Moja debitna")
                 .cardNumber("1234123412341234")
                 .cvv("123")
                 .creationDate(LocalDate.now().minusDays(10))
@@ -319,9 +320,11 @@ public class BootstrapData implements CommandLineRunner {
                 .account(currentAccount1)
                 .status(CardStatus.ACTIVE)
                 .cardLimit(BigDecimal.valueOf(500))
+                .type(CardType.DEBIT)
                 .build();
 
         Card card2 = Card.builder()
+                .name("Moja kreditna")
                 .cardNumber("4321432143214321")
                 .cvv("321")
                 .creationDate(LocalDate.now().minusDays(5))
@@ -329,6 +332,7 @@ public class BootstrapData implements CommandLineRunner {
                 .account(foreignAccount)
                 .status(CardStatus.ACTIVE)
                 .cardLimit(BigDecimal.valueOf(1000))
+                .type(CardType.CREDIT)
                 .build();
 
         cardRepository.saveAll(java.util.List.of(card1, card2));

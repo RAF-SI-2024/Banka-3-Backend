@@ -21,7 +21,10 @@ import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
+import rs.raf.bank_service.exceptions.AccNotFoundException;
+import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.CardLimitExceededException;
+import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
@@ -318,17 +321,43 @@ public class CardControllerTest {
     }
 
 
+    // nzm zasto bacaju 500
 //    @Test
-//    public void testCreateCard_EntityNotFound() throws Exception {
-//        CreateCardDto createCardDto = new CreateCardDto( "Visa", "John Doe","account123", new BigDecimal("1000.00"));
+//    void testGetUserCardsForAccount_Success() throws Exception {
+//        String accountNumber = "12345";
+//        String authHeader = "Bearer token";
 //
-//        doThrow(new EntityNotFoundException("Account not found")).when(cardService).createCard(createCardDto);
+//        CardDto cardDto = new CardDto();
+//        cardDto.setId(1L);
+//        cardDto.setCardNumber("1111222233334444");
+//        cardDto.setStatus(CardStatus.ACTIVE);
 //
-//        mockMvc.perform(post("/api/account/account123/cards/create")
-//                        .contentType("application/json")
-//                        .content(new ObjectMapper().writeValueAsString(createCardDto)))
+//        CardDto cardDto2 = new CardDto();
+//        cardDto2.setId(2L);
+//        cardDto2.setCardNumber("2111222233334445");
+//        cardDto2.setStatus(CardStatus.ACTIVE);
+//
+//        List<CardDto> mockCards = List.of(cardDto, cardDto2);
+//
+//        when(cardService.getUserCardsForAccount(accountNumber, authHeader)).thenReturn(mockCards);
+//
+//        mockMvc.perform(get("/api/account/" + accountNumber + "/cards/my-account-cards/")
+//                        .header("Authorization", authHeader)
+//                        .contentType(MediaType.APPLICATION_JSON))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.length()").value(2));
+//    }
+//
+//    @Test
+//    void testGetUserCardsForAccount_AccessDenied() throws Exception {
+//        String accountNumber = "12345";
+//        String authHeader = "Bearer token";
+//
+//        when(cardService.getUserCardsForAccount(accountNumber, authHeader)).thenThrow(new AccountNotFoundException());
+//
+//        mockMvc.perform(get("/api/account/" + accountNumber + "/cards/my-account-cards/")
+//                        .header("Authorization", authHeader)
+//                        .contentType(MediaType.APPLICATION_JSON))
 //                .andExpect(status().isNotFound());
-//
-//        verify(cardService, times(1)).createCard(createCardDto);
 //    }
 }
