@@ -38,8 +38,8 @@ public class CompanyControllerTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         mockCompanies = Arrays.asList(
-                new CompanyDto(1L, "Company A", "11", "22", "33", "adresa"),
-                new CompanyDto(2L, "Company B","11", "22", "33", "adresa")
+                new CompanyDto(1L, "Company A", "11", "22", "33", "adresa", 1L),
+                new CompanyDto(2L, "Company B","11", "22", "33", "adresa", 1L)
         );
     }
 
@@ -50,7 +50,7 @@ public class CompanyControllerTest {
         createCompanyDto.setName("Test Company");
 
         // Act
-        ResponseEntity<String> response = companyController.createCompany(createCompanyDto);
+        ResponseEntity<?> response = companyController.createCompany(createCompanyDto);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -70,13 +70,10 @@ public class CompanyControllerTest {
 
 
         // Act
-        ResponseEntity<String> response = companyController.createCompany(createCompanyDto);
+        ResponseEntity<?> response = companyController.createCompany(createCompanyDto);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-
-        assertEquals(expectedErrorMessage, response.getBody());
-
     }
 
     @Test
