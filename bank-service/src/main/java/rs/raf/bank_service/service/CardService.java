@@ -31,6 +31,7 @@ import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -244,6 +245,20 @@ public class CardService {
                                 .map(card -> CardMapper.toDto(card, owner))
                                 .collect(Collectors.toList());
         }
+
+    public List<CardDto> getUserCardsForAccount(String accountNumber, String authHeader) {
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        // check if account exists and is owned by client
+        accountRepository.findByAccountNumberAndClientId(accountNumber, clientId).orElseThrow(AccountNotFoundException::new);
+
+        List<Card> userCards = cardRepository.findByAccount_AccountNumber(accountNumber);
+
+        ClientDto owner = userClient.getClientById(clientId);
+        return userCards.stream()
+                .map(card -> CardMapper.toDto(card, owner))
+                .collect(Collectors.toList());
+    }
 
         public void blockCardByUser(String cardNumber, String authHeader) {
 
