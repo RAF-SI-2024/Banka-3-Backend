@@ -158,15 +158,172 @@ public class BootstrapData implements CommandLineRunner {
             employeeRepository.saveAll(Set.of(employee, employee2,employee3));
         }
 
+        // CHATGPT CODE START 😊
         if (activityCodeRepository.count() == 0) {
-
             ActivityCode activityCode = ActivityCode.builder()
                     .id("10.01")
                     .description("Food production")
                     .build();
+            ActivityCode activityCode2 = ActivityCode.builder()
+                    .id("62.01")
+                    .description("Programming")
+                    .build();
+            ActivityCode activityCode3 = ActivityCode.builder()
+                    .id("5.1")
+                    .description("Coal extraction")
+                    .build();
+            ActivityCode activityCode4 = ActivityCode.builder()
+                    .id("62.09")
+                    .description("IT")
+                    .build();
+            ActivityCode activityCode5 = ActivityCode.builder()
+                    .id("56.1")
+                    .description("Restaurants")
+                    .build();
+            ActivityCode activityCode6 = ActivityCode.builder()
+                    .id("86.1")
+                    .description("Hospital activities")
+                    .build();
+            ActivityCode activityCode7 = ActivityCode.builder()
+                    .id("90.02")
+                    .description("Museums")
+                    .build();
+            ActivityCode activityCode8 = ActivityCode.builder()
+                    .id("1.11")
+                    .description("Grain and legume farming")
+                    .build();
+            ActivityCode activityCode9 = ActivityCode.builder()
+                    .id("1.13")
+                    .description("Vegetable farming")
+                    .build();
+            ActivityCode activityCode10 = ActivityCode.builder()
+                    .id("13.1")
+                    .description("Textile fiber preparation and spinning")
+                    .build();
+            ActivityCode activityCode11 = ActivityCode.builder()
+                    .id("24.1")
+                    .description("Iron and steel production")
+                    .build();
+            ActivityCode activityCode12 = ActivityCode.builder()
+                    .id("24.2")
+                    .description("Steel pipes, hollow profiles, and fittings production")
+                    .build();
+            ActivityCode activityCode13 = ActivityCode.builder()
+                    .id("41.1")
+                    .description("Construction project development")
+                    .build();
+            ActivityCode activityCode14 = ActivityCode.builder()
+                    .id("41.2")
+                    .description("Residential and non-residential building construction")
+                    .build();
+            ActivityCode activityCode15 = ActivityCode.builder()
+                    .id("42.11")
+                    .description("Road and highway construction")
+                    .build();
+            ActivityCode activityCode16 = ActivityCode.builder()
+                    .id("42.12")
+                    .description("Railway and underground construction")
+                    .build();
+            ActivityCode activityCode17 = ActivityCode.builder()
+                    .id("42.13")
+                    .description("Bridge and tunnel construction")
+                    .build();
+            ActivityCode activityCode18 = ActivityCode.builder()
+                    .id("42.21")
+                    .description("Water supply construction projects")
+                    .build();
+            ActivityCode activityCode19 = ActivityCode.builder()
+                    .id("42.22")
+                    .description("Electric power and telecommunications network construction")
+                    .build();
+            ActivityCode activityCode20 = ActivityCode.builder()
+                    .id("7.1")
+                    .description("Iron ore extraction")
+                    .build();
+            ActivityCode activityCode21 = ActivityCode.builder()
+                    .id("7.21")
+                    .description("Uranium and thorium extraction")
+                    .build();
+            ActivityCode activityCode22 = ActivityCode.builder()
+                    .id("8.11")
+                    .description("Decorative and building stone extraction")
+                    .build();
+            ActivityCode activityCode23 = ActivityCode.builder()
+                    .id("8.92")
+                    .description("Peat extraction")
+                    .build();
+            ActivityCode activityCode24 = ActivityCode.builder()
+                    .id("47.11")
+                    .description("Retail trade in non-specialized food and beverage stores")
+                    .build();
+            ActivityCode activityCode25 = ActivityCode.builder()
+                    .id("53.1")
+                    .description("Postal activities")
+                    .build();
+            ActivityCode activityCode26 = ActivityCode.builder()
+                    .id("53.2")
+                    .description("Courier activities")
+                    .build();
+            ActivityCode activityCode27 = ActivityCode.builder()
+                    .id("85.1")
+                    .description("Preschool education")
+                    .build();
+            ActivityCode activityCode28 = ActivityCode.builder()
+                    .id("85.2")
+                    .description("Primary education")
+                    .build();
+            ActivityCode activityCode29 = ActivityCode.builder()
+                    .id("86.21")
+                    .description("General medical practice")
+                    .build();
+            ActivityCode activityCode30 = ActivityCode.builder()
+                    .id("86.22")
+                    .description("Specialist medical practice")
+                    .build();
+            ActivityCode activityCode31 = ActivityCode.builder()
+                    .id("86.9")
+                    .description("Other healthcare activities")
+                    .build();
+            ActivityCode activityCode32 = ActivityCode.builder()
+                    .id("84.12")
+                    .description("Regulation of economic activities")
+                    .build();
+            ActivityCode activityCode33 = ActivityCode.builder()
+                    .id("90.01")
+                    .description("Theater activities")
+                    .build();
+            ActivityCode activityCode34 = ActivityCode.builder()
+                    .id("90.04")
+                    .description("Botanical and zoological gardens")
+                    .build();
+            ActivityCode activityCode35 = ActivityCode.builder()
+                    .id("93.11")
+                    .description("Operation of sports facilities")
+                    .build();
+            ActivityCode activityCode36 = ActivityCode.builder()
+                    .id("93.13")
+                    .description("Gym activities")
+                    .build();
+            ActivityCode activityCode37 = ActivityCode.builder()
+                    .id("93.19")
+                    .description("Other sports activities")
+                    .build();
+            ActivityCode activityCode38 = ActivityCode.builder()
+                    .id("26.11")
+                    .description("Electronic components manufacturing")
+                    .build();
+            ActivityCode activityCode39 = ActivityCode.builder()
+                    .id("27.12")
+                    .description("Electrical panels and boards manufacturing")
+                    .build();
+            ActivityCode activityCode40 = ActivityCode.builder()
+                    .id("29.1")
+                    .description("Motor vehicle manufacturing")
+                    .build();
+            activityCodeRepository.saveAll(List.of(activityCode, activityCode2, activityCode3, activityCode4, activityCode5, activityCode6, activityCode7, activityCode8, activityCode9, activityCode10, activityCode11, activityCode12, activityCode13, activityCode14, activityCode15, activityCode16, activityCode17, activityCode18, activityCode19, activityCode20, activityCode21, activityCode22, activityCode23, activityCode24, activityCode25, activityCode26, activityCode27, activityCode28, activityCode29, activityCode30, activityCode31, activityCode32, activityCode33, activityCode34, activityCode35, activityCode36, activityCode37, activityCode38, activityCode39, activityCode40));
 
-            activityCodeRepository.save(activityCode);
         }
+        // CHATGPT CODE END 😊
 
         if (companyRepository.count() == 0) {
             Company bank = Company.builder()

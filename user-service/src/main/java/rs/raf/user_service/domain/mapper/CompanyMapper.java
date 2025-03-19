@@ -16,7 +16,8 @@ public class CompanyMapper {
                 company.getRegistrationNumber(),
                 company.getTaxId(),
                 company.getActivityCode(),
-                company.getAddress()
+                company.getAddress(),
+                company.getMajorityOwner() == null ? null : company.getMajorityOwner().getId()
         );
     }
 }

@@ -16,4 +16,5 @@ public class CompanyDto {
     private String  taxId;
     private String activityCode;
     private String address;
+    private Long majorityOwnerId;
 }
