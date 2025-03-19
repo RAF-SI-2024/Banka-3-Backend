@@ -27,6 +27,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorMessageDto(errorMessage));
     }
 
+
     @ExceptionHandler({StockNotFoundException.class, ForexPairNotFoundException.class, StockNotFoundException.class, ForexPairNotFoundException.class})
     public ResponseEntity<ErrorMessageDto> handleStockNotFoundException(StockNotFoundException ex) {
         ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
@@ -44,6 +45,12 @@ public class GlobalExceptionHandler {
         ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
+  
+    @ExceptionHandler(ListingNotFoundException.class)
+    public ResponseEntity<String> handleListingNotFoundException(ListingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
 
     // dodavati exceptione ovde
 
