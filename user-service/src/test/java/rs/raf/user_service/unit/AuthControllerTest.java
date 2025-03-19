@@ -6,10 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.user_service.controller.AuthController;
 import rs.raf.user_service.controller.UserController;
-import rs.raf.user_service.domain.dto.ActivationRequestDto;
-import rs.raf.user_service.domain.dto.LoginRequestDto;
-import rs.raf.user_service.domain.dto.LoginResponseDto;
-import rs.raf.user_service.domain.dto.RequestPasswordResetDto;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.service.AuthService;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -172,5 +169,18 @@ public class AuthControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
         verify(authService, times(1)).setPassword("expired-token", "newPassword123");
+    }
+
+    @Test
+    public void testCheckToken() {
+        CheckTokenDto checkTokenDto = new CheckTokenDto();
+        checkTokenDto.setToken("valid_token");
+
+        doNothing().when(authService).checkToken("valid_token");
+
+        ResponseEntity<Void> response = authController.checkToken(checkTokenDto);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(authService, times(1)).checkToken("valid_token");
     }
 }
