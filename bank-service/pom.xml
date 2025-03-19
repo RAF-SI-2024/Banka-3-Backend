@@ -167,7 +167,7 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-<!--        <dependency>-->
+        <!--        <dependency>-->
 <!--            <groupId>rs.raf.banka-3</groupId>-->
 <!--            <artifactId>user-service</artifactId>-->
 <!--            <version>0.0.1-SNAPSHOT</version>-->

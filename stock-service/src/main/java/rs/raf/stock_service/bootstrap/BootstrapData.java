@@ -1,27 +1,35 @@
 package rs.raf.stock_service.bootstrap;
 
+
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import rs.raf.stock_service.repository.*;
+import rs.raf.stock_service.service.CountryService;
+import rs.raf.stock_service.service.ExchangeService;
+import rs.raf.stock_service.service.HolidayService;
 import rs.raf.stock_service.domain.entity.*;
 
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
-import rs.raf.stock_service.repository.ExchangeRepository;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
-import rs.raf.stock_service.repository.ListingRepository;
-import rs.raf.stock_service.repository.OrderRepository;
+import rs.raf.stock_service.domain.entity.Order;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
 @Component
 public class BootstrapData implements CommandLineRunner {
 
+    private final CountryService countryService;
+    private final CountryRepository countryRepository;
+    private final ExchangeService exchangeService;
+    private final HolidayService holidayService;
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
     private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
@@ -29,8 +37,14 @@ public class BootstrapData implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // ili pokretati ovako zajedno, ili samo u importExchanges staviti druge dve funkcije na pocetku,
+        // nisam znao da li je bolje da su ovako nepovezane ili da ih povezujem pa sam ostavio ovako
+        countryService.importCountries();
+        holidayService.importHolidays();
+        exchangeService.importExchanges();
+
               // Kreiranje Exchange-a
-        Exchange nasdaq = new Exchange("XNAS", "NASDAQ", "NAS", "USA", "USD", -5L);
+        Exchange nasdaq = new Exchange("XNAS", "NASDAQ", "NAS", countryRepository.findByName("United States").get(), "USD", -5L, false);
         exchangeRepository.save(nasdaq);
 
         // Kreiranje Stock-a (Apple)
@@ -81,7 +95,7 @@ public class BootstrapData implements CommandLineRunner {
         oilDailyInfo.setChange(new BigDecimal("-0.80"));
         oilDailyInfo.setVolume(500000L);
         dailyPriceInfoRepository.save(oilDailyInfo);
-      
+
         if (orderRepository.count() == 0) {
 
             Order order1 = Order.builder()
