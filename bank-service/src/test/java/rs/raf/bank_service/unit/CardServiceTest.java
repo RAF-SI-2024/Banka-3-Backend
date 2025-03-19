@@ -13,14 +13,12 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.CardLimitExceededException;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.InvalidTokenException;
-import rs.raf.bank_service.exceptions.UnauthorizedException;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
@@ -259,6 +257,46 @@ public class CardServiceTest {
         assertEquals(CardStatus.BLOCKED, dummyCard.getStatus());
         verify(cardRepository).save(dummyCard);
         verify(rabbitTemplate).convertAndSend(eq("card-status-change"), any(EmailRequestDto.class));
+    }
+
+    @Test
+    void testGetUserCardsForAccount_Success() {
+        String accountNumber = "12345";
+        String authHeader = "Bearer token";
+        Long clientId = 1L;
+
+        Account account = new PersonalAccount();
+        account.setAccountNumber(accountNumber);
+
+        Card card1 = new Card();
+        card1.setAccount(account);
+
+        Card card2 = new Card();
+        card2.setAccount(account);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId))
+                .thenReturn(Optional.of(new PersonalAccount()));
+        when(cardRepository.findByAccount_AccountNumber(accountNumber))
+                .thenReturn(List.of(card1, card2));
+        when(userClient.getClientById(clientId)).thenReturn(new ClientDto());
+
+        List<CardDto> cards = cardService.getUserCardsForAccount(accountNumber, authHeader);
+
+        assertEquals(2, cards.size());
+    }
+
+    @Test
+    void testGetUserCardsForAccount_AccountNotFound() {
+        String accountNumber = "12345";
+        String authHeader = "Bearer token";
+        Long clientId = 1L;
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> cardService.getUserCardsForAccount(accountNumber, authHeader));
     }
 
 }
