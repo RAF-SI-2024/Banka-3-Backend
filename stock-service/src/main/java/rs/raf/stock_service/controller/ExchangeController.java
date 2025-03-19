@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.exceptions.ExchangesNotLoadedException;
 import rs.raf.stock_service.service.ExchangeService;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 
 import java.util.List;
 
@@ -27,6 +29,7 @@ public class ExchangeController {
 
     // treba verovatno neki preauth staviti samo nisam znao koji
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     @Operation(summary = "Get available exchanges.", description = "Get available exchanges.")
     @ApiResponses(value = {
@@ -42,6 +45,7 @@ public class ExchangeController {
         }
     }
 
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping
     @Operation(summary = "Toggle test mode.", description = "Toggle test mode.")
     @ApiResponses(value = {
