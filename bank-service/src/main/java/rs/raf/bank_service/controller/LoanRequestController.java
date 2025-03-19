@@ -66,7 +66,7 @@ public class LoanRequestController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
@@ -82,7 +82,7 @@ public class LoanRequestController {
     }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
@@ -98,7 +98,7 @@ public class LoanRequestController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get all loan requests")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully"),

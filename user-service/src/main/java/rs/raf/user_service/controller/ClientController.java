@@ -48,7 +48,7 @@ public class ClientController {
      */
 
     // GET endpoint sa opcionalnim filterima i sortiranje po prezimenu
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping
     @Operation(summary = "Get all clients with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
@@ -63,7 +63,7 @@ public class ClientController {
         return ResponseEntity.ok(clients);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
     @Operation(summary = "Get client by ID")
     @ApiResponses({
@@ -78,7 +78,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping
     @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
@@ -96,7 +96,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PutMapping("/{id}")
     @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
@@ -118,7 +118,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete client by ID")

@@ -31,7 +31,7 @@ public class ActuaryController {
 
     private final ActuaryService actuaryService;
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("change-limit/{id}")
     @Operation(summary = "Change agent limit.")
     @ApiResponses({
@@ -48,7 +48,7 @@ public class ActuaryController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("reset-limit/{id}")
     @Operation(summary = "Reset daily limit for an agent.")
     @ApiResponses({
@@ -64,7 +64,7 @@ public class ActuaryController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("set-approval/{id}")
     @Operation(summary = "Set approval value for an agent.")
     @ApiResponses({
@@ -80,7 +80,7 @@ public class ActuaryController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @GetMapping
     @Operation(summary = "Get all agents with filtering.")
     @ApiResponses({

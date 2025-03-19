@@ -57,7 +57,7 @@ public class LoanController {
     }
 
     // nema provere autorizacije sry mozda nekad fixati
-    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
     @Operation(summary = "Get all loan installments for loan")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of loans retrieved successfully"),
@@ -73,7 +73,7 @@ public class LoanController {
         }    }
 
     // nema provere autorizacije sry mozda nekad fixati
-    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
     @Operation(summary = "Get loan by ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan retrieved successfully"),
@@ -90,7 +90,7 @@ public class LoanController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get all loans")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loans retrieved successfully"),

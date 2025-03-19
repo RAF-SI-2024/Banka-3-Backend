@@ -22,7 +22,7 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Create new company", description = "Creates new company with provided parameters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully created company"),

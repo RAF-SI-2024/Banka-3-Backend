@@ -31,7 +31,7 @@ public class CardController {
                 this.cardService = cardService;
         }
 
-        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+        @PreAuthorize("hasRole('EMPLOYEE')")
         @GetMapping
         @Operation(summary = "Get Cards by Account", description = "Retrieves all cards associated with the specified account number.")
         @ApiResponses(value = {
@@ -47,7 +47,7 @@ public class CardController {
             }
         }
 
-        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+        @PreAuthorize("hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/block")
         @Operation(summary = "Block Card", description = "Blocks the card identified by the provided card number.")
         @ApiResponses(value = {
@@ -114,7 +114,7 @@ public class CardController {
         return ResponseEntity.ok(cardDto);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping("/create")
     @Operation(
             summary = "Create a card.",
@@ -137,7 +137,7 @@ public class CardController {
         return ResponseEntity.ok(cardDto);
     }
 
-        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+        @PreAuthorize("hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/unblock")
         @Operation(summary = "Unblock Card", description = "Unblocks the card identified by the provided card number.")
         @ApiResponses(value = {
@@ -154,7 +154,7 @@ public class CardController {
             }
         }
 
-        @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+        @PreAuthorize("hasRole('EMPLOYEE')")
         @PostMapping("/{cardNumber}/deactivate")
         @Operation(summary = "Deactivate Card", description = "Deactivates the card identified by the provided card number.")
         @ApiResponses(value = {

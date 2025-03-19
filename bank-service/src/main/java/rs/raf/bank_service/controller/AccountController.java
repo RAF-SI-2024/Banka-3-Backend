@@ -46,7 +46,7 @@ public class AccountController {
     /// Refaktorisano tako da getAccounts bude jedna GET metoda a ne dve jer tako kod ne radi
     /// Ovde proverava da li se request salje kao klijent ili admin/employee
     /// GET endpoint sa opcionalnim filterima i paginacijom/sortiranjem po prezimenu vlasnika
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT')")
     @GetMapping
     public ResponseEntity<?> getAccounts(
             @RequestParam(required = false) String accountNumber,
@@ -79,7 +79,7 @@ public class AccountController {
 
     @Operation(summary = "Get client accounts with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{clientId}")
     public ResponseEntity<?> getAccountsForClient(
             @RequestParam(required = false) String accountNumber,
@@ -98,7 +98,7 @@ public class AccountController {
 
 
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping
     @Operation(summary = "Add new bank account.")
     @ApiResponses({
@@ -117,7 +117,7 @@ public class AccountController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
     @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
     @ApiResponses(value = {
