@@ -1,10 +1,7 @@
 package rs.raf.stock_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.stock_service.domain.entity.Exchange;
-import rs.raf.stock_service.domain.entity.FuturesContract;
-import rs.raf.stock_service.domain.entity.Listing;
-import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.dto.ListingFilterDto;
 
 import javax.persistence.criteria.*;
@@ -29,11 +26,13 @@ public class ListingSpecification {
 
             // Join sa ListingDailyPriceInfo
             Join<Listing, ListingDailyPriceInfo> dailyInfoJoin = root.join("listingDailyPriceInfos", JoinType.LEFT);
-            predicates.add(cb.equal(dailyInfoJoin.get("date"), subquery));
+//            predicates.add(cb.equal(dailyInfoJoin.get("date"), subquery));
 
             // Ograničenje prikaza po roli
             if ("CLIENT".equalsIgnoreCase(role)) {
-                predicates.add(root.get("type").in("STOCK", "FUTURES"));
+                Predicate isStock = cb.equal(root.type(), cb.literal(Stock.class));
+                Predicate isFutures = cb.equal(root.type(), cb.literal(FuturesContract.class));
+                predicates.add(cb.or(isStock, isFutures));
             }
 
             // Filtriranje po Exchange - prefix
@@ -85,7 +84,7 @@ public class ListingSpecification {
 
             // Filtriranje po Settlement Date (samo za Futures i Options)
             if (filter.getSettlementDate() != null) {
-                Predicate isFutures = cb.equal(root.get("type"), "FUTURES");
+                Predicate isFutures = cb.equal(root.type(), cb.literal(FuturesContract.class));
                 Predicate settlementPredicate = cb.equal(cb.treat(root, FuturesContract.class).get("settlementDate"), filter.getSettlementDate());
                 predicates.add(cb.or(cb.not(isFutures), settlementPredicate));
             }

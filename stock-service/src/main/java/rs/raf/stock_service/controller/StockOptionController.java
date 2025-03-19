@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class StockOptionController {
             @ApiResponse(responseCode = "200", description = "Stock options retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Stock options not found")
     })
-    public ResponseEntity<List<StockOptionDto>> getStockOptionsByDate(@PathVariable Long id, @PathVariable LocalDate date) {
+    public ResponseEntity<List<StockOptionDto>> getStockOptionsByDate(@PathVariable Long id, @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return ResponseEntity.ok(stockOptionService.getStockOptionsByDate(id, date));
     }
 }

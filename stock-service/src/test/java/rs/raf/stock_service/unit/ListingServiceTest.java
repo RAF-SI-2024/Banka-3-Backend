@@ -14,6 +14,7 @@ import rs.raf.stock_service.domain.dto.ListingFilterDto;
 import rs.raf.stock_service.domain.dto.ListingDetailsDto;
 import rs.raf.stock_service.domain.dto.PriceHistoryDto;
 import rs.raf.stock_service.domain.dto.ListingUpdateDto;
+import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
@@ -72,7 +73,7 @@ class ListingServiceTest {
         dailyInfo.setVolume(2000000L);
 
         ListingDto expectedDto = new ListingDto(
-                1L, "AAPL", new BigDecimal("150.50"), new BigDecimal("2.50"), 2000000L,
+                1L, ListingType.STOCK, "AAPL", new BigDecimal("150.50"), new BigDecimal("2.50"), 2000000L,
                 new BigDecimal("165.55"), "XNAS"
         );
 
@@ -118,7 +119,7 @@ class ListingServiceTest {
         List<ListingDailyPriceInfo> priceHistory = List.of(dailyInfo2, dailyInfo1);
 
         ListingDetailsDto expectedDto = new ListingDetailsDto(
-                1L, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
+                1L, ListingType.STOCK, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
                 List.of(new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
                         new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))),
                 null, null
@@ -182,7 +183,7 @@ class ListingServiceTest {
         dailyInfo.setVolume(2000000L);
 
         ListingDto expectedDto = new ListingDto(
-                listingId, "AAPL", new BigDecimal("155.00"), new BigDecimal("2.50"), 2000000L,
+                listingId, ListingType.STOCK, "AAPL", new BigDecimal("155.00"), new BigDecimal("2.50"), 2000000L,
                 new BigDecimal("156.00"), "XNAS"
         );
 

@@ -13,6 +13,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import rs.raf.stock_service.controller.ListingController;
 import rs.raf.stock_service.domain.dto.*;
+import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.service.ListingService;
@@ -43,13 +44,9 @@ class ListingControllerTest {
 
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        objectMapper = new ObjectMapper();
     }
 
     @Test
@@ -61,6 +58,7 @@ class ListingControllerTest {
         // Mock DTO podaci
         ListingDto mockDto = new ListingDto(
                 1L,
+                ListingType.STOCK,
                 "AAPL",
                 new BigDecimal("150.50"),
                 new BigDecimal("2.50"),
@@ -96,6 +94,7 @@ class ListingControllerTest {
         // Mock DTO podaci
         ListingDto mockDto = new ListingDto(
                 2L,
+                ListingType.STOCK,
                 "OIL2025",
                 new BigDecimal("75.20"),
                 new BigDecimal("-0.80"),
@@ -130,6 +129,7 @@ class ListingControllerTest {
 
         ListingDetailsDto mockDto = new ListingDetailsDto(
                 listingId,
+                ListingType.STOCK,
                 "AAPL",
                 "Apple Inc.",
                 new BigDecimal("150.50"),
@@ -180,7 +180,7 @@ class ListingControllerTest {
         );
 
         ListingDto mockDto = new ListingDto(
-                listingId, "AAPL", new BigDecimal("155.00"),
+                listingId, ListingType.STOCK, "AAPL", new BigDecimal("155.00"),
                 new BigDecimal("2.50"), 2000000L,
                 new BigDecimal("156.00"), "XNAS"
         );
