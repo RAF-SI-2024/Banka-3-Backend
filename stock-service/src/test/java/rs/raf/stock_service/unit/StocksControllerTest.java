@@ -48,7 +48,7 @@ public class StocksControllerTest {
     @Test
     public void testSearchByTicker_Success() throws Exception {
         StockSearchDto dto1 = new StockSearchDto();
-        dto1.setSymbol("AAPL");
+        dto1.setTicker("AAPL");
         dto1.setName("Apple Inc.");
         dto1.setRegion("US");
         dto1.setMatchScore("1.0000");
@@ -60,13 +60,13 @@ public class StocksControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].symbol").value("AAPL"));
+                .andExpect(jsonPath("$[0].ticker").value("AAPL"));
     }
 
     @Test
     public void testGetStock_Success() throws Exception {
         StockDto dto = new StockDto();
-        dto.setSymbol("AAPL");
+        dto.setTicker("AAPL");
         dto.setName("Apple Inc.");
         dto.setPrice(new BigDecimal("150.00"));
         when(stockService.getStockData("AAPL")).thenReturn(dto);
@@ -74,16 +74,16 @@ public class StocksControllerTest {
         mockMvc.perform(get("/api/stocks/AAPL")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.symbol").value("AAPL"))
+                .andExpect(jsonPath("$.ticker").value("AAPL"))
                 .andExpect(jsonPath("$.name").value("Apple Inc."));
     }
 
     @Test
     public void testGetAllStocks_Success() throws Exception {
         StockDto dto1 = new StockDto();
-        dto1.setSymbol("AAPL");
+        dto1.setTicker("AAPL");
         StockDto dto2 = new StockDto();
-        dto2.setSymbol("MSFT");
+        dto2.setTicker("MSFT");
         List<StockDto> list = Arrays.asList(dto1, dto2);
         Page<StockDto> page = new PageImpl<>(list, PageRequest.of(0, 10), list.size());
 
@@ -95,7 +95,7 @@ public class StocksControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].symbol").value("AAPL"))
-                .andExpect(jsonPath("$.content[1].symbol").value("MSFT"));
+                .andExpect(jsonPath("$.content[0].ticker").value("AAPL"))
+                .andExpect(jsonPath("$.content[1].ticker").value("MSFT"));
     }
 }

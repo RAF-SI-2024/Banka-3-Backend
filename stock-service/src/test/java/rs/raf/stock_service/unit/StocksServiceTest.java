@@ -71,7 +71,7 @@ public class StocksServiceTest {
 
         StockDto dto = stockService.getStockData("TEST");
         assertNotNull(dto);
-        assertEquals("TEST", dto.getSymbol());
+        assertEquals("TEST", dto.getTicker());
         assertEquals("Test Company", dto.getName());
         assertEquals(new BigDecimal("150.00"), dto.getPrice());
         assertEquals(new BigDecimal("2.50"), dto.getChange());

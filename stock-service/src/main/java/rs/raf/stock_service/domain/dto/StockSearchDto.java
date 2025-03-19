@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class StockSearchDto {
-    private String symbol;
+    private String ticker;
     private String name;
     private String region;
     private String matchScore;

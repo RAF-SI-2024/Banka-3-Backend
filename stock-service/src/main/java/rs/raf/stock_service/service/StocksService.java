@@ -39,7 +39,7 @@ public class StocksService {
             if (bestMatches.isArray()) {
                 for (JsonNode node : bestMatches) {
                     StockSearchDto dto = new StockSearchDto();
-                    dto.setSymbol(node.path("1. symbol").asText());
+                    dto.setTicker(node.path("1. symbol").asText());
                     dto.setName(node.path("2. name").asText());
                     dto.setRegion(node.path("4. region").asText());
                     dto.setMatchScore(node.path("9. matchScore").asText());
@@ -83,7 +83,6 @@ public class StocksService {
             BigDecimal maintenanceMargin = price.multiply(BigDecimal.valueOf(0.5));
 
             Stock stock = new Stock();
-            stock.setSymbol(symbol);
             stock.setPrice(price);
             stock.setChange(change);
             stock.setVolume(volume);
@@ -110,7 +109,6 @@ public class StocksService {
             if (data.isArray()) {
                 for (JsonNode node : data) {
                     Stock stock = new Stock();
-                    stock.setSymbol(node.path("symbol").asText());
                     stock.setName(node.path("name").asText());
                     stock.setTicker(node.path("mic_code").asText());
                     stocks.add(stock);
@@ -136,7 +134,6 @@ public class StocksService {
 
     private StockDto mapToDto(Stock stock) {
         StockDto dto = new StockDto();
-        dto.setSymbol(stock.getSymbol());
         dto.setName(stock.getName());
         dto.setTicker(stock.getTicker());
         dto.setPrice(stock.getPrice());

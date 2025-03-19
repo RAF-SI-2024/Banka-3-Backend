@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 
 @Data
 public class StockDto {
-    private String symbol;
     private String name;
     private String ticker;
     private BigDecimal price;
