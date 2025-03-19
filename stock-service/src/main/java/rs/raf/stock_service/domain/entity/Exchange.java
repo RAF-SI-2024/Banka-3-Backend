@@ -20,4 +20,5 @@ public class Exchange {
     private String currencyCode;
     private Long timeZone;
 
+    private boolean testMode = false;
 }

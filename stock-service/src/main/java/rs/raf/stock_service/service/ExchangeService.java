@@ -4,16 +4,18 @@ package rs.raf.stock_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.domain.entity.Country;
 import rs.raf.stock_service.domain.entity.Exchange;
+import rs.raf.stock_service.exceptions.ExchangesNotLoadedException;
 import rs.raf.stock_service.repository.CountryRepository;
 import rs.raf.stock_service.repository.ExchangeRepository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -53,6 +55,49 @@ public class ExchangeService {
         }
     }
 
+
+    public List<Exchange> getAvailableExchanges(){
+        List<Exchange> allExchanges = exchangeRepository.findAll();
+        if (allExchanges.isEmpty()){
+            throw new ExchangesNotLoadedException();
+        }
+        List<Exchange> availableExchanges = new ArrayList<>();
+
+        for (Exchange exchange: allExchanges){
+            if (exchange.isTestMode()){
+                availableExchanges.add(exchange);
+                continue;
+            }
+
+            Country country = exchange.getPolity();
+            long offset = exchange.getTimeZone();
+
+            ZonedDateTime nowUtc = ZonedDateTime.now(ZoneOffset.UTC);
+            LocalDate today = nowUtc.toLocalDate();
+            LocalTime currentTime = nowUtc.toLocalTime().plusHours(offset);
+
+            if (country.getHolidays().contains(today)){
+                continue;
+            }
+
+            if (currentTime.isAfter(country.getOpenTime()) && currentTime.isBefore(country.getCloseTime())){
+                availableExchanges.add(exchange);
+            }
+        }
+        return availableExchanges;
+    }
+
+
+    public void toggleTestMode(){
+        List<Exchange> allExchanges = exchangeRepository.findAll();
+        if (allExchanges.isEmpty()){
+            throw new ExchangesNotLoadedException();
+        }
+        for (Exchange exchange: allExchanges){
+            exchange.setTestMode(!exchange.isTestMode());
+            exchangeRepository.save(exchange);
+        }
+    }
 
 
 
