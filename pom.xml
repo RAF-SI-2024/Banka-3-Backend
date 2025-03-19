@@ -109,6 +109,13 @@
                         <exclude>**rs/raf/bank_service/configuration/**</exclude>
                         <exclude>**rs/raf/bank_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/bank_service/client/**</exclude>
+                        <!--stock_service-->
+                        <exclude>**rs/raf/stock_service/domain/**</exclude>
+                        <exclude>**rs/raf/stock_service/repository/**</exclude>
+                        <exclude>**rs/raf/stock_service/exceptions/**</exclude>
+                        <exclude>**rs/raf/stock_service/configuration/**</exclude>
+                        <exclude>**rs/raf/stock_service/bootstrap/**</exclude>
+                        <exclude>**rs/raf/stock_service/client/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

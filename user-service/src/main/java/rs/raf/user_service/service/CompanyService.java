@@ -27,8 +27,7 @@ public class CompanyService {
     private final ClientRepository clientRepository;
     private final ActivityCodeRepository activityCodeRepository;
 
-
-    public void createCompany(CreateCompanyDto createCompanyDto) {
+    public CompanyDto createCompany(CreateCompanyDto createCompanyDto) {
         Client client = clientRepository.findById(createCompanyDto.getMajorityOwner()).orElse(null);
         if (client == null)
             throw new NoSuchElementException("Owner not found with ID: " + createCompanyDto.getMajorityOwner());
@@ -49,7 +48,7 @@ public class CompanyService {
         company.setAddress(createCompanyDto.getAddress());
         company.setMajorityOwner(client);
 
-        companyRepository.save(company);
+        return CompanyMapper.toDto(companyRepository.save(company));
     }
 
     public CompanyDto getCompanyById(Long id){
