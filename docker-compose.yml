@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  postgres:
+  main_db:
     image: postgres:17.3-alpine
     restart: always
     ports:
@@ -43,36 +43,54 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-#  user-service:
-#    build: ./user-service
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/main_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - postgres
-#      - rabbitmq
-#  email-service:
-#    build: ./email-service
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db:5433/bank_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - bank_db
-#      - rabbitmq
-#  bank-service:
-#    build: ./bank-service
-#    ports:
-#      - "8082:8082"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db:5433/bank_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - bank_db
-#      - rabbitmq
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://main_db:5432/main_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - main_db
+      - rabbitmq
+  email-service:
+    build:
+      context: .
+      dockerfile: email-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://main_db:5432/main_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - main_db
+      - rabbitmq
+  bank-service:
+    build:
+      context: .
+      dockerfile: bank-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db:5432/bank_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - bank_db
+      - rabbitmq
+  stock-service:
+    build:
+      context: .
+      dockerfile: stock-service/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stock_db:5432/stock_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - stock_db
+      - rabbitmq
 volumes:
   postgres_data:
   postgres_data_bank:
