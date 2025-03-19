@@ -43,6 +43,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/stocks/**").permitAll()
                 .antMatchers("/api/forex/**").permitAll()
                 .antMatchers("/api/exchange/**").permitAll()
+                .antMatchers("/api/conversion/**").permitAll()
                 .anyRequest().authenticated()
                 .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().headers().frameOptions().disable()

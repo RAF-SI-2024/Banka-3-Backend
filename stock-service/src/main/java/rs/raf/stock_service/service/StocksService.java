@@ -11,6 +11,7 @@ import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.StockDto;
 import rs.raf.stock_service.domain.dto.StockSearchDto;
+import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.exceptions.StocksNotFoundException;
@@ -26,6 +27,7 @@ public class StocksService {
 
     private final AlphavantageClient alphavantageClient;
     private final TwelveDataClient twelveDataClient;
+    private final ExchangeService exchangeService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<StockSearchDto> searchByTicker(String keyword) {
@@ -68,7 +70,14 @@ public class StocksService {
             String dividendYieldStr = overviewRoot.path("DividendYield").asText();
             BigDecimal dividendYield = dividendYieldStr.isEmpty() ? BigDecimal.ZERO : new BigDecimal(dividendYieldStr);
             String name = overviewRoot.path("Name").asText();
-            String exchange = overviewRoot.has("Exchange") ? overviewRoot.path("Exchange").asText() : "N/A";
+
+            String micCode = overviewRoot.path("Exchange").asText();
+            Exchange exchange = exchangeService.getAvailableExchanges()
+                    .stream()
+                    .filter(e -> e.getMic().equalsIgnoreCase(micCode))
+                    .findFirst()
+                    .orElse(null);
+
 
             BigDecimal marketCap = BigDecimal.valueOf(outstandingShares).multiply(price);
             BigDecimal maintenanceMargin = price.multiply(BigDecimal.valueOf(0.5));
@@ -84,7 +93,7 @@ public class StocksService {
             stock.setName(name);
             stock.setTicker(symbol);
             stock.setMaintenanceMargin(maintenanceMargin);
-//            stock.setExchange(exchange);
+            stock.setExchange(exchange);
 
             return mapToDto(stock);
         } catch (Exception e) {
@@ -137,7 +146,7 @@ public class StocksService {
         dto.setDividendYield(stock.getDividendYield());
         dto.setMarketCap(stock.getMarketCap());
         dto.setMaintenanceMargin(stock.getMaintenanceMargin());
-        // dto.setExchange(stock.getExchange());
+        dto.setExchange(String.valueOf(stock.getExchange()));
         return dto;
     }
 }

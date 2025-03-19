@@ -49,7 +49,7 @@ class ConversionControllerTest {
 
         when(forexService.getConversionRate(base, target)).thenReturn(conversionRate);
 
-        mockMvc.perform(get("/api/exchange/convert")
+        mockMvc.perform(get("/api/conversion/convert")
                         .param("base", base)
                         .param("target", target)
                         .param("amount", amount.toString())
@@ -68,7 +68,7 @@ class ConversionControllerTest {
 
         when(forexService.getConversionRate(base, target)).thenReturn(conversionRate);
 
-        mockMvc.perform(get("/api/exchange/convert")
+        mockMvc.perform(get("/api/conversion/convert")
                         .param("base", base)
                         .param("target", target)
                         .contentType(APPLICATION_JSON))
@@ -84,7 +84,7 @@ class ConversionControllerTest {
 
         when(forexService.getLatestRates(base)).thenReturn(rates);
 
-        mockMvc.perform(get("/api/exchange/latest")
+        mockMvc.perform(get("/api/conversion/latest")
                         .param("base", base)
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())

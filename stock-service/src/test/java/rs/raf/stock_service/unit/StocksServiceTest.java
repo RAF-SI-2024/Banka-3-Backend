@@ -13,10 +13,13 @@ import org.springframework.data.domain.Pageable;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.StockDto;
+import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
+import rs.raf.stock_service.service.ExchangeService;
 import rs.raf.stock_service.service.StocksService;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -31,6 +34,8 @@ public class StocksServiceTest {
     private TwelveDataClient twelveDataClient;
     @InjectMocks
     private StocksService stockService;
+    @Mock
+    private ExchangeService exchangeService;
 
     @BeforeEach
     void setUp() {
@@ -39,6 +44,14 @@ public class StocksServiceTest {
 
     @Test
     public void testGetStockData_Success() throws Exception {
+        Exchange ex1 = new Exchange();
+        ex1.setMic("NYSE");
+
+        Exchange ex2 = new Exchange();
+        ex2.setMic("XNAS");
+
+        when(exchangeService.getAvailableExchanges()).thenReturn(List.of(ex1,ex2));
+
         // Pripremite sample JSON odgovore
         String globalQuoteJson = "{ \"Global Quote\": { " +
                 "\"05. price\": \"150.00\", " +
@@ -60,12 +73,11 @@ public class StocksServiceTest {
         assertNotNull(dto);
         assertEquals("TEST", dto.getSymbol());
         assertEquals("Test Company", dto.getName());
-        //assertEquals("NYSE", dto.getExchange());
         assertEquals(new BigDecimal("150.00"), dto.getPrice());
         assertEquals(new BigDecimal("2.50"), dto.getChange());
-        // Market cap = 1,000,000 * 150 = 150000000
         assertEquals(new BigDecimal("150000000").stripTrailingZeros(), dto.getMarketCap().stripTrailingZeros());
     }
+
 
     @Test
     public void testGetStockData_NotFound() throws Exception {
