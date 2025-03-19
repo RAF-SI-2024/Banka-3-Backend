@@ -1,0 +1,91 @@
+package rs.raf.bank_service.unit;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import rs.raf.bank_service.domain.entity.Loan;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.specification.LoanSpecification;
+
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+class LoanSpecificationTest {
+
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private Root<Loan> root;
+
+    @Mock
+    private CriteriaBuilder cb;
+
+    @Mock
+    private Predicate predicate1;
+
+    @Mock
+    private Predicate predicate2;
+
+    @Mock
+    private Predicate predicate3;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testFilterBy_AllFieldsProvided() {
+        when(cb.equal(root.get("type"), LoanType.STUDENT)).thenReturn(predicate1);
+        when(cb.equal(root.get("account").get("accountNumber"), "ACC123")).thenReturn(predicate2);
+        when(cb.equal(root.get("status"), LoanStatus.APPROVED)).thenReturn(predicate3);
+        when(cb.and(any(Predicate[].class))).thenReturn(mock(Predicate.class));
+
+        var spec = LoanSpecification.filterBy(LoanType.STUDENT, "ACC123", LoanStatus.APPROVED);
+        Predicate result = spec.toPredicate(root, null, cb);
+
+        assertNotNull(result);
+        verify(cb).and(any(Predicate[].class));
+    }
+
+    @Test
+    void testFilterBy_OnlyTypeProvided() {
+        when(cb.equal(root.get("type"), LoanType.CASH)).thenReturn(predicate1);
+        when(cb.and(any(Predicate[].class))).thenReturn(mock(Predicate.class));
+
+        var spec = LoanSpecification.filterBy(LoanType.CASH, null, null);
+        Predicate result = spec.toPredicate(root, null, cb);
+
+        assertNotNull(result);
+        verify(cb).and(any(Predicate[].class));
+    }
+
+    @Test
+    void testFilterBy_OnlyStatusProvided() {
+        when(cb.equal(root.get("status"), LoanStatus.REJECTED)).thenReturn(predicate1);
+        when(cb.and(any(Predicate[].class))).thenReturn(mock(Predicate.class));
+
+        var spec = LoanSpecification.filterBy(null, null, LoanStatus.REJECTED);
+        Predicate result = spec.toPredicate(root, null, cb);
+
+        assertNotNull(result);
+        verify(cb).and(any(Predicate[].class));
+    }
+
+    @Test
+    void testFilterBy_NullInputs() {
+        when(cb.and(any(Predicate[].class))).thenReturn(mock(Predicate.class));
+
+        var spec = LoanSpecification.filterBy(null, null, null);
+        Predicate result = spec.toPredicate(root, null, cb);
+
+        assertNotNull(result);
+        verify(cb).and(any(Predicate[].class));
+    }
+}
