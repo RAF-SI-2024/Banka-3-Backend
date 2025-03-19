@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 @DiscriminatorValue("STOCK")
 public class Stock extends Listing {
     private String symbol;
-    private BigDecimal price;
     private BigDecimal change;
     private long volume;
     private long outstandingShares;

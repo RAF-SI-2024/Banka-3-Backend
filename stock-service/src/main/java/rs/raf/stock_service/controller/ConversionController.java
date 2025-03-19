@@ -17,8 +17,8 @@ import java.math.BigDecimal;
 
 @Tag(name = "Exchange API", description = "Operations for currency conversion and retrieving latest rates")
 @RestController
-@RequestMapping("/api/exchange")
-public class ExchangeController {
+@RequestMapping("/api/conversion")
+public class ConversionController {
 
     @Autowired
     private ForexService forexService;

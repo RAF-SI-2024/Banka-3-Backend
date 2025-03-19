@@ -104,7 +104,6 @@ public class StocksService {
                     stock.setSymbol(node.path("symbol").asText());
                     stock.setName(node.path("name").asText());
                     stock.setTicker(node.path("mic_code").asText());
-                    // Mapirajte dodatne podatke po potrebi.
                     stocks.add(stock);
                 }
             }

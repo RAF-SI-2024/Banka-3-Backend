@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-import rs.raf.stock_service.controller.ExchangeController;
+import rs.raf.stock_service.controller.ConversionController;
 import rs.raf.stock_service.domain.dto.ConversionResponseDto;
 import rs.raf.stock_service.service.ForexService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -23,8 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-@WebMvcTest(ExchangeController.class)
-class ExchangeControllerTest {
+@WebMvcTest(ConversionController.class)
+class ConversionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
