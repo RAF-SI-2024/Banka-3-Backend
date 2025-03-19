@@ -15,7 +15,9 @@ import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.CompanyRepository;
 
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -25,8 +27,7 @@ public class CompanyService {
     private final ClientRepository clientRepository;
     private final ActivityCodeRepository activityCodeRepository;
 
-
-    public void createCompany(CreateCompanyDto createCompanyDto) {
+    public CompanyDto createCompany(CreateCompanyDto createCompanyDto) {
         Client client = clientRepository.findById(createCompanyDto.getMajorityOwner()).orElse(null);
         if (client == null)
             throw new NoSuchElementException("Owner not found with ID: " + createCompanyDto.getMajorityOwner());
@@ -47,13 +48,17 @@ public class CompanyService {
         company.setAddress(createCompanyDto.getAddress());
         company.setMajorityOwner(client);
 
-        companyRepository.save(company);
+        return CompanyMapper.toDto(companyRepository.save(company));
     }
 
     public CompanyDto getCompanyById(Long id){
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
         return CompanyMapper.toDto(company);
+    }
+
+    public List<CompanyDto> getCompaniesForClientId(Long id){
+        return companyRepository.findByMajorityOwner_Id(id).stream().map(CompanyMapper::toDto).collect(Collectors.toList());
     }
 
 

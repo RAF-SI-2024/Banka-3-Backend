@@ -9,9 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.user_service.domain.dto.CompanyDto;
 import rs.raf.user_service.domain.dto.CreateCompanyDto;
+import rs.raf.user_service.domain.dto.ErrorMessageDto;
 import rs.raf.user_service.exceptions.*;
 import rs.raf.user_service.service.CompanyService;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/company")
@@ -28,13 +32,13 @@ public class CompanyController {
             @ApiResponse(responseCode = "400", description = "Invalid data.")
     })
     @PostMapping
-    public ResponseEntity<String> createCompany(@RequestBody CreateCompanyDto createCompanyDto) {
+    public ResponseEntity<?> createCompany(@RequestBody @Valid CreateCompanyDto createCompanyDto) {
         try {
-            companyService.createCompany(createCompanyDto);
-            return ResponseEntity.status(HttpStatus.CREATED).build();
+            CompanyDto companyDto = companyService.createCompany(createCompanyDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(companyDto);
         } catch (ClientNotFoundException | ActivityCodeNotFoundException | CompanyRegNumExistsException |
-                 TaxIdAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+                TaxIdAlreadyExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         }
 
     }
@@ -55,6 +59,20 @@ public class CompanyController {
         } catch (RuntimeException e){
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
+    }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'SUPERVISOR', 'AGENT')")
+    @Operation(summary = "Get companies", description = "Retrieves companies by client id")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved companies"),
+            @ApiResponse(responseCode = "500", description = "Company retrieval failed.")
+    })
+    @GetMapping("/owned-by/{id}")
+    public ResponseEntity<?> getCompaniesForClientId(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok().body(companyService.getCompaniesForClientId(id));
+        } catch (RuntimeException e){
+            return ResponseEntity.internalServerError().body(new ErrorMessageDto(e.getMessage()));
+        }
     }
 }

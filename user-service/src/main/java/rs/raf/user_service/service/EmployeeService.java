@@ -15,20 +15,19 @@ import rs.raf.user_service.domain.dto.CreateEmployeeDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.AuthToken;
 import rs.raf.user_service.domain.entity.Employee;
-import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
-import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
-import rs.raf.user_service.exceptions.UserAlreadyExistsException;
+import rs.raf.user_service.domain.entity.Role;
+import rs.raf.user_service.exceptions.*;
 import rs.raf.user_service.domain.mapper.EmployeeMapper;
-import rs.raf.user_service.repository.AuthTokenRepository;
-import rs.raf.user_service.repository.EmployeeRepository;
-import rs.raf.user_service.repository.RoleRepository;
-import rs.raf.user_service.repository.UserRepository;
+import rs.raf.user_service.repository.*;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import javax.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -40,6 +39,7 @@ public class EmployeeService {
     private final AuthTokenRepository authTokenRepository;
     private final RabbitTemplate rabbitTemplate;
     private final RoleRepository roleRepository;
+    private final ActuaryLimitRepository actuaryLimitRepository;
 
 
     @Operation(summary = "Find all employees", description = "Fetches employees with optional filters and pagination")
@@ -118,10 +118,11 @@ public class EmployeeService {
         if (userRepository.findByJmbg(createEmployeeDTO.getJmbg()).isPresent())
             throw new JmbgAlreadyExistsException();
 
-        Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
-        employee.setRole(roleRepository.findByName("EMPLOYEE").get());
-        employeeRepository.save(employee);
+        Role role = roleRepository.findByName(createEmployeeDTO.getRole()).orElseThrow(RoleNotFoundException::new);
 
+        Employee employee = EmployeeMapper.createDtoToEntity(createEmployeeDTO);
+        employee.setRole(role);
+        employeeRepository.save(employee);
 
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());
@@ -146,6 +147,8 @@ public class EmployeeService {
     public EmployeeDto updateEmployee(Long id, UpdateEmployeeDto updateEmployeeDTO) {
         Employee employee = employeeRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
+        Role role = roleRepository.findByName(updateEmployeeDTO.getRole()).orElseThrow(RoleNotFoundException::new);
+
         employee.setLastName(updateEmployeeDTO.getLastName());
         employee.setGender(updateEmployeeDTO.getGender());
         employee.setPhone(updateEmployeeDTO.getPhone());
@@ -153,6 +156,16 @@ public class EmployeeService {
         employee.setPosition(updateEmployeeDTO.getPosition());
         employee.setDepartment(updateEmployeeDTO.getDepartment());
 
+        if (role.getName().equals("AGENT") && !Objects.equals(employee.getRole().getName(), "AGENT")) {
+            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(100000), new BigDecimal(0), true, employee);
+            actuaryLimitRepository.save(actuaryLimit);
+        }
+        if (!role.getName().equals("AGENT") && employee.getRole().getName().equals("AGENT")) {
+            ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(id).orElseThrow(RuntimeException::new);
+            actuaryLimitRepository.delete(actuaryLimit);
+        }
+
+        employee.setRole(role);
         employee = employeeRepository.save(employee);
 
         return EmployeeMapper.toDto(employee);

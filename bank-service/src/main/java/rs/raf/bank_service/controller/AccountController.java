@@ -43,38 +43,57 @@ public class AccountController {
     private final UserClient userClient;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
 
-
-
+    /// Refaktorisano tako da getAccounts bude jedna GET metoda a ne dve jer tako kod ne radi
+    /// Ovde proverava da li se request salje kao klijent ili admin/employee
     /// GET endpoint sa opcionalnim filterima i paginacijom/sortiranjem po prezimenu vlasnika
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
-    @Operation(summary = "Get all accounts with filtering and pagination")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Page<AccountDto>> getAccounts(
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @GetMapping
+    public ResponseEntity<?> getAccounts(
             @RequestParam(required = false) String accountNumber,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader("Authorization") String auth) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("owner.lastName").ascending());
-        Page<AccountDto> accounts = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
-        return ResponseEntity.ok(accounts);
+        try {
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
+
+            if (role.equals("CLIENT")) {
+                Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+                return ResponseEntity.ok(accountService.getMyAccounts(clientId));
+            }
+
+            Pageable pageable = PageRequest.of(page, size, Sort.by("owner.lastName").ascending());
+            Page<AccountDto> accounts = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
+            return ResponseEntity.ok(accounts);
+        } catch (UserNotAClientException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+        }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @Operation(summary = "Get client accounts with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @GetMapping("/{clientId}")
-    public ResponseEntity<Page<AccountDto>> getAccountsForClient(
+    public ResponseEntity<?> getAccountsForClient(
             @RequestParam(required = false) String accountNumber,
             @PathVariable Long clientId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
-        return ResponseEntity.ok(accounts);
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
+            return ResponseEntity.ok(accounts);
+        } catch (ClientNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
 
@@ -86,43 +105,18 @@ public class AccountController {
             @ApiResponse(responseCode = "201", description = "Account created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
-
-    public ResponseEntity<String> createBankAccount(@RequestHeader("Authorization") String authorizationHeader, @RequestBody NewBankAccountDto newBankAccountDto) {
+    public ResponseEntity<?> createBankAccount(@RequestHeader("Authorization") String authorizationHeader,
+                                               @RequestBody NewBankAccountDto newBankAccountDto) {
         try {
             accountService.createNewBankAccount(newBankAccountDto, authorizationHeader);
-//            if(newBankAccountDto.isCreateCard()){
-//                accountService.createCard...
-//            }
             return ResponseEntity.status(HttpStatus.CREATED).build();
-
         } catch (ClientNotFoundException | CurrencyNotFoundException e) {
-
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (DuplicateAccountNameException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
-    @GetMapping
-    @Operation(summary = "Get all client's accounts", description = "Returns a list of all client's accounts")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved account list"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data"),
-            @ApiResponse(responseCode = "500", description = "Account list retrieval failed")
-    })
-    public ResponseEntity<?> getMyAccounts(@RequestHeader("Authorization") String auth){
-        try {
-            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-            return ResponseEntity.ok(accountService.getMyAccounts(clientId));
-        }catch (UserNotAClientException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }catch (RuntimeException e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
-    }
-
-    //oVO MOZDA VISE I NIJE POTREBNO JER JE KOLEGA KOJI JE MERGOVAO PRE MENE PROSIRIO aCCOUNTdTO DA UKLJUCUJE
-    //I ONO STO SAM JA RAZDVOJIO U AccountDetailsDto -- izvini za Caps
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE') or hasRole('ADMIN')")
     @GetMapping("/details/{accountNumber}")
     @Operation(summary = "Get account details", description = "Returns account details")
@@ -192,7 +186,7 @@ public class AccountController {
             @PathVariable String accountNumber,
             @RequestBody @Valid ChangeAccountLimitDto request,
             @RequestHeader("Authorization") String authHeader
-            ) {
+    ) {
         try {
             accountService.requestAccountLimitChange(accountNumber, request.getNewLimit(), authHeader);
             return ResponseEntity.ok("Limit change request saved. Awaiting approval.");
@@ -200,6 +194,35 @@ public class AccountController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("VALJDA SE NECE DESITI");
+        }
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @Operation(summary = "Set authorized person for an account", description = "Assigns an authorized person to a company's account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Authorized person set successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input values"),
+            @ApiResponse(responseCode = "404", description = "Account or authorized person not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Unauthorized access")
+    })
+    @PutMapping("/{companyAccountId}/set-authorized-person")
+    public ResponseEntity<?> setAuthorizedPerson(
+            @PathVariable Long companyAccountId,
+            @RequestParam Long authorizedPersonId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        try {
+            accountService.setAuthorizedPerson(companyAccountId, authorizedPersonId, employeeId);
+            return ResponseEntity.ok("Authorized person successfully assigned to account.");
+        } catch (AccountNotFoundException | AuthorizedPersonNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (InvalidAuthorizedPersonException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

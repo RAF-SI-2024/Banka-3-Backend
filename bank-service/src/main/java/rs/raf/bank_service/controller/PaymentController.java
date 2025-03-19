@@ -33,7 +33,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/transfer")
     @Operation(summary = "Transfer funds between accounts", description = "Transfers funds from one account to another. Both must " +
             "be using the same currency.")
@@ -90,7 +90,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CLIENT')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
     @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
@@ -181,6 +181,21 @@ public class PaymentController {
         catch (PaymentNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
 
+    /// ExceptionHandlers
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<String> handlePaymentNotFoundException(PaymentNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedPaymentException.class)
+    public ResponseEntity<String> handleUnauthorizedPaymentException(UnauthorizedPaymentException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }

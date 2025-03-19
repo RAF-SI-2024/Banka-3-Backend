@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import rs.raf.user_service.domain.dto.CompanyDto;
 import rs.raf.user_service.domain.dto.CreateCompanyDto;
 import rs.raf.user_service.domain.entity.ActivityCode;
 import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.domain.entity.Company;
+import rs.raf.user_service.exceptions.CompanyNotFoundException;
 import rs.raf.user_service.repository.ActivityCodeRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.CompanyRepository;
@@ -17,9 +19,7 @@ import rs.raf.user_service.service.CompanyService;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -116,4 +116,36 @@ class CompanyServiceTest {
         verify(activityCodeRepository, times(1)).findById(String.valueOf(1L));
         verify(companyRepository, never()).save(any());
     }
+
+    @Test
+    void testGetCompanyById_Success() {
+        // Arrange
+        Long companyId = 1L;
+        Company company = new Company();
+        company.setId(companyId);
+        company.setName("Test Company");
+
+        when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
+
+        // Act
+        CompanyDto result = companyService.getCompanyById(companyId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(companyId, result.getId());
+        assertEquals("Test Company", result.getName());
+        verify(companyRepository, times(1)).findById(companyId);
+    }
+
+    @Test
+    void testGetCompanyById_NotFound() {
+        // Arrange
+        Long companyId = 1L;
+        when(companyRepository.findById(companyId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(CompanyNotFoundException.class, () -> companyService.getCompanyById(companyId));
+        verify(companyRepository, times(1)).findById(companyId);
+    }
+
 }

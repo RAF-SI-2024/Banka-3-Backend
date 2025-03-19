@@ -1,31 +1,31 @@
 package rs.raf.stock_service.bootstrap;
 
+import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.repository.*;
+import rs.raf.stock_service.domain.entity.Order;
+
+import rs.raf.stock_service.domain.enums.OrderDirection;
+import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.domain.enums.OrderType;
+import rs.raf.stock_service.repository.OrderRepository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@AllArgsConstructor
 @Component
 public class BootstrapData implements CommandLineRunner {
 
+    private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
     private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private final ExchangeRepository exchangeRepository;
 
-    public BootstrapData(ListingRepository listingRepository, ListingDailyPriceInfoRepository dailyPriceInfoRepository, ExchangeRepository exchangeRepository) {
-        this.listingRepository = listingRepository;
-        this.dailyPriceInfoRepository = dailyPriceInfoRepository;
-        this.exchangeRepository = exchangeRepository;
-    }
-
     @Override
     public void run(String... args) {
-        // Kreiranje Exchange-a
+              // Kreiranje Exchange-a
         Exchange nasdaq = new Exchange("XNAS", "NASDAQ", "NAS", "USA", "USD", -5L);
         exchangeRepository.save(nasdaq);
 
@@ -77,5 +77,44 @@ public class BootstrapData implements CommandLineRunner {
         oilDailyInfo.setChange(new BigDecimal("-0.80"));
         oilDailyInfo.setVolume(500000L);
         dailyPriceInfoRepository.save(oilDailyInfo);
+      
+        if (orderRepository.count() == 0) {
+
+            Order order1 = Order.builder()
+                    .userId(1L)
+                    .asset(100)
+                    .orderType(OrderType.LIMIT)
+                    .quantity(10)
+                    .contractSize(1)
+                    .pricePerUnit(new BigDecimal("150.50"))
+                    .direction(OrderDirection.BUY)
+                    .status(OrderStatus.PENDING)
+                    .approvedBy(null)
+                    .isDone(false)
+                    .lastModification(LocalDateTime.now())
+                    .remainingPortions(10)
+                    .afterHours(false)
+                    .build();
+
+            Order order2 = Order.builder()
+                    .userId(2L)
+                    .asset(200)
+                    .orderType(OrderType.MARKET)
+                    .quantity(5)
+                    .contractSize(2)
+                    .pricePerUnit(new BigDecimal("200.00"))
+                    .direction(OrderDirection.SELL)
+                    .status(OrderStatus.APPROVED)
+                    .approvedBy(1L)
+                    .isDone(true)
+                    .lastModification(LocalDateTime.now().minusDays(1))
+                    .remainingPortions(0)
+                    .afterHours(true)
+                    .build();
+
+            orderRepository.saveAll(List.of(order1, order2));
+
+            System.out.println("Loaded initial test orders into database.");
+        }
     }
 }

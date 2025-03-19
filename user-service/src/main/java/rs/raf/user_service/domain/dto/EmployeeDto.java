@@ -27,5 +27,6 @@ public class EmployeeDto {
     private String gender;
     private String phone;
     private String address;
+    private String role;
 
 }

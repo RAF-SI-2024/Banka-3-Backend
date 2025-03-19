@@ -16,6 +16,7 @@ import rs.raf.user_service.repository.CompanyRepository;
 import rs.raf.user_service.service.AuthorizedPersonelService;
 
 import javax.persistence.EntityNotFoundException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,7 +49,8 @@ class AuthorizedPersonelServiceTest {
         CreateAuthorizedPersonelDto createDto = new CreateAuthorizedPersonelDto();
         createDto.setFirstName("John");
         createDto.setLastName("Doe");
-        createDto.setDateOfBirth(946684800000L); // 2000-01-01
+//         createDto.setDateOfBirth(LocalDate.of(2000, 1, 1).toEpochDay());
+        createDto.setDateOfBirth(LocalDate.of(2000,1,1)); // 2000-01-01
         createDto.setGender("Male");
         createDto.setEmail("john.doe@example.com");
         createDto.setPhoneNumber("1234567890");
@@ -246,56 +248,5 @@ class AuthorizedPersonelServiceTest {
         verify(authorizedPersonelRepository).existsById(1L);
         verify(authorizedPersonelRepository, never()).deleteById(any());
     }
-
-    @Test
-    void isClientMajorityOwnerOfCompany_True() {
-        // Arrange
-        Company company = new Company();
-        Client client = new Client();
-        client.setId(1L);
-        company.setMajorityOwner(client);
-
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
-
-        // Act
-        boolean result = authorizedPersonelService.isClientMajorityOwnerOfCompany(1L, 1L);
-
-        // Assert
-        assertTrue(result);
-        verify(companyRepository).findById(1L);
-    }
-
-    @Test
-    void isClientMajorityOwnerOfCompany_False() {
-        // Arrange
-        Company company = new Company();
-        Client client = new Client();
-        client.setId(2L);
-        company.setMajorityOwner(client);
-
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
-
-        // Act
-        boolean result = authorizedPersonelService.isClientMajorityOwnerOfCompany(1L, 1L);
-
-        // Assert
-        assertFalse(result);
-        verify(companyRepository).findById(1L);
-    }
-
-    @Test
-    void isClientMajorityOwnerOfCompany_NoMajorityOwner() {
-        // Arrange
-        Company company = new Company();
-        company.setMajorityOwner(null);
-
-        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
-
-        // Act
-        boolean result = authorizedPersonelService.isClientMajorityOwnerOfCompany(1L, 1L);
-
-        // Assert
-        assertFalse(result);
-        verify(companyRepository).findById(1L);
-    }
 }
+

@@ -50,6 +50,8 @@ public class ClientService {
     public ClientDto getClientById(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Client not found with ID: " + id));
+
+        System.out.println("Pronađen klijent: " + client.getEmail());
         return clientMapper.toDto(client);
     }
 

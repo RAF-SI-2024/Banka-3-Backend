@@ -3,10 +3,15 @@ package rs.raf.bank_service.domain.dto;
 import lombok.Data;
 
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 @Data
 public class NewBankAccountDto {
+    @NotNull(message = "Name cannot be null")
+    @Size(min = 3, max = 50, message = "Account name must be between 3 and 50 characters")
+    private String name;
+
     @NotNull(message = "Currency cannot be null")
     private String currency;
 
