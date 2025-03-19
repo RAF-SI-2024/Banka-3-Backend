@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -28,4 +29,7 @@ public abstract class Listing {
     private LocalDateTime lastRefresh;
     private BigDecimal price;
     private BigDecimal ask;
+
+    @OneToMany
+    private List<ListingDailyPriceInfo> listingDailyPriceInfos;
 }
