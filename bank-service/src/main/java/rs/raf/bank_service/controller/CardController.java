@@ -9,10 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.bank_service.domain.dto.CardDto;
-import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
-import rs.raf.bank_service.domain.dto.CardRequestDto;
-import rs.raf.bank_service.domain.dto.CreateCardDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.CardService;
@@ -200,14 +197,35 @@ public class CardController {
                         @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
                         @ApiResponse(responseCode = "403", description = "Access denied")
         })
-        public ResponseEntity<?> getUserCards(@RequestHeader("Authorization") String authHeader) {
+        public ResponseEntity<?> getUserCards(@PathVariable String accountNumber, @RequestHeader("Authorization") String authHeader) {
             try {
                 List<CardDto> cards = cardService.getUserCards(authHeader);
                 return ResponseEntity.ok(cards);
             } catch (UnauthorizedException e) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorMessageDto(e.getMessage()));
             }
         }
+
+    @PreAuthorize("hasRole('CLIENT')")
+    @GetMapping("/my-account-cards")
+    @Operation(summary = "Get User's Cards for account", description = "Retrieves all cards belonging to the authenticated user across specified account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<?> getUserCardsForAccount(@PathVariable String accountNumber, @RequestHeader("Authorization") String authHeader) {
+        try {
+            List<CardDto> cards = cardService.getUserCardsForAccount(accountNumber, authHeader);
+            return ResponseEntity.ok(cards);
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorMessageDto(e.getMessage()));
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto(e.getMessage()));
+        }
+    }
 
 
     ///ExceptionHandlers
