@@ -1,7 +1,6 @@
 package rs.raf.stock_service.domain.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
@@ -14,6 +13,9 @@ import java.time.LocalDateTime;
 @Table(name = "orders")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Order {
 
     @Id
@@ -45,7 +47,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status; // pending, approved, declined
+    private OrderStatus status; // pending, approved, declined, done
 
     private Long approvedBy;
 
