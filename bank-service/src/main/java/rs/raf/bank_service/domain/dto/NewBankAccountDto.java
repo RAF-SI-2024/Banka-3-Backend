@@ -49,4 +49,6 @@ public class NewBankAccountDto {
     private String accountOwnerType;
 
     private boolean createCard;
+
+    private Long authorizedPersonId;
 }

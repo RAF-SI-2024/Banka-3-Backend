@@ -103,6 +103,7 @@ public class AccountService {
         if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
             newAccount = new CompanyAccount();
             ((CompanyAccount) newAccount).setCompanyId(newBankAccountDto.getCompanyId());
+            ((CompanyAccount) newAccount).setAuthorizedPersonId(newBankAccountDto.getAuthorizedPersonId());
         } else
             newAccount = new PersonalAccount();
 
