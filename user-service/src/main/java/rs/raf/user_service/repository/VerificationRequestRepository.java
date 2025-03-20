@@ -16,7 +16,7 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
     @Query("SELECT v FROM VerificationRequest v WHERE v.userId = :userId AND ((v.status != 'PENDING') OR v.expirationTime < CURRENT_TIMESTAMP) ORDER BY v.createdAt DESC")
     List<VerificationRequest> findInactiveRequests(@Param("userId") Long userId);
 
-    @Query("SELECT v FROM VerificationRequest v WHERE v.id = :id AND v.userId = :userId AND v.status = 'PENDING' AND v.expirationTime > CURRENT_TIMESTAMP ORDER BY v.createdAt DESC")
+    @Query("SELECT v FROM VerificationRequest v WHERE v.id = :id AND v.userId = :userId AND v.status = 'PENDING' AND v.expirationTime > CURRENT_TIMESTAMP")
     Optional<VerificationRequest> findActiveRequest(@Param("id") Long id, @Param("userId") Long userId);
 
 }
