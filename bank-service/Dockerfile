@@ -11,5 +11,5 @@ FROM openjdk:17
 WORKDIR /app
 COPY --from=builder /app .
 
-EXPOSE 8082
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app/service/target/bank-service-0.0.1-SNAPSHOT.jar"]

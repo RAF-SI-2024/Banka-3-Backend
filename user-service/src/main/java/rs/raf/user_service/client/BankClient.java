@@ -3,7 +3,7 @@ package rs.raf.user_service.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "bank-service", url = "${bank.service.url:http://localhost:8082}", fallbackFactory = BankClientFallbackFactory.class)
+@FeignClient(name = "bank-service", url = "${spring.cloud.openfeign.client.config.bank-service.url}", fallbackFactory = BankClientFallbackFactory.class)
 public interface BankClient {
 
     @PostMapping("/api/payment/confirm-payment/{id}")
