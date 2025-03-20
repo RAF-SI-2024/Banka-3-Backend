@@ -88,4 +88,8 @@ public class VerificationRequestService {
 
         return updateRequestStatus(requestId, VerificationStatus.DENIED);
     }
+
+    public boolean calledFromMobile(String userAgent) {
+        return userAgent.equals("MobileApp/1.0");
+    }
 }

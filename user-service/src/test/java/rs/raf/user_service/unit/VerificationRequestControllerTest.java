@@ -33,15 +33,18 @@ class VerificationRequestControllerTest {
     @InjectMocks
     private VerificationRequestController controller;
 
+    private final String mobileUserAgent = "MobileApp/1.0";
+
     @Test
     void testGetActiveRequests() {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
 
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(clientService.getCurrentClient()).thenReturn(clientDto);
         when(verificationRequestService.getActiveRequests(1L)).thenReturn(List.of(new VerificationRequest()));
 
-        ResponseEntity<List<VerificationRequest>> response = controller.getActiveRequests();
+        ResponseEntity<List<VerificationRequest>> response = controller.getActiveRequests(mobileUserAgent);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(verificationRequestService).getActiveRequests(1L);
@@ -52,10 +55,11 @@ class VerificationRequestControllerTest {
         ClientDto clientDto = new ClientDto();
         clientDto.setId(2L);
 
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(clientService.getCurrentClient()).thenReturn(clientDto);
         when(verificationRequestService.getRequestHistory(2L)).thenReturn(List.of(new VerificationRequest()));
 
-        ResponseEntity<List<VerificationRequest>> response = controller.getRequestHistory();
+        ResponseEntity<List<VerificationRequest>> response = controller.getRequestHistory(mobileUserAgent);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(verificationRequestService).getRequestHistory(2L);
@@ -63,9 +67,10 @@ class VerificationRequestControllerTest {
 
     @Test
     void testDenyRequest_Success() {
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.denyVerificationRequest(1L, "Bearer token")).thenReturn(true);
 
-        ResponseEntity<String> response = controller.denyRequest(1L, "Bearer token");
+        ResponseEntity<String> response = controller.denyRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Request denied", response.getBody());
@@ -73,9 +78,10 @@ class VerificationRequestControllerTest {
 
     @Test
     void testDenyRequest_Failure() {
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.denyVerificationRequest(1L, "Bearer token")).thenReturn(false);
 
-        ResponseEntity<String> response = controller.denyRequest(1L, "Bearer token");
+        ResponseEntity<String> response = controller.denyRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Request not found or already processed", response.getBody());
@@ -93,9 +99,10 @@ class VerificationRequestControllerTest {
 
     @Test
     void testApproveRequest_Success() {
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.processApproval(1L, "Bearer token")).thenReturn(true);
 
-        ResponseEntity<String> response = controller.approveRequest(1L, "Bearer token");
+        ResponseEntity<String> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Request approved and account limit updated", response.getBody());
@@ -103,9 +110,10 @@ class VerificationRequestControllerTest {
 
     @Test
     void testApproveRequest_Failure() {
+        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.processApproval(1L, "Bearer token")).thenReturn(false);
 
-        ResponseEntity<String> response = controller.approveRequest(1L, "Bearer token");
+        ResponseEntity<String> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Request not found or already processed", response.getBody());
