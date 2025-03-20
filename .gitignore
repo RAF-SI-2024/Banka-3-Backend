@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### STOCK APP PROPERTIES ###
+stock-service/src/main/resources/application.properties

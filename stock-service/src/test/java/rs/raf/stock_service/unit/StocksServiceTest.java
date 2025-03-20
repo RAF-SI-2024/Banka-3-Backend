@@ -13,8 +13,10 @@ import org.springframework.data.domain.Pageable;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.StockDto;
+import rs.raf.stock_service.domain.dto.StockSearchDto;
 import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
+import rs.raf.stock_service.exceptions.SymbolSearchException;
 import rs.raf.stock_service.service.ExchangeService;
 import rs.raf.stock_service.service.StocksService;
 
@@ -99,5 +101,53 @@ public class StocksServiceTest {
         Page<StockDto> page = stockService.getStocksList(pageable);
         assertEquals(2, page.getTotalElements()); // Expecting 2 stocks
     }
+
+    @Test
+    public void testSearchByTicker_Success() throws Exception {
+        // Sample JSON response from AlphavantageClient
+        String searchJson = "{ \"bestMatches\": [ " +
+                "{ \"1. symbol\": \"AAPL\", \"2. name\": \"Apple Inc.\", \"4. region\": \"United States\", \"9. matchScore\": \"0.95\" }," +
+                "{ \"1. symbol\": \"MSFT\", \"2. name\": \"Microsoft Corporation\", \"4. region\": \"United States\", \"9. matchScore\": \"0.90\" }" +
+                "] }";
+
+        when(alphavantageClient.searchByTicker("AAPL")).thenReturn(searchJson);
+
+        List<StockSearchDto> results = stockService.searchByTicker("AAPL");
+
+        assertNotNull(results);
+        assertEquals(2, results.size());
+
+        assertEquals("AAPL", results.get(0).getTicker());
+        assertEquals("Apple Inc.", results.get(0).getName());
+        assertEquals("United States", results.get(0).getRegion());
+        assertEquals("0.95", results.get(0).getMatchScore());
+
+        assertEquals("MSFT", results.get(1).getTicker());
+        assertEquals("Microsoft Corporation", results.get(1).getName());
+        assertEquals("United States", results.get(1).getRegion());
+        assertEquals("0.90", results.get(1).getMatchScore());
+    }
+
+    @Test
+    public void testSearchByTicker_EmptyResponse() throws Exception {
+        // Empty bestMatches array
+        String searchJson = "{ \"bestMatches\": [] }";
+
+        when(alphavantageClient.searchByTicker("XYZ")).thenReturn(searchJson);
+
+        List<StockSearchDto> results = stockService.searchByTicker("XYZ");
+
+        assertNotNull(results);
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    public void testSearchByTicker_Error() {
+        when(alphavantageClient.searchByTicker("INVALID"))
+                .thenThrow(new RuntimeException("API Error"));
+
+        assertThrows(SymbolSearchException.class, () -> stockService.searchByTicker("INVALID"));
+    }
+
 
 }
