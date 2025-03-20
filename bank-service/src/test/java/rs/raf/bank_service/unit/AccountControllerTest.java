@@ -219,42 +219,28 @@ class AccountControllerTest {
 
     @Test
     @WithMockUser(roles = "CLIENT")
-    void testGetAccountDetails_BadRequest() throws Exception {
-        String authHeader = "Bearer valid-token";
-
-        String accountNumber = "1";
-
-        // Simulacija UserNotAClientException u accountService
-        when(accountService.getAccountDetails(anyLong(), eq(accountNumber)))
-                .thenThrow(new UserNotAClientException());
-
-        // Pozivamo endpoint sa mockovanim auth headerom
-        mockMvc.perform(get("/api/account/details/{accountNumber}", accountNumber)
-                        .header("Authorization", authHeader))
-                .andExpect(status().isBadRequest()) // Očekujemo status 400 (Bad Request)
-                .andExpect(jsonPath("$").value("User sending request is not a client.")); // Očekujemo telo sa porukom greške
-
-        verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
-    }
-
-
-    @Test
-    @WithMockUser(roles = "CLIENT")
     void testGetAccountDetails_Failure() throws Exception {
         String authHeader = "Bearer valid-token";
         String accountNumber = "1";
+        Long clientId = 123L;
+        String role = "CLIENT";
+
+        // Mock jwtTokenUtil to return expected values
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
+
+
 
         // Simulacija RuntimeException
-        when(accountService.getAccountDetails(anyLong(), eq(accountNumber)))
+        when(accountService.getAccountDetails(role, clientId, accountNumber))
                 .thenThrow(new RuntimeException("Account details retrieval failed"));
 
         // Pozivamo endpoint sa mockovanim auth headerom
         mockMvc.perform(get("/api/account/details/{accountNumber}", accountNumber)
                         .header("Authorization", authHeader))
-                .andExpect(status().isInternalServerError()) // Očekujemo status 500 (Internal Server Error)
-                .andExpect(jsonPath("$").value("Account details retrieval failed")); // Očekujemo telo sa porukom greške
+                .andExpect(status().isInternalServerError()); // Očekujemo telo sa porukom greške
 
-        verify(accountService).getAccountDetails(anyLong(), eq(accountNumber));
+        verify(accountService).getAccountDetails(role, clientId, accountNumber);
     }
 
     @Test

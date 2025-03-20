@@ -18,11 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.AccountDto;
+import rs.raf.bank_service.domain.dto.*;
 
-import rs.raf.bank_service.domain.dto.ChangeAccountLimitDto;
-import rs.raf.bank_service.domain.dto.ChangeAccountNameDto;
-import rs.raf.bank_service.domain.dto.NewBankAccountDto;
 import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
@@ -129,12 +126,12 @@ public class AccountController {
                                                @PathVariable("accountNumber") String accountNumber){
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
-            return ResponseEntity.ok(accountService.getAccountDetails(clientId, accountNumber));
-        }catch (UserNotAClientException | ClientNotAccountOwnerException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
+            return ResponseEntity.ok(accountService.getAccountDetails(role, clientId, accountNumber));
+        }catch (ClientNotAccountOwnerException e) {
+            return ResponseEntity.badRequest().body(new ErrorMessageDto(e.getMessage()));
         }catch (RuntimeException e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(new ErrorMessageDto(e.getMessage()));
         }
     }
 
