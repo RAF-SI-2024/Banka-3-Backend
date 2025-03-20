@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import rs.raf.bank_service.domain.enums.CardIssuer;
+import rs.raf.bank_service.domain.enums.CardType;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -15,27 +17,19 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCardDto {
-    /*@NotBlank
-    @Size(min = 16, max = 16)
-    @Pattern(regexp = "\\d{16}", message = "Card number must be 16 digits")
-    private String cardNumber;
+    @NotNull
+    private CardType type;
 
-    @NotBlank
-    @Size(min = 3, max = 3)
-    @Pattern(regexp = "\\d{3}", message = "CVV must be 3 digits")
-    private String cvv;*/
+    @NotNull
+    private CardIssuer issuer;
 
-    @NotBlank
-    private String type;
-
+    @NotNull
     @NotBlank
     private String name;
 
+    @NotNull
     @NotBlank
     private String accountNumber;
-
-    //@NotBlank
-    //private String status;
 
     @NotNull
     private BigDecimal cardLimit;

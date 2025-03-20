@@ -15,6 +15,7 @@ import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
+import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
@@ -173,8 +174,9 @@ public class CardServiceTest {
     public void testCreateCard_Success() {
         // Arrange
         CreateCardDto createCardDto = new CreateCardDto(
-                CardType.CREDIT.name(),                // sada CAPS
-                "visa",
+                CardType.CREDIT,                // sada CAPS
+                CardIssuer.VISA,
+                "Ime",
                 dummyAccount.getAccountNumber(),
                 BigDecimal.valueOf(1000)
         );
@@ -199,8 +201,9 @@ public class CardServiceTest {
     public void testCreateCard_CardLimitExceeded() {
         // Arrange
         CreateCardDto createCardDto = new CreateCardDto(
-                CardType.CREDIT.name(),                // sada CAPS
-                "visa",
+                CardType.CREDIT,                // sada CAP
+                CardIssuer.VISA,
+                "Ime",
                 dummyAccount.getAccountNumber(),
                 BigDecimal.valueOf(1000)
         );

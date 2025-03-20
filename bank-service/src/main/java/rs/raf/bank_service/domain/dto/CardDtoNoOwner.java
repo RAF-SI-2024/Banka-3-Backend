@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
+import rs.raf.bank_service.domain.enums.CardType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,7 +20,8 @@ public class CardDtoNoOwner {
     private Long id;
     private String cardNumber;
     private String cvv;
-    private String type;
+    private CardType type;
+    private CardIssuer issuer;
     private String name;
     private LocalDate creationDate;
     private LocalDate expirationDate;

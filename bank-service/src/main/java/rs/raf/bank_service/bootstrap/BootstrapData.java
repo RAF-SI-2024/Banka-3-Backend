@@ -320,6 +320,7 @@ public class BootstrapData implements CommandLineRunner {
                 .account(currentAccount1)
                 .status(CardStatus.ACTIVE)
                 .cardLimit(BigDecimal.valueOf(500))
+                .issuer(CardIssuer.VISA)
                 .type(CardType.DEBIT)
                 .build();
 
@@ -332,6 +333,7 @@ public class BootstrapData implements CommandLineRunner {
                 .account(foreignAccount)
                 .status(CardStatus.ACTIVE)
                 .cardLimit(BigDecimal.valueOf(1000))
+                .issuer(CardIssuer.VISA)
                 .type(CardType.CREDIT)
                 .build();
 
