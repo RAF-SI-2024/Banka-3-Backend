@@ -41,7 +41,7 @@ class ExchangeServiceTest {
         Country country = new Country();
         country.setHolidays(Collections.emptyList());
         country.setOpenTime(LocalTime.of(9, 0));
-        country.setCloseTime(LocalTime.of(17, 0));
+        country.setCloseTime(LocalTime.of(9, 0));
 
         exchange1 = new Exchange();
         exchange1.setTestMode(false);

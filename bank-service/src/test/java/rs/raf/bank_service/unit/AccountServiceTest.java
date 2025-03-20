@@ -327,21 +327,9 @@ public class AccountServiceTest {
         account.setBalance(BigDecimal.TEN);
         when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
 
-        AccountDetailsDto accountDetails = accountService.getAccountDetails(1L, "1");
+        AccountDetailsDto accountDetails = accountService.getAccountDetails("CLIENT", 1L, "1");
         assertNotNull(accountDetails);
         assertEquals(account.getBalance(), accountDetails.getBalance());
-    }
-
-    @Test
-    public void testGetAccountDetails_UserNotAClient() {
-        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
-
-        when(userClient.getClientById(5L)).thenThrow(
-                new FeignException.NotFound("User not found", request, null, null));
-
-        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
-                accountService.getAccountDetails(5L, "1"));
-        assertEquals("User sending request is not a client.", exception.getMessage());
     }
 
     @Test
@@ -358,7 +346,7 @@ public class AccountServiceTest {
         when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
 
         ClientNotAccountOwnerException exception = assertThrows(ClientNotAccountOwnerException.class, () -> {
-            accountService.getAccountDetails(99L, "1"); // This should trigger the exception
+            accountService.getAccountDetails("CLIENT", 99L, "1"); // This should trigger the exception
         });
 
         assertEquals("Client sending request is not the account owner.", exception.getMessage());

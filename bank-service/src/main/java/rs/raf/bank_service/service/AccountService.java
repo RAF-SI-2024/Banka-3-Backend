@@ -153,14 +153,19 @@ public class AccountService {
         }
     }
 
-    public AccountDetailsDto getAccountDetails(Long clientId, String accountNumber) {
+    public AccountDetailsDto getAccountDetails(String role, Long clientId, String accountNumber) {
         try {
-            ClientDto clientDto = userClient.getClientById(clientId);
             Account account = accountRepository.findByAccountNumber(accountNumber)
                     .orElseThrow(AccountNotFoundException::new);
 
-            if (!clientDto.getId().equals(account.getClientId()))
-                throw new ClientNotAccountOwnerException();
+            if (role.equals("CLIENT")) {
+                ClientDto caller = userClient.getClientById(clientId);
+
+                if (!caller.getId().equals(account.getClientId()))
+                    throw new ClientNotAccountOwnerException();
+            }
+
+            ClientDto clientDto = userClient.getClientById(account.getClientId());
 
             AccountDetailsDto accountDetailsDto;
 
@@ -194,8 +199,8 @@ public class AccountService {
             }
 
             return accountDetailsDto;
-        } catch (FeignException.NotFound e) {
-            throw new UserNotAClientException();
+        } catch (FeignException e) {
+            throw new RuntimeException();
         }
     }
 

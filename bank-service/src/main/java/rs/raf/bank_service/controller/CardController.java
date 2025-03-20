@@ -122,16 +122,17 @@ public class CardController {
             @ApiResponse(responseCode = "404", description = "Invalid token."),
             @ApiResponse(responseCode = "400", description = "Invalid arguments.")
     })
-    public ResponseEntity<CardDtoNoOwner> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
-        CardDtoNoOwner cardDto;
+    public ResponseEntity<?> createCard(@RequestBody @Valid CreateCardDto createCardDto) {
         try {
-            cardDto = cardService.createCard(createCardDto);
+            return ResponseEntity.ok(cardService.createCard(createCardDto));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (CardLimitExceededException | InvalidCardLimitException | InvalidCardTypeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto(e.getMessage()));
         }
-        return ResponseEntity.ok(cardDto);
     }
 
         @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
