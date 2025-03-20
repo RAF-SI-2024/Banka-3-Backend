@@ -90,6 +90,6 @@ public class VerificationRequestService {
     }
 
     public boolean calledFromMobile(String userAgent) {
-        return userAgent.equals("MobileApp/1.0");
+        return userAgent != null && userAgent.equals("MobileApp/1.0");
     }
 }
