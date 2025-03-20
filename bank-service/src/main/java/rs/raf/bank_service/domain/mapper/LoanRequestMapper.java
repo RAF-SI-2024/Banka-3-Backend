@@ -9,6 +9,7 @@ import rs.raf.bank_service.domain.entity.LoanRequest;
 public class LoanRequestMapper {
     public LoanRequestDto toDto(LoanRequest loanRequest) {
         return LoanRequestDto.builder()
+                .id(loanRequest.getId())
                 .type(loanRequest.getType())
                 .amount(loanRequest.getAmount())
                 .purpose(loanRequest.getPurpose())

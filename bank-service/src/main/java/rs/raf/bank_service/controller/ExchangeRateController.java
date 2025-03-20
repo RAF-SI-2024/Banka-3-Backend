@@ -62,7 +62,6 @@ public class ExchangeRateController {
         }catch (ExchangeRateNotFoundException |CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }catch (Exception e){
-            e.printStackTrace();
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }

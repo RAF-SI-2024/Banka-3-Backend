@@ -1,6 +1,7 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
+import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 
@@ -27,6 +28,9 @@ public class Card {
 
     @Enumerated(EnumType.STRING)
     private CardType type;
+
+    @Enumerated(EnumType.STRING)
+    private CardIssuer issuer;
 
     private String name;
 

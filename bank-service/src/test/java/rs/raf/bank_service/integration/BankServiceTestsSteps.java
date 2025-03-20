@@ -17,6 +17,7 @@ import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.controller.PaymentController;
 import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -209,7 +210,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     @And("the client requests a new card")
     public void theClientRequestsANewCard() {
         CreateCardDto createCardDto = new CreateCardDto();
-        createCardDto.setType("DEBIT");
+        createCardDto.setType(CardType.DEBIT);
         createCardDto.setName("Mastercard");
         createCardDto.setCardLimit(BigDecimal.valueOf(1000000L));
         Page<AccountDto> accountsPage = (Page<AccountDto>) accountController.getAccountsForClient(null, clientDto.getId(), 0, 10).getBody();

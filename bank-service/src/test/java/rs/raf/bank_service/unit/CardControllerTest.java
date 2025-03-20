@@ -19,7 +19,9 @@ import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
+import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
+import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.AccNotFoundException;
 import rs.raf.bank_service.exceptions.AccountNotFoundException;
@@ -130,7 +132,7 @@ public class CardControllerTest {
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
         // Kreiranje DTO-a
-        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
 
         // Simulacija ponašanja servisa
         doNothing().when(cardService).requestCardForAccount(any(CreateCardDto.class));
@@ -159,7 +161,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
-        CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
+        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
 
         // Simulacija bacanja EntityNotFoundException u cardService
         doThrow(new EntityNotFoundException("Account with account number: account123 not found"))
@@ -179,8 +181,8 @@ public class CardControllerTest {
         // Upoređivanje vrednosti objekta
         CreateCardDto capturedDto = captor.getValue();
         assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals("Visa", capturedDto.getType());
-        assertEquals("John Doe", capturedDto.getName());
+        assertEquals(CardType.CREDIT, capturedDto.getType());
+        assertEquals("Ime kartice", capturedDto.getName());
         assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
     }
 
@@ -188,7 +190,7 @@ public class CardControllerTest {
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
 
-        CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
+        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
 
         // Simulacija bacanja EntityNotFoundException u cardService
         doThrow(new CardLimitExceededException("account123"))
@@ -208,8 +210,8 @@ public class CardControllerTest {
         // Upoređivanje vrednosti objekta
         CreateCardDto capturedDto = captor.getValue();
         assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals("Visa", capturedDto.getType());
-        assertEquals("John Doe", capturedDto.getName());
+        assertEquals(CardType.CREDIT, capturedDto.getType());
+        assertEquals("Ime kartice", capturedDto.getName());
         assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
     }
 
@@ -217,15 +219,16 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "EMPLOYEE")
     public void testVerifyAndReceiveCard_Success() throws Exception {
-        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
 
         // Full CardDtoNoOwner with all fields filled
         CardDtoNoOwner cardDto = new CardDtoNoOwner(
                 1L,  // id
                 "1234567890123456",  // cardNumber
                 "123",  // cvv
-                "Visa",  // type
-                "John Doe",  // name
+                CardType.DEBIT,  // type
+                CardIssuer.VISA,
+                "Ime kartice",  // name
                 LocalDate.of(2023, 1, 1),  // creationDate
                 LocalDate.of(2027, 1, 1),  // expirationDate
                 "account123",  // accountNumber
@@ -247,7 +250,7 @@ public class CardControllerTest {
 //    @Test
 //    public void testVerifyAndReceiveCard_InvalidToken() throws Exception {
 //        // Kreiranje DTO objekta
-//        CreateCardDto createCardDto = new CreateCardDto("Visa", "John Doe", "account123", new BigDecimal("1000.00"));
+//        CreateCardDto createCardDto = new CreateCardDto("Visa", "Ime kartice", "account123", new BigDecimal("1000.00"));
 //
 //        // Simulacija bacanja InvalidTokenException u cardService
 //        doThrow(new InvalidTokenException()).when(cardService).recieveCardForAccount(eq("invalidToken"), eq(createCardDto));
@@ -258,7 +261,7 @@ public class CardControllerTest {
 //        // Pozivamo API endpoint i očekujemo 404 Not Found status
 //        mockMvc.perform(post("/api/account/{accountNumber}/cards/recieve?token={token}", "account123", "invalidToken")
 //                        .contentType("application/json")
-//                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+//                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"Ime kartice\",\"cardLimit\":1000.00}"))
 //                .andExpect(status().isNotFound());
 //
 //        // Verifikacija da je metoda pozvana sa tačnim argumentima
@@ -268,7 +271,7 @@ public class CardControllerTest {
 //        CreateCardDto capturedDto = captor.getValue();
 //        assertEquals("account123", capturedDto.getAccountNumber());
 //        assertEquals("Visa", capturedDto.getType());
-//        assertEquals("John Doe", capturedDto.getName());
+//        assertEquals("Ime kartice", capturedDto.getName());
 //        assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
 //    }
 //
@@ -279,7 +282,7 @@ public class CardControllerTest {
     @WithMockUser(roles = "EMPLOYEE")
     public void testCreateCard_Success() throws Exception {
         // Pripremi CreateCardDto objekat
-        CreateCardDto createCardDto = new CreateCardDto("account123", "Visa", "John Doe", new BigDecimal("1000.00"));
+        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
         String token = "token";
 
         // Priprema vraćenog objekta CardDtoNoOwner
@@ -287,8 +290,9 @@ public class CardControllerTest {
                 1L,  // id
                 "1234567890123456",  // cardNumber
                 "123",  // cvv
-                "Visa",  // type
-                "John Doe",  // name
+                CardType.CREDIT,  // type
+                CardIssuer.VISA,
+                "Ime kartice",  // name
                 LocalDate.of(2023, 1, 1),  // creationDate
                 LocalDate.of(2027, 1, 1),  // expirationDate
                 "account123",  // accountNumber
@@ -306,7 +310,7 @@ public class CardControllerTest {
         mockMvc.perform(post("/api/account/account123/cards/create")
                         .header("Authorization", token)
                         .contentType("application/json")
-                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"John Doe\",\"cardLimit\":1000.00}"))
+                        .content(objectMapper.writeValueAsString(createCardDto)))
                 .andExpect(status().isOk());
 
         // Verifikacija da je createCard pozvan sa tačnim argumentom
@@ -315,8 +319,8 @@ public class CardControllerTest {
         // Upoređivanje vrednosti objekta
         CreateCardDto capturedDto = captor.getValue();
         assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals("Visa", capturedDto.getType());
-        assertEquals("John Doe", capturedDto.getName());
+        assertEquals(CardType.CREDIT, capturedDto.getType());
+        assertEquals("Ime kartice", capturedDto.getName());
         assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
     }
 

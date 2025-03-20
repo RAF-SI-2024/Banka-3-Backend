@@ -16,6 +16,7 @@ import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.enums.AccountOwnerType;
+import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
@@ -69,21 +70,15 @@ public class CardService {
         if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidCardLimitException();
         }
-        CardType cardType;
-        try {
-            cardType = CardType.valueOf(createCardDto.getType());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidCardTypeException();
-        }
 
         Card card = new Card();
 
         card.setCreationDate(LocalDate.now());
         card.setExpirationDate(LocalDate.now().plusMonths(60));
-
-        card.setCardNumber(generateCardNumber(createCardDto.getName()));
+        card.setIssuer(createCardDto.getIssuer());
+        card.setCardNumber(generateCardNumber(createCardDto.getIssuer()));
         card.setCvv(generateCVV());
-        card.setType(cardType);
+        card.setType(createCardDto.getType());
         card.setName(createCardDto.getName());
         card.setAccount(account);
         card.setStatus(CardStatus.ACTIVE);
@@ -141,26 +136,26 @@ public class CardService {
         return createCard(createCardDto);
     }
 
-    private String generateCardNumber(String name) {
-        String firstFifteen = generateMIIandIIN(name) + generateAccountNumber();
+    private String generateCardNumber(CardIssuer issuer) {
+        String firstFifteen = generateMIIandIIN(issuer) + generateAccountNumber();
         return firstFifteen + luhnDigit(firstFifteen);
     }
 
-    private String generateMIIandIIN(String name) {
+    private String generateMIIandIIN(CardIssuer issuer) {
         Random random = new Random();
 
-        switch (name.toLowerCase()) {
-            case "visa":
+        switch (issuer) {
+            case VISA:
                 return "433333";
-            case "mastercard":
+            case MASTERCARD:
                 if (random.nextBoolean()) {
                     return 51 + random.nextInt(5) + "3333";
                 } else {
                     return 2221 + random.nextInt(500) + "33";
                 }
-            case "dinacard":
+            case DINA:
                 return "989133";
-            case "american_express":
+            case AMERICAN_EXPRESS:
                 if (random.nextBoolean()) {
                     return "343333";
                 } else {
