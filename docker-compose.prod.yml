@@ -44,15 +44,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_APPLICATION_NAME: user-service
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://main_db/main_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: lozinka
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-      SPRING_H2_CONSOLE_ENABLED: true
-      SPRINGDOC_API_DOCS_PATH: /api-docs
-      SPRINGDOC_SWAGGER_UI_PATH: /swagger-ui.html
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_BANK-SERVICE_URL: http://bank-service:8080
     depends_on:
@@ -66,24 +59,8 @@ services:
     ports:
       - "8081:8080"
     environment:
-      SPRING_APPLICATION_NAME: email-service
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://main_db/main_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: lozinka
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-      SPRING_H2_CONSOLE_ENABLED: true
-      SPRING_JPA_SHOW_SQL: true
-      SPRINGDOC_API_DOCS_PATH: /api-docs
-      SPRINGDOC_SWAGGER_UI_PATH: /swagger-ui.html
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: projekatsk2@gmail.com
-      SPRING_MAIL_PASSWORD: ujcl wyrv fabj iuou
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: true
-      SPRING_MAIL_PROPERTIES_MAIL_DEBUG: true
       SPRING_RABBITMQ_HOST: rabbitmq
     depends_on:
       - main_db
@@ -96,16 +73,8 @@ services:
     ports:
       - "8082:8080"
     environment:
-      SPRING_APPLICATION_NAME: bank-service
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db/bank_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: lozinka
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-      SPRING_H2_CONSOLE_ENABLED: true
-      SPRING_JPA_SHOW_SQL: true
-      SPRINGDOC_API_DOCS_PATH: /api-docs
-      SPRINGDOC_SWAGGER_UI_PATH: /swagger-ui.html
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_USER-SERVICE_URL: http://user-service:8080
     depends_on:
@@ -119,16 +88,8 @@ services:
     ports:
       - "8083:8080"
     environment:
-      SPRING_APPLICATION_NAME: stock-service
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://stock_db/stock_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: lozinka
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-      SPRING_H2_CONSOLE_ENABLED: true
-      SPRING_JPA_SHOW_SQL: true
-      SPRINGDOC_API_DOCS_PATH: /api-docs
-      SPRINGDOC_SWAGGER_UI_PATH: /swagger-ui.html
       SPRING_RABBITMQ_HOST: rabbitmq
     depends_on:
       - stock_db
