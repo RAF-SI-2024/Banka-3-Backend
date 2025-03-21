@@ -17,9 +17,6 @@ public interface UserClient {
     @GetMapping("/api/admin/clients/{id}")
     ClientDto getClientById(@PathVariable("id") Long id);
 
-    @PostMapping("/api/auth/request-card")
-    void requestCard(RequestCardDto requestCardDto);
-
     @PostMapping("/api/auth/check-token")
     void checkToken(CheckTokenDto checkTokenDto);
 
