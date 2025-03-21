@@ -70,7 +70,7 @@ public class VerificationRequestService {
             case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
             case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
             case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
-            case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId(), request.getDetails());
+            case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId());
         }
 
         return true;

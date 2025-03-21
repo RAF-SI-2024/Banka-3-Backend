@@ -74,17 +74,16 @@ public class CardController {
             @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
             @ApiResponse(responseCode = "400", description = "Invalid arguments.")
     })
-    public ResponseEntity<?> requestNewCard(@RequestBody CardRequestDto dto,
+    public ResponseEntity<?> requestNewCard(@RequestBody CreateCardDto dto,
                                             @RequestHeader("Authorization") String authHeader) throws JsonProcessingException {
         cardService.requestNewCard(dto, authHeader);
         return ResponseEntity.ok("Card request sent for verification.");
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/approve/{id}")
-    public ResponseEntity<?> approveCardRequest(@PathVariable Long id,
-                                                @RequestBody String detailsJson) throws JsonProcessingException {
-        cardService.approveCardRequest(id, detailsJson);
+    public ResponseEntity<?> approveCardRequest(@PathVariable Long id) throws JsonProcessingException {
+        cardService.approveCardRequest(id);
         return ResponseEntity.ok("Card request approved.");
     }
 
@@ -237,6 +236,7 @@ public class CardController {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
+        e.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }

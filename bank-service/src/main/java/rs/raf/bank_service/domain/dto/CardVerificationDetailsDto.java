@@ -4,14 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import rs.raf.bank_service.domain.enums.CardIssuer;
+import rs.raf.bank_service.domain.enums.CardType;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CardRequestDto {
+public class CardVerificationDetailsDto {
     private String name;
-    private String issuer;
-    private String type;
+    private CardIssuer issuer;
+    private CardType type;
     private String accountNumber;
 }

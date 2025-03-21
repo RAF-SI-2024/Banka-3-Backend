@@ -18,26 +18,22 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
-import rs.raf.bank_service.domain.dto.CardRequestDto;
+import rs.raf.bank_service.domain.dto.CardVerificationDetailsDto;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.AccNotFoundException;
 import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.CardLimitExceededException;
-import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
 import rs.raf.bank_service.service.CardService;
 import rs.raf.bank_service.service.ExchangeRateService;
 
-import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -131,7 +127,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
-        CardRequestDto requestDto = new CardRequestDto();
+        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
         requestDto.setType(String.valueOf(CardType.CREDIT));
         requestDto.setIssuer("VISA");
         requestDto.setName("Ime kartice");
@@ -155,7 +151,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
-        CardRequestDto requestDto = new CardRequestDto();
+        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
         requestDto.setType(String.valueOf(CardType.CREDIT));
         requestDto.setIssuer("VISA");
         requestDto.setName("Ime kartice");
@@ -181,7 +177,7 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
-        CardRequestDto requestDto = new CardRequestDto();
+        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
         requestDto.setType(String.valueOf(CardType.CREDIT));
         requestDto.setIssuer("VISA");
         requestDto.setName("Ime kartice");

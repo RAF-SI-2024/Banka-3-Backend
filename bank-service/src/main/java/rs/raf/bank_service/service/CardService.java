@@ -3,15 +3,10 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.jsonwebtoken.Claims;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
@@ -19,7 +14,6 @@ import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
 import rs.raf.bank_service.domain.entity.CardRequest;
-import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.domain.mapper.CardMapper;
@@ -34,9 +28,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -285,7 +277,7 @@ public class CardService {
                 rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
         }
 
-    public void requestNewCard(CardRequestDto dto, String authHeader) throws JsonProcessingException {
+    public void requestNewCard(CreateCardDto dto, String authHeader) throws JsonProcessingException {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
         Account account = accountRepository.findByAccountNumberAndClientId(dto.getAccountNumber(), clientId)
@@ -293,14 +285,25 @@ public class CardService {
 
         CardRequest cardRequest = new CardRequest();
         cardRequest.setClientId(clientId);
-        cardRequest.setAccountNumber(dto.getAccountNumber());
+        cardRequest.setAccountNumber(account.getAccountNumber());
+        cardRequest.setCardType(dto.getType());
+        cardRequest.setCardIssuer(dto.getIssuer());
+        cardRequest.setCardLimit(dto.getCardLimit());
+        cardRequest.setName(dto.getName());
+        cardRequest.setStatus(RequestStatus.PENDING);
         cardRequestRepository.save(cardRequest);
+
+        CardVerificationDetailsDto cardVerificationDetailsDto = new CardVerificationDetailsDto();
+        cardVerificationDetailsDto.setAccountNumber(account.getAccountNumber());
+        cardVerificationDetailsDto.setType(dto.getType());
+        cardVerificationDetailsDto.setIssuer(dto.getIssuer());
+        cardVerificationDetailsDto.setName(dto.getName());
 
         CreateVerificationRequestDto verificationRequest = CreateVerificationRequestDto.builder()
                 .userId(clientId)
                 .targetId(cardRequest.getId())
-                .verificationType(VerificationType.valueOf("CARD_REQUEST"))
-                .details(objectMapper.writeValueAsString(dto))
+                .verificationType(VerificationType.CARD_REQUEST)
+                .details(objectMapper.writeValueAsString(cardVerificationDetailsDto))
                 .build();
 
         userClient.createVerificationRequest(verificationRequest);
@@ -309,36 +312,32 @@ public class CardService {
     }
 
 
-    public void approveCardRequest(Long id, String detailsJson) throws JsonProcessingException {
-        CardRequest cardRequest = null;
-        try {
-            cardRequest = cardRequestRepository.findById(id)
-                    .orElseThrow(() -> new ChangeSetPersister.NotFoundException());
-        } catch (ChangeSetPersister.NotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    public void approveCardRequest(Long id) {
+        CardRequest cardRequest = cardRequestRepository.findById(id)
+                .orElseThrow(EntityNotFoundException::new);
 
-        if (cardRequest.getStatus() == RequestStatus.APPROVED) {
-            log.info("Card request {} is already approved.", id);
-            return;
+        if (cardRequest.getStatus() != RequestStatus.PENDING) {
+            log.info("Card request {} is not active.", id);
+            throw new EntityNotFoundException();
         }
 
         Account account = accountRepository.findByAccountNumberAndClientId(cardRequest.getAccountNumber(), cardRequest.getClientId())
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
-
-        CardRequestDto dto = objectMapper.readValue(detailsJson, CardRequestDto.class);
 
         cardRequest.setStatus(RequestStatus.APPROVED);
         cardRequestRepository.save(cardRequest);
 
         Card card = new Card();
         card.setAccount(account);
-        card.setName(dto.getName());
-        card.setIssuer(CardIssuer.valueOf(dto.getIssuer()));
-        card.setType(CardType.valueOf(dto.getType()));
-        card.setCardNumber(generateCardNumber(CardIssuer.valueOf(dto.getIssuer())));
+        card.setName(cardRequest.getName());
+        card.setIssuer(cardRequest.getCardIssuer());
+        card.setType(cardRequest.getCardType());
+        card.setCardNumber(generateCardNumber(cardRequest.getCardIssuer()));
         card.setCvv(generateCVV());
+        card.setCreationDate(LocalDate.now());
         card.setExpirationDate(LocalDate.now().plusYears(4));
+        card.setStatus(CardStatus.ACTIVE);
+        card.setCardLimit(cardRequest.getCardLimit());
 
         cardRepository.save(card);
 

@@ -16,8 +16,7 @@ public interface BankClient {
     @PutMapping("/api/account/{id}/change-limit")
     void changeAccountLimit(@PathVariable("id") Long id);
 
-    @PutMapping("/cards/approve/{id}")
-    void approveCardRequest(@PathVariable("id") Long id,
-                            @RequestBody String detailsJson);
+    @PutMapping("/api/account/1/cards/approve/{id}")
+    void approveCardRequest(@PathVariable("id") Long id);
 
 }
