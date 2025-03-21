@@ -1,5 +1,6 @@
 package rs.raf.bank_service.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -73,42 +74,18 @@ public class CardController {
             @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
             @ApiResponse(responseCode = "400", description = "Invalid arguments.")
     })
-    public ResponseEntity<String> requestCardForAccount(@RequestBody @Valid CreateCardDto createCardDto) {
-        try {
-            cardService.requestCardForAccount(createCardDto);
-        } catch (EntityNotFoundException | ClientNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (CardLimitExceededException | IllegalArgumentException | InvalidCardLimitException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (ExternalServiceException e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
-        }
-        return ResponseEntity.ok("A confirmation email has been sent. Please verify to receive your card.");
+    public ResponseEntity<?> requestNewCard(@RequestBody CardRequestDto dto,
+                                            @RequestHeader("Authorization") String authHeader) throws JsonProcessingException {
+        cardService.requestNewCard(dto, authHeader);
+        return ResponseEntity.ok("Card request sent for verification.");
     }
 
-    @PostMapping("/receive")
-    @Operation(
-            summary = "Verify the token and receive a card.",
-            description = "Verify the token and receive a card if the entered token is right."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Token verified and card created successfully."),
-            @ApiResponse(responseCode = "404", description = "Invalid token."),
-            @ApiResponse(responseCode = "502", description = "Error in the communication of microservices."),
-            @ApiResponse(responseCode = "400", description = "Invalid arguments.")
-    })
-    public ResponseEntity<CardDtoNoOwner> verifyAndReceiveCard(@RequestBody @Valid CardRequestDto cardRequestDto) {
-        CardDtoNoOwner cardDto;
-        try {
-            cardDto = cardService.recieveCardForAccount(cardRequestDto.getToken(), cardRequestDto.getCreateCardDto());
-        } catch (InvalidTokenException | EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (CardLimitExceededException | InvalidCardTypeException | InvalidCardLimitException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        } catch (ExternalServiceException e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
-        }
-        return ResponseEntity.ok(cardDto);
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PutMapping("/approve/{id}")
+    public ResponseEntity<?> approveCardRequest(@PathVariable Long id,
+                                                @RequestBody String detailsJson) throws JsonProcessingException {
+        cardService.approveCardRequest(id, detailsJson);
+        return ResponseEntity.ok("Card request approved.");
     }
 
     @PreAuthorize("hasRole('EMPLOYEE')")

@@ -1,9 +1,11 @@
 package rs.raf.user_service.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.domain.dto.CardRequestDto;
 import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
 import rs.raf.user_service.domain.entity.VerificationRequest;
 import rs.raf.user_service.domain.enums.VerificationStatus;
@@ -22,6 +24,7 @@ public class VerificationRequestService {
     private final VerificationRequestRepository verificationRequestRepository;
     private final BankClient bankClient;
     private final JwtTokenUtil jwtTokenUtil;
+    private ObjectMapper objectMapper;
 
 
     public void createVerificationRequest(CreateVerificationRequestDto createVerificationRequestDto) {
@@ -54,9 +57,6 @@ public class VerificationRequestService {
         }).orElse(false);
     }
 
-
-
-
     public boolean processApproval(Long requestId, String authHeader) {
         Long clientIdFromToken = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
@@ -70,6 +70,7 @@ public class VerificationRequestService {
             case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
             case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
             case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
+            case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId(), request.getDetails());
         }
 
         return true;

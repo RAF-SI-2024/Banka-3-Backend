@@ -14,10 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.domain.dto.ClientDto;
-import rs.raf.user_service.domain.dto.CreateClientDto;
-import rs.raf.user_service.domain.dto.ErrorMessageDto;
-import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
@@ -33,6 +31,9 @@ public class ClientController {
 
     @Autowired
     private ClientService clientService;
+
+    @Autowired
+    private BankClient bankClient;
 
    /*
     Parametri za pretragu se prosledjuju kao query parametri ne kao request body
@@ -149,4 +150,5 @@ public class ClientController {
             return ResponseEntity.notFound().build();
         }
     }
+
 }
