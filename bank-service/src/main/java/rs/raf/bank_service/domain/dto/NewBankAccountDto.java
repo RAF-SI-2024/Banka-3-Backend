@@ -15,10 +15,10 @@ public class NewBankAccountDto {
     @NotNull(message = "Currency cannot be null")
     private String currency;
 
-    // nemojte ovo slati pls, vadi se iz jwt
+    @NotNull(message = "Client ID cannot be null")
     private Long clientId;
 
-    @NotNull(message = "Employee ID  cannot be null")
+    // bice obrisano, vadi se iz jwt
     private Long employeeId;
 
     private Long companyId;

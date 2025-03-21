@@ -95,7 +95,8 @@ public class AccountService {
     }
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
+        Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
+        Long userId = newBankAccountDto.getClientId();
         ClientDto clientDto = userClient.getClientById(userId);
         if (clientDto == null)
             throw new ClientNotFoundException(userId);
@@ -108,7 +109,7 @@ public class AccountService {
             newAccount = new PersonalAccount();
 
         newAccount.setClientId(newBankAccountDto.getClientId());
-        newAccount.setCreatedByEmployeeId(newBankAccountDto.getEmployeeId());
+        newAccount.setCreatedByEmployeeId(employeeId);
         newAccount.setCreationDate(LocalDate.ofEpochDay(Instant.now().getEpochSecond()));
         System.out.println(newBankAccountDto.getCurrency());
         Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency())
