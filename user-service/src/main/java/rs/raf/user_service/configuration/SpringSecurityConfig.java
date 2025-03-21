@@ -2,6 +2,8 @@ package rs.raf.user_service.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -46,8 +48,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/admin/employees/me").hasRole("EMPLOYEE")
                 .antMatchers("/api/admin/employees/**").hasRole("ADMIN")
                 .antMatchers("/api/admin/clients/me").hasRole("CLIENT")
-                .antMatchers("/api/admin/clients/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                .antMatchers("/api/admin/clients/**").hasAnyRole("EMPLOYEE")
                 .antMatchers("/api/company/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                .antMatchers("/api/admin/actuaries/**").hasAnyRole("SUPERVISOR")
                 .antMatchers("/api/verification/request").hasRole("ADMIN")
                 .antMatchers("/api/verification/**").authenticated()
                 .anyRequest().authenticated()
@@ -69,6 +72,15 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy(){
+        RoleHierarchyImpl roleHierarchyImpl = new RoleHierarchyImpl();
+        roleHierarchyImpl.setHierarchy("ROLE_ADMIN > ROLE_SUPERVISOR " +
+                                    "\n ROLE_SUPERVISOR > ROLE_AGENT " +
+                                    "\n ROLE_AGENT > ROLE_EMPLOYEE ");
+        return roleHierarchyImpl;
     }
 
 

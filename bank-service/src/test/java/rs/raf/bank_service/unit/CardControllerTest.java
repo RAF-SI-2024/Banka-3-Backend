@@ -18,25 +18,22 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
+import rs.raf.bank_service.domain.dto.CardVerificationDetailsDto;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.AccNotFoundException;
 import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.CardLimitExceededException;
-import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.security.JwtAuthenticationFilter;
 import rs.raf.bank_service.service.CardService;
 import rs.raf.bank_service.service.ExchangeRateService;
 
-import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -127,155 +124,75 @@ public class CardControllerTest {
                 .andExpect(status().isOk());
     }
 
-
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
-        // Kreiranje DTO-a
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
+        requestDto.setName("Ime kartice");
+        requestDto.setAccountNumber("account123");
 
-        // Simulacija ponašanja servisa
-        doNothing().when(cardService).requestCardForAccount(any(CreateCardDto.class));
+        String authHeader = "Bearer validToken";
 
-        // Pozivamo API endpoint
+        doNothing().when(cardService).requestNewCard(eq(requestDto), eq(authHeader));
+
         mockMvc.perform(post("/api/account/account123/cards/request")
-                        .contentType("application/json")
-                        .content(new ObjectMapper().writeValueAsString(createCardDto)))
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("A confirmation email has been sent. Please verify to receive your card."));
+                .andExpect(content().string("Card request sent for verification."));
 
-        // ArgumentCaptor za hvatanje stvarnih argumenata koji su prosleđeni metodi
-        ArgumentCaptor<CreateCardDto> captor = ArgumentCaptor.forClass(CreateCardDto.class);
-
-        // Verifikacija da je metoda pozvana sa željenim argumentom
-        verify(cardService, times(1)).requestCardForAccount(captor.capture());
-
-        // Provera da li je argument koji je prosleđen metoda tačno isti kao onaj koji očekujemo
-        CreateCardDto capturedDto = captor.getValue();
-        assertEquals(createCardDto.getAccountNumber(), capturedDto.getAccountNumber());
-        assertEquals(createCardDto.getType(), capturedDto.getType());
-        assertEquals(createCardDto.getName(), capturedDto.getName());
-        assertEquals(createCardDto.getCardLimit(), capturedDto.getCardLimit());
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
+
 
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
+        requestDto.setName("Ime kartice");
+        requestDto.setAccountNumber("account123");
 
-        // Simulacija bacanja EntityNotFoundException u cardService
-        doThrow(new EntityNotFoundException("Account with account number: account123 not found"))
-                .when(cardService).requestCardForAccount(any(CreateCardDto.class));
+        String authHeader = "Bearer validToken";
 
-        // Pozivamo API endpoint i očekujemo 404 Not Found status
+        doThrow(new AccountNotFoundException())
+                .when(cardService).requestNewCard(any(), eq(authHeader));
+
+
         mockMvc.perform(post("/api/account/account123/cards/request")
-                        .contentType("application/json")
-                        .content(new ObjectMapper().writeValueAsString(createCardDto)))
-                .andExpect(status().isNotFound())  // Očekujemo 404 Not Found
-                .andExpect(content().string("Account with account number: account123 not found"));  // Očekujemo telo sa porukom greške
-
-        // Verifikacija da je metoda pozvana
-        ArgumentCaptor<CreateCardDto> captor = ArgumentCaptor.forClass(CreateCardDto.class);
-        verify(cardService, times(1)).requestCardForAccount(captor.capture());
-
-        // Upoređivanje vrednosti objekta
-        CreateCardDto capturedDto = captor.getValue();
-        assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals(CardType.CREDIT, capturedDto.getType());
-        assertEquals("Ime kartice", capturedDto.getName());
-        assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isNotFound());
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
+
 
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
+        requestDto.setName("Ime kartice");
+        requestDto.setAccountNumber("account123");
 
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
+        String authHeader = "Bearer validToken";
 
-        // Simulacija bacanja EntityNotFoundException u cardService
         doThrow(new CardLimitExceededException("account123"))
-                .when(cardService).requestCardForAccount(any(CreateCardDto.class));
+                .when(cardService).requestNewCard(any(), eq(authHeader));
 
-        // Pozivamo API endpoint i očekujemo 404 Not Found status
         mockMvc.perform(post("/api/account/account123/cards/request")
-                        .contentType("application/json")
-                        .content(new ObjectMapper().writeValueAsString(createCardDto)))
-                .andExpect(status().isBadRequest())  // Očekujemo 404 Not Found
-                .andExpect(content().string("Card limit exceeded for the account with account number: account123"));  // Očekujemo telo sa porukom greške
-
-        // Verifikacija da je metoda pozvana
-        ArgumentCaptor<CreateCardDto> captor = ArgumentCaptor.forClass(CreateCardDto.class);
-        verify(cardService, times(1)).requestCardForAccount(captor.capture());
-
-        // Upoređivanje vrednosti objekta
-        CreateCardDto capturedDto = captor.getValue();
-        assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals(CardType.CREDIT, capturedDto.getType());
-        assertEquals("Ime kartice", capturedDto.getName());
-        assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
-
-    // Test for verifyAndReceiveCard
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testVerifyAndReceiveCard_Success() throws Exception {
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
-
-        // Full CardDtoNoOwner with all fields filled
-        CardDtoNoOwner cardDto = new CardDtoNoOwner(
-                1L,  // id
-                "1234567890123456",  // cardNumber
-                "123",  // cvv
-                CardType.DEBIT,  // type
-                CardIssuer.VISA,
-                "Ime kartice",  // name
-                LocalDate.of(2023, 1, 1),  // creationDate
-                LocalDate.of(2027, 1, 1),  // expirationDate
-                "account123",  // accountNumber
-                CardStatus.ACTIVE,  // status
-                new BigDecimal("1000.00")  // cardLimit
-        );
-
-        String token = "validToken";
-
-        when(cardService.recieveCardForAccount(eq(token), eq(createCardDto))).thenReturn(cardDto);
-
-        mockMvc.perform(post("/api/account/{accountNumber}/cards/receive?token={token}", "account123", token)
-                        .contentType("application/json")
-                        .content(new ObjectMapper().writeValueAsString(createCardDto)))
-                .andExpect(status().isOk()); // Expecting status 200 (OK)
-    }
-
-
-//    @Test
-//    public void testVerifyAndReceiveCard_InvalidToken() throws Exception {
-//        // Kreiranje DTO objekta
-//        CreateCardDto createCardDto = new CreateCardDto("Visa", "Ime kartice", "account123", new BigDecimal("1000.00"));
-//
-//        // Simulacija bacanja InvalidTokenException u cardService
-//        doThrow(new InvalidTokenException()).when(cardService).recieveCardForAccount(eq("invalidToken"), eq(createCardDto));
-//
-//        // ArgumentCaptor za CreateCardDto
-//        ArgumentCaptor<CreateCardDto> captor = ArgumentCaptor.forClass(CreateCardDto.class);
-//
-//        // Pozivamo API endpoint i očekujemo 404 Not Found status
-//        mockMvc.perform(post("/api/account/{accountNumber}/cards/recieve?token={token}", "account123", "invalidToken")
-//                        .contentType("application/json")
-//                        .content("{\"accountNumber\":\"account123\",\"type\":\"Visa\",\"name\":\"Ime kartice\",\"cardLimit\":1000.00}"))
-//                .andExpect(status().isNotFound());
-//
-//        // Verifikacija da je metoda pozvana sa tačnim argumentima
-//        verify(cardService, times(1)).recieveCardForAccount(eq("invalidToken"), captor.capture());
-//
-//        // Upoređivanje vrednosti objekta
-//        CreateCardDto capturedDto = captor.getValue();
-//        assertEquals("account123", capturedDto.getAccountNumber());
-//        assertEquals("Visa", capturedDto.getType());
-//        assertEquals("Ime kartice", capturedDto.getName());
-//        assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
-//    }
-//
-
 
     // Test for createCard
     @Test
@@ -323,45 +240,4 @@ public class CardControllerTest {
         assertEquals("Ime kartice", capturedDto.getName());
         assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
     }
-
-
-    // nzm zasto bacaju 500
-//    @Test
-//    void testGetUserCardsForAccount_Success() throws Exception {
-//        String accountNumber = "12345";
-//        String authHeader = "Bearer token";
-//
-//        CardDto cardDto = new CardDto();
-//        cardDto.setId(1L);
-//        cardDto.setCardNumber("1111222233334444");
-//        cardDto.setStatus(CardStatus.ACTIVE);
-//
-//        CardDto cardDto2 = new CardDto();
-//        cardDto2.setId(2L);
-//        cardDto2.setCardNumber("2111222233334445");
-//        cardDto2.setStatus(CardStatus.ACTIVE);
-//
-//        List<CardDto> mockCards = List.of(cardDto, cardDto2);
-//
-//        when(cardService.getUserCardsForAccount(accountNumber, authHeader)).thenReturn(mockCards);
-//
-//        mockMvc.perform(get("/api/account/" + accountNumber + "/cards/my-account-cards/")
-//                        .header("Authorization", authHeader)
-//                        .contentType(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.length()").value(2));
-//    }
-//
-//    @Test
-//    void testGetUserCardsForAccount_AccessDenied() throws Exception {
-//        String accountNumber = "12345";
-//        String authHeader = "Bearer token";
-//
-//        when(cardService.getUserCardsForAccount(accountNumber, authHeader)).thenThrow(new AccountNotFoundException());
-//
-//        mockMvc.perform(get("/api/account/" + accountNumber + "/cards/my-account-cards/")
-//                        .header("Authorization", authHeader)
-//                        .contentType(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isNotFound());
-//    }
 }

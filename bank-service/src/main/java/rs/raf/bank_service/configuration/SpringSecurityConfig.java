@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -43,10 +45,10 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api-docs/**").permitAll()
-                .antMatchers("/api/account/**").hasAnyRole("ADMIN", "EMPLOYEE","CLIENT")
-                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE","ADMIN","CLIENT")
-                .antMatchers("/api/payees/**").hasAnyRole("ADMIN","EMPLOYEE","CLIENT")
-                .antMatchers("/api/payment/**").hasAnyRole("ADMIN","EMPLOYEE","CLIENT")
+                .antMatchers("/api/account/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/payees/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/payment/**").hasAnyRole("EMPLOYEE","CLIENT")
                 .antMatchers("/api/exchange-rates/**").authenticated()
                 .antMatchers("/api/installments/**").authenticated()
                 .antMatchers("/api/loans/**").hasAnyRole("ADMIN", "CLIENT")
@@ -71,5 +73,14 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy(){
+        RoleHierarchyImpl roleHierarchyImpl = new RoleHierarchyImpl();
+        roleHierarchyImpl.setHierarchy("ROLE_ADMIN > ROLE_SUPERVISOR " +
+                "\n ROLE_SUPERVISOR > ROLE_AGENT " +
+                "\n ROLE_AGENT > ROLE_EMPLOYEE ");
+        return roleHierarchyImpl;
     }
 }

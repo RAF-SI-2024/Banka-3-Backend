@@ -108,7 +108,9 @@ class AccountControllerTest {
         String authorizationHeader = "Bearer token";
 
         // Pretpostavljamo da metoda createNewBankAccount uspešno kreira novi bankovni račun
-        doNothing().when(accountService).createNewBankAccount(any(NewBankAccountDto.class), anyString());
+        when(accountService.createNewBankAccount(any(NewBankAccountDto.class), anyString())).thenReturn(
+                new AccountDto()
+        );
 
 
         // Simuliramo poziv POST zahteva na /api/account sa neophodnim parametarima
