@@ -104,8 +104,7 @@ public class AccountController {
     public ResponseEntity<?> createBankAccount(@RequestHeader("Authorization") String authorizationHeader,
                                                @RequestBody NewBankAccountDto newBankAccountDto) {
         try {
-            accountService.createNewBankAccount(newBankAccountDto, authorizationHeader);
-            return ResponseEntity.status(HttpStatus.CREATED).build();
+            return ResponseEntity.status(HttpStatus.CREATED).body(accountService.createNewBankAccount(newBankAccountDto, authorizationHeader));
         } catch (ClientNotFoundException | CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (DuplicateAccountNameException e) {

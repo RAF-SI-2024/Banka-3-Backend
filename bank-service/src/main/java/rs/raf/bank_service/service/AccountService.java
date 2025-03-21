@@ -94,8 +94,8 @@ public class AccountService {
         return accounts.map(account -> AccountMapper.toDto(account, client));
     }
 
-    public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
-        Long userId = newBankAccountDto.getClientId();
+    public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
         ClientDto clientDto = userClient.getClientById(userId);
         if (clientDto == null)
             throw new ClientNotFoundException(userId);
@@ -139,7 +139,7 @@ public class AccountService {
         String accountNumber = "3330001" + random + accountOwnerTypeNumber;
         newAccount.setAccountNumber(accountNumber);
 
-        accountRepository.save(newAccount);
+        return AccountMapper.toDto(accountRepository.save(newAccount), clientDto);
     }
 
     public List<AccountDto> getMyAccounts(Long clientId) {
