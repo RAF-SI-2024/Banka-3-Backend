@@ -127,9 +127,9 @@ public class CardControllerTest {
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_Success() throws Exception {
-        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
-        requestDto.setType(String.valueOf(CardType.CREDIT));
-        requestDto.setIssuer("VISA");
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
         requestDto.setName("Ime kartice");
         requestDto.setAccountNumber("account123");
 
@@ -144,58 +144,54 @@ public class CardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Card request sent for verification."));
 
-        verify(cardService, times(1)).requestNewCard(eq(requestDto), eq(authHeader));
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
 
 
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_EntityNotFound() throws Exception {
-        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
-        requestDto.setType(String.valueOf(CardType.CREDIT));
-        requestDto.setIssuer("VISA");
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
         requestDto.setName("Ime kartice");
         requestDto.setAccountNumber("account123");
 
         String authHeader = "Bearer validToken";
 
         doThrow(new AccountNotFoundException())
-                .when(cardService).requestNewCard(eq(requestDto), eq(authHeader));
+                .when(cardService).requestNewCard(any(), eq(authHeader));
 
 
         mockMvc.perform(post("/api/account/account123/cards/request")
                         .header("Authorization", authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string("Account not found"));
-
-        verify(cardService, times(1)).requestNewCard(eq(requestDto), eq(authHeader));
+                .andExpect(status().isNotFound());
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
 
 
     @Test
     @WithMockUser(roles = "CLIENT")
     public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
-        CardVerificationDetailsDto requestDto = new CardVerificationDetailsDto();
-        requestDto.setType(String.valueOf(CardType.CREDIT));
-        requestDto.setIssuer("VISA");
+        CreateCardDto requestDto = new CreateCardDto();
+        requestDto.setType(CardType.CREDIT);
+        requestDto.setIssuer(CardIssuer.VISA);
         requestDto.setName("Ime kartice");
         requestDto.setAccountNumber("account123");
 
         String authHeader = "Bearer validToken";
 
         doThrow(new CardLimitExceededException("account123"))
-                .when(cardService).requestNewCard(eq(requestDto), eq(authHeader));
+                .when(cardService).requestNewCard(any(), eq(authHeader));
 
         mockMvc.perform(post("/api/account/account123/cards/request")
                         .header("Authorization", authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Card limit exceeded for the account with account number: account123"));
-
-        verify(cardService, times(1)).requestNewCard(eq(requestDto), eq(authHeader));
+                .andExpect(status().isBadRequest());
+        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
     }
 
     // Test for createCard

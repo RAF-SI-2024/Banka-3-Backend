@@ -76,13 +76,19 @@ public class CardController {
     })
     public ResponseEntity<?> requestNewCard(@RequestBody CreateCardDto dto,
                                             @RequestHeader("Authorization") String authHeader) throws JsonProcessingException {
-        cardService.requestNewCard(dto, authHeader);
-        return ResponseEntity.ok("Card request sent for verification.");
+        try {
+            cardService.requestNewCard(dto, authHeader);
+            return ResponseEntity.ok("Card request sent for verification.");
+        } catch (CardLimitExceededException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/approve/{id}")
-    public ResponseEntity<?> approveCardRequest(@PathVariable Long id) throws JsonProcessingException {
+    public ResponseEntity<?> approveCardRequest(@PathVariable Long id) {
         cardService.approveCardRequest(id);
         return ResponseEntity.ok("Card request approved.");
     }
