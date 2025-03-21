@@ -105,8 +105,8 @@ public class BootstrapData implements CommandLineRunner {
                 .name("My company's EUR account")
                 .accountNumber("222222222222222222")
                 .clientId(1L)
-                .companyId(200L)
-                .createdByEmployeeId(101L)
+                .companyId(3L)
+                .createdByEmployeeId(3L)
                 .creationDate(LocalDate.now().minusMonths(2))
                 .expirationDate(LocalDate.now().plusYears(3))
                 .currency(currencyEUR)
@@ -119,6 +119,7 @@ public class BootstrapData implements CommandLineRunner {
                 .monthlySpending(BigDecimal.ZERO)
                 .type(AccountType.FOREIGN)
                 .accountOwnerType(AccountOwnerType.COMPANY)
+                .authorizedPersonId(1L)
                 .build();
 
 

@@ -190,7 +190,7 @@ public class AccountService {
                         authorizedPersonnelDto
                 );
 
-
+                companyAccountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
                 companyAccountDetailsDto.setTaxId(companyDto.getTaxId());
@@ -201,6 +201,7 @@ public class AccountService {
 
             return accountDetailsDto;
         } catch (FeignException e) {
+            e.printStackTrace();
             throw new RuntimeException();
         }
     }
