@@ -96,7 +96,7 @@ public class AccountService {
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
-        ClientDto clientDto = userClient.getClientById(userId);
+        ClientDto clientDto = userClient.getClientById(newBankAccountDto.getClientId());
         if (clientDto == null)
             throw new ClientNotFoundException(userId);
         Account newAccount;

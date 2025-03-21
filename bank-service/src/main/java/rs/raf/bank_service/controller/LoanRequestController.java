@@ -75,11 +75,11 @@ public class LoanRequestController {
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
         try {
-        LoanDto approvedLoan = loanRequestService.approveLoan(id);
-        return ResponseEntity.ok(approvedLoan);
-    } catch (LoanRequestNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    }
+            LoanDto approvedLoan = loanRequestService.approveLoan(id);
+            return ResponseEntity.ok(approvedLoan);
+        } catch (LoanRequestNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE')")
