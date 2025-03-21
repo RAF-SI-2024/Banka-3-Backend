@@ -25,10 +25,6 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
             }
 
             @Override
-            public void requestCard(RequestCardDto requestCardDto) {
-            }
-
-            @Override
             public void checkToken(CheckTokenDto checkTokenDto) {
             }
 

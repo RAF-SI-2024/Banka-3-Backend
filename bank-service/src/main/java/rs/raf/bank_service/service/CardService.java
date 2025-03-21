@@ -54,7 +54,7 @@ public class CardService {
     }
 
     private boolean isBusiness(AccountTypeDto accountTypeDto) {
-        return accountTypeDto.getSubtype().equals("Company");
+        return accountTypeDto.getSubtype().equals(AccountOwnerType.COMPANY);
     }
 
     public CardDtoNoOwner createCard(CreateCardDto createCardDto) {
@@ -64,7 +64,7 @@ public class CardService {
 
         Long cardCount = cardRepository.countByAccount(account);
 
-        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
+        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 2)) {
             throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
         }
         if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
@@ -87,53 +87,6 @@ public class CardService {
         cardRepository.save(card);
 
         return CardMapper.toCardDtoNoOwner(card);
-    }
-
-    public void requestCardForAccount(CreateCardDto createCardDto) {
-        Account account = accountRepository.findByAccountNumber(createCardDto.getAccountNumber())
-                .orElseThrow(() -> new EntityNotFoundException("Account with account number: " + createCardDto.getAccountNumber() + " not found"));
-        AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
-
-        Long cardCount = cardRepository.countByAccount(account);
-
-        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 1)) {
-            throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
-        }
-        if (createCardDto.getCardLimit() != null && createCardDto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidCardLimitException();
-        }
-
-        ClientDto client;
-        try {
-            client = userClient.getClientById(account.getClientId());
-        } catch (FeignException.NotFound e) {
-            throw new ClientNotFoundException(account.getClientId());
-        } catch (Exception e) {
-            throw new ExternalServiceException();
-        }
-
-        String email = client.getEmail();
-        if (email == null || email.isEmpty()) {
-            throw new IllegalArgumentException("Email address not found for user.");
-        }
-
-        try {
-            userClient.requestCard(new RequestCardDto(client.getEmail()));
-        } catch (FeignException e) {
-            throw new ExternalServiceException();
-        }
-    }
-
-    public CardDtoNoOwner recieveCardForAccount(String token, CreateCardDto createCardDto) {
-        try {
-            userClient.checkToken(new CheckTokenDto(token));
-        } catch (FeignException.NotFound e) {
-            throw new InvalidTokenException();
-        } catch (Exception e) {
-            throw new ExternalServiceException();
-        }
-
-        return createCard(createCardDto);
     }
 
     private String generateCardNumber(CardIssuer issuer) {
@@ -197,49 +150,49 @@ public class CardService {
     }
 
 
-        public List<CardDto> getCardsByAccount(
-                        @Parameter(description = "Account number to search for", example = "222222222222222222") String accountNumber) {
-                List<Card> cards = cardRepository.findByAccount_AccountNumber(accountNumber);
-                return cards.stream().map(card -> {
-                        ClientDto client = userClient.getClientById(card.getAccount().getClientId());
-                        return CardMapper.toDto(card, client);
-                }).collect(Collectors.toList());
-        }
+    public List<CardDto> getCardsByAccount(
+                    @Parameter(description = "Account number to search for", example = "222222222222222222") String accountNumber) {
+            List<Card> cards = cardRepository.findByAccount_AccountNumber(accountNumber);
+            return cards.stream().map(card -> {
+                    ClientDto client = userClient.getClientById(card.getAccount().getClientId());
+                    return CardMapper.toDto(card, client);
+            }).collect(Collectors.toList());
+    }
 
-        public void changeCardStatus(
-                        @Parameter(description = "Card number", example = "1234123412341234") String cardNumber,
-                        @Parameter(description = "New status for the card", example = "BLOCKED") CardStatus newStatus) {
-                Card card = cardRepository.findByCardNumber(cardNumber)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "Card not found with number: " + cardNumber));
+    public void changeCardStatus(
+                    @Parameter(description = "Card number", example = "1234123412341234") String cardNumber,
+                    @Parameter(description = "New status for the card", example = "BLOCKED") CardStatus newStatus) {
+            Card card = cardRepository.findByCardNumber(cardNumber)
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                            "Card not found with number: " + cardNumber));
 
-                card.setStatus(newStatus);
-                cardRepository.save(card);
+            card.setStatus(newStatus);
+            cardRepository.save(card);
 
-                ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
+            ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
 
-                EmailRequestDto emailRequestDto = new EmailRequestDto();
-                emailRequestDto.setCode(newStatus.toString());
-                emailRequestDto.setDestination(owner.getEmail());
+            EmailRequestDto emailRequestDto = new EmailRequestDto();
+            emailRequestDto.setCode(newStatus.toString());
+            emailRequestDto.setDestination(owner.getEmail());
 
-                rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
-        }
+            rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
+    }
 
-        public List<CardDto> getUserCards(String authHeader) {
+    public List<CardDto> getUserCards(String authHeader) {
 
-                Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-                List<Account> userAccounts = accountRepository.findByClientId(clientId);
+            List<Account> userAccounts = accountRepository.findByClientId(clientId);
 
-                List<Card> userCards = userAccounts.stream()
-                                .flatMap(account -> account.getCards().stream())
-                                .toList();
+            List<Card> userCards = userAccounts.stream()
+                            .flatMap(account -> account.getCards().stream())
+                            .toList();
 
-                ClientDto owner = userClient.getClientById(clientId);
-                return userCards.stream()
-                                .map(card -> CardMapper.toDto(card, owner))
-                                .collect(Collectors.toList());
-        }
+            ClientDto owner = userClient.getClientById(clientId);
+            return userCards.stream()
+                            .map(card -> CardMapper.toDto(card, owner))
+                            .collect(Collectors.toList());
+    }
 
     public List<CardDto> getUserCardsForAccount(String accountNumber, String authHeader) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
@@ -255,33 +208,44 @@ public class CardService {
                 .collect(Collectors.toList());
     }
 
-        public void blockCardByUser(String cardNumber, String authHeader) {
+    public void blockCardByUser(String cardNumber, String authHeader) {
 
-                Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-                Card card = cardRepository.findByCardNumber(cardNumber)
-                                .orElseThrow(() -> new EntityNotFoundException(
-                                                "Card not found with number: " + cardNumber));
+        Card card = cardRepository.findByCardNumber(cardNumber)
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                        "Card not found with number: " + cardNumber));
 
-                if (!card.getAccount().getClientId().equals(clientId)) {
-                        throw new UnauthorizedException("You can only block your own cards");
-                }
-
-                card.setStatus(CardStatus.BLOCKED);
-                cardRepository.save(card);
-
-                ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
-                EmailRequestDto emailRequestDto = new EmailRequestDto();
-                emailRequestDto.setCode("CARD_BLOCKED");
-                emailRequestDto.setDestination(owner.getEmail());
-                rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
+        if (!card.getAccount().getClientId().equals(clientId)) {
+                throw new UnauthorizedException("You can only block your own cards");
         }
+
+        card.setStatus(CardStatus.BLOCKED);
+        cardRepository.save(card);
+
+        ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
+        EmailRequestDto emailRequestDto = new EmailRequestDto();
+        emailRequestDto.setCode("CARD_BLOCKED");
+        emailRequestDto.setDestination(owner.getEmail());
+        rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
+    }
 
     public void requestNewCard(CreateCardDto dto, String authHeader) throws JsonProcessingException {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
         Account account = accountRepository.findByAccountNumberAndClientId(dto.getAccountNumber(), clientId)
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
+
+        Long cardCount = cardRepository.countByAccount(account);
+
+        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 2)) {
+            throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
+        }
+        if (dto.getCardLimit() != null && dto.getCardLimit().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidCardLimitException();
+        }
 
         CardRequest cardRequest = new CardRequest();
         cardRequest.setClientId(clientId);
@@ -323,6 +287,14 @@ public class CardService {
 
         Account account = accountRepository.findByAccountNumberAndClientId(cardRequest.getAccountNumber(), cardRequest.getClientId())
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+
+        AccountTypeDto accountTypeDto = accountMapper.toAccountTypeDto(account);
+        Long cardCount = cardRepository.countByAccount(account);
+
+        if ((isBusiness(accountTypeDto) && cardCount > 0) || (!isBusiness(accountTypeDto) && cardCount > 2)) {
+            throw new CardLimitExceededException(accountTypeDto.getAccountNumber());
+        }
 
         cardRequest.setStatus(RequestStatus.APPROVED);
         cardRequestRepository.save(cardRequest);

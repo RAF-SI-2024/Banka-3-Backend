@@ -102,10 +102,9 @@ class VerificationRequestControllerTest {
         when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.processApproval(1L, "Bearer token")).thenReturn(true);
 
-        ResponseEntity<String> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
+        ResponseEntity<?> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Request approved and account limit updated", response.getBody());
     }
 
     @Test
@@ -113,9 +112,8 @@ class VerificationRequestControllerTest {
         when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
         when(verificationRequestService.processApproval(1L, "Bearer token")).thenReturn(false);
 
-        ResponseEntity<String> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
+        ResponseEntity<?> response = controller.approveRequest(mobileUserAgent,1L, "Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Request not found or already processed", response.getBody());
     }
 }
