@@ -18,4 +18,7 @@ public class BankClientFallbackFactory implements BankClient {
     public void changeAccountLimit(Long id) {
         throw new RuntimeException("Unable to communicate with Bank Service");
     }
+
+    @Override
+    public void approveCardRequest(Long id, String detailsJson) {throw new RuntimeException("Unable to communicate with Bank Service");}
 }
