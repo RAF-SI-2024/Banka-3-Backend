@@ -1,15 +1,14 @@
 package rs.raf.stock_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
-import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.dto.ListingFilterDto;
+import rs.raf.stock_service.domain.entity.*;
 
 import javax.persistence.criteria.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class ListingSpecification {
 
@@ -20,19 +19,28 @@ public class ListingSpecification {
             // Pridružujemo ListingDailyPriceInfo koristeći podupit da nađemo najnoviji zapis
             Subquery<LocalDate> subquery = query.subquery(LocalDate.class);
             Root<ListingDailyPriceInfo> subRoot = subquery.from(ListingDailyPriceInfo.class);
-            subquery.select(cb.greatest(subRoot.<LocalDate>get("date"))); // Ispravljeno!
-
+            subquery.select(cb.greatest(subRoot.<LocalDate>get("date")));
             subquery.where(cb.equal(subRoot.get("listing"), root));
 
             // Join sa ListingDailyPriceInfo
             Join<Listing, ListingDailyPriceInfo> dailyInfoJoin = root.join("listingDailyPriceInfos", JoinType.LEFT);
-//            predicates.add(cb.equal(dailyInfoJoin.get("date"), subquery));
+            predicates.add(cb.or(
+                    cb.isNull(dailyInfoJoin.get("date")),
+                    cb.equal(dailyInfoJoin.get("date"), subquery)
+            ));
 
             // Ograničenje prikaza po roli
             if ("CLIENT".equalsIgnoreCase(role)) {
                 Predicate isStock = cb.equal(root.type(), cb.literal(Stock.class));
                 Predicate isFutures = cb.equal(root.type(), cb.literal(FuturesContract.class));
                 predicates.add(cb.or(isStock, isFutures));
+            }
+
+            if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
+                String searchTerm = "%" + filter.getSearch().toLowerCase() + "%";
+                Predicate tickerPredicate = cb.like(cb.lower(root.get("ticker")), searchTerm);
+                Predicate namePredicate = cb.like(cb.lower(root.get("name")), searchTerm);
+                predicates.add(cb.or(tickerPredicate, namePredicate));
             }
 
             // Filtriranje po Exchange - prefix
@@ -97,7 +105,7 @@ public class ListingSpecification {
                 } else if ("maintenanceMargin".equalsIgnoreCase(filter.getSortBy())) {
                     sortExpression = maintenanceMarginExp;
                 } else if ("low".equalsIgnoreCase(filter.getSortBy())) {
-                    sortExpression = dailyInfoJoin.get("low"); // Sortiranje po bid (low)
+                    sortExpression = dailyInfoJoin.get("low");
                 } else {
                     sortExpression = root.get(filter.getSortBy());
                 }
