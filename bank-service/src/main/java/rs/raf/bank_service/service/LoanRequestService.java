@@ -8,10 +8,7 @@ import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
-import rs.raf.bank_service.domain.entity.Account;
-import rs.raf.bank_service.domain.entity.Installment;
-import rs.raf.bank_service.domain.entity.Loan;
-import rs.raf.bank_service.domain.entity.LoanRequest;
+import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
@@ -55,8 +52,27 @@ public class LoanRequestService {
     }
 
     public LoanDto approveLoan(Long id) {
-        LoanRequest loanRequest = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING).orElseThrow(LoanRequestNotFoundException::new);
+        LoanRequest loanRequest = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING)
+                .orElseThrow(LoanRequestNotFoundException::new);
+
         loanRequest.setStatus(LoanRequestStatus.APPROVED);
+
+
+        CompanyAccount bankAccount = accountRepository
+                .findFirstByCurrencyAndCompanyId(loanRequest.getCurrency(), 1L)
+                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + loanRequest.getCurrency().getCode()));
+
+
+
+        bankAccount.setBalance(bankAccount.getBalance().subtract(loanRequest.getAmount()));
+        bankAccount.setAvailableBalance(bankAccount.getAvailableBalance().subtract(loanRequest.getAmount()));
+        accountRepository.save(bankAccount);
+
+        Account userAccount = loanRequest.getAccount();
+        userAccount.setBalance(userAccount.getBalance().add(loanRequest.getAmount()));
+        userAccount.setAvailableBalance(userAccount.getAvailableBalance().add(loanRequest.getAmount()));
+        accountRepository.save(userAccount);
+
         Loan loan = Loan.builder()
                 .loanNumber(UUID.randomUUID().toString())
                 .type(loanRequest.getType())
@@ -75,16 +91,23 @@ public class LoanRequestService {
                 .currency(loanRequest.getCurrency())
                 .status(LoanStatus.APPROVED)
                 .interestRateType(loanRequest.getInterestRateType())
-                .account(loanRequest.getAccount())
+                .account(userAccount)
                 .build();
 
-        Installment installment = new Installment(loan, loan.getNextInstallmentAmount(), loan.getEffectiveInterestRate(), loan.getNextInstallmentDate(), InstallmentStatus.UNPAID);
+        Installment installment = new Installment(
+                loan,
+                loan.getNextInstallmentAmount(),
+                loan.getEffectiveInterestRate(),
+                loan.getNextInstallmentDate(),
+                InstallmentStatus.UNPAID
+        );
+
         loan.setInstallments(new ArrayList<>());
         loan.getInstallments().add(installment);
+
         loanRepository.save(loan);
         installmentRepository.save(installment);
 
-        loanRepository.save(loan);
         return loanMapper.toDto(loan);
     }
 

@@ -102,22 +102,39 @@ class LoanRequestServiceTest {
     void testApproveLoan() {
         // Arrange
         Long loanRequestId = 1L;
+        BigDecimal loanAmount = BigDecimal.valueOf(1000);
+
+        Currency currency = new Currency();
+        currency.setCode("EUR");
+
+        Account clientAccount = new Account() {};
+        clientAccount.setBalance(BigDecimal.valueOf(2000));
+        clientAccount.setAvailableBalance(BigDecimal.valueOf(2000));
+        clientAccount.setCurrency(currency);
+
         LoanRequest loanRequest = new LoanRequest();
         loanRequest.setId(loanRequestId);
         loanRequest.setStatus(LoanRequestStatus.PENDING);
-        loanRequest.setAmount(BigDecimal.valueOf(1000));
+        loanRequest.setAmount(loanAmount);
         loanRequest.setRepaymentPeriod(12);
         loanRequest.setType(LoanType.CASH);
-        loanRequest.setCurrency(new Currency());
+        loanRequest.setCurrency(currency);
         loanRequest.setInterestRateType(InterestRateType.FIXED);
-        loanRequest.setAccount(accountRepository.findById(1L).orElse(new Account() {
-        }));
+        loanRequest.setAccount(clientAccount);
+
+        CompanyAccount bankAccount = new CompanyAccount();
+        bankAccount.setAccountNumber("BANK-123");
+        bankAccount.setBalance(BigDecimal.valueOf(50000));
+        bankAccount.setAvailableBalance(BigDecimal.valueOf(50000));
+        bankAccount.setCurrency(currency);
+        bankAccount.setCompanyId(1L);
 
         Loan loan = Loan.builder().build();
         LoanDto loanDto = new LoanDto();
 
         // Mock
         when(loanRequestRepository.findByIdAndStatus(loanRequestId, LoanRequestStatus.PENDING)).thenReturn(Optional.of(loanRequest));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L)).thenReturn(Optional.of(bankAccount));
         when(loanRepository.save(Mockito.any(Loan.class))).thenReturn(loan);
         when(installmentRepository.save(Mockito.any(Installment.class))).thenReturn(new Installment());
         when(loanMapper.toDto(Mockito.any(Loan.class))).thenReturn(loanDto);
@@ -128,8 +145,18 @@ class LoanRequestServiceTest {
         // Assert
         assertEquals(loanDto, result);
         assertEquals(LoanRequestStatus.APPROVED, loanRequest.getStatus());
+
+        // Balansi
+        assertEquals(BigDecimal.valueOf(3000), clientAccount.getBalance());
+        assertEquals(BigDecimal.valueOf(3000), clientAccount.getAvailableBalance());
+        assertEquals(BigDecimal.valueOf(49000), bankAccount.getBalance());
+
+        // Verify pozivi
         verify(loanRequestRepository).findByIdAndStatus(loanRequestId, LoanRequestStatus.PENDING);
-        verify(loanRepository, times(2)).save(Mockito.any(Loan.class));
+        verify(accountRepository).findFirstByCurrencyAndCompanyId(currency, 1L);
+        verify(accountRepository).save(clientAccount);
+        verify(accountRepository).save(bankAccount);
+        verify(loanRepository, times(1)).save(Mockito.any(Loan.class));
         verify(installmentRepository, times(1)).save(Mockito.any(Installment.class));
         verify(loanMapper).toDto(Mockito.any(Loan.class));
     }
