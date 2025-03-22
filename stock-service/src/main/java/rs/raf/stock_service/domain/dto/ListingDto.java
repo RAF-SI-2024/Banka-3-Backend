@@ -2,12 +2,14 @@ package rs.raf.stock_service.domain.dto;
 
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import rs.raf.stock_service.domain.enums.ListingType;
 
 import java.math.BigDecimal;
 @Getter
 @Setter
+@NoArgsConstructor
 public class ListingDto {
     private Long id;
     private ListingType listingType;

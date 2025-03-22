@@ -16,7 +16,7 @@ public class OrderDto {
 
     private Long id;
     private Long userId;
-    private Integer asset;
+    private Long asset;
     private OrderType orderType;
     private Integer quantity;
     private Integer contractSize;
