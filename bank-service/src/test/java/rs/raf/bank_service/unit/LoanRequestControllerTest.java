@@ -18,6 +18,7 @@ import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.service.LoanRequestService;
 import rs.raf.bank_service.service.LoanService;
+import rs.raf.bank_service.service.TransactionQueueService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -48,6 +49,10 @@ public class LoanRequestControllerTest {
 
     @Mock
     private JwtTokenUtil jwtTokenUtil;
+
+    @Mock
+    private TransactionQueueService transactionQueueService;
+
 
 //    @Test
 //    void testGetAllLoans() {
@@ -96,15 +101,18 @@ public class LoanRequestControllerTest {
 
     @Test
     void approveLoan_Success() {
-        Long loanId = 1L;
+        Long loanRequestId = 1L;
         LoanDto loanDto = new LoanDto();
-        Mockito.when(loanRequestService.approveLoan(loanId)).thenReturn(loanDto);
 
-        ResponseEntity<?> response = loanRequestController.approveLoan(loanId);
+        Mockito.when(transactionQueueService.queueLoan("APPROVE_LOAN", loanRequestId)).thenReturn(loanDto);
+
+        ResponseEntity<?> response = loanRequestController.approveLoan(loanRequestId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(loanDto, response.getBody());
+        Mockito.verify(transactionQueueService).queueLoan("APPROVE_LOAN", loanRequestId);
     }
+
 
 //    @Test
 //    void approveLoan_LoanNotFound() {
