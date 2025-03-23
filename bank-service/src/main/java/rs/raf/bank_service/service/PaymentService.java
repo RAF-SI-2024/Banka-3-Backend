@@ -3,10 +3,15 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
+import org.apache.coyote.BadRequestException;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
@@ -24,6 +29,8 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -100,6 +107,7 @@ public class PaymentService {
         return true;
     }
 
+    @Transactional
     public boolean confirmTransferAndExecute(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
@@ -226,6 +234,7 @@ public class PaymentService {
         return true;
     }
 
+    @Transactional
     public void confirmPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));

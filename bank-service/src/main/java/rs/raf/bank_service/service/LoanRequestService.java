@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
@@ -37,6 +38,13 @@ public class LoanRequestService {
     private final InstallmentRepository installmentRepository;
     private final JwtTokenUtil jwtTokenUtil;
 
+    public LoanDto returnLoanDto(Long id) {
+        LoanRequest loanRequest = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING)
+                .orElseThrow(() -> new LoanRequestNotFoundException());
+
+        return loanMapper.toDtoPreview(loanRequest);
+    }
+
 
     public LoanRequestDto saveLoanRequest(CreateLoanRequestDto createLoanRequestDTO, String authHeader) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
@@ -51,6 +59,7 @@ public class LoanRequestService {
         return loanRequestMapper.toDto(loanRequest);
     }
 
+    @Transactional
     public LoanDto approveLoan(Long id) {
         LoanRequest loanRequest = loanRequestRepository.findByIdAndStatus(id, LoanRequestStatus.PENDING)
                 .orElseThrow(LoanRequestNotFoundException::new);

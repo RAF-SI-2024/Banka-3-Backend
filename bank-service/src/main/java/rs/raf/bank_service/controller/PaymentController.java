@@ -19,6 +19,7 @@ import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.service.TransactionQueueService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
@@ -31,6 +32,7 @@ import java.time.LocalDateTime;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final TransactionQueueService transactionQueueService;
     private final JwtTokenUtil jwtTokenUtil;
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -75,7 +77,7 @@ public class PaymentController {
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
         try {
-            boolean success = paymentService.confirmTransferAndExecute(paymentId);
+            boolean success = transactionQueueService.queueTransaction("CONFIRM_TRANSFER", paymentId);
             if (success) {
                 return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
             } else {
@@ -132,7 +134,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> confirmPayment(@PathVariable Long paymentId) {
         try {
-            paymentService.confirmPayment(paymentId);
+            transactionQueueService.queueTransaction("CONFIRM_PAYMENT", paymentId);
             return ResponseEntity.status(HttpStatus.OK).body("Payment completed successfully.");
         } catch (PaymentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found: " + e.getMessage());

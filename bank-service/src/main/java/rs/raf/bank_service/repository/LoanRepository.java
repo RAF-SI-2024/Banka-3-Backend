@@ -19,5 +19,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
     Page<Loan> findByAccountIn(Collection<Account> accounts, Pageable pageable);
     List<Loan> findByStatus(LoanStatus loanStatus);
     List<Loan> findByNextInstallmentDate(LocalDate localDate);
+    List<Loan> findByNextInstallmentDateAndStartDateBefore(LocalDate nextInstallmentDate, LocalDate beforeStartDate);
+
 
 }
