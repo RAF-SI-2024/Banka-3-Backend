@@ -62,5 +62,7 @@ public class Order {
     @Column(updatable = false)
     private Boolean afterHours;
 
+    private String accountNumber;
+
 }
 
