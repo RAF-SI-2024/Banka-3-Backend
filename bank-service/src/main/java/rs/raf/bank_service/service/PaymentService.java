@@ -127,17 +127,23 @@ public class PaymentService {
 
             //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            bankAccountFrom.setAvailableBalance(bankAccountFrom.getBalance());
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
 
             //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            bankAccountTo.setAvailableBalance(bankAccountTo.getBalance());
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            receiver.setAvailableBalance(receiver.getBalance());
             accountRepository.save(bankAccountTo);
         } else {
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             receiver.setBalance(receiver.getBalance().add(amount));
+            receiver.setAvailableBalance(receiver.getBalance());
         }
 
         accountRepository.save(sender);
@@ -249,17 +255,23 @@ public class PaymentService {
 
             //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            bankAccountFrom.setAvailableBalance(bankAccountFrom.getBalance());
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
 
             //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            bankAccountTo.setAvailableBalance(bankAccountTo.getBalance());
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            receiver.setAvailableBalance(receiver.getBalance());
             accountRepository.save(bankAccountTo);
         } else {
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             receiver.setBalance(receiver.getBalance().add(amount));
+            receiver.setAvailableBalance(receiver.getBalance());
         }
 
         accountRepository.save(sender);

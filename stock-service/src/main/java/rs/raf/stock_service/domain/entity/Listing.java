@@ -30,6 +30,6 @@ public abstract class Listing {
     private BigDecimal price;
     private BigDecimal ask;
 
-    @OneToMany
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ListingDailyPriceInfo> listingDailyPriceInfos;
 }

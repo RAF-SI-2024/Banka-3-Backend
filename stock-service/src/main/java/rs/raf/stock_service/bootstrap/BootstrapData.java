@@ -5,10 +5,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.ForexPairDto;
 import rs.raf.stock_service.domain.dto.StockDto;
-import rs.raf.stock_service.domain.entity.Exchange;
-import rs.raf.stock_service.domain.entity.ForexPair;
-import rs.raf.stock_service.domain.entity.Order;
-import rs.raf.stock_service.domain.entity.Stock;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
@@ -18,6 +15,7 @@ import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,8 +51,117 @@ public class BootstrapData implements CommandLineRunner {
         // Import full Forex Pairs data (LIMITED TO 10 API CALLS)
         importForexPairs();
 
+        addStock(nasdaq);
+        addFutures(nasdaq);
+        addOption(nasdaq);
+        addForex();
+        addStockWithDailyInfo(nasdaq);
+
         // Load Orders
         loadOrders();
+    }
+    private void addStockWithDailyInfo(Exchange exchange) {
+        Stock stock = new Stock();
+        stock.setTicker("FILTERTEST");
+        stock.setName("Filter Test Stock");
+        stock.setPrice(new BigDecimal("123.45"));
+        stock.setAsk(new BigDecimal("125.00"));
+        stock.setDividendYield(new BigDecimal("1.23"));
+        stock.setMarketCap(new BigDecimal("100000000"));
+        stock.setOutstandingShares(1_000_000L);
+        stock.setVolume(50000L);
+        stock.setChange(new BigDecimal("2.15"));
+        stock.setExchange(exchange);
+        stock.setMaintenanceMargin(new BigDecimal("12.34"));
+
+        listingRepository.save(stock); // mora prvo da se sačuva da bi imao ID
+
+        // Dodaj ListingDailyPriceInfo (da bi testirao low, volume itd.)
+        ListingDailyPriceInfo info = new ListingDailyPriceInfo();
+        info.setListing(stock); // povezivanje
+        info.setDate(LocalDate.now());
+        info.setPrice(stock.getPrice());
+        info.setLow(new BigDecimal("120.00")); // <-- FILTERI ĆE OVO TESTIRATI
+        info.setHigh(new BigDecimal("130.00"));
+        info.setChange(stock.getChange());
+        info.setVolume(stock.getVolume());
+
+        dailyPriceInfoRepository.save(info);
+
+    }
+    private void addStock(Exchange exchange) {
+        Stock stock = new Stock();
+        stock.setTicker("TEST1");
+        stock.setName("Test Stock");
+        stock.setPrice(new BigDecimal("100.00"));
+        stock.setAsk(new BigDecimal("101.00"));
+        stock.setDividendYield(new BigDecimal("2.5"));
+        stock.setMarketCap(new BigDecimal("500000000"));
+        stock.setOutstandingShares(1000000L);
+        stock.setVolume(60000L);
+        stock.setChange(new BigDecimal("1.5"));
+        stock.setExchange(exchange);
+        stock.setMaintenanceMargin(new BigDecimal("10.00"));
+
+        listingRepository.save(stock);
+
+
+        // Dodaj ListingDailyPriceInfo (da bi testirao low, volume itd.)
+        ListingDailyPriceInfo info = new ListingDailyPriceInfo();
+        info.setListing(stock); // povezivanje
+        info.setDate(LocalDate.now());
+        info.setPrice(stock.getPrice());
+        info.setLow(new BigDecimal("123.00")); // <-- FILTERI ĆE OVO TESTIRATI
+        info.setHigh(new BigDecimal("130.00"));
+        info.setChange(stock.getChange());
+        info.setVolume(stock.getVolume());
+
+        dailyPriceInfoRepository.save(info);
+    }
+
+    private void addFutures(Exchange exchange) {
+        FuturesContract futures = new FuturesContract();
+        futures.setTicker("FUT1");
+        futures.setName("Test Futures");
+        futures.setPrice(new BigDecimal("1500.00"));
+        futures.setAsk(new BigDecimal("1510.00"));
+        futures.setContractSize(10);
+        futures.setSettlementDate(LocalDate.now().plusMonths(1));
+        futures.setExchange(exchange);
+
+        listingRepository.save(futures);
+    }
+
+    private void addOption(Exchange exchange) {
+        Option option = new Option();
+        option.setTicker("OPT1");
+        option.setName("Test Option");
+        option.setPrice(new BigDecimal("5.00"));
+        option.setAsk(new BigDecimal("5.50"));
+        option.setOptionType(option.getOptionType().CALL);
+        option.setStrikePrice(new BigDecimal("120.00"));
+        option.setSettlementDate(LocalDate.now().plusWeeks(2));
+        option.setImpliedVolatility(new BigDecimal("0.25"));
+        option.setExchange(exchange);
+
+        listingRepository.save(option);
+    }
+
+    private void addForex() {
+        ForexPair pair = new ForexPair();
+        pair.setTicker("USD/EUR");
+        pair.setName("USD to EUR");
+        pair.setPrice(new BigDecimal("0.92"));
+        pair.setAsk(new BigDecimal("0.93"));
+        pair.setBaseCurrency("USD");
+        pair.setQuoteCurrency("EUR");
+        pair.setExchangeRate(new BigDecimal("0.925"));
+        pair.setLiquidity("HIGH");
+        pair.setLastRefresh(LocalDateTime.now());
+        pair.setNominalValue(new BigDecimal("100000"));
+        pair.setMaintenanceMargin(new BigDecimal("10.00"));
+
+        listingRepository.save(pair);
     }
 
     private void importStocks(Exchange exchange) {
