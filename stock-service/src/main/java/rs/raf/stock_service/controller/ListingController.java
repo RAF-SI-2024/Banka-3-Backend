@@ -108,7 +108,7 @@ public class ListingController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('SUPERVISOR', 'AGENT', 'ADMIN')")
+    @PreAuthorize("hasRole('AGENT')")
     @PostMapping("/buy")
     @Operation(summary = "Places buy order for a security", description = "Places an order to buy a security.")
     @ApiResponses(value = {

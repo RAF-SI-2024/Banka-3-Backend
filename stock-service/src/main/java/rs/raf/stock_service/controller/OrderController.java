@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.service.OrderService;
@@ -56,7 +57,7 @@ public class OrderController {
         try {
             orderService.approveOrder(id,authHeader);
             return ResponseEntity.ok().build();
-        } catch (OrderNotFoundException e) {
+        } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
@@ -72,7 +73,7 @@ public class OrderController {
         try {
             orderService.declineOrder(id,authHeader);
             return ResponseEntity.ok().build();
-        } catch (OrderNotFoundException e) {
+        } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
