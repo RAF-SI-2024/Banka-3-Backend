@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import rs.raf.user_service.domain.dto.ActuaryLimitDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.Employee;
@@ -69,6 +70,15 @@ public class ActuaryService {
         ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(employeeId).orElseThrow(() -> new ActuaryLimitNotFoundException(employeeId));
         actuaryLimit.setNeedsApproval(value);
         actuaryLimitRepository.save(actuaryLimit);
+    }
+
+    public ActuaryLimitDto getAgentLimit(Long id){
+        ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(id).orElseThrow(() -> new ActuaryLimitNotFoundException(id));
+        ActuaryLimitDto actuaryLimitDto = new ActuaryLimitDto();
+        actuaryLimitDto.setLimitAmount(actuaryLimit.getLimitAmount());
+        actuaryLimitDto.setUsedLimit(actuaryLimit.getUsedLimit());
+        actuaryLimitDto.setNeedsApproval(actuaryLimit.isNeedsApproval());
+        return actuaryLimitDto;
     }
 
     //Na svakih 15 sekundi

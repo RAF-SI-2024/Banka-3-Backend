@@ -14,13 +14,16 @@ import org.springframework.data.domain.PageRequest;
 import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
+import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 class OrderServiceTest {
 
@@ -29,6 +32,9 @@ class OrderServiceTest {
 
     @InjectMocks
     private OrderService orderService;
+
+    @Mock
+    private JwtTokenUtil jwtTokenUtil;
 
     @BeforeEach
     void setUp() {
@@ -89,5 +95,22 @@ class OrderServiceTest {
 
         assertEquals(2, result.getTotalElements());
         verify(orderRepository, times(1)).findAll(any(PageRequest.class));
+    }
+
+    @Test
+    void approveOrder_ShouldThrowOrderNotFoundException_WhenOrderDoesNotExist() {
+        Long orderId = 1L;
+        String authHeader = "Bearer test-token";
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        OrderNotFoundException exception = assertThrows(OrderNotFoundException.class, () -> {
+            orderService.approveOrder(orderId, authHeader);
+        });
+
+        assertEquals("Order with ID "+orderId+" not found.", exception.getMessage());
+        verify(orderRepository, times(1)).findById(orderId);
+        verify(jwtTokenUtil, never()).getUserIdFromAuthHeader(anyString());
+        verify(orderRepository, never()).save(any(Order.class));
     }
 }

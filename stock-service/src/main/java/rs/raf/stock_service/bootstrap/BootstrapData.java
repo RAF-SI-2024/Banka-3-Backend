@@ -247,7 +247,7 @@ public class BootstrapData implements CommandLineRunner {
         if (orderRepository.count() == 0) {
             Order order1 = Order.builder()
                     .userId(1L)
-                    .asset(100)
+                    .asset(100L)
                     .orderType(OrderType.LIMIT)
                     .quantity(10)
                     .contractSize(1)
@@ -263,7 +263,7 @@ public class BootstrapData implements CommandLineRunner {
 
             Order order2 = Order.builder()
                     .userId(2L)
-                    .asset(200)
+                    .asset(200L)
                     .orderType(OrderType.MARKET)
                     .quantity(5)
                     .contractSize(2)
