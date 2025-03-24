@@ -59,7 +59,7 @@ presubmits:
                 junit_source_directory="./target/site/jacoco"
                 junit_dest_directory="/logs/artifacts/"
 
-                cp -r “$junit_source_directory” “$junit_dest_directory”
+                cp -r "$junit_source_directory" "$junit_dest_directory"
               
                 echo "${GCSWEB_URL}/prow-logs/pr-logs/pull/${REPO_OWNER}_${REPO_NAME}/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}/artifacts/jacoco/index.html" > /logs/artifacts/coverage.link.txt
               }
@@ -81,10 +81,10 @@ presubmits:
               # Promeniti ovu komandu da pokreće one servise koji vam trebaju za vaše
               # testove. Moguće je više puta pokrenuti "docker compose up" za različite
               # Docker Compose servise.
-              docker compose -f docker-compose.prod.yml up -d main_db
-              docker compose -f docker-compose.prod.yml up -d rabbitmq
-              docker compose -f docker-compose.prod.yml up -d user_service
-              docker compose -f docker-compose.prod.yml up -d bank_db
+              docker compose -f docker-compose.test.yml up -d main_db
+              docker compose -f docker-compose.test.yml up -d rabbitmq
+              docker compose -f docker-compose.test.yml up -d user-service
+              docker compose -f docker-compose.test.yml up -d bank_db
               
               # Ovaj sleep obezbeđuje služi da obezbedi dovoljno vremena da se svi
               # kontejneri pokrenuti iznad pokrenu u potpunosti. Po potreba možete
