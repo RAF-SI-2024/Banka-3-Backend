@@ -6,7 +6,7 @@ presubmits:
   # PROMENITI PRI KOPIRANJU
   # Name treba da bude u formatu "pull-<naziv-repozitorijuma>-<naziv-servisa>-test", npr.
   # pull-banka-1-backend-user-service-test ili pull-banka-2-backend-berza-service-test
-  - name: pull-banka-3-backend-user-service-test
+  - name: pull-banka-3-backend-email-service-test
     # always_run znači da će se job pokrenuti za svaki commit,
     # nezavisno od toga šta taj commit menja.
     # Bolja alternativa je da se job za dati servis pokrene samo
@@ -24,7 +24,7 @@ presubmits:
     # od "pom.xml" ili "docker-compose.yml" fajlova.
     # Direktorijumi su naznačeni sa "/" na kraju naziva direktorijuma,
     # npr. "user-service/".
-    run_if_changed: "(user-service/|docker-compose.yml|pom.xml|.prow/)"
+    run_if_changed: "(email-service/|docker-compose.yml|pom.xml|.prow/)"
     decorate: true
     spec:
       containers:
@@ -81,7 +81,6 @@ presubmits:
               # Promeniti ovu komandu da pokreće one servise koji vam trebaju za vaše
               # testove. Moguće je više puta pokrenuti "docker compose up" za različite
               # Docker Compose servise.
-              docker compose -f docker-compose.prod.yml up -d main_db
               docker compose -f docker-compose.prod.yml up -d rabbitmq
               
               # Ovaj sleep obezbeđuje služi da obezbedi dovoljno vremena da se svi
@@ -92,7 +91,7 @@ presubmits:
 
               # PROMENITI PRI KOPIRANJU
               # Naziv direktorijuma u kom se nalazi mikroservis koji testirate.
-              SERVICE_NAME="user-service"
+              SERVICE_NAME="email-service"
               cd "$SERVICE_NAME"
 
               # trap komanda obezbeđuje da se "collectJUnitCoverage"
@@ -110,7 +109,6 @@ presubmits:
               #   - "test": pokreće sve testove u okviru vaših projekata
               #   - "verify": verifikuje rezultate integracionih testova
               mvn clean test verify
-              sleep 120
           securityContext:
             privileged: true
           imagePullPolicy: Always
