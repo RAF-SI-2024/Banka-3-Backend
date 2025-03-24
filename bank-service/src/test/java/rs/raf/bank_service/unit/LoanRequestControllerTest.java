@@ -4,116 +4,146 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import rs.raf.bank_service.controller.LoanController;
 import rs.raf.bank_service.controller.LoanRequestController;
-import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
+import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
-import rs.raf.bank_service.domain.dto.LoanShortDto;
-import rs.raf.bank_service.domain.enums.*;
+import rs.raf.bank_service.domain.enums.EmploymentStatus;
+import rs.raf.bank_service.domain.enums.InterestRateType;
+import rs.raf.bank_service.domain.enums.LoanRequestStatus;
+import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
 import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
+import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.service.LoanRequestService;
-import rs.raf.bank_service.service.LoanService;
-import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class LoanRequestControllerTest {
 
     @Mock
-    private LoanService loanService;
-
-    @Mock
     private LoanRequestService loanRequestService;
 
     @InjectMocks
-    private LoanController loanController;
-
-    @InjectMocks
-    private LoanRequestController loanRequestController;
-
-    @Mock
-    private JwtTokenUtil jwtTokenUtil;
-
-//    @Test
-//    void testGetAllLoans() {
-//        List<LoanShortDto> mockLoans = Arrays.asList(
-//                new LoanShortDto("12345", LoanType.MORTGAGE, BigDecimal.valueOf(500000)),
-//                new LoanShortDto("67890", LoanType.REFINANCING, BigDecimal.valueOf(1500000))
-//        );
-//
-//        when(loanService.getAllLoans()).thenReturn(mockLoans);
-//
-//        ResponseEntity<List<LoanShortDto>> response = loanController.getAllLoans();
-//
-//        assertEquals(200, response.getStatusCodeValue());
-//        assertNotNull(response.getBody());
-//        assertEquals(2, response.getBody().size());
-//    }
+    private LoanRequestController controller;
 
     @Test
-    void testGetLoanById() {
-        Long loanId = 1L;
-        LoanDto mockLoan = new LoanDto(1L, "12345", LoanType.MORTGAGE, BigDecimal.valueOf(500000), 60, BigDecimal.valueOf(6.75), BigDecimal.valueOf(7.25), LocalDate.now(), LocalDate.now().plusYears(5), BigDecimal.valueOf(10000), LocalDate.now().plusMonths(1), BigDecimal.valueOf(450000), "RSD", LoanStatus.APPROVED);
+    void testCreateLoanRequest_Success() {
+        CreateLoanRequestDto dto = new CreateLoanRequestDto(LoanType.CASH, new BigDecimal("5000"), "Laptop",
+                new BigDecimal("100000"), EmploymentStatus.PERMANENT, 12, 24, "+38164123456", "265000000000000000",
+                "RSD", InterestRateType.FIXED);
 
-        when(loanService.getLoanById(loanId)).thenReturn(Optional.of(mockLoan));
+        when(loanRequestService.saveLoanRequest(eq(dto), eq("Bearer token"))).thenReturn(new LoanRequestDto());
 
-        ResponseEntity<LoanDto> response = loanController.getLoanById(loanId);
+        ResponseEntity<?> response = controller.createLoanRequest(dto, "Bearer token");
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals(mockLoan.getLoanNumber(), response.getBody().getLoanNumber());
-    }
-
-
-    @Test
-    void testCreateLoanRequest() {
-        CreateLoanRequestDto newRequest = new CreateLoanRequestDto(LoanType.REFINANCING, BigDecimal.valueOf(500000), "Education", BigDecimal.valueOf(85000), EmploymentStatus.PERMANENT, 36, 72, "+381641234567", "265000000333333333333", "USD", InterestRateType.FIXED);
-
-        LoanRequestDto savedRequest = new LoanRequestDto(1L, LoanType.REFINANCING, BigDecimal.valueOf(500000), "Education", BigDecimal.valueOf(85000), EmploymentStatus.PERMANENT, 36, 72, "+381641234567", "265000000333333333333", "USD", InterestRateType.FIXED, LocalDateTime.now(), LoanRequestStatus.PENDING);
-        when(loanRequestService.saveLoanRequest(newRequest, "Bearer token")).thenReturn(savedRequest);
-
-        ResponseEntity<String> response = (ResponseEntity<String>) loanRequestController.createLoanRequest(newRequest, "Bearer token");
-
-        assertEquals(201, response.getStatusCodeValue());
-        assertNotNull(response.getBody());
-        assertEquals("Loan request created successfully.", response.getBody());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Loan request created successfully"));
     }
 
     @Test
-    void approveLoan_Success() {
-        Long loanId = 1L;
-        LoanDto loanDto = new LoanDto();
-        Mockito.when(loanRequestService.approveLoan(loanId)).thenReturn(loanDto);
+    void testCreateLoanRequest_InvalidLoanType() {
+        CreateLoanRequestDto dto = new CreateLoanRequestDto();
+        when(loanRequestService.saveLoanRequest(any(), any())).thenThrow(new InvalidLoanTypeException());
 
-        ResponseEntity<?> response = loanRequestController.approveLoan(loanId);
+        ResponseEntity<?> response = controller.createLoanRequest(dto, "Bearer token");
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("The provided loan type is invalid.", response.getBody());
+
+    }
+
+    @Test
+    void testApproveLoan_Success() {
+        LoanDto dto = new LoanDto();
+        when(loanRequestService.approveLoan(1L)).thenReturn(dto);
+
+        ResponseEntity<?> response = controller.approveLoan(1L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(loanDto, response.getBody());
+        assertEquals(dto, response.getBody());
     }
 
-//    @Test
-//    void approveLoan_LoanNotFound() {
-//        Long loanId = 1L;
-//
-//        Mockito.when(loanRequestService.approveLoan(loanId)).thenThrow(new LoanRequestNotFoundException());
-//
-//        ResponseEntity<?> response = loanRequestController.approveLoan(loanId);
-//
-//        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-//    }
+    @Test
+    void testApproveLoan_NotFound() {
+        when(loanRequestService.approveLoan(2L)).thenThrow(new LoanRequestNotFoundException());
+
+        ResponseEntity<?> response = controller.approveLoan(2L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("The provided loan request doesnt exist.", response.getBody());
+    }
+
+    @Test
+    void testRejectLoan_Success() {
+        LoanRequestDto dto = new LoanRequestDto();
+        when(loanRequestService.rejectLoan(1L)).thenReturn(dto);
+
+        ResponseEntity<LoanRequestDto> response = controller.rejectLoan(1L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(dto, response.getBody());
+    }
+
+    @Test
+    void testRejectLoan_NotFound() {
+        when(loanRequestService.rejectLoan(1L)).thenThrow(new LoanRequestNotFoundException());
+
+        ResponseEntity<LoanRequestDto> response = controller.rejectLoan(1L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void testGetClientLoanRequests_Success() {
+        Page<LoanRequestDto> page = new PageImpl<>(List.of(new LoanRequestDto()));
+        when(loanRequestService.getClientLoanRequests(eq("Bearer token"), any())).thenReturn(page);
+
+        ResponseEntity<?> response = controller.getClientLoanRequests("Bearer token", 0, 10);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(page, response.getBody());
+    }
+
+    @Test
+    void testGetClientLoanRequests_Unauthorized() {
+        when(loanRequestService.getClientLoanRequests(any(), any())).thenThrow(new UnauthorizedException("No access"));
+
+        ResponseEntity<?> response = controller.getClientLoanRequests("bad-token", 0, 10);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("No access", response.getBody());
+    }
+
+    @Test
+    void testGetAllLoanRequests_Success() {
+        Page<LoanRequestDto> page = new PageImpl<>(List.of(new LoanRequestDto()));
+        when(loanRequestService.getAllLoanRequests(any(), any(), any())).thenReturn(page);
+
+        ResponseEntity<Page<LoanRequestDto>> response = controller.getAllLoanRequests(null, null, 0, 10);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().getContent().size());
+    }
+
+    @Test
+    void testGetAllLoanRequests_InvalidType() {
+        when(loanRequestService.getAllLoanRequests(any(), any(), any())).thenThrow(new InvalidLoanTypeException());
+
+        ResponseEntity<Page<LoanRequestDto>> response = controller.getAllLoanRequests(null, null, 0, 10);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
 }

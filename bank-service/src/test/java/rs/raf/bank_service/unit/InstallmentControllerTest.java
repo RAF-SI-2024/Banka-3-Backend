@@ -13,12 +13,11 @@ import rs.raf.bank_service.service.InstallmentService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class InstallmentControllerTest {
@@ -30,9 +29,9 @@ public class InstallmentControllerTest {
     private InstallmentController installmentController;
 
     @Test
-    void testGetInstallmentsByLoanId() {
+    void testGetInstallmentsByLoanId_ReturnsList() {
         Long loanId = 1L;
-        List<InstallmentDto> mockInstallments = Arrays.asList(
+        List<InstallmentDto> mockInstallments = List.of(
                 new InstallmentDto(BigDecimal.valueOf(10000), BigDecimal.valueOf(5.5), LocalDate.now(), LocalDate.now().plusMonths(1), InstallmentStatus.LATE),
                 new InstallmentDto(BigDecimal.valueOf(12000), BigDecimal.valueOf(5.5), LocalDate.now().plusMonths(1), LocalDate.now().plusMonths(2), InstallmentStatus.UNPAID)
         );
@@ -44,6 +43,20 @@ public class InstallmentControllerTest {
         assertEquals(200, response.getStatusCodeValue());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
+        verify(installmentService, times(1)).getInstallmentsByLoanId(loanId);
+    }
+
+    @Test
+    void testGetInstallmentsByLoanId_ReturnsEmptyList() {
+        Long loanId = 999L;
+        when(installmentService.getInstallmentsByLoanId(loanId)).thenReturn(Collections.emptyList());
+
+        ResponseEntity<List<InstallmentDto>> response = installmentController.getInstallmentsByLoanId(loanId);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isEmpty());
+        verify(installmentService, times(1)).getInstallmentsByLoanId(loanId);
     }
 
 }

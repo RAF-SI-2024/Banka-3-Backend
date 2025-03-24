@@ -3,241 +3,254 @@ package rs.raf.bank_service.unit;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.CardController;
-import rs.raf.bank_service.domain.dto.CardDto;
-import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
-import rs.raf.bank_service.domain.dto.CardVerificationDetailsDto;
-import rs.raf.bank_service.domain.dto.CreateCardDto;
-import rs.raf.bank_service.domain.enums.CardIssuer;
-import rs.raf.bank_service.domain.enums.CardStatus;
-import rs.raf.bank_service.domain.enums.CardType;
-import rs.raf.bank_service.domain.mapper.AccountMapper;
-import rs.raf.bank_service.exceptions.AccountNotFoundException;
-import rs.raf.bank_service.exceptions.CardLimitExceededException;
-import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.repository.CardRepository;
-import rs.raf.bank_service.security.JwtAuthenticationFilter;
+import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.enums.*;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.CardService;
 import rs.raf.bank_service.service.ExchangeRateService;
+import rs.raf.bank_service.utils.JwtTokenUtil;
 
+import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(CardController.class)
+@WebMvcTest(controllers = CardController.class)
 public class CardControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private CardService cardService;
 
     @MockBean
     private ExchangeRateService exchangeRateService;
-    @MockBean
-    AccountMapper accountMapper;
-    private MockMvc mockMvc;
-    @Autowired
-    private CardController cardController;
-    @MockBean
-    private CardService cardService;
-    @MockBean
-    private CardRepository cardRepository;
-    @MockBean
-    private UserClient userClient;
-    @MockBean
-    private RabbitTemplate rabbitTemplate;
-    @MockBean
-    private AccountRepository accountRepository;
-    @MockBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private JwtTokenUtil jwtTokenUtil;
+
+    private CreateCardDto createCardDto;
+
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(cardController).build();
-    }
-
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testGetCardsByAccount() throws Exception {
-        // Priprema test podataka
-        String token = "valid token";
-        CardDto cardDto = new CardDto();
-        cardDto.setId(1L);
-        cardDto.setCardNumber("1111222233334444");
-        cardDto.setStatus(CardStatus.ACTIVE);
-
-        List<CardDto> cards = List.of(cardDto);
-        Mockito.when(cardService.getCardsByAccount(Mockito.anyString())).thenReturn(cards);
-
-        // Testiranje API poziva
-        mockMvc.perform(get("/api/account/123456789012345678/cards").header("Authorization", token)  // Ispravljena ruta
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].cardNumber").value("1111222233334444"))
-                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
-    }
-
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testBlockCard() throws Exception {
-        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.BLOCKED));
-
-        mockMvc.perform(post("/api/account/123456789012345678/cards/1/block")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testUnblockCard() throws Exception {
-        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.ACTIVE));
-
-        mockMvc.perform(post("/api/account/123456789012345678/cards/1/unblock")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testDeactivateCard() throws Exception {
-        doNothing().when(cardService).changeCardStatus(String.valueOf(Mockito.eq(1L)), Mockito.eq(CardStatus.DEACTIVATED));
-
-        mockMvc.perform(post("/api/account/123456789012345678/cards/1/deactivate")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser(roles = "CLIENT")
-    public void testRequestCardForAccount_Success() throws Exception {
-        CreateCardDto requestDto = new CreateCardDto();
-        requestDto.setType(CardType.CREDIT);
-        requestDto.setIssuer(CardIssuer.VISA);
-        requestDto.setName("Ime kartice");
-        requestDto.setAccountNumber("account123");
-
-        String authHeader = "Bearer validToken";
-
-        doNothing().when(cardService).requestNewCard(eq(requestDto), eq(authHeader));
-
-        mockMvc.perform(post("/api/account/account123/cards/request")
-                        .header("Authorization", authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Card request sent for verification."));
-
-        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
-    }
-
-
-    @Test
-    @WithMockUser(roles = "CLIENT")
-    public void testRequestCardForAccount_EntityNotFound() throws Exception {
-        CreateCardDto requestDto = new CreateCardDto();
-        requestDto.setType(CardType.CREDIT);
-        requestDto.setIssuer(CardIssuer.VISA);
-        requestDto.setName("Ime kartice");
-        requestDto.setAccountNumber("account123");
-
-        String authHeader = "Bearer validToken";
-
-        doThrow(new AccountNotFoundException())
-                .when(cardService).requestNewCard(any(), eq(authHeader));
-
-
-        mockMvc.perform(post("/api/account/account123/cards/request")
-                        .header("Authorization", authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isNotFound());
-        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
-    }
-
-
-    @Test
-    @WithMockUser(roles = "CLIENT")
-    public void testRequestCardForAccount_CardLimitExceeded() throws Exception {
-        CreateCardDto requestDto = new CreateCardDto();
-        requestDto.setType(CardType.CREDIT);
-        requestDto.setIssuer(CardIssuer.VISA);
-        requestDto.setName("Ime kartice");
-        requestDto.setAccountNumber("account123");
-
-        String authHeader = "Bearer validToken";
-
-        doThrow(new CardLimitExceededException("account123"))
-                .when(cardService).requestNewCard(any(), eq(authHeader));
-
-        mockMvc.perform(post("/api/account/account123/cards/request")
-                        .header("Authorization", authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isBadRequest());
-        verify(cardService, times(1)).requestNewCard(any(), eq(authHeader));
-    }
-
-    // Test for createCard
-    @Test
-    @WithMockUser(roles = "EMPLOYEE")
-    public void testCreateCard_Success() throws Exception {
-        // Pripremi CreateCardDto objekat
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Ime kartice", "account123", new BigDecimal("1000.00"));
-        String token = "token";
-
-        // Priprema vraćenog objekta CardDtoNoOwner
-        CardDtoNoOwner cardDto = new CardDtoNoOwner(
-                1L,  // id
-                "1234567890123456",  // cardNumber
-                "123",  // cvv
-                CardType.CREDIT,  // type
+    void setup() {
+        createCardDto = new CreateCardDto(
+                CardType.CREDIT,
                 CardIssuer.VISA,
-                "Ime kartice",  // name
-                LocalDate.of(2023, 1, 1),  // creationDate
-                LocalDate.of(2027, 1, 1),  // expirationDate
-                "account123",  // accountNumber
-                CardStatus.ACTIVE,  // status
-                new BigDecimal("1000.00")  // cardLimit
+                "Test Card",
+                "1234567890123456",
+                BigDecimal.valueOf(1000)
         );
+    }
 
-        // Simulacija ponašanja cardService.createCard
-        when(cardService.createCard(eq(createCardDto))).thenReturn(cardDto);
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testGetCardsByAccount_success() throws Exception {
+        CardDto dto = new CardDto();
+        dto.setCardNumber("1111");
+        dto.setStatus(CardStatus.ACTIVE);
+        when(cardService.getCardsByAccount("123")).thenReturn(List.of(dto));
 
-        // ArgumentCaptor za CreateCardDto
-        ArgumentCaptor<CreateCardDto> captor = ArgumentCaptor.forClass(CreateCardDto.class);
+        mockMvc.perform(get("/api/account/123/cards"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cardNumber").value("1111"));
+    }
 
-        // Pozivanje API endpoint-a
-        mockMvc.perform(post("/api/account/account123/cards/create")
-                        .header("Authorization", token)
-                        .contentType("application/json")
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testGetCardsByAccount_notFound() throws Exception {
+        when(cardService.getCardsByAccount("123")).thenThrow(new AccountNotFoundException());
+
+        mockMvc.perform(get("/api/account/123/cards"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testBlockCard_success() throws Exception {
+        doNothing().when(cardService).changeCardStatus("1111", CardStatus.BLOCKED);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/block"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testBlockCard_notFound() throws Exception {
+        Mockito.doThrow(new CardNotFoundException("not found")).when(cardService).changeCardStatus("1111", CardStatus.BLOCKED);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/block"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testRequestNewCard_success() throws Exception {
+        doNothing().when(cardService).requestNewCard(any(), any());
+
+        mockMvc.perform(post("/api/account/123/cards/request")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createCardDto)))
                 .andExpect(status().isOk());
+    }
 
-        // Verifikacija da je createCard pozvan sa tačnim argumentom
-        verify(cardService, times(1)).createCard(captor.capture());
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testRequestNewCard_accountNotFound() throws Exception {
+        Mockito.doThrow(new AccountNotFoundException()).when(cardService).requestNewCard(any(), any());
 
-        // Upoređivanje vrednosti objekta
-        CreateCardDto capturedDto = captor.getValue();
-        assertEquals("account123", capturedDto.getAccountNumber());
-        assertEquals(CardType.CREDIT, capturedDto.getType());
-        assertEquals("Ime kartice", capturedDto.getName());
-        assertEquals(new BigDecimal("1000.00"), capturedDto.getCardLimit());
+        mockMvc.perform(post("/api/account/123/cards/request")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createCardDto)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testRequestNewCard_limitExceeded() throws Exception {
+        Mockito.doThrow(new CardLimitExceededException("123"))
+                .when(cardService).requestNewCard(any(), any());
+
+        mockMvc.perform(post("/api/account/123/cards/request")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createCardDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateCard_success() throws Exception {
+        CardDtoNoOwner dto = new CardDtoNoOwner(1L, "1234", "999", CardType.CREDIT, CardIssuer.VISA, "Card", LocalDate.now(), LocalDate.now().plusYears(4), "acc", CardStatus.ACTIVE, BigDecimal.valueOf(1000));
+        when(cardService.createCard(any())).thenReturn(dto);
+
+        mockMvc.perform(post("/api/account/123/cards/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createCardDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cardNumber").value("1234"));
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateCard_badRequest() throws Exception {
+        when(cardService.createCard(any())).thenThrow(new InvalidCardLimitException());
+
+        mockMvc.perform(post("/api/account/123/cards/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createCardDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testCreateCard_notFound() throws Exception {
+        when(cardService.createCard(any())).thenThrow(new EntityNotFoundException("not found"));
+
+        mockMvc.perform(post("/api/account/123/cards/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createCardDto)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testBlockCardByUser_success() throws Exception {
+        doNothing().when(cardService).blockCardByUser("1111", "Bearer token");
+
+        mockMvc.perform(post("/api/account/123/cards/1111/block-by-user")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testBlockCardByUser_notFound() throws Exception {
+        Mockito.doThrow(new EntityNotFoundException("not found")).when(cardService).blockCardByUser("1111", "Bearer token");
+
+        mockMvc.perform(post("/api/account/123/cards/1111/block-by-user")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testUnblockCard_success() throws Exception {
+        doNothing().when(cardService).changeCardStatus("1111", CardStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/unblock"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testUnblockCard_notFound() throws Exception {
+        Mockito.doThrow(new CardNotFoundException("not found")).when(cardService).changeCardStatus("1111", CardStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/unblock"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testDeactivateCard_success() throws Exception {
+        doNothing().when(cardService).changeCardStatus("1111", CardStatus.DEACTIVATED);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/deactivate"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "EMPLOYEE")
+    void testDeactivateCard_notFound() throws Exception {
+        Mockito.doThrow(new EntityNotFoundException()).when(cardService).changeCardStatus("1111", CardStatus.DEACTIVATED);
+
+        mockMvc.perform(post("/api/account/123/cards/1111/deactivate"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetUserCards_success() throws Exception {
+        CardDto dto = new CardDto();
+        dto.setCardNumber("1234");
+        when(cardService.getUserCards("Bearer token")).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/account/123/cards/my-cards")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cardNumber").value("1234"));
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    void testGetUserCardsForAccount_success() throws Exception {
+        CardDto dto = new CardDto();
+        dto.setCardNumber("5678");
+        when(cardService.getUserCardsForAccount("123", "Bearer token")).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/account/123/cards/my-account-cards")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cardNumber").value("5678"));
     }
 }
