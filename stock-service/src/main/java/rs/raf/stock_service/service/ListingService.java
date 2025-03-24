@@ -81,27 +81,33 @@ public class ListingService {
 
     public void placeBuyOrder(BuyListingDto buyListingDto, String authHeader) {
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-
+        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         Listing listing = listingRepository.findById(Long.valueOf(buyListingDto.getListingId()))
                 .orElseThrow(() -> new ListingNotFoundException(Long.valueOf(buyListingDto.getListingId())));
         Order order = new Order();
         order.setUserId(userId);
         order.setAsset(listing.getId());
         order.setOrderType(buyListingDto.getOrderType());
-
-        ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
-        if(actuaryLimitDto.isNeedsApproval())
-            order.setStatus(OrderStatus.PENDING);
-        else{
-            BigDecimal userBalance = actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit());
-            BigDecimal contractSize = BigDecimal.valueOf(buyListingDto.getContractSize());
-            BigDecimal pricePerUnit =  listing.getPrice();
-            BigDecimal quantity = BigDecimal.valueOf(buyListingDto.getQuantity());
-            BigDecimal approxPrice = contractSize.multiply(pricePerUnit.multiply(quantity));
-            if(userBalance.compareTo(approxPrice) >= 0)
-                order.setStatus(OrderStatus.APPROVED);
-            else
+        order.setAccountNumber(buyListingDto.getAccountNumber());
+        if (role.equals("CLIENT") || role.equals("SUPERVISOR") || role.equals("ADMIN")) {
+            order.setStatus(OrderStatus.APPROVED);
+            // dodati validaciju da zapravo ima pare za ovaj order i da moze da se approvuje
+        } else {
+            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
+            if (actuaryLimitDto.isNeedsApproval())
                 order.setStatus(OrderStatus.PENDING);
+            else {
+                BigDecimal userBalance = actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit());
+                BigDecimal contractSize = BigDecimal.valueOf(buyListingDto.getContractSize());
+                BigDecimal pricePerUnit = listing.getPrice();
+                BigDecimal quantity = BigDecimal.valueOf(buyListingDto.getQuantity());
+                BigDecimal approxPrice = contractSize.multiply(pricePerUnit.multiply(quantity));
+                if (userBalance.compareTo(approxPrice) >= 0)
+                    order.setStatus(OrderStatus.APPROVED);
+                else
+                    order.setStatus(OrderStatus.PENDING);
+            }
+
         }
         order.setQuantity(buyListingDto.getQuantity());
         order.setContractSize(buyListingDto.getContractSize());
