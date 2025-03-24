@@ -4,6 +4,11 @@ package rs.raf.bank_service.unit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
@@ -19,6 +24,7 @@ import rs.raf.bank_service.service.LoanRequestService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -206,4 +212,59 @@ class LoanRequestServiceTest {
         assertEquals(LoanRequestStatus.REJECTED, loanRequest.getStatus());
         assertEquals(loanRequestDto, result);
     }
+
+
+    @Test
+    void testGetClientLoanRequests_Success() {
+        String token = "Bearer token";
+        Long clientId = 1L;
+
+        Account acc1 = new PersonalAccount();
+        acc1.setAccountNumber("ACC123");
+        acc1.setClientId(clientId);
+
+        LoanRequest loanRequest = new LoanRequest();
+        loanRequest.setId(1L);
+        loanRequest.setAccount(acc1);
+
+        LoanRequestDto dto = new LoanRequestDto();
+        dto.setId(1L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<LoanRequest> loanPage = new PageImpl<>(List.of(loanRequest));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(clientId);
+        when(accountRepository.findByClientId(clientId)).thenReturn(List.of(acc1));
+        when(loanRequestRepository.findByAccountIn(List.of(acc1), pageable)).thenReturn(loanPage);
+        when(loanRequestMapper.toDto(loanRequest)).thenReturn(dto);
+
+        Page<LoanRequestDto> result = loanRequestService.getClientLoanRequests(token, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(dto.getId(), result.getContent().get(0).getId());
+        verify(loanRequestRepository).findByAccountIn(List.of(acc1), pageable);
+    }
+
+    @Test
+    void testGetAllLoanRequests_Success() {
+        LoanRequest loanRequest = new LoanRequest();
+        loanRequest.setId(2L);
+
+        LoanRequestDto dto = new LoanRequestDto();
+        dto.setId(2L);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<LoanRequest> loanPage = new PageImpl<>(List.of(loanRequest));
+
+        when(loanRequestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(loanPage);
+        when(loanRequestMapper.toDto(loanRequest)).thenReturn(dto);
+
+        Page<LoanRequestDto> result = loanRequestService.getAllLoanRequests(LoanType.CASH, "ACC123", pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(dto.getId(), result.getContent().get(0).getId());
+        verify(loanRequestRepository).findAll(any(Specification.class), eq(pageable));
+    }
+
+
 }

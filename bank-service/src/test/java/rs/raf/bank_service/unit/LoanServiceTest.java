@@ -5,10 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -16,7 +19,6 @@ import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
-import rs.raf.bank_service.exceptions.LoanNotFoundException;
 import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.service.LoanService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -25,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,11 +74,12 @@ public class LoanServiceTest {
                 .startDate(LocalDate.now())
                 .dueDate(LocalDate.now().plusMonths(12))
                 .nextInstallmentAmount(BigDecimal.valueOf(10000))
-                .nextInstallmentDate(LocalDate.now().plusMonths(1))
+                .nextInstallmentDate(LocalDate.now())
                 .remainingDebt(BigDecimal.valueOf(90000))
                 .currency(currency)
                 .status(LoanStatus.APPROVED)
                 .account(account)
+                .installments(new ArrayList<>())
                 .build();
 
         loanDto = LoanDto.builder()
@@ -169,5 +173,92 @@ public class LoanServiceTest {
         Page<LoanDto> result = loanService.getAllLoans(LoanType.CASH, "12345", LoanStatus.APPROVED, pageable);
         assertEquals(1, result.getTotalElements());
         assertEquals(loanDto.getLoanNumber(), result.getContent().get(0).getLoanNumber());
+    }
+
+    @Test
+    void testGetLoanInstallments_EmptyList() {
+        when(installmentRepository.findByLoanId(99L)).thenReturn(Collections.emptyList());
+        List<InstallmentDto> result = loanService.getLoanInstallments(99L);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetClientLoans_EmptyResult() {
+        String token = "Bearer xyz";
+        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(1L);
+        when(accountRepository.findByClientId(1L)).thenReturn(Collections.emptyList());
+
+        Pageable pageable = PageRequest.of(0, 10);
+        when(loanRepository.findByAccountIn(Collections.emptyList(), pageable))
+                .thenReturn(Page.empty());
+
+        Page<LoanShortDto> result = loanService.getClientLoans(token, pageable);
+        assertTrue(result.isEmpty());
+    }
+
+
+    @Test
+    void testLoanPayment_NoLoansToday() {
+        try (MockedStatic<TransactionAspectSupport> mocked = mockStatic(TransactionAspectSupport.class)) {
+            TransactionStatus mockStatus = mock(TransactionStatus.class);
+            mocked.when(TransactionAspectSupport::currentTransactionStatus).thenReturn(mockStatus);
+
+            when(loanRepository.findByNextInstallmentDate(any(LocalDate.class))).thenReturn(Collections.emptyList());
+
+            assertDoesNotThrow(() -> loanService.loanPayment());
+            verify(accountRepository, never()).findByIdForUpdate(any());
+        }
+    }
+
+
+    @Test
+    void testLoanPayment_SuccessfulInstallmentPayment() {
+        try (MockedStatic<TransactionAspectSupport> mocked = mockStatic(TransactionAspectSupport.class)) {
+            TransactionStatus mockStatus = mock(TransactionStatus.class);
+            mocked.when(TransactionAspectSupport::currentTransactionStatus).thenReturn(mockStatus);
+
+            loan.setStatus(LoanStatus.APPROVED);
+            loan.setInstallments(new ArrayList<>(List.of(installment)));
+
+            when(loanRepository.findByNextInstallmentDate(any(LocalDate.class))).thenReturn(List.of(loan));
+            when(accountRepository.findByIdForUpdate(account.getAccountNumber())).thenReturn(account);
+
+            loanService.loanPayment();
+
+            verify(accountRepository).save(account);
+            assertEquals(InstallmentStatus.PAID, installment.getInstallmentStatus());
+            assertNotNull(installment.getActualDueDate());
+        }
+    }
+
+    @Test
+    void testRetryLoanPayment_SuccessfulRetry() {
+        loan.setInstallments(new ArrayList<>(List.of(installment)));
+        when(accountRepository.findByAccountNumber(account.getAccountNumber())).thenReturn(Optional.of(account));
+
+        loanService.retryLoanPayment(loan);
+
+        verify(accountRepository).save(account);
+        assertEquals(InstallmentStatus.PAID, installment.getInstallmentStatus());
+        assertNotNull(installment.getActualDueDate());
+    }
+
+    @Test
+    void testRetryLoanPayment_InsufficientFunds() {
+        account.setBalance(BigDecimal.ZERO);
+        when(accountRepository.findByAccountNumber(account.getAccountNumber())).thenReturn(Optional.of(account));
+
+        ClientDto clientDto = new ClientDto();
+        clientDto.setEmail("client@example.com");
+        clientDto.setId(account.getClientId());
+        when(userClient.getClientById(account.getClientId())).thenReturn(clientDto);
+
+        loan.setInstallments(new ArrayList<>(List.of(installment)));
+
+        assertDoesNotThrow(() -> loanService.retryLoanPayment(loan));
+
+        verify(loanRepository).save(loan);
+        verify(scheduledExecutorService).schedule(any(Runnable.class), eq(72L), eq(TimeUnit.HOURS));
+        assertEquals(loan.getNominalInterestRate(), BigDecimal.valueOf(5.55));
     }
 }
