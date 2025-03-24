@@ -1,10 +1,5 @@
 package rs.raf.bank_service.unit;
 
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,25 +14,24 @@ import rs.raf.bank_service.controller.ExchangeRateController;
 import rs.raf.bank_service.domain.dto.ConvertDto;
 import rs.raf.bank_service.domain.dto.CurrencyDto;
 import rs.raf.bank_service.domain.dto.ExchangeRateDto;
-import rs.raf.bank_service.domain.entity.Currency;
-import rs.raf.bank_service.domain.entity.ExchangeRate;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
-import rs.raf.bank_service.exceptions.InvalidExchangeRateException;
 import rs.raf.bank_service.service.ExchangeRateService;
 
 import java.math.BigDecimal;
 
-public class ControllerExchangeRatesUnitTest {
-    private MockMvc mockMvc;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+public class ControllerExchangeRatesUnitTest {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private MockMvc mockMvc;
     @Mock
     private ExchangeRateService exchangeRateService;
-
     @InjectMocks
     private ExchangeRateController exchangeRateController;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     private CurrencyDto eur;
     private CurrencyDto rsd;
 

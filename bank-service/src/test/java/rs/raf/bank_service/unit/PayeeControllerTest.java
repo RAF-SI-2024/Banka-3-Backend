@@ -9,8 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import rs.raf.bank_service.controller.PayeeController;
 import rs.raf.bank_service.domain.dto.PayeeDto;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
 import rs.raf.bank_service.service.PayeeService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -25,7 +23,7 @@ public class PayeeControllerTest {
 
     @Mock
     private PayeeService service;
-    
+
     @Mock
     private JwtTokenUtil jwtTokenUtil;
 
@@ -144,7 +142,6 @@ public class PayeeControllerTest {
         verify(jwtTokenUtil, times(1)).getUserIdFromAuthHeader(token);
         verify(service, times(1)).update(id, dto, clientId);
     }
-
 
 
     @Test

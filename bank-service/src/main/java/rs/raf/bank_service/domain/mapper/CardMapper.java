@@ -3,11 +3,7 @@ package rs.raf.bank_service.domain.mapper;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
 import rs.raf.bank_service.domain.dto.ClientDto;
-import rs.raf.bank_service.domain.dto.CreateCardDto;
-import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Card;
-import rs.raf.bank_service.domain.enums.CardStatus;
-import rs.raf.bank_service.domain.enums.CardType;
 
 public class CardMapper {
 

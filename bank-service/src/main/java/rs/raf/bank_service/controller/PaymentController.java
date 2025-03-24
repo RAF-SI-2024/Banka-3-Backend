@@ -17,8 +17,9 @@ import rs.raf.bank_service.domain.dto.PaymentDetailsDto;
 import rs.raf.bank_service.domain.dto.PaymentOverviewDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
-import rs.raf.bank_service.service.PaymentService;
+import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.service.TransactionQueueService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -77,7 +78,7 @@ public class PaymentController {
     @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
     public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
         try {
-            boolean success = transactionQueueService.queueTransaction("CONFIRM_TRANSFER", paymentId);
+            boolean success = transactionQueueService.queueTransaction(TransactionType.CONFIRM_TRANSFER, paymentId);
             if (success) {
                 return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
             } else {
@@ -114,7 +115,8 @@ public class PaymentController {
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Payment failed: Insufficient funds or invalid data");
             }
-        } catch (InsufficientFundsException | PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException | SenderAccountNotFoundException e) {
+        } catch (InsufficientFundsException | PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException |
+                 SenderAccountNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
             // @todo FIXATI ERROR HANDLING SVUDA ROKNUCU SE
         } catch (Exception e) {
@@ -134,7 +136,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> confirmPayment(@PathVariable Long paymentId) {
         try {
-            transactionQueueService.queueTransaction("CONFIRM_PAYMENT", paymentId);
+            transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentId);
             return ResponseEntity.status(HttpStatus.OK).body("Payment completed successfully.");
         } catch (PaymentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found: " + e.getMessage());
@@ -179,8 +181,7 @@ public class PaymentController {
         try {
             PaymentDetailsDto details = paymentService.getPaymentDetails(token, id);
             return ResponseEntity.ok(details);
-        }
-        catch (PaymentNotFoundException e) {
+        } catch (PaymentNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }

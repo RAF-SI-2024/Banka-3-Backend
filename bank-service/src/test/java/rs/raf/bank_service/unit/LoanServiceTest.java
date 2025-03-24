@@ -9,30 +9,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import rs.raf.bank_service.client.UserClient;
-import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
-import rs.raf.bank_service.domain.entity.*;
-import rs.raf.bank_service.domain.enums.LoanStatus;
-import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.domain.entity.Account;
+import rs.raf.bank_service.domain.entity.Loan;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.LoanRepository;
 import rs.raf.bank_service.service.LoanService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class LoanServiceTest {
@@ -70,7 +63,7 @@ public class LoanServiceTest {
 //                .thenReturn(txStatus);
     }
 
-//    @Test
+    //    @Test
 //    void testLoanPayment() {
 //        // Arrange
 //        Loan loan = new Loan();

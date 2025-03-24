@@ -3,10 +3,6 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
-import org.apache.coyote.BadRequestException;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,18 +15,16 @@ import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.VerificationType;
-import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.repository.CardRepository;
+import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -38,12 +32,12 @@ public class PaymentService {
 
     private final AccountRepository accountRepository;
     private final JwtTokenUtil jwtTokenUtil;
-    private PaymentRepository paymentRepository;
-    private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private PaymentRepository paymentRepository;
+    private CardRepository cardRepository;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver

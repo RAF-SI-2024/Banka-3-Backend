@@ -6,14 +6,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
+import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
 import rs.raf.bank_service.domain.entity.*;
-import rs.raf.bank_service.domain.enums.*;
-import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.domain.enums.InstallmentStatus;
+import rs.raf.bank_service.domain.enums.LoanRequestStatus;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+import rs.raf.bank_service.domain.enums.LoanType;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
 import rs.raf.bank_service.domain.mapper.LoanRequestMapper;
+import rs.raf.bank_service.exceptions.AccountNotFoundException;
+import rs.raf.bank_service.exceptions.BankAccountNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
+import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.specification.LoanInterestRateCalculator;
 import rs.raf.bank_service.specification.LoanRateCalculator;
@@ -24,7 +30,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -70,7 +75,6 @@ public class LoanRequestService {
         CompanyAccount bankAccount = accountRepository
                 .findFirstByCurrencyAndCompanyId(loanRequest.getCurrency(), 1L)
                 .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + loanRequest.getCurrency().getCode()));
-
 
 
         bankAccount.setBalance(bankAccount.getBalance().subtract(loanRequest.getAmount()));

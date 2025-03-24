@@ -26,7 +26,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ExchangeRateController.class, excludeAutoConfiguration = SecurityConfig.class)
@@ -52,7 +51,8 @@ public class ExchangeRateControllerTest {
     }
 
     @Test
-    @WithMockUser // Simulating an authenticated user
+    @WithMockUser
+        // Simulating an authenticated user
     void testGetExchangeRates_Success() throws Exception {
         mockMvc.perform(get("/api/exchange-rates"))
                 .andExpect(status().isOk());
@@ -99,7 +99,7 @@ public class ExchangeRateControllerTest {
     @WithMockUser
     void testConvert_ExchangeRateNotFound() throws Exception {
         // Ensure the service throws ExchangeRateNotFoundException
-        doThrow(new ExchangeRateNotFoundException("EUR","RSD"))
+        doThrow(new ExchangeRateNotFoundException("EUR", "RSD"))
                 .when(exchangeRateService).convert(any(ConvertDto.class));
 
         mockMvc.perform(post("/api/exchange-rates/convert")

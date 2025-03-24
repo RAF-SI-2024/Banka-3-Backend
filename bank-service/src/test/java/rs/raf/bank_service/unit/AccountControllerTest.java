@@ -232,7 +232,6 @@ class AccountControllerTest {
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
 
 
-
         // Simulacija RuntimeException
         when(accountService.getAccountDetails(role, clientId, accountNumber))
                 .thenThrow(new RuntimeException("Account details retrieval failed"));

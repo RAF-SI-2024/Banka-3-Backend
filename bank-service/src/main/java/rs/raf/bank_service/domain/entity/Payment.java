@@ -64,6 +64,7 @@ public class Payment {
 
     @Column()
     private Long receiverClientId;
+
     @Override
     public String toString() {
         return "Payment{" +

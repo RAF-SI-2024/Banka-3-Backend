@@ -18,7 +18,6 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.domain.dto.CardDto;
 import rs.raf.bank_service.domain.dto.CardDtoNoOwner;
-import rs.raf.bank_service.domain.dto.CardVerificationDetailsDto;
 import rs.raf.bank_service.domain.dto.CreateCardDto;
 import rs.raf.bank_service.domain.enums.CardIssuer;
 import rs.raf.bank_service.domain.enums.CardStatus;
@@ -46,9 +45,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class CardControllerTest {
 
     @MockBean
-    private ExchangeRateService exchangeRateService;
-    @MockBean
     AccountMapper accountMapper;
+    @MockBean
+    private ExchangeRateService exchangeRateService;
     private MockMvc mockMvc;
     @Autowired
     private CardController cardController;

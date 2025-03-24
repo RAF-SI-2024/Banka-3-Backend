@@ -107,7 +107,8 @@ class LoanRequestServiceTest {
         Currency currency = new Currency();
         currency.setCode("EUR");
 
-        Account clientAccount = new Account() {};
+        Account clientAccount = new Account() {
+        };
         clientAccount.setBalance(BigDecimal.valueOf(2000));
         clientAccount.setAvailableBalance(BigDecimal.valueOf(2000));
         clientAccount.setCurrency(currency);

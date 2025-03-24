@@ -7,8 +7,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import rs.raf.bank_service.domain.dto.CreatePaymentDto;
 import rs.raf.bank_service.domain.dto.TransactionMessageDto;
+import rs.raf.bank_service.domain.enums.TransactionType;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -41,17 +41,17 @@ public class TransactionProcessor {
 
             try {
                 switch (message.getType()) {
-                    case "CONFIRM_PAYMENT":
+                    case CONFIRM_PAYMENT:
                         Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
                         paymentService.confirmPayment(paymentId);
                         log.info("Processed payment confirmation for id: {}", paymentId);
                         break;
-                    case "CONFIRM_TRANSFER" :
+                    case CONFIRM_TRANSFER:
                         Long transferId = objectMapper.readValue(message.getPayloadJson(), Long.class);
                         paymentService.confirmTransferAndExecute(transferId);
                         log.info("Processed transfer confirmation for user {}", message.getUserId());
                         break;
-                    case "APPROVE_LOAN":
+                    case APPROVE_LOAN:
                         Long requestId = objectMapper.readValue(message.getPayloadJson(), Long.class);
 
                         loanRequestService.approveLoan(requestId);
@@ -59,14 +59,14 @@ public class TransactionProcessor {
 
                         Long loanId = loanService.findLoanIdByLoanRequestId(requestId);
 
-                        transactionQueueService.queueTransaction("PAY_INSTALLMENT", loanId);
+                        transactionQueueService.queueTransaction(TransactionType.PAY_INSTALLMENT, loanId);
                         log.info("Queued PAY_INSTALLMENT for loan id {}", loanId);
                         break;
 
-                    case "PAY_INSTALLMENT" :
-                            Long loanid = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                            loanService.payInstallment(loanid);
-                            log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
+                    case PAY_INSTALLMENT:
+                        Long loanid = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                        loanService.payInstallment(loanid);
+                        log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
                         break;
                     default:
                         log.warn("Unknown transaction type: {}", message.getType());

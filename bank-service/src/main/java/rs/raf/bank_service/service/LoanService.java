@@ -7,9 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
@@ -18,17 +16,23 @@ import rs.raf.bank_service.domain.entity.Loan;
 import rs.raf.bank_service.domain.enums.InstallmentStatus;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
-import rs.raf.bank_service.repository.*;
+import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.InstallmentRepository;
+import rs.raf.bank_service.repository.LoanRepository;
+import rs.raf.bank_service.repository.LoanRequestRepository;
 import rs.raf.bank_service.specification.LoanRateCalculator;
 import rs.raf.bank_service.specification.LoanSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
-import java.util.concurrent.ScheduledExecutorService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -94,6 +98,7 @@ public class LoanService {
         }
 
         account.setBalance(account.getBalance().subtract(loan.getNextInstallmentAmount()));
+        account.setAvailableBalance(account.getAvailableBalance().subtract(loan.getNextInstallmentAmount()));
         accountRepository.save(account);
 
         List<Installment> installments = loan.getInstallments();
@@ -122,14 +127,15 @@ public class LoanService {
         loanRepository.save(loan);
     }
 
-    @Scheduled(cron = "0 0 2 * * *") // svaki dan u 2h ujutru
+    @Scheduled(cron = "*/15 * * * * *")
+    //@Scheduled(cron = "0 0 2 * * *") ovako je svaki dan u 02:00h ali zbog testiranja koristimo ovo gore koje radi na 15sec
     public void queueDueInstallments() {
         LocalDate today = LocalDate.now();
 
         List<Loan> loans = loanRepository.findByNextInstallmentDateAndStartDateBefore(today, today);
 
         for (Loan loan : loans) {
-            transactionQueueService.queueTransaction("PAY_INSTALLMENT", loan.getId());
+            transactionQueueService.queueTransaction(TransactionType.PAY_INSTALLMENT, loan.getId());
         }
 
         log.info("Queued {} loan installments for {}", loans.size(), today);
@@ -149,13 +155,13 @@ public class LoanService {
 
             List<Installment> installments = loan.getInstallments();
             installments.sort(Comparator.comparing(Installment::getId));
-            Installment  installment1= installments.get(installments.size()-1);
+            Installment installment1 = installments.get(installments.size() - 1);
             installment1.setInstallmentStatus(InstallmentStatus.PAID);
             installment1.setActualDueDate(LocalDate.now());
 
             if (loan.getInstallments().size() < loan.getRepaymentPeriod()) {
                 Installment newInstallment = new Installment(loan, LoanRateCalculator.calculateMonthlyRate(loan.getAmount()
-                        ,loan.getEffectiveInterestRate(),
+                        , loan.getEffectiveInterestRate(),
                         loan.getRepaymentPeriod()), loan.getEffectiveInterestRate(), LocalDate.now(), InstallmentStatus.UNPAID);
                 loan.getInstallments().add(newInstallment);
                 loan.setNextInstallmentDate(newInstallment.getExpectedDueDate());

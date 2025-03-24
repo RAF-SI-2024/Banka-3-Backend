@@ -1,29 +1,29 @@
 package rs.raf.bank_service.unit;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import rs.raf.bank_service.client.UserClient;
+import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 import rs.raf.bank_service.domain.entity.PersonalAccount;
-import rs.raf.bank_service.domain.dto.ClientDto;
 import rs.raf.bank_service.domain.enums.VerificationStatus;
 import rs.raf.bank_service.exceptions.AccNotFoundException;
-import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.exceptions.AccountNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicateAccountNameException;
+import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 public class AccServiceTest {
 
@@ -88,7 +88,7 @@ public class AccServiceTest {
         assertThrows(AccNotFoundException.class, () -> accService.changeAccountName(accountName, "New Name", ""));
     }
 
-   //  Pokušaj promene u ime koje već postoji
+    //  Pokušaj promene u ime koje već postoji
     @Test
     void testChangeAccountName_DuplicateName() {
         String accountName = "Old Account Name";
@@ -120,7 +120,8 @@ public class AccServiceTest {
         changeRequest.setNewLimit(newLimit);
         changeRequest.setStatus(VerificationStatus.PENDING);
 
-        Account account = new Account() {};
+        Account account = new Account() {
+        };
         account.setAccountNumber("123456789");
         account.setDailyLimit(new BigDecimal("1000"));
 

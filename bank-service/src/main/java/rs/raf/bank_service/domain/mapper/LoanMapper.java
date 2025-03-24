@@ -6,11 +6,7 @@ import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.entity.Loan;
 import rs.raf.bank_service.domain.entity.LoanRequest;
 import rs.raf.bank_service.domain.enums.LoanStatus;
-import rs.raf.bank_service.service.LoanRequestService;
 import rs.raf.bank_service.specification.LoanInterestRateCalculator;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class LoanMapper {
@@ -59,6 +55,7 @@ public class LoanMapper {
         loan.setStatus(loanDto.getStatus());
         return loan;
     }
+
     public LoanDto toDtoPreview(LoanRequest loanRequest) {
         return LoanDto.builder()
                 .loanNumber("N/A")

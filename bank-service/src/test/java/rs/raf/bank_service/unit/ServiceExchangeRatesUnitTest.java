@@ -1,10 +1,6 @@
 package rs.raf.bank_service.unit;
 
 
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +12,6 @@ import rs.raf.bank_service.domain.dto.ExchangeRateDto;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
-import rs.raf.bank_service.exceptions.InvalidExchangeRateException;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
 import rs.raf.bank_service.service.ExchangeRateService;
@@ -24,6 +19,10 @@ import rs.raf.bank_service.service.ExchangeRateService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ServiceExchangeRatesUnitTest {

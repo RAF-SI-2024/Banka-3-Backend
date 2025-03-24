@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.dto.CardDto;
+import rs.raf.bank_service.domain.dto.CreateCardDto;
+import rs.raf.bank_service.domain.dto.ErrorMessageDto;
 import rs.raf.bank_service.domain.enums.CardStatus;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.CardService;
@@ -23,44 +25,44 @@ import java.util.List;
 @RequestMapping("/api/account/{accountNumber}/cards")
 public class CardController {
 
-        private final CardService cardService;
+    private final CardService cardService;
 
-        public CardController(CardService cardService) {
-                this.cardService = cardService;
-        }
+    public CardController(CardService cardService) {
+        this.cardService = cardService;
+    }
 
-        @PreAuthorize("hasRole('EMPLOYEE')")
-        @GetMapping
-        @Operation(summary = "Get Cards by Account", description = "Retrieves all cards associated with the specified account number.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
-                        @ApiResponse(responseCode = "403", description = "Access denied")
-        })
-        public ResponseEntity<?> getCardsByAccount(@PathVariable String accountNumber) {
-            try {
-                List<CardDto> cards = cardService.getCardsByAccount(accountNumber);
-                return ResponseEntity.ok(cards);
-            } catch (AccountNotFoundException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            }
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping
+    @Operation(summary = "Get Cards by Account", description = "Retrieves all cards associated with the specified account number.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<?> getCardsByAccount(@PathVariable String accountNumber) {
+        try {
+            List<CardDto> cards = cardService.getCardsByAccount(accountNumber);
+            return ResponseEntity.ok(cards);
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
 
-        @PreAuthorize("hasRole('EMPLOYEE')")
-        @PostMapping("/{cardNumber}/block")
-        @Operation(summary = "Block Card", description = "Blocks the card identified by the provided card number.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
-                        @ApiResponse(responseCode = "404", description = "Card not found"),
-                        @ApiResponse(responseCode = "403", description = "Access denied")
-        })
-        public ResponseEntity<?> blockCard(@PathVariable String cardNumber) {
-            try {
-                cardService.changeCardStatus(cardNumber, CardStatus.BLOCKED);
-                return ResponseEntity.ok("Card blocked successfully.");
-            } catch (CardNotFoundException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            }
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PostMapping("/{cardNumber}/block")
+    @Operation(summary = "Block Card", description = "Blocks the card identified by the provided card number.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<?> blockCard(@PathVariable String cardNumber) {
+        try {
+            cardService.changeCardStatus(cardNumber, CardStatus.BLOCKED);
+            return ResponseEntity.ok("Card blocked successfully.");
+        } catch (CardNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
 
     @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/request")
@@ -116,77 +118,77 @@ public class CardController {
         }
     }
 
-        @PreAuthorize("hasRole('EMPLOYEE')")
-        @PostMapping("/{cardNumber}/unblock")
-        @Operation(summary = "Unblock Card", description = "Unblocks the card identified by the provided card number.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card unblocked successfully"),
-                        @ApiResponse(responseCode = "404", description = "Card not found"),
-                        @ApiResponse(responseCode = "403", description = "Access denied")
-        })
-        public ResponseEntity<?> unblockCard(@PathVariable String cardNumber) {
-            try {
-                cardService.changeCardStatus(cardNumber, CardStatus.ACTIVE);
-                return ResponseEntity.ok("Card unblocked successfully.");
-            } catch (CardNotFoundException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            }
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PostMapping("/{cardNumber}/unblock")
+    @Operation(summary = "Unblock Card", description = "Unblocks the card identified by the provided card number.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card unblocked successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<?> unblockCard(@PathVariable String cardNumber) {
+        try {
+            cardService.changeCardStatus(cardNumber, CardStatus.ACTIVE);
+            return ResponseEntity.ok("Card unblocked successfully.");
+        } catch (CardNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PostMapping("/{cardNumber}/deactivate")
+    @Operation(summary = "Deactivate Card", description = "Deactivates the card identified by the provided card number.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card deactivated successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<Void> deactivateCard(
+            @Parameter(description = "Card number to deactivate", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
+        try {
+            cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         }
 
-        @PreAuthorize("hasRole('EMPLOYEE')")
-        @PostMapping("/{cardNumber}/deactivate")
-        @Operation(summary = "Deactivate Card", description = "Deactivates the card identified by the provided card number.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card deactivated successfully"),
-                        @ApiResponse(responseCode = "404", description = "Card not found"),
-                        @ApiResponse(responseCode = "403", description = "Access denied")
-        })
-        public ResponseEntity<Void> deactivateCard(
-                        @Parameter(description = "Card number to deactivate", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber) {
-                try {
-                        cardService.changeCardStatus(cardNumber, CardStatus.DEACTIVATED);
-                        return ResponseEntity.ok().build();
-                } catch (EntityNotFoundException e) {
-                        return ResponseEntity.notFound().build();
-                }
+    }
 
+    @PreAuthorize("hasRole('CLIENT')")
+    @PostMapping("/{cardNumber}/block-by-user")
+    @Operation(summary = "Block Card by User", description = "Allows a user to block their own card.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
+            @ApiResponse(responseCode = "404", description = "Card not found"),
+            @ApiResponse(responseCode = "403", description = "Not authorized to block this card")
+    })
+    public ResponseEntity<Void> blockCardByUser(
+            @Parameter(description = "Card number to block", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            cardService.blockCardByUser(cardNumber, authHeader);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         }
 
-        @PreAuthorize("hasRole('CLIENT')")
-        @PostMapping("/{cardNumber}/block-by-user")
-        @Operation(summary = "Block Card by User", description = "Allows a user to block their own card.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Card blocked successfully"),
-                        @ApiResponse(responseCode = "404", description = "Card not found"),
-                        @ApiResponse(responseCode = "403", description = "Not authorized to block this card")
-        })
-        public ResponseEntity<Void> blockCardByUser(
-                        @Parameter(description = "Card number to block", in = ParameterIn.PATH, required = true, example = "1234123412341234") @PathVariable String cardNumber,
-                        @RequestHeader("Authorization") String authHeader) {
-                try {
-                        cardService.blockCardByUser(cardNumber, authHeader);
-                        return ResponseEntity.ok().build();
-                } catch (EntityNotFoundException e) {
-                        return ResponseEntity.notFound().build();
-                }
+    }
 
+    @PreAuthorize("hasRole('CLIENT')")
+    @GetMapping("/my-cards")
+    @Operation(summary = "Get User's Cards", description = "Retrieves all cards belonging to the authenticated user across all their accounts.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    public ResponseEntity<?> getUserCards(@PathVariable String accountNumber, @RequestHeader("Authorization") String authHeader) {
+        try {
+            List<CardDto> cards = cardService.getUserCards(authHeader);
+            return ResponseEntity.ok(cards);
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorMessageDto(e.getMessage()));
         }
-
-        @PreAuthorize("hasRole('CLIENT')")
-        @GetMapping("/my-cards")
-        @Operation(summary = "Get User's Cards", description = "Retrieves all cards belonging to the authenticated user across all their accounts.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Cards retrieved successfully"),
-                        @ApiResponse(responseCode = "403", description = "Access denied")
-        })
-        public ResponseEntity<?> getUserCards(@PathVariable String accountNumber, @RequestHeader("Authorization") String authHeader) {
-            try {
-                List<CardDto> cards = cardService.getUserCards(authHeader);
-                return ResponseEntity.ok(cards);
-            } catch (UnauthorizedException e) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorMessageDto(e.getMessage()));
-            }
-        }
+    }
 
     @PreAuthorize("hasRole('CLIENT')")
     @GetMapping("/my-account-cards")
@@ -209,7 +211,7 @@ public class CardController {
     }
 
 
-    ///ExceptionHandlers
+    /// ExceptionHandlers
     @ExceptionHandler({CardNotFoundException.class})
     public ResponseEntity<String> handleCardNotFoundException(CardNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

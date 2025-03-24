@@ -1,8 +1,8 @@
 package rs.raf.bank_service.specification;
 
+import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
-import org.springframework.data.jpa.domain.Specification;
 
 import javax.persistence.criteria.Predicate;
 import java.math.BigDecimal;

@@ -17,7 +17,6 @@ import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.controller.PaymentController;
 import rs.raf.bank_service.domain.dto.*;
-import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 

@@ -166,10 +166,10 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <!--        <dependency>-->
-<!--            <groupId>rs.raf.banka-3</groupId>-->
-<!--            <artifactId>user-service</artifactId>-->
-<!--            <version>0.0.1-SNAPSHOT</version>-->
-<!--        </dependency>-->
+        <!--            <groupId>rs.raf.banka-3</groupId>-->
+        <!--            <artifactId>user-service</artifactId>-->
+        <!--            <version>0.0.1-SNAPSHOT</version>-->
+        <!--        </dependency>-->
     </dependencies>
 
     <dependencyManagement>
@@ -185,25 +185,25 @@
     </dependencyManagement>
 
 
-<!--    <build>-->
-<!--        <plugins>-->
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.mojo</groupId>-->
-<!--                <artifactId>exec-maven-plugin</artifactId>-->
-<!--                <version>3.0.0</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>start-user-service</id>-->
-<!--                        <phase>validate</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>java</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <mainClass>rs.raf.banka-3.user-service.UserServiceApplication</mainClass>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-<!--        </plugins>-->
-<!--    </build>-->
+    <!--    <build>-->
+    <!--        <plugins>-->
+    <!--            <plugin>-->
+    <!--                <groupId>org.codehaus.mojo</groupId>-->
+    <!--                <artifactId>exec-maven-plugin</artifactId>-->
+    <!--                <version>3.0.0</version>-->
+    <!--                <executions>-->
+    <!--                    <execution>-->
+    <!--                        <id>start-user-service</id>-->
+    <!--                        <phase>validate</phase>-->
+    <!--                        <goals>-->
+    <!--                            <goal>java</goal>-->
+    <!--                        </goals>-->
+    <!--                        <configuration>-->
+    <!--                            <mainClass>rs.raf.banka-3.user-service.UserServiceApplication</mainClass>-->
+    <!--                        </configuration>-->
+    <!--                    </execution>-->
+    <!--                </executions>-->
+    <!--            </plugin>-->
+    <!--        </plugins>-->
+    <!--    </build>-->
 </project>

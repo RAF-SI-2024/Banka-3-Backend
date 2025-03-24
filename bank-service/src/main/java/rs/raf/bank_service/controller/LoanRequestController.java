@@ -77,10 +77,10 @@ public class LoanRequestController {
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
         try {
-        LoanDto approvedLoan = transactionQueueService.queueLoan("APPROVE_LOAN", id);
-        return ResponseEntity.ok(approvedLoan);
-    } catch (LoanRequestNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            LoanDto approvedLoan = transactionQueueService.queueLoan("APPROVE_LOAN", id);
+            return ResponseEntity.ok(approvedLoan);
+        } catch (LoanRequestNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
@@ -119,7 +119,8 @@ public class LoanRequestController {
             return ResponseEntity.ok(loanRequests);
         } catch (InvalidLoanTypeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }    }
+        }
+    }
 
     /// ExceptionHandlers
     @ExceptionHandler(LoanRequestNotFoundException.class)

@@ -15,10 +15,10 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
+import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
-import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.service.ExchangeRateService;
 import rs.raf.bank_service.service.PaymentService;
@@ -152,6 +152,7 @@ class PaymentServiceTest {
                     token, null, null, null, null, null, null, invalidCardNumber, pageable);
         });
     }
+
     @Test
     void getPaymentsFilterByAccountNumberTest() {
         // Arrange
