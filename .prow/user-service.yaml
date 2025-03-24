@@ -56,17 +56,11 @@ presubmits:
               collectJUnitCoverage() {
                 set +e
 
-                junit_source_directory="./target/surefire-reports/"
+                junit_source_directory="./target/site/jacoco"
                 junit_dest_directory="/logs/artifacts/"
 
-                counter=1
-
-                for file in "$junit_source_directory"/*.xml; do
-                  cp "$file" "$junit_dest_directory/junit.$counter.xml"
-                  ((counter++))
-                done
+                cp -r “$junit_source_directory” “$junit_dest_directory”
               
-                cp -r ./target/site/jacoco /logs/artifacts/
                 echo "${GCSWEB_URL}/prow-logs/pr-logs/pull/${REPO_OWNER}_${REPO_NAME}/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}/artifacts/jacoco/index.html" > /logs/artifacts/coverage.link.txt
               }
 
@@ -109,7 +103,7 @@ presubmits:
               # JUnit pokazuje koji testovi su prošli, a koji nisu.
               # Takođe je izuzetno važno da se ova trap komnda pokrene pre
               # pokretanja testova.
-              # trap collectJUnitCoverage EXIT
+              trap collectJUnitCoverage EXIT
 
               # Pokreće sledeće Maven target-e:
               #   - "clean": čisti projekat, npr. ukoliko ste greškom commit-ovali target/ direktorijum
