@@ -110,7 +110,6 @@ presubmits:
               #   - "test": pokreće sve testove u okviru vaših projekata
               #   - "verify": verifikuje rezultate integracionih testova
               mvn clean test verify
-              sleep 120
           securityContext:
             privileged: true
           imagePullPolicy: Always
