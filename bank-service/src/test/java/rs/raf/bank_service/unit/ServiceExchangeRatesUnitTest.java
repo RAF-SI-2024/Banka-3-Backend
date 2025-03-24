@@ -1,76 +1,120 @@
 package rs.raf.bank_service.unit;
 
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import rs.raf.bank_service.domain.dto.ConvertDto;
-import rs.raf.bank_service.domain.dto.ExchangeRateDto;
+import rs.raf.bank_service.client.ExchangeRateClient;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
-import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
 import rs.raf.bank_service.service.ExchangeRateService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ServiceExchangeRatesUnitTest {
+class ServiceExchangeRatesUnitTest {
 
     @Mock
     private ExchangeRateRepository exchangeRateRepository;
-
     @Mock
     private CurrencyRepository currencyRepository;
-
+    @Mock
+    private ExchangeRateClient exchangeRateClient;
     @InjectMocks
     private ExchangeRateService exchangeRateService;
 
-    private Currency eur;
     private Currency rsd;
+    private Currency eur;
     private Currency usd;
 
     @BeforeEach
-    void setUp() {
-        eur = new Currency("EUR");
+    void setup() {
         rsd = new Currency("RSD");
+        eur = new Currency("EUR");
         usd = new Currency("USD");
     }
 
-
-    /**
-     * ✅ Testiranje dohvatanja postojećeg kursa koristeći prodajni kurs.
-     */
     @Test
-    void testGetExchangeRate_Success_WithSellRate() {
+    void testUpdateExchangeRates_Success() {
+        UpdateExchangeRateDto mockResponse = new UpdateExchangeRateDto();
+        mockResponse.setResult("success");
+        mockResponse.setConversionRates(Map.of(
+                "EUR", new BigDecimal("117.5"),
+                "USD", new BigDecimal("108.0")
+        ));
+
         when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
+        when(exchangeRateClient.getExchangeRates("RSD")).thenReturn(mockResponse);
         when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
+        when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
+        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(any(), any())).thenReturn(Optional.empty());
 
-        ExchangeRate exchangeRate = new ExchangeRate(null, null, rsd, eur, new BigDecimal("117.5"), new BigDecimal("118.0"));
-        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur))
-                .thenReturn(Optional.of(exchangeRate));
+        exchangeRateService.updateExchangeRates();
 
-        ExchangeRateDto result = exchangeRateService.getExchangeRate("RSD", "EUR");
-
-        assertNotNull(result);
-        assertEquals(new BigDecimal("117.5"), result.getExchangeRate());  // Koristi prodajni kurs bez dodatne provizije
+        verify(exchangeRateRepository, times(4)).save(any()); // 2 unosa + 2 mirrored
     }
 
-    /**
-     * ✅ Testiranje kada kurs ne postoji direktno i koristi RSD kao međukorak.
-     */
     @Test
-    void testGetExchangeRate_UsesIntermediateRSD() {
+    void testUpdateExchangeRates_CurrencyNotFound() {
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.empty());
+        exchangeRateService.updateExchangeRates();
+        verify(exchangeRateClient, never()).getExchangeRates(any());
+    }
+
+    @Test
+    void testUpdateExchangeRates_ResponseIsNull() {
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
+        when(exchangeRateClient.getExchangeRates("RSD")).thenReturn(null);
+        exchangeRateService.updateExchangeRates();
+        verify(exchangeRateRepository, never()).save(any());
+    }
+
+    @Test
+    void testGetExchangeRates_ReturnsActiveList() {
+        ExchangeRate rate = new ExchangeRate(null, null, rsd, eur, new BigDecimal("117.5"), new BigDecimal("118.0"));
+        when(exchangeRateRepository.findAllActiveExchangeRates()).thenReturn(List.of(rate));
+
+        List<ExchangeRateDto> result = exchangeRateService.getExchangeRates();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("RSD", result.get(0).getFromCurrency().getCode());
+        assertEquals("EUR", result.get(0).getToCurrency().getCode());
+    }
+
+    @Test
+    void testConvert_Success() {
+        ConvertDto dto = new ConvertDto("RSD", "EUR", new BigDecimal("1000"));
+
+        ExchangeRate rate = new ExchangeRate(null, null, rsd, eur, new BigDecimal("0.0085"), new BigDecimal("0.0086"));
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
+        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
+        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur)).thenReturn(Optional.of(rate));
+
+        BigDecimal result = exchangeRateService.convert(dto);
+
+        assertEquals(new BigDecimal("8.5000").setScale(4, RoundingMode.HALF_UP), result);
+    }
+
+    @Test
+    void testGetExchangeRate_CurrencyNotFound() {
+        when(currencyRepository.findByCode("XXX")).thenReturn(Optional.empty());
+        assertThrows(CurrencyNotFoundException.class, () -> exchangeRateService.getExchangeRate("XXX", "EUR"));
+    }
+
+    @Test
+    void testGetExchangeRate_IntermediateRateUsed() {
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
         when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
         when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
@@ -88,60 +132,6 @@ public class ServiceExchangeRatesUnitTest {
 
         ExchangeRateDto result = exchangeRateService.getExchangeRate("USD", "EUR");
 
-        BigDecimal expectedValue = new BigDecimal("0.93740");  // 109.0 * 0.0086
-        assertNotNull(result);
-        assertEquals(expectedValue, result.getExchangeRate());
-    }
-
-    /**
-     * ✅ Testiranje kada kurs ne postoji.
-     */
-    @Test
-    void testGetExchangeRate_NotFound() {
-        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
-        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
-
-        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur))
-                .thenReturn(Optional.empty());
-
-        assertThrows(ExchangeRateNotFoundException.class, () -> {
-            exchangeRateService.getExchangeRate("RSD", "EUR");
-        });
-    }
-
-    /**
-     * ✅ Testiranje konverzije sa prodajnim kursom.
-     */
-    @Test
-    void testConvert_Success() {
-        ConvertDto convertDto = new ConvertDto("RSD", "EUR", new BigDecimal("1000"));
-
-        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
-        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
-
-        ExchangeRate exchangeRate = new ExchangeRate(null, null, rsd, eur, new BigDecimal("0.0085"), new BigDecimal("0.0086"));
-        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, eur))
-                .thenReturn(Optional.of(exchangeRate));
-
-        BigDecimal result = exchangeRateService.convert(convertDto);
-
-        assertNotNull(result);
-        assertEquals(new BigDecimal("8.500000").setScale(4, RoundingMode.HALF_UP), result); // 1000 * 0.0086
-    }
-
-    /**
-     * ✅ Testiranje kada konverzija nije moguća (nema kursa).
-     */
-    @Test
-    void testConvert_ExchangeRateNotFound() {
-        ConvertDto convertDto = new ConvertDto("RSD", "GBP", new BigDecimal("1000"));
-
-        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
-        when(currencyRepository.findByCode("GBP")).thenReturn(Optional.of(new Currency("GBP")));
-
-        when(exchangeRateRepository.findByFromCurrencyAndToCurrency(any(), any()))
-                .thenReturn(Optional.empty());
-
-        assertThrows(ExchangeRateNotFoundException.class, () -> exchangeRateService.convert(convertDto));
+        assertEquals(new BigDecimal("0.93740"), result.getExchangeRate());
     }
 }

@@ -1,5 +1,9 @@
 package rs.raf.bank_service.unit;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,24 +18,25 @@ import rs.raf.bank_service.controller.ExchangeRateController;
 import rs.raf.bank_service.domain.dto.ConvertDto;
 import rs.raf.bank_service.domain.dto.CurrencyDto;
 import rs.raf.bank_service.domain.dto.ExchangeRateDto;
+import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
 import rs.raf.bank_service.service.ExchangeRateService;
 
 import java.math.BigDecimal;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.Collections;
 
 public class ControllerExchangeRatesUnitTest {
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private MockMvc mockMvc;
+
     @Mock
     private ExchangeRateService exchangeRateService;
+
     @InjectMocks
     private ExchangeRateController exchangeRateController;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     private CurrencyDto eur;
     private CurrencyDto rsd;
 
@@ -44,10 +49,6 @@ public class ControllerExchangeRatesUnitTest {
         rsd = new CurrencyDto("RSD", "Dinar", "RSD");
     }
 
-
-    /**
-     * ✅ Testiranje dohvatanja postojećeg kursa sa prodajnim kursom
-     */
     @Test
     @WithMockUser
     void testGetExchangeRate_Success() throws Exception {
@@ -60,12 +61,9 @@ public class ControllerExchangeRatesUnitTest {
                 .andExpect(jsonPath("$.fromCurrency.code").value("RSD"))
                 .andExpect(jsonPath("$.toCurrency.code").value("EUR"))
                 .andExpect(jsonPath("$.exchangeRate").value("118.0"))
-                .andExpect(jsonPath("$.sellRate").value("119.0")); // ✅ Proveravamo i prodajni kurs (sellRate)
+                .andExpect(jsonPath("$.sellRate").value("119.0"));
     }
 
-    /**
-     * ❌ Testiranje kada kurs ne postoji
-     */
     @Test
     @WithMockUser
     void testGetExchangeRate_NotFound() throws Exception {
@@ -77,9 +75,6 @@ public class ControllerExchangeRatesUnitTest {
                 .andExpect(content().string("Error: Exchange rate from RSD to EUR not found."));
     }
 
-    /**
-     * ✅ Testiranje konverzije iz jedne valute u drugu
-     */
     @Test
     @WithMockUser
     void testConvert_Success() throws Exception {
@@ -95,9 +90,6 @@ public class ControllerExchangeRatesUnitTest {
                 .andExpect(content().string("8.514"));
     }
 
-    /**
-     * ❌ Testiranje kada konverzija nije moguća (nema kursa)
-     */
     @Test
     @WithMockUser
     void testConvert_ExchangeRateNotFound() throws Exception {
@@ -112,5 +104,44 @@ public class ControllerExchangeRatesUnitTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("Exchange rate from RSD to GBP not found."));
     }
-}
 
+    @Test
+    @WithMockUser
+    void testConvert_CurrencyNotFound() throws Exception {
+        ConvertDto convertDto = new ConvertDto("RSD", "XYZ", new BigDecimal("1000"));
+
+        when(exchangeRateService.convert(any(ConvertDto.class)))
+                .thenThrow(new CurrencyNotFoundException("XYZ"));
+
+        mockMvc.perform(post("/api/exchange-rates/convert")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(convertDto)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Currency not found: XYZ"));
+    }
+
+
+    @Test
+    @WithMockUser
+    void testGetExchangeRates_Success() throws Exception {
+        ExchangeRateDto dto = new ExchangeRateDto(rsd, eur, new BigDecimal("117.5"), new BigDecimal("118.7"));
+        when(exchangeRateService.getExchangeRates()).thenReturn(Collections.singletonList(dto));
+
+        mockMvc.perform(get("/api/exchange-rates"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].fromCurrency.code").value("RSD"))
+                .andExpect(jsonPath("$[0].toCurrency.code").value("EUR"))
+                .andExpect(jsonPath("$[0].exchangeRate").value("117.5"))
+                .andExpect(jsonPath("$[0].sellRate").value("118.7"));
+    }
+
+    @Test
+    @WithMockUser
+    void testGetExchangeRates_InternalError() throws Exception {
+        when(exchangeRateService.getExchangeRates()).thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/api/exchange-rates"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error retrieving exchange rates."));
+    }
+}

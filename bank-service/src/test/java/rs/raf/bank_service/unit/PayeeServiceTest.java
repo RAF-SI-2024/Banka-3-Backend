@@ -7,10 +7,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.bank_service.domain.dto.PayeeDto;
 import rs.raf.bank_service.domain.entity.Payee;
-import rs.raf.bank_service.domain.mapper.PayeeMapper;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
+import rs.raf.bank_service.domain.mapper.PayeeMapper;
 import rs.raf.bank_service.repository.PayeeRepository;
 import rs.raf.bank_service.service.PayeeService;
 
@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
