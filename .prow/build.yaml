@@ -70,7 +70,7 @@ postsubmits:
               for serviceName in user-service bank-service email-service stock-service; do
                 # Builduje Docker image sa "latest" tagom i nazivom takvim da možemo da pushujemo
                 # image na našu Harbor instancu.
-                docker build -t harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:latest "."
+                docker build -t harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:latest -f "$serviceName/Dockerfile" "."
               
                 # Pravi kopiju prethodno buildovanog image sa tagom zasnovanim na commit hash-u.
                 docker tag harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:latest harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:${commit_hash}
