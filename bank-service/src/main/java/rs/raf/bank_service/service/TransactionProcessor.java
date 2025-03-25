@@ -4,14 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.domain.dto.TransactionMessageDto;
 import rs.raf.bank_service.domain.enums.TransactionType;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 @Slf4j
@@ -24,57 +20,46 @@ public class TransactionProcessor {
     private final LoanService loanService;
     private final ObjectMapper objectMapper;
 
-    private final Queue<TransactionMessageDto> localQueue = new ConcurrentLinkedQueue<>();
-
     @RabbitListener(queues = "transaction-queue")
-    public void receiveMessage(TransactionMessageDto message) {
-        localQueue.add(message);
-        log.info("Queued transaction: {}", message);
-    }
-
-    @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void processTransactions() {
-        while (!localQueue.isEmpty()) {
-            TransactionMessageDto message = localQueue.poll();
-            if (message == null) continue;
+    public void processTransaction(TransactionMessageDto message) {
+        try {
+            switch (message.getType()) {
+                case CONFIRM_PAYMENT:
+                    Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                    paymentService.confirmPayment(paymentId);
+                    log.info("Processed payment confirmation for id: {}", paymentId);
+                    break;
 
-            try {
-                switch (message.getType()) {
-                    case CONFIRM_PAYMENT:
-                        Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                        paymentService.confirmPayment(paymentId);
-                        log.info("Processed payment confirmation for id: {}", paymentId);
-                        break;
-                    case CONFIRM_TRANSFER:
-                        Long transferId = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                        paymentService.confirmTransferAndExecute(transferId);
-                        log.info("Processed transfer confirmation for user {}", message.getUserId());
-                        break;
-                    case APPROVE_LOAN:
-                        Long requestId = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                case CONFIRM_TRANSFER:
+                    Long transferId = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                    paymentService.confirmTransferAndExecute(transferId);
+                    log.info("Processed transfer confirmation for user {}", message.getUserId());
+                    break;
 
-                        loanRequestService.approveLoan(requestId);
-                        log.info("Processed loan approval for loan request id {}", requestId);
+                case APPROVE_LOAN:
+                    Long requestId = objectMapper.readValue(message.getPayloadJson(), Long.class);
 
-                        Long loanId = loanService.findLoanIdByLoanRequestId(requestId);
+                    loanRequestService.approveLoan(requestId);
+                    log.info("Processed loan approval for loan request id {}", requestId);
 
-                        transactionQueueService.queueTransaction(TransactionType.PAY_INSTALLMENT, loanId);
-                        log.info("Queued PAY_INSTALLMENT for loan id {}", loanId);
-                        break;
+                    Long loanId = loanService.findLoanIdByLoanRequestId(requestId);
+                    transactionQueueService.queueTransaction(TransactionType.PAY_INSTALLMENT, loanId);
+                    log.info("Queued PAY_INSTALLMENT for loan id {}", loanId);
+                    break;
 
-                    case PAY_INSTALLMENT:
-                        Long loanid = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                        loanService.payInstallment(loanid);
-                        log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
-                        break;
-                    default:
-                        log.warn("Unknown transaction type: {}", message.getType());
-                }
+                case PAY_INSTALLMENT:
+                    Long loanid = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                    loanService.payInstallment(loanid);
+                    log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
+                    break;
 
-            } catch (Exception e) {
-                log.error("Failed to process transaction: {}", message, e);
+                default:
+                    log.warn("Unknown transaction type: {}", message.getType());
             }
+
+        } catch (Exception e) {
+            log.error("Failed to process transaction: {}", message, e);
         }
     }
 }
