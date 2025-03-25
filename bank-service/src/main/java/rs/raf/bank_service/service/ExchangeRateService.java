@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.ExchangeRateClient;
-import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.dto.ConvertDto;
+import rs.raf.bank_service.domain.dto.CurrencyDto;
+import rs.raf.bank_service.domain.dto.ExchangeRateDto;
+import rs.raf.bank_service.domain.dto.UpdateExchangeRateDto;
 import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.entity.ExchangeRate;
 import rs.raf.bank_service.domain.mapper.ExchangeRateMapper;
@@ -12,12 +15,13 @@ import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
 import rs.raf.bank_service.exceptions.ExchangeRateNotFoundException;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -36,7 +40,7 @@ public class ExchangeRateService {
 
         Currency fromCurrency = currencyRepository.findByCode("RSD").orElse(null);
 
-        try{
+        try {
             response = exchangeRateClient.getExchangeRates(fromCurrency.getCode());
         } catch (Exception e) {
             e.printStackTrace();
@@ -111,7 +115,6 @@ public class ExchangeRateService {
         return convertDto.getAmount().multiply(exchangeRateDto.getExchangeRate());
 
     }
-
 
 
     public ExchangeRateDto getExchangeRate(String fromCurrencyCode, String toCurrencyCode) {

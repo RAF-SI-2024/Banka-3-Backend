@@ -5,13 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -21,6 +17,7 @@ import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
 import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.service.LoanService;
+import rs.raf.bank_service.service.TransactionQueueService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -30,7 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +41,7 @@ public class LoanServiceTest {
     @Mock private ScheduledExecutorService scheduledExecutorService;
     @Mock private InstallmentRepository installmentRepository;
     @Mock private InstallmentMapper installmentMapper;
+    @Mock private TransactionQueueService transactionQueueService;
 
     @InjectMocks private LoanService loanService;
 
@@ -62,6 +60,7 @@ public class LoanServiceTest {
         account.setAccountNumber("12345");
         account.setClientId(1L);
         account.setBalance(BigDecimal.valueOf(50000));
+        account.setAvailableBalance(BigDecimal.valueOf(50000));
 
         loan = Loan.builder()
                 .id(1L)
@@ -71,8 +70,8 @@ public class LoanServiceTest {
                 .repaymentPeriod(12)
                 .nominalInterestRate(BigDecimal.valueOf(5.5))
                 .effectiveInterestRate(BigDecimal.valueOf(6.0))
-                .startDate(LocalDate.now())
-                .dueDate(LocalDate.now().plusMonths(12))
+                .startDate(LocalDate.now().minusMonths(1))
+                .dueDate(LocalDate.now().plusMonths(11))
                 .nextInstallmentAmount(BigDecimal.valueOf(10000))
                 .nextInstallmentDate(LocalDate.now())
                 .remainingDebt(BigDecimal.valueOf(90000))
@@ -196,39 +195,27 @@ public class LoanServiceTest {
         assertTrue(result.isEmpty());
     }
 
-
     @Test
-    void testLoanPayment_NoLoansToday() {
-        try (MockedStatic<TransactionAspectSupport> mocked = mockStatic(TransactionAspectSupport.class)) {
-            TransactionStatus mockStatus = mock(TransactionStatus.class);
-            mocked.when(TransactionAspectSupport::currentTransactionStatus).thenReturn(mockStatus);
+    void testQueueDueInstallments_QueuesInstallmentsCorrectly() {
+        loan.setNextInstallmentDate(LocalDate.now());
+        loan.setStartDate(LocalDate.now().minusMonths(1));
 
-            when(loanRepository.findByNextInstallmentDate(any(LocalDate.class))).thenReturn(Collections.emptyList());
+        when(loanRepository.findByNextInstallmentDateAndStartDateBefore(any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(List.of(loan));
 
-            assertDoesNotThrow(() -> loanService.loanPayment());
-            verify(accountRepository, never()).findByIdForUpdate(any());
-        }
+        loanService.queueDueInstallments();
+
+        verify(transactionQueueService, times(1)).queueTransaction(TransactionType.PAY_INSTALLMENT, loan.getId());
     }
 
-
     @Test
-    void testLoanPayment_SuccessfulInstallmentPayment() {
-        try (MockedStatic<TransactionAspectSupport> mocked = mockStatic(TransactionAspectSupport.class)) {
-            TransactionStatus mockStatus = mock(TransactionStatus.class);
-            mocked.when(TransactionAspectSupport::currentTransactionStatus).thenReturn(mockStatus);
+    void testQueueDueInstallments_NoLoans() {
+        when(loanRepository.findByNextInstallmentDateAndStartDateBefore(any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(Collections.emptyList());
 
-            loan.setStatus(LoanStatus.APPROVED);
-            loan.setInstallments(new ArrayList<>(List.of(installment)));
+        assertDoesNotThrow(() -> loanService.queueDueInstallments());
 
-            when(loanRepository.findByNextInstallmentDate(any(LocalDate.class))).thenReturn(List.of(loan));
-            when(accountRepository.findByIdForUpdate(account.getAccountNumber())).thenReturn(account);
-
-            loanService.loanPayment();
-
-            verify(accountRepository).save(account);
-            assertEquals(InstallmentStatus.PAID, installment.getInstallmentStatus());
-            assertNotNull(installment.getActualDueDate());
-        }
+        verify(transactionQueueService, never()).queueTransaction(any(), any());
     }
 
     @Test
