@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
@@ -16,7 +17,6 @@ import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.service.OrderService;
 
-import javax.websocket.server.PathParam;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -55,7 +55,7 @@ public class OrderController {
     })
     public ResponseEntity<?> approveOrder(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         try {
-            orderService.approveOrder(id,authHeader);
+            orderService.approveOrder(id, authHeader);
             return ResponseEntity.ok().build();
         } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -71,9 +71,25 @@ public class OrderController {
     })
     public ResponseEntity<?> decline(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         try {
-            orderService.declineOrder(id,authHeader);
+            orderService.declineOrder(id, authHeader);
             return ResponseEntity.ok().build();
         } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
+    @PostMapping
+    @Operation(summary = "Create order.", description = "Creates a new order.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Order created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "404", description = "Listing not found")
+    })
+    public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
+        }  catch (ListingNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }

@@ -25,6 +25,7 @@ public class AccountDetailsDto {
 
     public AccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance, BigDecimal reservedFunds,
                              BigDecimal balance, String currencyCode){
+
         this.name = name;
         this.accountNumber = accountNumber;
         this.accountType = accountType;

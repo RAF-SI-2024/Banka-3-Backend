@@ -52,7 +52,7 @@ public class StocksServiceTest {
         Exchange ex2 = new Exchange();
         ex2.setMic("XNAS");
 
-        when(exchangeService.getAvailableExchanges()).thenReturn(List.of(ex1,ex2));
+        when(exchangeService.getAvailableExchanges()).thenReturn(List.of(ex1, ex2));
 
         // Pripremite sample JSON odgovore
         String globalQuoteJson = "{ \"Global Quote\": { " +

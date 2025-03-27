@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -77,6 +76,7 @@ public class ListingController {
 
         return ResponseEntity.ok(listingService.getListings(filter, role));
     }
+
     @PreAuthorize("hasAnyRole('CLIENT', 'SUPERVISOR', 'AGENT', 'EMPLOYEE', 'ADMIN')")
     @GetMapping("/{id}")
     @Operation(summary = "Get details of a security", description = "Returns detailed information about a specific stock, future, or forex pair.")
@@ -105,22 +105,6 @@ public class ListingController {
             return ResponseEntity.ok(listingService.updateListing(id, updateDto, authHeader));
         } catch (ListingNotFoundException ex) {
             throw ex;
-        }
-    }
-
-    @PreAuthorize("hasRole('AGENT')")
-    @PostMapping("/buy")
-    @Operation(summary = "Places buy order for a security", description = "Places an order to buy a security.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Security buy order placed successfully"),
-            @ApiResponse(responseCode = "404", description = "Security not found")
-    })
-    public ResponseEntity<?> buy(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody BuyListingDto buyListingDto) {
-        try {
-            listingService.placeBuyOrder(buyListingDto,authHeader);
-            return ResponseEntity.ok().build();
-        }catch (ListingNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

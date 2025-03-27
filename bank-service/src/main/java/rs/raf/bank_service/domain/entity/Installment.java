@@ -2,7 +2,6 @@ package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
 import rs.raf.bank_service.domain.enums.InstallmentStatus;
-import rs.raf.bank_service.domain.enums.PaymentStatus;
 
 import javax.persistence.*;
 import java.math.BigDecimal;

@@ -2,14 +2,10 @@ package rs.raf.bank_service.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
 
 @Component
 public class JwtTokenUtil {

@@ -1,8 +1,8 @@
 package rs.raf.bank_service.domain.mapper;
 
+import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.PayeeDto;
 import rs.raf.bank_service.domain.entity.Payee;
-import org.springframework.stereotype.Component;
 
 @Component
 public class PayeeMapper {

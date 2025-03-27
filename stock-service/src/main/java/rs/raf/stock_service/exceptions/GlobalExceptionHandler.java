@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
         ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-  
+
     @ExceptionHandler(ListingNotFoundException.class)
     public ResponseEntity<String> handleListingNotFoundException(ListingNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
