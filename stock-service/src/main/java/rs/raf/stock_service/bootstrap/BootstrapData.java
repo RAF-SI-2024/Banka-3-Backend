@@ -3,13 +3,14 @@ package rs.raf.stock_service.bootstrap;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import rs.raf.stock_service.domain.dto.ForexPairDto;
+import rs.raf.stock_service.domain.dto.FuturesContractDto;
+import rs.raf.stock_service.domain.dto.OptionDto;
 import rs.raf.stock_service.domain.dto.StockDto;
 import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
-import rs.raf.stock_service.exceptions.ForexPairNotFoundException;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
@@ -18,6 +19,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Component
@@ -33,6 +36,10 @@ public class BootstrapData implements CommandLineRunner {
     private final ExchangeRepository exchangeRepository;
     private final StocksService stocksService;
     private final ForexService forexService;
+    private final FuturesService futuresService;
+    private final OptionService optionService;
+    private final FuturesRepository futuresContractRepository;
+    private final OptionRepository optionRepository;
 
     @Override
     public void run(String... args) {
@@ -45,21 +52,72 @@ public class BootstrapData implements CommandLineRunner {
         Exchange nasdaq = new Exchange("XNAS", "NASDAQ", "NAS", countryRepository.findByName("United States").get(), "USD", -5L, false);
         exchangeRepository.save(nasdaq);
 
-        // Import full Stocks data (LIMITED TO 10 API CALLS)
+        // Import stocks and forex pairs using postojeće metode
         importStocks(nasdaq);
-
-        // Import full Forex Pairs data (LIMITED TO 10 API CALLS)
         importForexPairs();
-
         addStock(nasdaq);
-        addFutures(nasdaq);
-        addOption(nasdaq);
-        addForex();
         addStockWithDailyInfo(nasdaq);
-
-        // Load Orders
         loadOrders();
+
+        // Futures and Options data
+        addFutures();
+        addOptionsForStocks();
     }
+
+    private void addFutures() {
+        // Učitaj futures kontrakte iz CSV fajla preko FuturesService
+        List<FuturesContractDto> futuresDtos = futuresService.getFuturesContracts();
+        for (FuturesContractDto dto : futuresDtos) {
+            FuturesContract fc = new FuturesContract();
+            fc.setTicker(dto.getTicker());
+            fc.setContractSize(dto.getContractSize());
+            fc.setContractUnit(dto.getContractUnit());
+            fc.setSettlementDate(dto.getSettlementDate());
+            fc.setMaintenanceMargin(dto.getMaintenanceMargin());
+            fc.setPrice(dto.getPrice());
+            futuresContractRepository.save(fc);
+            System.out.println("Imported futures contract: " + fc.getTicker());
+        }
+    }
+
+    private void addOptionsForStocks() {
+        // 💡 Rešenje protiv beskonačne petlje:
+        if (optionRepository.count() > 0) {
+            System.out.println("Options already exist in the database. Skipping generation.");
+            return;
+        }
+
+        List<Stock> stocks = listingRepository.findAll().stream()
+                .filter(listing -> listing instanceof Stock)
+                .map(listing -> (Stock) listing)
+                .collect(Collectors.toList());
+
+        int index = 0;
+        for (Stock stock : stocks) {
+            if (index == 3) break;
+            BigDecimal currentPrice = stock.getPrice();
+            List<OptionDto> optionDtos = optionService.generateOptions(stock.getTicker(), currentPrice);
+
+            for (OptionDto dto : optionDtos) {
+                Option opt = new Option();
+                opt.setUnderlyingStock(stock);
+                opt.setOptionType(index++ % 2 == 0 ? OptionType.CALL : OptionType.PUT);
+                opt.setStrikePrice(dto.getStrikePrice());
+                opt.setContractSize(dto.getContractSize());
+                opt.setSettlementDate(dto.getSettlementDate());
+                opt.setMaintenanceMargin(dto.getMaintenanceMargin());
+                opt.setUnderlyingStock(stock);
+                opt.setImpliedVolatility(BigDecimal.valueOf(1));
+                opt.setOpenInterest(new Random().nextInt(500) + 100);
+
+                optionRepository.save(opt);
+            }
+
+            System.out.println("Generated and imported options for stock: " + stock.getTicker());
+        }
+    }
+
+
     private void addStockWithDailyInfo(Exchange exchange) {
         Stock stock = new Stock();
         stock.setTicker("FILTERTEST");
@@ -87,8 +145,8 @@ public class BootstrapData implements CommandLineRunner {
         info.setVolume(stock.getVolume());
 
         dailyPriceInfoRepository.save(info);
-
     }
+
     private void addStock(Exchange exchange) {
         Stock stock = new Stock();
         stock.setTicker("TEST1");
@@ -105,7 +163,6 @@ public class BootstrapData implements CommandLineRunner {
 
         listingRepository.save(stock);
 
-
         // Dodaj ListingDailyPriceInfo (da bi testirao low, volume itd.)
         ListingDailyPriceInfo info = new ListingDailyPriceInfo();
         info.setListing(stock); // povezivanje
@@ -117,51 +174,6 @@ public class BootstrapData implements CommandLineRunner {
         info.setVolume(stock.getVolume());
 
         dailyPriceInfoRepository.save(info);
-    }
-
-    private void addFutures(Exchange exchange) {
-        FuturesContract futures = new FuturesContract();
-        futures.setTicker("FUT1");
-        futures.setName("Test Futures");
-        futures.setPrice(new BigDecimal("1500.00"));
-        futures.setAsk(new BigDecimal("1510.00"));
-        futures.setContractSize(10);
-        futures.setSettlementDate(LocalDate.now().plusMonths(1));
-        futures.setExchange(exchange);
-
-        listingRepository.save(futures);
-    }
-
-    private void addOption(Exchange exchange) {
-        Option option = new Option();
-        option.setTicker("OPT1");
-        option.setName("Test Option");
-        option.setPrice(new BigDecimal("5.00"));
-        option.setAsk(new BigDecimal("5.50"));
-        option.setOptionType(option.getOptionType().CALL);
-        option.setStrikePrice(new BigDecimal("120.00"));
-        option.setSettlementDate(LocalDate.now().plusWeeks(2));
-        option.setImpliedVolatility(new BigDecimal("0.25"));
-        option.setExchange(exchange);
-
-        listingRepository.save(option);
-    }
-
-    private void addForex() {
-        ForexPair pair = new ForexPair();
-        pair.setTicker("USD/EUR");
-        pair.setName("USD to EUR");
-        pair.setPrice(new BigDecimal("0.92"));
-        pair.setAsk(new BigDecimal("0.93"));
-        pair.setBaseCurrency("USD");
-        pair.setQuoteCurrency("EUR");
-        pair.setExchangeRate(new BigDecimal("0.925"));
-        pair.setLiquidity("HIGH");
-        pair.setLastRefresh(LocalDateTime.now());
-        pair.setNominalValue(new BigDecimal("100000"));
-        pair.setMaintenanceMargin(new BigDecimal("10.00"));
-
-        listingRepository.save(pair);
     }
 
     private void importStocks(Exchange exchange) {
@@ -218,7 +230,8 @@ public class BootstrapData implements CommandLineRunner {
                 String quoteCurrency = pair[1];
 
                 // Fetch full details for selected forex pairs
-                ForexPairDto forexData = forexService.getForexPair(baseCurrency, quoteCurrency);
+                // Pretpostavljamo da forexService.getForexPair vraća DTO, ali u bootstrap-u koristimo podaci iz DTO-ja
+                var forexData = forexService.getForexPair(baseCurrency, quoteCurrency);
 
                 ForexPair forexPair = new ForexPair();
                 forexPair.setName(forexData.getName());
@@ -235,8 +248,8 @@ public class BootstrapData implements CommandLineRunner {
 
                 listingRepository.save(forexPair);
                 System.out.println("Imported forex pair: " + forexPair.getTicker());
-            } catch (ForexPairNotFoundException e) {
-                System.err.println("Forex pair data not found for: " + pair[0] + "/" + pair[1] + " - " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Error importing forex pair: " + pair[0] + "/" + pair[1] + " - " + e.getMessage());
             }
         }
 

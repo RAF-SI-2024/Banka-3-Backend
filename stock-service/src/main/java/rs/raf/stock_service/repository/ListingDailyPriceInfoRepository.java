@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface ListingDailyPriceInfoRepository extends JpaRepository<ListingDailyPriceInfo, Long> {
     ListingDailyPriceInfo findTopByListingOrderByDateDesc(Listing listing);
+
     List<ListingDailyPriceInfo> findAllByListingOrderByDateDesc(Listing listing);
 }

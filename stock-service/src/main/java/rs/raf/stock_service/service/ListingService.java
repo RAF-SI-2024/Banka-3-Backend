@@ -28,22 +28,17 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ListingService {
 
+    private final UserClient userClient;
     @Autowired
     private ListingRepository listingRepository;
-
     @Autowired
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
-
     @Autowired
     private OrderRepository orderRepository;
-
     @Autowired
     private ListingMapper listingMapper;
-
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
-
-    private final UserClient userClient;
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);

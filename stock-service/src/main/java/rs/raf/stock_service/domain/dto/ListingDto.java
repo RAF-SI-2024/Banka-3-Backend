@@ -7,6 +7,7 @@ import lombok.Setter;
 import rs.raf.stock_service.domain.enums.ListingType;
 
 import java.math.BigDecimal;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,6 +32,7 @@ public class ListingDto {
         this.initialMarginCost = initialMarginCost;
         this.exchangeMic = exchangeMic;
     }
+
     public ListingDto(Long id, ListingType listingType, String ticker, BigDecimal price, BigDecimal change, Long volume, BigDecimal initialMarginCost, String exchangeMic, BigDecimal ask) {
         this.id = id;
         this.listingType = listingType;

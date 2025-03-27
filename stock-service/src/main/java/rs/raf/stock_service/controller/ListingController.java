@@ -4,8 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -77,6 +77,7 @@ public class ListingController {
 
         return ResponseEntity.ok(listingService.getListings(filter, role));
     }
+
     @PreAuthorize("hasAnyRole('CLIENT', 'SUPERVISOR', 'AGENT', 'EMPLOYEE', 'ADMIN')")
     @GetMapping("/{id}")
     @Operation(summary = "Get details of a security", description = "Returns detailed information about a specific stock, future, or forex pair.")
@@ -117,9 +118,9 @@ public class ListingController {
     })
     public ResponseEntity<?> buy(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody BuyListingDto buyListingDto) {
         try {
-            listingService.placeBuyOrder(buyListingDto,authHeader);
+            listingService.placeBuyOrder(buyListingDto, authHeader);
             return ResponseEntity.ok().build();
-        }catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }

@@ -11,8 +11,8 @@ import rs.raf.stock_service.controller.OrderController;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.service.OrderService;
 
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class OrderControllerTest {
@@ -53,6 +53,7 @@ class OrderControllerTest {
         assertTrue(response.getBody().toString().contains("not found"));
         verify(orderService).approveOrder(eq(orderId), eq(authHeader));
     }
+
     @Test
     void declineOrder_ShouldReturnOk_WhenOrderIsDeclinedSuccessfully() {
         Long orderId = 1L;

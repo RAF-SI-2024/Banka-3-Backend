@@ -13,7 +13,10 @@ import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.ExchangeRateApiClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.ForexPairDto;
-import rs.raf.stock_service.exceptions.*;
+import rs.raf.stock_service.exceptions.ExchangeRateConversionException;
+import rs.raf.stock_service.exceptions.ForexPairNotFoundException;
+import rs.raf.stock_service.exceptions.ForexPairsNotFoundException;
+import rs.raf.stock_service.exceptions.LatestRatesNotFoundException;
 import rs.raf.stock_service.service.ForexService;
 
 import java.math.BigDecimal;
@@ -21,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ForexServiceTest {

@@ -24,5 +24,5 @@ public class BuyListingDto {
     private Integer contractSize;
 
     @NotNull(message = "Account number cannot be null")
-    private String  accountNumber;
+    private String accountNumber;
 }
