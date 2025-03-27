@@ -14,6 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
 import rs.raf.stock_service.domain.dto.CreateOrderDto;
@@ -55,6 +56,14 @@ public class OrderServiceTest {
 
     @Mock
     private UserClient userClient;
+
+    @Mock
+    private BankClient bankClient;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     void testGetOrdersByStatus_WhenStatusIsProvided() {
@@ -206,6 +215,7 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
         when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountBalance("123")).thenReturn(BigDecimal.valueOf(999999999));
 
         // Act
         orderService.createOrder(createOrderDto, authHeader);

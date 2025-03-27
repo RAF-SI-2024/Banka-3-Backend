@@ -90,42 +90,36 @@ public class OrderService {
     }
 
     public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader){
-        try{
-            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            Listing listing = listingRepository.findById(createOrderDto.getListingId())
-                    .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        Listing listing = listingRepository.findById(createOrderDto.getListingId())
+                .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
-            //Nzm odakle se ovo uzima, msm kada se zatvara trziste
-            boolean afterHours = false;
+        //Nzm odakle se ovo uzima, msm kada se zatvara trziste
+        boolean afterHours = false;
 
-            Order order = OrderMapper.toOrder(createOrderDto, userId, listing, afterHours);
+        Order order = OrderMapper.toOrder(createOrderDto, userId, listing, afterHours);
 
-            BigDecimal approxPrice = BigDecimal.valueOf(order.getContractSize()).multiply(order.getPricePerUnit().
-                    multiply(BigDecimal.valueOf(order.getQuantity())));
+        BigDecimal approxPrice = BigDecimal.valueOf(order.getContractSize()).multiply(order.getPricePerUnit().
+                multiply(BigDecimal.valueOf(order.getQuantity())));
 
-            if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT")) {
-                order.setStatus(verifyBalance(order)? OrderStatus.APPROVED : OrderStatus.DECLINED);
-            } else {
-                ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound
+        if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT")) {
+            order.setStatus(verifyBalance(order)? OrderStatus.APPROVED : OrderStatus.DECLINED);
+        } else {
+            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound
 
-                if (!actuaryLimitDto.isNeedsApproval()){
-                    if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(approxPrice) >= 0)
-                        order.setStatus(OrderStatus.APPROVED);
-                }
+            if (!actuaryLimitDto.isNeedsApproval()){
+                if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(approxPrice) >= 0)
+                    order.setStatus(OrderStatus.APPROVED);
             }
-
-            orderRepository.save(order);
-
-            if (order.getStatus()  == OrderStatus.APPROVED)
-                executeOrder(order);
-
-            return OrderMapper.toDto(order, listingMapper.toDto(listing,
-                    dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
-        } catch (Exception e){
-            e.printStackTrace();
         }
 
-        return null;
+        orderRepository.save(order);
+
+        if (order.getStatus()  == OrderStatus.APPROVED)
+            executeOrder(order);
+
+        return OrderMapper.toDto(order, listingMapper.toDto(listing,
+                dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
     }
 
     private boolean verifyBalance(Order order){
