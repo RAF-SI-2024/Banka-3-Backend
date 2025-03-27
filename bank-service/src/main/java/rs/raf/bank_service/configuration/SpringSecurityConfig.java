@@ -1,8 +1,6 @@
 package rs.raf.bank_service.configuration;
 
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -45,10 +43,10 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api-docs/**").permitAll()
-                .antMatchers("/api/account/**").hasAnyRole("EMPLOYEE","CLIENT")
-                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE","CLIENT")
-                .antMatchers("/api/payees/**").hasAnyRole("EMPLOYEE","CLIENT")
-                .antMatchers("/api/payment/**").hasAnyRole("EMPLOYEE","CLIENT")
+                .antMatchers("/api/account/**").hasAnyRole("EMPLOYEE", "CLIENT")
+                .antMatchers("/api/account/*/cards/**").hasAnyRole("EMPLOYEE", "CLIENT")
+                .antMatchers("/api/payees/**").hasAnyRole("EMPLOYEE", "CLIENT")
+                .antMatchers("/api/payment/**").hasAnyRole("EMPLOYEE", "CLIENT")
                 .antMatchers("/api/exchange-rates/**").authenticated()
                 .antMatchers("/api/installments/**").authenticated()
                 .antMatchers("/api/loans/**").hasAnyRole("ADMIN", "CLIENT")
@@ -76,7 +74,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public RoleHierarchy roleHierarchy(){
+    public RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl roleHierarchyImpl = new RoleHierarchyImpl();
         roleHierarchyImpl.setHierarchy("ROLE_ADMIN > ROLE_SUPERVISOR " +
                 "\n ROLE_SUPERVISOR > ROLE_AGENT " +

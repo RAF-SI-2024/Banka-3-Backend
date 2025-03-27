@@ -17,10 +17,10 @@ public class CountryService {
 
     private CountryRepository countryRepository;
 
-    public void importCountries(){
+    public void importCountries() {
         BufferedReader bufferedReader;
         String line;
-        if (countryRepository.count()==0){
+        if (countryRepository.count() == 0) {
             try {
                 bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges.csv").getInputStream()));
                 line = bufferedReader.readLine();
@@ -29,14 +29,14 @@ public class CountryService {
                     Country country = new Country();
                     String[] attributes = line.split(",");
 
-                    if (attributes[3].equalsIgnoreCase("usa")){
+                    if (attributes[3].equalsIgnoreCase("usa")) {
                         country.setName("United States");
-                    }else {
+                    } else {
                         country.setName(attributes[3]);
                     }
                     country.setOpenTime(LocalTime.parse(attributes[6].trim()));
                     country.setCloseTime(LocalTime.parse(attributes[7].trim()));
-                    if (countryRepository.countByName(country.getName())==0) {
+                    if (countryRepository.countByName(country.getName()) == 0) {
                         countryRepository.save(country);
                     }
                 }

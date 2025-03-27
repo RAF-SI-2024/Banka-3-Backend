@@ -14,13 +14,13 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
-
 
 class LoanRequestSpecificationTest {
 
@@ -45,7 +45,6 @@ class LoanRequestSpecificationTest {
         LoanType type = LoanType.CASH;
         String accountNumber = "123456789";
 
-        // Mocks for root.get("type") and root.get("account").get("accountNumber")
         var typePath = mock(javax.persistence.criteria.Path.class);
         var accountPath = mock(javax.persistence.criteria.Path.class);
         var accountNumberPath = mock(javax.persistence.criteria.Path.class);
@@ -58,33 +57,31 @@ class LoanRequestSpecificationTest {
         when(cb.equal(accountNumberPath, accountNumber)).thenReturn(predicate2);
         when(cb.and(any(Predicate[].class))).thenReturn(mock(Predicate.class));
 
-        var spec = LoanRequestSpecification.filterBy(type, accountNumber);
-        var result = spec.toPredicate(root, query, cb);
+        Specification<LoanRequest> spec = LoanRequestSpecification.filterBy(type, accountNumber);
+        Predicate result = spec.toPredicate(root, query, cb);
 
         assertNotNull(result);
         verify(cb).equal(typePath, type);
         verify(cb).equal(accountNumberPath, accountNumber);
+
         ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
-
         verify(cb).and(captor.capture());
-
         Predicate[] captured = captor.getValue();
         assertEquals(2, captured.length);
         assertThat(Arrays.asList(captured)).containsExactlyInAnyOrder(predicate1, predicate2);
-
     }
 
     @Test
     void testFilterBy_OnlyType() {
         LoanType type = LoanType.STUDENT;
-
         var typePath = mock(javax.persistence.criteria.Path.class);
+
         when(root.get("type")).thenReturn(typePath);
         when(cb.equal(typePath, type)).thenReturn(predicate1);
         when(cb.and(predicate1)).thenReturn(mock(Predicate.class));
 
-        var spec = LoanRequestSpecification.filterBy(type, null);
-        var result = spec.toPredicate(root, query, cb);
+        Specification<LoanRequest> spec = LoanRequestSpecification.filterBy(type, null);
+        Predicate result = spec.toPredicate(root, query, cb);
 
         assertNotNull(result);
         verify(cb).equal(typePath, type);
@@ -103,8 +100,8 @@ class LoanRequestSpecificationTest {
         when(cb.equal(accountNumberPath, accountNumber)).thenReturn(predicate1);
         when(cb.and(predicate1)).thenReturn(mock(Predicate.class));
 
-        var spec = LoanRequestSpecification.filterBy(null, accountNumber);
-        var result = spec.toPredicate(root, query, cb);
+        Specification<LoanRequest> spec = LoanRequestSpecification.filterBy(null, accountNumber);
+        Predicate result = spec.toPredicate(root, query, cb);
 
         assertNotNull(result);
         verify(cb).equal(accountNumberPath, accountNumber);
@@ -113,17 +110,12 @@ class LoanRequestSpecificationTest {
 
     @Test
     void testFilterBy_NullInputs() {
-        // Arrange
-        CriteriaBuilder cb = mock(CriteriaBuilder.class);
-        CriteriaQuery<?> query = mock(CriteriaQuery.class);
-        Root<LoanRequest> root = mock(Root.class);
-
-        // Act
         Specification<LoanRequest> spec = LoanRequestSpecification.filterBy(null, null);
-        Predicate predicate = spec.toPredicate(root, query, cb);
 
-        // Assert
-        assertThat(predicate).isNull(); // sada proveravamo da li je null jer nema predikata
+        Predicate result = spec.toPredicate(root, query, cb);
+
+        // Kada su svi filteri null → builder.and() sa praznim nizom → logički validan, ali moraš vratiti and() bez predikata
+        verify(cb).and(new Predicate[0]);
+        assertThat(result).isNull(); // Bitno: vraća se ne-null and(), iako je bez uslova
     }
-
 }

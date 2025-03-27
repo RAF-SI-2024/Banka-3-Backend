@@ -3,7 +3,6 @@ package rs.raf.bank_service.client;
 import feign.FeignException;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.*;

@@ -618,4 +618,100 @@ class PaymentServiceTest {
         assertThrows(ReceiverAccountNotFoundException.class, () -> paymentService.confirmPayment(paymentId));
     }
 
+    @Test
+    void createTransferPendingConfirmation_Success_SameCurrency() throws Exception {
+        Long clientId = 1L;
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(100));
+
+        Currency currency = new Currency("RSD");
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(1000));
+        sender.setCurrency(currency);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(currency);
+        receiver.setClientId(2L);
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", clientId)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        boolean result = paymentService.createTransferPendingConfirmation(transferDto, clientId);
+
+        assertTrue(result);
+        verify(paymentRepository, times(1)).save(any(Payment.class));
+        verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
+    }
+
+    @Test
+    void createTransferPendingConfirmation_Success_DifferentCurrency() throws Exception {
+        Long clientId = 1L;
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(100));
+
+        Currency usd = new Currency("USD");
+        Currency eur = new Currency("EUR");
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(1000));
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(eur);
+        receiver.setClientId(2L);
+
+        ExchangeRateDto exchangeRateDto = new ExchangeRateDto();
+        exchangeRateDto.setSellRate(BigDecimal.valueOf(0.9));
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", clientId)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+        when(exchangeRateService.getExchangeRate("USD", "EUR")).thenReturn(exchangeRateDto);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        boolean result = paymentService.createTransferPendingConfirmation(transferDto, clientId);
+
+        assertTrue(result);
+        verify(exchangeRateService).getExchangeRate("USD", "EUR");
+        verify(paymentRepository, times(1)).save(any(Payment.class));
+        verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
+    }
+
+    @Test
+    void createTransferPendingConfirmation_InsufficientFunds_ThrowsException() {
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(1000));
+
+        Currency currency = new Currency("RSD");
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(500));
+        sender.setCurrency(currency);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(currency);
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", 1L)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                paymentService.createTransferPendingConfirmation(transferDto, 1L));
+    }
+
+
+
+
 }

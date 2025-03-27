@@ -6,6 +6,7 @@ import rs.raf.stock_service.domain.enums.ListingType;
 
 import java.math.BigDecimal;
 import java.util.List;
+
 @Getter
 @Setter
 public class ListingDetailsDto {
@@ -19,7 +20,8 @@ public class ListingDetailsDto {
     private Integer contractSize;
     private String contractUnit;
 
-    public ListingDetailsDto() {}
+    public ListingDetailsDto() {
+    }
 
     public ListingDetailsDto(Long id, ListingType listingType, String ticker, String name, BigDecimal currentPrice, String exchangeMic,
                              List<PriceHistoryDto> priceHistory, Integer contractSize, String contractUnit) {

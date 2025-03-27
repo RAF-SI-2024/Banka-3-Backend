@@ -1,8 +1,5 @@
 package rs.raf.stock_service.unit;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,10 +13,13 @@ import rs.raf.stock_service.repository.CountryRepository;
 import rs.raf.stock_service.repository.ExchangeRepository;
 import rs.raf.stock_service.service.ExchangeService;
 
-import java.time.*;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ExchangeServiceTest {
@@ -73,7 +73,6 @@ class ExchangeServiceTest {
         verify(exchangeRepository, times(1)).save(exchange1);
         verify(exchangeRepository, times(1)).save(exchange2);
     }
-
 
 
     @Test

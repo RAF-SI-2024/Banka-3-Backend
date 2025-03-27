@@ -3,7 +3,6 @@ package rs.raf.bank_service.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.NoArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,7 +19,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.Key;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @Component
@@ -66,6 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
     public boolean validateToken(String token) {
         try {
             getClaimsFromToken(token);
@@ -75,6 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
     }
+
     public Claims getClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secret)

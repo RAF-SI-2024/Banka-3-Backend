@@ -1,6 +1,7 @@
 package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -22,7 +24,6 @@ import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -333,5 +334,12 @@ public class AccountService {
 
         System.out.println("Uspešno postavljeno ovlašćeno lice " + authorizedPerson.getFirstName() + " za račun " + accountId);
 
+    }
+
+    public BigDecimal getAccountBalance(String accountNumber){
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        return account.getBalance(); //vidi da li treba balance ili availabe balance
     }
 }

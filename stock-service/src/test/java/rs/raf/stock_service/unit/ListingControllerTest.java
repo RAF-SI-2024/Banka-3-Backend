@@ -1,34 +1,27 @@
 package rs.raf.stock_service.unit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import rs.raf.stock_service.controller.ListingController;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
-import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.service.ListingService;
-import java.time.LocalDate;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
 class ListingControllerTest {

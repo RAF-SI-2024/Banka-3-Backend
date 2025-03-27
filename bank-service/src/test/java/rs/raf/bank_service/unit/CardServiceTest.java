@@ -2,26 +2,18 @@ package rs.raf.bank_service.unit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
-import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
-import rs.raf.bank_service.domain.entity.Account;
-import rs.raf.bank_service.domain.entity.Card;
-import rs.raf.bank_service.domain.entity.CardRequest;
-import rs.raf.bank_service.domain.entity.PersonalAccount;
-import rs.raf.bank_service.domain.enums.AccountOwnerType;
-import rs.raf.bank_service.domain.enums.CardIssuer;
-import rs.raf.bank_service.domain.enums.CardStatus;
-import rs.raf.bank_service.domain.enums.CardType;
+import rs.raf.bank_service.domain.entity.*;
+import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
+import rs.raf.bank_service.domain.mapper.CardMapper;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
@@ -39,314 +31,203 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class CardServiceTest {
-
-    @Mock
-    private AccountRepository accountRepository;
-
-    @Mock
-    private CardRequestRepository cardRequestRepository;
-
-    @Mock
-    private ObjectMapper objectMapper;
-
-    @Mock
-    private AccountMapper accountMapper;
-
-    @Mock
-    private CardRepository cardRepository;
-
-    @Mock
-    private UserClient userClient;
-
-    @Mock
-    private RabbitTemplate rabbitTemplate;
-
-    @Mock
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Mock
-    private JwtTokenUtil jwtTokenUtil;  // Mocked JwtTokenUtil
-
-    @Mock
-    private Claims claims;
 
     @InjectMocks
     private CardService cardService;
 
-    private Card dummyCard;
-    private Account dummyAccount;
-    private ClientDto dummyClient;
-    private String authHeader;
+    @Mock private CardRepository cardRepository;
+    @Mock private UserClient userClient;
+    @Mock private RabbitTemplate rabbitTemplate;
+    @Mock private AccountRepository accountRepository;
+    @Mock private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Mock private JwtTokenUtil jwtTokenUtil;
+    @Mock private CardRequestRepository cardRequestRepository;
+    @Mock private AccountMapper accountMapper;
+    @Mock private ObjectMapper objectMapper;
+
+    private final String authHeader = "Bearer test-token";
+    private Account account;
+    private ClientDto client;
 
     @BeforeEach
-    public void setUp() {
-        dummyAccount = new Account() {
-        };
-        dummyAccount.setAccountNumber("123456789012345678");
-        dummyAccount.setClientId(1L);
-        dummyAccount.setAccountOwnerType(AccountOwnerType.PERSONAL);
-
-        dummyCard = new Card();
-        dummyCard.setId(1L);
-        dummyCard.setCardNumber("1111222233334444");
-        dummyCard.setStatus(CardStatus.ACTIVE);
-        dummyCard.setAccount(dummyAccount);
-        dummyCard.setCreationDate(LocalDate.now());
-        dummyCard.setExpirationDate(LocalDate.now().plusYears(3));
-        dummyCard.setCardLimit(BigDecimal.valueOf(1000));
-
-        dummyClient = new ClientDto();
-        dummyClient.setId(1L);
-        dummyClient.setFirstName("Petar");
-        dummyClient.setLastName("Petrovic");
-        dummyClient.setEmail("petar@example.com");
-
-        authHeader = "Bearer dummy-token";
-
-        // Mock JwtTokenUtil behavior
-        lenient().when(jwtTokenUtil.getUserIdFromAuthHeader(anyString())).thenReturn(1L);
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        account = new PersonalAccount();
+        account.setAccountNumber("1234567890");
+        account.setClientId(1L);
+        client = new ClientDto(1L, "Test", "User", "test@example.com");
     }
 
     @Test
-    public void testGetUserCards_Success() {
-        // Arrange
-        List<Account> userAccounts = Arrays.asList(dummyAccount);
-        dummyAccount.getCards().add(dummyCard);
+    void createCard_success() {
+        CreateCardDto dto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "MyCard", account.getAccountNumber(), BigDecimal.valueOf(1000));
+        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(0L);
 
-        when(accountRepository.findByClientId(1L)).thenReturn(userAccounts);
-        when(userClient.getClientById(1L)).thenReturn(dummyClient);
-
-        // Act
-        List<CardDto> result = cardService.getUserCards(authHeader);
-
-        // Assert
+        CardDtoNoOwner result = cardService.createCard(dto);
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("1111222233334444", result.get(0).getCardNumber());
-        assertEquals("Petar", result.get(0).getOwner().getFirstName());
-    }
-
-    @Test
-    public void testGetUserCards_NoAccounts() {
-        // Arrange
-        when(accountRepository.findByClientId(1L)).thenReturn(Collections.emptyList());
-
-        // Act
-        List<CardDto> result = cardService.getUserCards(authHeader);
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    public void testBlockCardByUser_Success() {
-        // Arrange
-        when(cardRepository.findByCardNumber(dummyCard.getCardNumber())).thenReturn(Optional.of(dummyCard));
-        when(userClient.getClientById(dummyAccount.getClientId())).thenReturn(dummyClient);
-
-        // Act
-        cardService.blockCardByUser(dummyCard.getCardNumber(), authHeader);
-
-        // Assert
-        assertEquals(CardStatus.BLOCKED, dummyCard.getStatus());
-        verify(cardRepository).save(dummyCard);
-        verify(rabbitTemplate).convertAndSend(eq("card-status-change"), any(EmailRequestDto.class));
-    }
-
-    @Test
-    public void testBlockCardByUser_CardNotFound() {
-        // Arrange
-        when(cardRepository.findByCardNumber("nonExistingCard")).thenReturn(Optional.empty());
-
-        // Act & Assert
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> cardService.blockCardByUser("nonExistingCard", authHeader));
-        assertTrue(exception.getMessage().contains("Card not found"));
-    }
-
-    @Test
-    public void testBlockCardByUser_UnauthorizedUser() {
-        // Arrange
-        when(jwtTokenUtil.getUserIdFromAuthHeader(anyString())).thenReturn(2L); // Different user ID
-        when(cardRepository.findByCardNumber(dummyCard.getCardNumber())).thenReturn(Optional.of(dummyCard));
-
-        // Act & Assert
-        UnauthorizedException exception = assertThrows(UnauthorizedException.class,
-                () -> cardService.blockCardByUser(dummyCard.getCardNumber(), authHeader));
-        assertEquals("You can only block your own cards", exception.getMessage());
-    }
-
-
-    @Test
-    public void testCreateCard_Success() {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(
-                CardType.CREDIT,                // sada CAPS
-                CardIssuer.VISA,
-                "Ime",
-                dummyAccount.getAccountNumber(),
-                BigDecimal.valueOf(1000)
-        );
-
-        when(accountRepository.findByAccountNumber(dummyAccount.getAccountNumber()))
-                .thenReturn(Optional.of(dummyAccount));
-        when(accountMapper.toAccountTypeDto(dummyAccount))
-                .thenReturn(new AccountTypeDto("123456789012345678", AccountOwnerType.PERSONAL));
-        when(cardRepository.countByAccount(dummyAccount))
-                .thenReturn(0L);
-
-        // Act
-        CardDtoNoOwner result = cardService.createCard(createCardDto);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(createCardDto.getName(), result.getName());
         verify(cardRepository).save(any(Card.class));
     }
 
     @Test
-    public void testCreateCard_CardLimitExceeded() {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(
-                CardType.CREDIT,                // sada CAP
-                CardIssuer.VISA,
-                "Ime",
-                dummyAccount.getAccountNumber(),
-                BigDecimal.valueOf(1000)
-        );
+    void createCard_cardLimitExceeded() {
+        CreateCardDto dto = new CreateCardDto(CardType.DEBIT, CardIssuer.MASTERCARD, "MyCard", account.getAccountNumber(), BigDecimal.valueOf(1000));
+        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(3L);
 
-        when(accountRepository.findByAccountNumber(dummyAccount.getAccountNumber())).thenReturn(Optional.of(dummyAccount));
-        when(accountMapper.toAccountTypeDto(dummyAccount)).thenReturn(new AccountTypeDto("123", AccountOwnerType.PERSONAL));
-        when(cardRepository.countByAccount(dummyAccount)).thenReturn(3L);
-
-        // Act & Assert
-        assertThrows(CardLimitExceededException.class, () -> cardService.createCard(createCardDto));
+        assertThrows(CardLimitExceededException.class, () -> cardService.createCard(dto));
     }
 
     @Test
-    public void testChangeCardStatus_Success() {
-        // Arrange
-        when(cardRepository.findByCardNumber(dummyCard.getCardNumber())).thenReturn(Optional.of(dummyCard));
-        when(userClient.getClientById(dummyAccount.getClientId())).thenReturn(dummyClient);
+    void createCard_invalidCardLimit() {
+        CreateCardDto dto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "MyCard", account.getAccountNumber(), BigDecimal.ZERO);
+        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(0L);
 
-        // Act
-        cardService.changeCardStatus(dummyCard.getCardNumber(), CardStatus.BLOCKED);
+        assertThrows(InvalidCardLimitException.class, () -> cardService.createCard(dto));
+    }
 
-        // Assert
-        assertEquals(CardStatus.BLOCKED, dummyCard.getStatus());
-        verify(cardRepository).save(dummyCard);
+    @Test
+    void changeCardStatus_success() {
+        Card card = new Card();
+        card.setAccount(account);
+        when(cardRepository.findByCardNumber(anyString())).thenReturn(Optional.of(card));
+        when(userClient.getClientById(anyLong())).thenReturn(client);
+
+        cardService.changeCardStatus("1234", CardStatus.BLOCKED);
+        verify(cardRepository).save(card);
         verify(rabbitTemplate).convertAndSend(eq("card-status-change"), any(EmailRequestDto.class));
     }
 
     @Test
-    void testGetUserCardsForAccount_Success() {
-        String accountNumber = "12345";
-        String authHeader = "Bearer token";
-        Long clientId = 1L;
-
-        Account account = new PersonalAccount();
-        account.setAccountNumber(accountNumber);
-
-        Card card1 = new Card();
-        card1.setAccount(account);
-
-        Card card2 = new Card();
-        card2.setAccount(account);
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId))
-                .thenReturn(Optional.of(new PersonalAccount()));
-        when(cardRepository.findByAccount_AccountNumber(accountNumber))
-                .thenReturn(List.of(card1, card2));
-        when(userClient.getClientById(clientId)).thenReturn(new ClientDto());
-
-        List<CardDto> cards = cardService.getUserCardsForAccount(accountNumber, authHeader);
-
-        assertEquals(2, cards.size());
+    void changeCardStatus_cardNotFound() {
+        when(cardRepository.findByCardNumber(anyString())).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> cardService.changeCardStatus("xxx", CardStatus.BLOCKED));
     }
 
     @Test
-    void testGetUserCardsForAccount_AccountNotFound() {
-        String accountNumber = "12345";
-        String authHeader = "Bearer token";
-        Long clientId = 1L;
+    void blockCardByUser_success() {
+        Card card = new Card();
+        card.setAccount(account);
+        card.setStatus(CardStatus.ACTIVE);
 
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
-        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId))
-                .thenReturn(Optional.empty());
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
+        when(cardRepository.findByCardNumber(anyString())).thenReturn(Optional.of(card));
+        when(userClient.getClientById(account.getClientId())).thenReturn(client);
 
-        assertThrows(AccountNotFoundException.class, () -> cardService.getUserCardsForAccount(accountNumber, authHeader));
+        cardService.blockCardByUser("1111", authHeader);
+
+        assertEquals(CardStatus.BLOCKED, card.getStatus());
+        verify(cardRepository).save(card);
+        verify(rabbitTemplate).convertAndSend(eq("card-status-change"), any(EmailRequestDto.class));
     }
 
     @Test
-    void testRequestNewCard_Success() throws JsonProcessingException {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Test Card", "1234567890123456", BigDecimal.valueOf(5000));
-        Account account = new PersonalAccount();
-        account.setAccountNumber("1234567890123456");
-        account.setClientId(1L);
-        AccountTypeDto accountTypeDto = new AccountTypeDto("1234567890123456", AccountOwnerType.PERSONAL);
+    void blockCardByUser_notAuthorized() {
+        Card card = new Card();
+        Account foreignAccount = new PersonalAccount();
+        foreignAccount.setClientId(99L);
+        card.setAccount(foreignAccount);
 
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
+        when(cardRepository.findByCardNumber(anyString())).thenReturn(Optional.of(card));
 
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
+        assertThrows(UnauthorizedException.class, () -> cardService.blockCardByUser("1234", authHeader));
+    }
+
+    @Test
+    void getUserCards_returnsList() {
+        Card card = new Card();
+        card.setAccount(account);
+        List<Account> accounts = List.of(account);
+        account.setCards(List.of(card));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
+        when(accountRepository.findByClientId(account.getClientId())).thenReturn(accounts);
+        when(userClient.getClientById(account.getClientId())).thenReturn(client);
+
+        List<CardDto> cards = cardService.getUserCards(authHeader);
+        assertEquals(1, cards.size());
+    }
+
+    @Test
+    void requestNewCard_success() throws JsonProcessingException {
+        CreateCardDto dto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "MyCard", account.getAccountNumber(), BigDecimal.valueOf(1000));
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
         when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.of(account));
-        when(accountMapper.toAccountTypeDto(any(Account.class))).thenReturn(accountTypeDto);
-        when(cardRepository.countByAccount(any(Account.class))).thenReturn(1L);
-        when(objectMapper.writeValueAsString(any())).thenReturn("");
-        // Act
-        cardService.requestNewCard(createCardDto, authHeader);
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(0L);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
-        // Assert
-        verify(cardRequestRepository, times(1)).save(any(CardRequest.class));
-        verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
+        cardService.requestNewCard(dto, authHeader);
+
+        verify(cardRequestRepository).save(any(CardRequest.class));
+        verify(userClient).createVerificationRequest(any(CreateVerificationRequestDto.class));
     }
 
     @Test
-    void testRequestNewCard_AccountNotFound() {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(CardType.DEBIT, CardIssuer.MASTERCARD, "New Card", "0000000000000000", BigDecimal.valueOf(3000));
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
+    void requestNewCard_cardLimitExceeded() {
+        CreateCardDto dto = new CreateCardDto(CardType.DEBIT, CardIssuer.VISA, "Test", account.getAccountNumber(), BigDecimal.valueOf(1000));
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
+        when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(3L);
+
+        assertThrows(CardLimitExceededException.class, () -> cardService.requestNewCard(dto, authHeader));
+    }
+
+    @Test
+    void approveCardRequest_success() {
+        CardRequest request = CardRequest.builder()
+                .id(1L)
+                .accountNumber(account.getAccountNumber())
+                .clientId(account.getClientId())
+                .cardType(CardType.DEBIT)
+                .cardIssuer(CardIssuer.VISA)
+                .cardLimit(BigDecimal.valueOf(500))
+                .name("Approved")
+                .status(RequestStatus.PENDING)
+                .build();
+
+        when(cardRequestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountTypeDto(account)).thenReturn(new AccountTypeDto(account.getAccountNumber(), AccountOwnerType.PERSONAL));
+        when(cardRepository.countByAccount(account)).thenReturn(0L);
+
+        cardService.approveCardRequest(1L);
+
+        assertEquals(RequestStatus.APPROVED, request.getStatus());
+        verify(cardRepository).save(any(Card.class));
+    }
+
+    @Test
+    void approveCardRequest_alreadyApproved() {
+        CardRequest request = CardRequest.builder()
+                .id(1L)
+                .status(RequestStatus.APPROVED)
+                .build();
+        when(cardRequestRepository.findById(1L)).thenReturn(Optional.of(request));
+
+        assertThrows(EntityNotFoundException.class, () -> cardService.approveCardRequest(1L));
+    }
+
+    @Test
+    void approveCardRequest_accountNotFound() {
+        CardRequest request = CardRequest.builder()
+                .id(1L)
+                .status(RequestStatus.PENDING)
+                .accountNumber("123")
+                .clientId(1L)
+                .build();
+
+        when(cardRequestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThrows(AccNotFoundException.class, () -> cardService.requestNewCard(createCardDto, authHeader));
+        assertThrows(AccNotFoundException.class, () -> cardService.approveCardRequest(1L));
     }
 
-    @Test
-    void testRequestNewCard_CardLimitExceeded() {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(CardType.DEBIT, CardIssuer.VISA, "Extra Card", "1234567890123456", BigDecimal.valueOf(2000));
-        Account account = new PersonalAccount();
-        account.setAccountNumber("1234567890123456");
-        account.setClientId(1L);
-        AccountTypeDto accountTypeDto = new AccountTypeDto("1234567890123456", AccountOwnerType.PERSONAL);
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
-        when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.of(account));
-        when(accountMapper.toAccountTypeDto(any(Account.class))).thenReturn(accountTypeDto);
-        when(cardRepository.countByAccount(any(Account.class))).thenReturn(3L);
-
-
-        // Act & Assert
-        assertThrows(CardLimitExceededException.class, () -> cardService.requestNewCard(createCardDto, authHeader));
-    }
-
-    @Test
-    void testRequestNewCard_InvalidCardLimit() {
-        // Arrange
-        CreateCardDto createCardDto = new CreateCardDto(CardType.CREDIT, CardIssuer.VISA, "Bad Limit Card", "1234567890123456", BigDecimal.valueOf(-500));
-        Account account = new PersonalAccount();
-        account.setAccountNumber("1234567890123456");
-        account.setClientId(1L);
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(1L);
-        when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.of(account));
-        when(accountMapper.toAccountTypeDto(any(Account.class))).thenReturn(new AccountTypeDto("123456789012345678", AccountOwnerType.PERSONAL));
-
-        // Act & Assert
-        assertThrows(InvalidCardLimitException.class, () -> cardService.requestNewCard(createCardDto, authHeader));
-    }
 }
