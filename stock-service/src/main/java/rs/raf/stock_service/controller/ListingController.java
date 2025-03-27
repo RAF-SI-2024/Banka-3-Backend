@@ -107,20 +107,4 @@ public class ListingController {
             throw ex;
         }
     }
-
-    @PreAuthorize("hasRole('AGENT')")
-    @PostMapping("/buy")
-    @Operation(summary = "Places buy order for a security", description = "Places an order to buy a security.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Security buy order placed successfully"),
-            @ApiResponse(responseCode = "404", description = "Security not found")
-    })
-    public ResponseEntity<?> buy(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody BuyListingDto buyListingDto) {
-        try {
-            listingService.placeBuyOrder(buyListingDto,authHeader);
-            return ResponseEntity.ok().build();
-        }catch (ListingNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
-    }
 }

@@ -14,15 +14,25 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
+import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
+import rs.raf.stock_service.domain.entity.FuturesContract;
 import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.domain.enums.OrderType;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
+import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
+import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
+import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.service.OrderService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -40,6 +50,11 @@ public class OrderServiceTest {
     @Mock
     private JwtTokenUtil jwtTokenUtil;
 
+    @Mock
+    private ListingRepository listingRepository;
+
+    @Mock
+    private UserClient userClient;
 
     @Test
     void testGetOrdersByStatus_WhenStatusIsProvided() {
@@ -170,5 +185,153 @@ public class OrderServiceTest {
         assertEquals(OrderStatus.DECLINED, order.getStatus());
         assertEquals(userId, order.getApprovedBy());
         verify(orderRepository, times(1)).save(order);
+    }
+
+    @Test
+    void createOrder_ShouldApproveOrder_WhenUserIsClient() {
+        // Arrange
+        String authHeader = "Bearer test-token";
+        Long userId = 1L;
+        String role = "CLIENT";
+        CreateOrderDto createOrderDto = new CreateOrderDto(10L, OrderType.MARKET, 100, 3,
+                OrderDirection.BUY, "123");
+
+        FuturesContract listing = new FuturesContract();
+        listing.setId(10L);
+        listing.setPrice(new BigDecimal("50.00"));
+        listing.setContractSize(100);
+        listing.setContractUnit("UNIT");
+        listing.setSettlementDate(LocalDate.from(LocalDateTime.now().plusMonths(1)));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
+        when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
+
+        // Act
+        orderService.createOrder(createOrderDto, authHeader);
+
+        // Assert
+        verify(orderRepository, times(1)).save(argThat(order ->
+                order.getStatus().equals(OrderStatus.APPROVED) &&
+                        order.getUserId().equals(userId) &&
+                        order.getListing().getId().equals(listing.getId())
+        ));
+    }
+
+    @Test
+    void createOrder_ShouldThrowListingNotFoundException_WhenListingDoesNotExist() {
+        // Arrange
+        String authHeader = "Bearer test-token";
+        Long userId = 1L;
+        CreateOrderDto createOrderDto = new CreateOrderDto(10L, OrderType.MARKET, 100, 3,
+                OrderDirection.BUY, "123");
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(listingRepository.findById(10L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ListingNotFoundException exception = assertThrows(ListingNotFoundException.class, () -> {
+            orderService.createOrder(createOrderDto, authHeader);
+        });
+
+        assertEquals("Listing with ID 10 not found.", exception.getMessage());
+    }
+
+    //Ja sam 99% siguran da po specifikaciji samo client i agent mogu da kreiraju ordere
+//    @Test
+//    void placeBuyOrder_ShouldApproveOrder_WhenUserIsSupervisor() {
+//        // Arrange
+//        String authHeader = "Bearer test-token";
+//        Long userId = 1L;
+//        String role = "SUPERVISOR";
+//        CreateOrderDto createOrderDto = new CreateOrderDto(10, OrderType.MARKET, 100, 3, "123");
+//
+//        FuturesContract listing = new FuturesContract();
+//        listing.setId(10L);
+//        listing.setPrice(new BigDecimal("50.00"));
+//        listing.setContractSize(100);
+//        listing.setContractUnit("UNIT");
+//        listing.setSettlementDate(LocalDate.from(LocalDateTime.now().plusMonths(1)));
+//
+//        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+//        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
+//        when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
+//
+//        // Act
+//        orderService.createOrder(createOrderDto, authHeader);
+//
+//        // Assert
+//        verify(orderRepository, times(1)).save(argThat(order ->
+//                order.getStatus().equals(OrderStatus.APPROVED) &&
+//                        order.getUserId().equals(userId) &&
+//                        order.getListing().getId().equals(listing.getId())
+//        ));
+//    }
+//
+//    @Test
+//    void placeBuyOrder_ShouldApproveOrder_WhenUserIsAdmin() {
+//        // Arrange
+//        String authHeader = "Bearer test-token";
+//        Long userId = 1L;
+//        String role = "ADMIN";
+//        CreateOrderDto createOrderDto = new CreateOrderDto(10, OrderType.MARKET, 100, 3, "123");
+//
+//        FuturesContract listing = new FuturesContract();
+//        listing.setId(10L);
+//        listing.setPrice(new BigDecimal("50.00"));
+//        listing.setContractSize(100);
+//        listing.setContractUnit("UNIT");
+//        listing.setSettlementDate(LocalDate.from(LocalDateTime.now().plusMonths(1)));
+//
+//        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+//        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
+//        when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
+//
+//        // Act
+//        orderService.createOrder(createOrderDto, authHeader);
+//
+//        // Assert
+//        verify(orderRepository, times(1)).save(argThat(order ->
+//                order.getStatus().equals(OrderStatus.APPROVED) &&
+//                        order.getUserId().equals(userId) &&
+//                        order.getListing().getId().equals(listing.getId())
+//        ));
+//    }
+
+
+
+    @Test
+    void createOrder_ShouldSetOrderStatusToPending_WhenActuaryApprovalIsNeeded() {
+        // Arrange
+        String authHeader = "Bearer test-token";
+        Long userId = 1L;
+        String role = "EMPLOYEE";
+        CreateOrderDto createOrderDto = new CreateOrderDto(10L, OrderType.MARKET, 100, 3,
+                OrderDirection.BUY, "123");
+
+        FuturesContract listing = new FuturesContract();
+        listing.setId(10L);
+        listing.setPrice(new BigDecimal("50.00"));
+        listing.setContractSize(100);
+        listing.setContractUnit("UNIT");
+        listing.setSettlementDate(LocalDate.from(LocalDateTime.now().plusMonths(1)));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn(role);
+        when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
+
+        // Pretpostavljamo da je aktuarijski korisnik koji zahteva odobrenje
+        ActuaryLimitDto actuaryLimitDto = new ActuaryLimitDto(new BigDecimal("1000"), new BigDecimal("100"), true);
+        when(userClient.getActuaryByEmployeeId(userId)).thenReturn(actuaryLimitDto);
+
+        // Act
+        orderService.createOrder(createOrderDto, authHeader);
+
+        // Assert
+        verify(orderRepository, times(1)).save(argThat(order ->
+                order.getStatus().equals(OrderStatus.PENDING) &&
+                        order.getUserId().equals(userId) &&
+                        order.getListing().getId().equals(listing.getId())
+        ));
     }
 }

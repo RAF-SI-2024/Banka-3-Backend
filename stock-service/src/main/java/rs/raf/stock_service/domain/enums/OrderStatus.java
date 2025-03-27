@@ -1,5 +1,5 @@
 package rs.raf.stock_service.domain.enums;
 
 public enum OrderStatus {
-    PENDING, APPROVED, DECLINED, DONE
+    PENDING, APPROVED, DECLINED
 }

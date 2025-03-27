@@ -37,8 +37,6 @@ public class AccountController {
 
     private AccountService accountService;
     private final JwtTokenUtil jwtTokenUtil;
-    private final UserClient userClient;
-    private final ChangeLimitRequestRepository changeLimitRequestRepository;
 
     /// Refaktorisano tako da getAccounts bude jedna GET metoda a ne dve jer tako kod ne radi
     /// Ovde proverava da li se request salje kao klijent ili admin/employee
@@ -221,6 +219,20 @@ public class AccountController {
         }
     }
 
+    @Operation(summary = "Get client account balance")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Account balance retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Account balance retrieved successfully")
+    })
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/{accountNumber}/balance")
+    public ResponseEntity<?> getAccountsForClient(@PathVariable String accountNumber) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountBalance(accountNumber));
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 
     // Globalni Exception Handleri
 

@@ -8,6 +8,7 @@ import rs.raf.stock_service.domain.enums.OrderType;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -25,8 +26,9 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private Long userId; // aktuar
 
-    @Column(nullable = false, updatable = false)
-    private Long asset;
+    @ManyToOne
+    @JoinColumn(name = "listing_id", nullable = false, updatable = false)
+    private Listing listing;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false)
@@ -64,5 +66,24 @@ public class Order {
 
     private String accountNumber;
 
+    @OneToMany
+    private List<Transaction> transactions;
+
+    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber){
+        this.userId = userId;
+        this.listing = listing;
+        this.orderType = orderType;
+        this.quantity = quantity;
+        this.contractSize = contractSize;
+        this.direction = direction;
+        //valjda je price ustvari BID price, jer promenljiva bid ne postoji
+        this.pricePerUnit = direction == OrderDirection.BUY ? listing.getAsk() : listing.getPrice();
+        this.status = OrderStatus.PENDING;
+        this.isDone = false;
+        this.lastModification = LocalDateTime.now();
+        this.remainingPortions = quantity;
+        this.afterHours = afterHours;
+        this.accountNumber = accountNumber;
+    }
 }
 

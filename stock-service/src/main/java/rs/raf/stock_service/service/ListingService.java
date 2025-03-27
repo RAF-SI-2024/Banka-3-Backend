@@ -35,15 +35,10 @@ public class ListingService {
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
 
     @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
     private ListingMapper listingMapper;
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
-
-    private final UserClient userClient;
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
@@ -77,45 +72,5 @@ public class ListingService {
         listingRepository.save(listing);
 
         return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
-    }
-
-    public void placeBuyOrder(BuyListingDto buyListingDto, String authHeader) {
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
-        Listing listing = listingRepository.findById(Long.valueOf(buyListingDto.getListingId()))
-                .orElseThrow(() -> new ListingNotFoundException(Long.valueOf(buyListingDto.getListingId())));
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setAsset(listing.getId());
-        order.setOrderType(buyListingDto.getOrderType());
-        order.setAccountNumber(buyListingDto.getAccountNumber());
-        if (role.equals("CLIENT") || role.equals("SUPERVISOR") || role.equals("ADMIN")) {
-            order.setStatus(OrderStatus.APPROVED);
-            // dodati validaciju da zapravo ima pare za ovaj order i da moze da se approvuje
-        } else {
-            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
-            if (actuaryLimitDto.isNeedsApproval())
-                order.setStatus(OrderStatus.PENDING);
-            else {
-                BigDecimal userBalance = actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit());
-                BigDecimal contractSize = BigDecimal.valueOf(buyListingDto.getContractSize());
-                BigDecimal pricePerUnit = listing.getPrice();
-                BigDecimal quantity = BigDecimal.valueOf(buyListingDto.getQuantity());
-                BigDecimal approxPrice = contractSize.multiply(pricePerUnit.multiply(quantity));
-                if (userBalance.compareTo(approxPrice) >= 0)
-                    order.setStatus(OrderStatus.APPROVED);
-                else
-                    order.setStatus(OrderStatus.PENDING);
-            }
-
-        }
-        order.setQuantity(buyListingDto.getQuantity());
-        order.setContractSize(buyListingDto.getContractSize());
-        order.setPricePerUnit(listing.getPrice());
-        order.setDirection(OrderDirection.BUY);
-        order.setIsDone(false);
-        order.setLastModification(LocalDateTime.now());
-
-        orderRepository.save(order);
     }
 }
