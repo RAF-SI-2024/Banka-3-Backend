@@ -4,17 +4,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.stock_service.domain.dto.ListingDetailsDto;
-import rs.raf.stock_service.domain.dto.ListingDto;
-import rs.raf.stock_service.domain.dto.ListingFilterDto;
-import rs.raf.stock_service.domain.dto.ListingUpdateDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
+import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -51,7 +51,7 @@ public class ListingController {
             @RequestParam(required = false) Long maxVolume,
             @RequestParam(required = false) BigDecimal minMaintenanceMargin,
             @RequestParam(required = false) BigDecimal maxMaintenanceMargin,
-            @RequestParam(required = false) LocalDate settlementDate,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate settlementDate,
             @RequestParam(required = false, defaultValue = "price") String sortBy,
             @RequestParam(required = false, defaultValue = "asc") String sortOrder
     ) {
@@ -105,6 +105,22 @@ public class ListingController {
             return ResponseEntity.ok(listingService.updateListing(id, updateDto, authHeader));
         } catch (ListingNotFoundException ex) {
             throw ex;
+        }
+    }
+
+    @PreAuthorize("hasRole('AGENT')")
+    @PostMapping("/buy")
+    @Operation(summary = "Places buy order for a security", description = "Places an order to buy a security.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Security buy order placed successfully"),
+            @ApiResponse(responseCode = "404", description = "Security not found")
+    })
+    public ResponseEntity<?> buy(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody BuyListingDto buyListingDto) {
+        try {
+            listingService.placeBuyOrder(buyListingDto,authHeader);
+            return ResponseEntity.ok().build();
+        }catch (ListingNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

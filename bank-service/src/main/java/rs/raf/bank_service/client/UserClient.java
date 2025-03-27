@@ -11,14 +11,11 @@ import java.util.List;
 
 
 /// Klasa koja sluzi za slanje HTTP poziva na userService
-@FeignClient(name = "user-service", url = "${user.service.url:http://localhost:8080}", fallbackFactory = UserClientFallbackFactory.class, decode404 = true)
+@FeignClient(name = "user-service", url = "${spring.cloud.openfeign.client.config.user-service.url}", fallbackFactory = UserClientFallbackFactory.class, decode404 = true)
 public interface UserClient {
 
     @GetMapping("/api/admin/clients/{id}")
     ClientDto getClientById(@PathVariable("id") Long id);
-
-    @PostMapping("/api/auth/request-card")
-    void requestCard(RequestCardDto requestCardDto);
 
     @PostMapping("/api/auth/check-token")
     void checkToken(CheckTokenDto checkTokenDto);

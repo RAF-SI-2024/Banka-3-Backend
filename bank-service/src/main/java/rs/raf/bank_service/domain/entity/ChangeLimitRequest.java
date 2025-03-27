@@ -26,7 +26,8 @@ public class ChangeLimitRequest {
     @Enumerated(EnumType.STRING)
     private VerificationStatus status; // PENDING, APPROVED, DENIED
 
-    public ChangeLimitRequest() {}
+    public ChangeLimitRequest() {
+    }
 
     public ChangeLimitRequest(String accountNumber, BigDecimal newLimit) {
         this.accountNumber = accountNumber;

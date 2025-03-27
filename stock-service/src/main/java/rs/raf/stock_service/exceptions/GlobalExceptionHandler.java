@@ -27,6 +27,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorMessageDto(errorMessage));
     }
 
+
+    @ExceptionHandler({StockNotFoundException.class, ForexPairNotFoundException.class, StockNotFoundException.class, ForexPairNotFoundException.class})
+    public ResponseEntity<ErrorMessageDto> handleStockNotFoundException(StockNotFoundException ex) {
+        ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler({ApiException.class, ExchangeRateConversionException.class, LatestRatesNotFoundException.class})
+    public ResponseEntity<ErrorMessageDto> handleApiException(ApiException ex) {
+        ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.BAD_GATEWAY);
+    }
+
+    @ExceptionHandler(SymbolSearchException.class)
+    public ResponseEntity<ErrorMessageDto> handleSymbolSearch(SymbolSearchException ex) {
+        ErrorMessageDto error = new ErrorMessageDto(ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+  
     @ExceptionHandler(ListingNotFoundException.class)
     public ResponseEntity<String> handleListingNotFoundException(ListingNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
@@ -41,4 +60,4 @@ public class GlobalExceptionHandler {
 //        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(ex.getMessage()));
 //    }
 
-    }
+}

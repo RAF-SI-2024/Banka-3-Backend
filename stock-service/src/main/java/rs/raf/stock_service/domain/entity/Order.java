@@ -22,27 +22,27 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Long userId; // aktuar
-    
-    @Column(nullable = false)
-    private Integer asset;
+
+    @Column(nullable = false, updatable = false)
+    private Long asset;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OrderType orderType; // market, limit, stop, stop_limit
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private Integer contractSize;
 
     @Column(nullable = false)
     private BigDecimal pricePerUnit;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OrderDirection direction; // buy, sell
 
     @Enumerated(EnumType.STRING)
@@ -57,12 +57,12 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime lastModification;
 
-    @Column(nullable = false)
     private Integer remainingPortions;
 
-    @Column(nullable = false)
+    @Column(updatable = false)
     private Boolean afterHours;
 
+    private String accountNumber;
 
 }
 

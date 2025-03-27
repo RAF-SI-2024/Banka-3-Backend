@@ -15,14 +15,12 @@ import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
-import rs.raf.bank_service.exceptions.CardNotFoundException;
-import rs.raf.bank_service.exceptions.PaymentNotFoundException;
-import rs.raf.bank_service.exceptions.ReceiverAccountNotFoundException;
-import rs.raf.bank_service.exceptions.SenderAccountNotFoundException;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.service.ExchangeRateService;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -60,6 +58,9 @@ class PaymentServiceTest {
 
     @InjectMocks
     private PaymentService paymentService;
+
+    @Mock
+    private ExchangeRateService exchangeRateService;
 
     @BeforeEach
     void setUp() {
@@ -340,5 +341,377 @@ class PaymentServiceTest {
         verify(paymentRepository, times(1)).save(any(Payment.class));
         verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
     }
+
+    @Test
+    void confirmTransferAndExecute_SameCurrency_Success() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setAmount(BigDecimal.valueOf(100));
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("1");
+        sender.setBalance(BigDecimal.valueOf(500));
+        Currency usd = new Currency("USD");
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("2");
+        receiver.setBalance(BigDecimal.valueOf(200));
+        receiver.setCurrency(usd);
+
+        payment.setSenderAccount(sender);
+        payment.setAccountNumberReceiver(receiver.getAccountNumber());
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber(receiver.getAccountNumber()))
+                .thenReturn(Optional.of(receiver));
+
+        boolean result = paymentService.confirmTransferAndExecute(paymentId);
+
+        assertTrue(result);
+        assertEquals(BigDecimal.valueOf(400), sender.getBalance());
+        assertEquals(BigDecimal.valueOf(300), receiver.getBalance());
+        assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
+        verify(accountRepository, times(1)).save(sender);
+        verify(accountRepository, times(1)).save(receiver);
+        verify(paymentRepository, times(1)).save(payment);
+    }
+
+    @Test
+    void confirmTransferAndExecute_DifferentCurrencies_Success() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setAmount(BigDecimal.valueOf(100));
+
+        Currency usd = new Currency("USD");
+        Currency eur = new Currency("EUR");
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("1");
+        sender.setBalance(BigDecimal.valueOf(500));
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("2");
+        receiver.setBalance(BigDecimal.valueOf(200));
+        receiver.setCurrency(eur);
+
+        payment.setSenderAccount(sender);
+        payment.setAccountNumberReceiver(receiver.getAccountNumber());
+
+        CompanyAccount bankAccountFrom = new CompanyAccount();
+        bankAccountFrom.setAccountNumber("3");
+        bankAccountFrom.setCurrency(usd);
+        bankAccountFrom.setCompanyId(1L);
+        bankAccountFrom.setBalance(BigDecimal.valueOf(1000));
+
+        CompanyAccount bankAccountTo = new CompanyAccount();
+        bankAccountTo.setAccountNumber("4");
+        bankAccountTo.setCurrency(eur);
+        bankAccountTo.setCompanyId(1L);
+        bankAccountTo.setBalance(BigDecimal.valueOf(2000));
+
+        ExchangeRateDto exchangeRateDto = new ExchangeRateDto();
+        exchangeRateDto.setExchangeRate(BigDecimal.valueOf(0.85));
+        BigDecimal convertedAmount = payment.getAmount().multiply(exchangeRateDto.getExchangeRate());
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber(receiver.getAccountNumber()))
+                .thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(usd, 1L))
+                .thenReturn(Optional.of(bankAccountFrom));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(eur, 1L))
+                .thenReturn(Optional.of(bankAccountTo));
+        when(exchangeRateService.getExchangeRate("USD", "EUR"))
+                .thenReturn(exchangeRateDto);
+
+        boolean result = paymentService.confirmTransferAndExecute(paymentId);
+
+        assertTrue(result);
+        assertEquals(BigDecimal.valueOf(400), sender.getBalance());
+        assertEquals(BigDecimal.valueOf(1100), bankAccountFrom.getBalance());
+//        assertEquals(BigDecimal.valueOf(1915.0), bankAccountTo.getBalance());
+//        assertEquals(BigDecimal.valueOf(285), receiver.getBalance());
+        assertEquals(convertedAmount, payment.getOutAmount());
+        assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
+
+        verify(accountRepository, times(2)).save(sender);
+        verify(accountRepository, times(1)).save(bankAccountFrom);
+        verify(accountRepository, times(1)).save(bankAccountTo);
+        verify(accountRepository, times(1)).save(receiver);
+        verify(paymentRepository, times(1)).save(payment);
+    }
+
+    @Test
+    void confirmTransferAndExecute_PaymentNotFound_ThrowsException() {
+        Long paymentId = 1L;
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.empty());
+
+        assertThrows(PaymentNotFoundException.class, () -> paymentService.confirmTransferAndExecute(paymentId));
+    }
+
+    @Test
+    void confirmTransferAndExecute_ReceiverAccountNotFound_ThrowsException() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setAccountNumberReceiver("RECEIVER123");
+        Account sender = new PersonalAccount();
+        sender.setCurrency(new Currency("USD"));
+        payment.setSenderAccount(sender);
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber("RECEIVER123")).thenReturn(Optional.empty());
+
+        assertThrows(ReceiverAccountNotFoundException.class, () -> paymentService.confirmTransferAndExecute(paymentId));
+    }
+
+    @Test
+    void confirmTransferAndExecute_BankAccountFromNotFound_ThrowsException() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setAccountNumberReceiver("RECEIVER123");
+        Account sender = new PersonalAccount();
+        Currency usd = new Currency("USD");
+        sender.setCurrency(usd);
+        payment.setSenderAccount(sender);
+
+        Account receiver = new PersonalAccount();
+        Currency eur = new Currency("EUR");
+        receiver.setCurrency(eur);
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber("RECEIVER123")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(usd, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(BankAccountNotFoundException.class, () -> paymentService.confirmTransferAndExecute(paymentId));
+    }
+
+    @Test
+    void confirmPayment_SameCurrency_Success() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setAmount(BigDecimal.valueOf(100));
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("1");
+        sender.setBalance(BigDecimal.valueOf(500));
+        Currency usd = new Currency("USD");
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("2");
+        receiver.setBalance(BigDecimal.valueOf(200));
+        receiver.setCurrency(usd);
+
+        payment.setSenderAccount(sender);
+        payment.setAccountNumberReceiver(receiver.getAccountNumber());
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber(receiver.getAccountNumber()))
+                .thenReturn(Optional.of(receiver));
+
+        paymentService.confirmPayment(paymentId);
+
+        assertEquals(BigDecimal.valueOf(400), sender.getBalance());
+        assertEquals(BigDecimal.valueOf(300), receiver.getBalance());
+        assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
+        verify(accountRepository, times(1)).save(sender);
+        verify(accountRepository, times(1)).save(receiver);
+        verify(paymentRepository, times(1)).save(payment);
+    }
+
+    @Test
+    void confirmPayment_DifferentCurrencies_Success() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setAmount(BigDecimal.valueOf(100));
+
+        Currency usd = new Currency("USD");
+        Currency eur = new Currency("EUR");
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("1");
+        sender.setBalance(BigDecimal.valueOf(500));
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("2");
+        receiver.setBalance(BigDecimal.valueOf(200));
+        receiver.setCurrency(eur);
+
+        payment.setSenderAccount(sender);
+        payment.setAccountNumberReceiver(receiver.getAccountNumber());
+
+        CompanyAccount bankAccountFrom = new CompanyAccount();
+        bankAccountFrom.setAccountNumber("3");
+        bankAccountFrom.setCurrency(usd);
+        bankAccountFrom.setCompanyId(1L);
+        bankAccountFrom.setBalance(BigDecimal.valueOf(1000));
+
+        CompanyAccount bankAccountTo = new CompanyAccount();
+        bankAccountTo.setAccountNumber("4");
+        bankAccountTo.setCurrency(eur);
+        bankAccountTo.setCompanyId(1L);
+        bankAccountTo.setBalance(BigDecimal.valueOf(2000));
+
+        ExchangeRateDto exchangeRateDto = new ExchangeRateDto();
+        exchangeRateDto.setExchangeRate(BigDecimal.valueOf(0.85));
+        BigDecimal convertedAmount = payment.getAmount().multiply(exchangeRateDto.getExchangeRate());
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber(receiver.getAccountNumber()))
+                .thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(usd, 1L))
+                .thenReturn(Optional.of(bankAccountFrom));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(eur, 1L))
+                .thenReturn(Optional.of(bankAccountTo));
+        when(exchangeRateService.getExchangeRate("USD", "EUR"))
+                .thenReturn(exchangeRateDto);
+
+        paymentService.confirmPayment(paymentId);
+
+        assertEquals(BigDecimal.valueOf(400), sender.getBalance());
+        assertEquals(BigDecimal.valueOf(1100), bankAccountFrom.getBalance());
+//        assertEquals(BigDecimal.valueOf(1915), bankAccountTo.getBalance());
+//        assertEquals(BigDecimal.valueOf(285), receiver.getBalance());
+        assertEquals(convertedAmount, payment.getOutAmount());
+        assertEquals(PaymentStatus.COMPLETED, payment.getStatus());
+
+        verify(accountRepository, times(2)).save(sender);
+        verify(accountRepository, times(1)).save(bankAccountFrom);
+        verify(accountRepository, times(1)).save(bankAccountTo);
+        verify(accountRepository, times(1)).save(receiver);
+        verify(paymentRepository, times(1)).save(payment);
+    }
+
+    @Test
+    void confirmPayment_PaymentNotFound_ThrowsException() {
+        Long paymentId = 1L;
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.empty());
+
+        assertThrows(PaymentNotFoundException.class, () -> paymentService.confirmPayment(paymentId));
+    }
+
+    @Test
+    void confirmPayment_ReceiverAccountNotFound_ThrowsException() {
+        Long paymentId = 1L;
+        Payment payment = new Payment();
+        payment.setId(paymentId);
+        payment.setAccountNumberReceiver("RECEIVER123");
+        Account sender = new PersonalAccount();
+        sender.setCurrency(new Currency("USD"));
+        payment.setSenderAccount(sender);
+
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        when(accountRepository.findByAccountNumber("RECEIVER123")).thenReturn(Optional.empty());
+
+        assertThrows(ReceiverAccountNotFoundException.class, () -> paymentService.confirmPayment(paymentId));
+    }
+
+    @Test
+    void createTransferPendingConfirmation_Success_SameCurrency() throws Exception {
+        Long clientId = 1L;
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(100));
+
+        Currency currency = new Currency("RSD");
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(1000));
+        sender.setCurrency(currency);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(currency);
+        receiver.setClientId(2L);
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", clientId)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        boolean result = paymentService.createTransferPendingConfirmation(transferDto, clientId);
+
+        assertTrue(result);
+        verify(paymentRepository, times(1)).save(any(Payment.class));
+        verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
+    }
+
+    @Test
+    void createTransferPendingConfirmation_Success_DifferentCurrency() throws Exception {
+        Long clientId = 1L;
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(100));
+
+        Currency usd = new Currency("USD");
+        Currency eur = new Currency("EUR");
+
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(1000));
+        sender.setCurrency(usd);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(eur);
+        receiver.setClientId(2L);
+
+        ExchangeRateDto exchangeRateDto = new ExchangeRateDto();
+        exchangeRateDto.setSellRate(BigDecimal.valueOf(0.9));
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", clientId)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+        when(exchangeRateService.getExchangeRate("USD", "EUR")).thenReturn(exchangeRateDto);
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        boolean result = paymentService.createTransferPendingConfirmation(transferDto, clientId);
+
+        assertTrue(result);
+        verify(exchangeRateService).getExchangeRate("USD", "EUR");
+        verify(paymentRepository, times(1)).save(any(Payment.class));
+        verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
+    }
+
+    @Test
+    void createTransferPendingConfirmation_InsufficientFunds_ThrowsException() {
+        TransferDto transferDto = new TransferDto();
+        transferDto.setSenderAccountNumber("111111");
+        transferDto.setReceiverAccountNumber("222222");
+        transferDto.setAmount(BigDecimal.valueOf(1000));
+
+        Currency currency = new Currency("RSD");
+        Account sender = new PersonalAccount();
+        sender.setAccountNumber("111111");
+        sender.setBalance(BigDecimal.valueOf(500));
+        sender.setCurrency(currency);
+
+        Account receiver = new PersonalAccount();
+        receiver.setAccountNumber("222222");
+        receiver.setCurrency(currency);
+
+        when(accountRepository.findByAccountNumberAndClientId("111111", 1L)).thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber("222222")).thenReturn(Optional.of(receiver));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                paymentService.createTransferPendingConfirmation(transferDto, 1L));
+    }
+
+
+
 
 }

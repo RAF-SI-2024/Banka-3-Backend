@@ -21,6 +21,7 @@ import rs.raf.user_service.exceptions.ActuaryLimitNotFoundException;
 import rs.raf.user_service.exceptions.EmployeeNotFoundException;
 import rs.raf.user_service.exceptions.UserNotAgentException;
 import rs.raf.user_service.service.ActuaryService;
+
 import javax.validation.Valid;
 
 @RestController
@@ -31,7 +32,7 @@ public class ActuaryController {
 
     private final ActuaryService actuaryService;
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("change-limit/{id}")
     @Operation(summary = "Change agent limit.")
     @ApiResponses({
@@ -48,7 +49,7 @@ public class ActuaryController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("reset-limit/{id}")
     @Operation(summary = "Reset daily limit for an agent.")
     @ApiResponses({
@@ -64,7 +65,7 @@ public class ActuaryController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @PutMapping("set-approval/{id}")
     @Operation(summary = "Set approval value for an agent.")
     @ApiResponses({
@@ -73,14 +74,14 @@ public class ActuaryController {
     })
     public ResponseEntity<?> setApprovalValue(@PathVariable Long id, @Valid @RequestBody SetApprovalDto setApprovalDto) {
         try {
-            actuaryService.setApproval(id,setApprovalDto.getNeedApproval());
+            actuaryService.setApproval(id, setApprovalDto.getNeedApproval());
             return ResponseEntity.ok().build();
         } catch (ActuaryLimitNotFoundException | EmployeeNotFoundException | UserNotAgentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
+    @PreAuthorize("hasRole('SUPERVISOR')")
     @GetMapping
     @Operation(summary = "Get all agents with filtering.")
     @ApiResponses({
@@ -92,9 +93,23 @@ public class ActuaryController {
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) String position,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size){
+            @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(actuaryService.findAll(firstName, lastName, email, position, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")
+    @GetMapping("{agentId}")
+    @Operation(summary = "Get agent actuary limit.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent actuary limit returned successfully."),
+            @ApiResponse(responseCode = "404", description = "Not found.")
+    })
+    public ResponseEntity<?> getAgentLimit(@PathVariable Long agentId) {
+        try {
+            return ResponseEntity.ok().body(actuaryService.getAgentLimit(agentId));
+        } catch (ActuaryLimitNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 }

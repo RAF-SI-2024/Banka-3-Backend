@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface LoanRequestRepository extends JpaRepository<LoanRequest, Long>, JpaSpecificationExecutor<LoanRequest> {
     // Pronalazi zahteve po statusu
     List<LoanRequest> findByStatus(LoanRequestStatus status);
+
     Optional<LoanRequest> findByIdAndStatus(Long id, LoanRequestStatus status);
+
     Page<LoanRequest> findByAccountIn(List<Account> accounts, Pageable pageable);
 }

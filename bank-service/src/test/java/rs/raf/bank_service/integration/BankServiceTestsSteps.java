@@ -17,7 +17,6 @@ import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.controller.PaymentController;
 import rs.raf.bank_service.domain.dto.*;
-import rs.raf.bank_service.domain.enums.CardType;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -207,34 +206,34 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         clientToken = loginResponseDto.getToken();
     }
 
-    @And("the client requests a new card")
-    public void theClientRequestsANewCard() {
-        CreateCardDto createCardDto = new CreateCardDto();
-        createCardDto.setType(CardType.DEBIT);
-        createCardDto.setName("Mastercard");
-        createCardDto.setCardLimit(BigDecimal.valueOf(1000000L));
-        Page<AccountDto> accountsPage = (Page<AccountDto>) accountController.getAccountsForClient(null, clientDto.getId(), 0, 10).getBody();
-        if (accountsPage == null || accountsPage.getContent().isEmpty()) {
-            fail("No accounts found for client: " + clientDto.getId());
-        }
-
-        String accountNumber = accountsPage.getContent().get(0).getAccountNumber();
-
-        createCardDto.setAccountNumber(accountNumber);
-        dto = createCardDto;
-
-        authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
-        cardController.requestCardForAccount(createCardDto);
-    }
-
-    @And("the client confirms card creation request using token sent to his email and the card is created")
-    public void theClientConfirmsCardCreationRequestUsingTokenSentToHisEmailAndTheCardIsCreated() {
-        CardRequestDto cardRequestDto = new CardRequestDto();
-        cardRequestDto.setToken("df7ff5f0-70bd-492c-9569-ac5f3fbda7xd");    //hardcoded token, added in user service bootstrap
-        cardRequestDto.setCreateCardDto(dto);
-
-        cardDto = cardController.verifyAndReceiveCard(cardRequestDto).getBody();
-    }
+//    @And("the client requests a new card")
+//    public void theClientRequestsANewCard() {
+//        CreateCardDto createCardDto = new CreateCardDto();
+//        createCardDto.setType(CardType.DEBIT);
+//        createCardDto.setName("Mastercard");
+//        createCardDto.setCardLimit(BigDecimal.valueOf(1000000L));
+//        Page<AccountDto> accountsPage = (Page<AccountDto>) accountController.getAccountsForClient(null, clientDto.getId(), 0, 10).getBody();
+//        if (accountsPage == null || accountsPage.getContent().isEmpty()) {
+//            fail("No accounts found for client: " + clientDto.getId());
+//        }
+//
+//        String accountNumber = accountsPage.getContent().get(0).getAccountNumber();
+//
+//        createCardDto.setAccountNumber(accountNumber);
+//        dto = createCardDto;
+//
+//        authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
+//        cardController.requestCardForAccount(createCardDto);
+//    }
+//
+//    @And("the client confirms card creation request using token sent to his email and the card is created")
+//    public void theClientConfirmsCardCreationRequestUsingTokenSentToHisEmailAndTheCardIsCreated() {
+//        CardRequestDto cardRequestDto = new CardRequestDto();
+//        cardRequestDto.setToken("df7ff5f0-70bd-492c-9569-ac5f3fbda7xd");    //hardcoded token, added in user service bootstrap
+//        cardRequestDto.setCreateCardDto(dto);
+//
+//        cardDto = cardController.verifyAndReceiveCard(cardRequestDto).getBody();
+//    }
 
 
     @Then("when all cards are listed for account, the list is not empty")

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
@@ -14,11 +15,11 @@ import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.VerificationType;
-import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.repository.CardRepository;
+import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -31,12 +32,12 @@ public class PaymentService {
 
     private final AccountRepository accountRepository;
     private final JwtTokenUtil jwtTokenUtil;
-    private PaymentRepository paymentRepository;
-    private CardRepository cardRepository;
     private final UserClient userClient;
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private PaymentRepository paymentRepository;
+    private CardRepository cardRepository;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver
@@ -100,6 +101,7 @@ public class PaymentService {
         return true;
     }
 
+    @Transactional
     public boolean confirmTransferAndExecute(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
@@ -127,17 +129,23 @@ public class PaymentService {
 
             //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            bankAccountFrom.setAvailableBalance(bankAccountFrom.getBalance());
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
 
             //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            bankAccountTo.setAvailableBalance(bankAccountTo.getBalance());
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            receiver.setAvailableBalance(receiver.getBalance());
             accountRepository.save(bankAccountTo);
         } else {
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             receiver.setBalance(receiver.getBalance().add(amount));
+            receiver.setAvailableBalance(receiver.getBalance());
         }
 
         accountRepository.save(sender);
@@ -220,6 +228,7 @@ public class PaymentService {
         return true;
     }
 
+    @Transactional
     public void confirmPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
@@ -249,17 +258,23 @@ public class PaymentService {
 
             //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
+            bankAccountFrom.setAvailableBalance(bankAccountFrom.getBalance());
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
 
             //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
+            bankAccountTo.setAvailableBalance(bankAccountTo.getBalance());
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
+            receiver.setAvailableBalance(receiver.getBalance());
             accountRepository.save(bankAccountTo);
         } else {
             sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
             receiver.setBalance(receiver.getBalance().add(amount));
+            receiver.setAvailableBalance(receiver.getBalance());
         }
 
         accountRepository.save(sender);

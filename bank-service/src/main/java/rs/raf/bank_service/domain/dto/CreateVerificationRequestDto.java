@@ -1,6 +1,6 @@
 package rs.raf.bank_service.domain.dto;
-import lombok.*;
 
+import lombok.*;
 import rs.raf.bank_service.domain.enums.VerificationType;
 
 @Getter

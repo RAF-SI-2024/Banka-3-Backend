@@ -6,8 +6,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import rs.raf.bank_service.domain.dto.InstallmentCreateDto;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import rs.raf.bank_service.domain.dto.InstallmentDto;
 import rs.raf.bank_service.service.InstallmentService;
 
@@ -22,6 +24,7 @@ public class InstallmentController {
     public InstallmentController(InstallmentService installmentService) {
         this.installmentService = installmentService;
     }
+
     @PreAuthorize("hasRole('CLIENT') or hasRole('ADMIN')")
     @Operation(summary = "Get installments by loan ID")
     @ApiResponses({

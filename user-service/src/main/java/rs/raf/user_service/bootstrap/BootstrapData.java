@@ -10,6 +10,7 @@ import rs.raf.user_service.repository.*;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,7 @@ public class BootstrapData implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final AuthTokenRepository authTokenRepository;
     private final ActuaryLimitRepository actuaryLimitRepository;
+    private final AuthorizedPersonelRepository authorizedPersonelRepository;
 
     @Override
     public void run(String... args) throws ParseException {
@@ -385,6 +387,24 @@ public class BootstrapData implements CommandLineRunner {
 
             actuaryLimitRepository.save(al2);
 
+        }
+
+        if (authorizedPersonelRepository.count() == 0) {
+            Company company1 = new Company();
+            company1.setId(3L);
+            AuthorizedPersonel auth1 = AuthorizedPersonel.builder()
+                    .id(1L)
+                    .address("Adresa Janka")
+                    .company(company1)
+                    .dateOfBirth(LocalDate.of(2000,1,1))
+                    .gender("M")
+                    .firstName("Janko")
+                    .lastName("Stefanovic")
+                    .email("email@email.com")
+                    .phoneNumber("0691153492")
+                    .build();
+
+            authorizedPersonelRepository.save(auth1);
         }
 
     }

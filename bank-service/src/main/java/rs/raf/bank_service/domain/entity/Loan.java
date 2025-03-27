@@ -1,7 +1,6 @@
 package rs.raf.bank_service.domain.entity;
 
 import lombok.*;
-import rs.raf.bank_service.domain.entity.Installment;
 import rs.raf.bank_service.domain.enums.InterestRateType;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;

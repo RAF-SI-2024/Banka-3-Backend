@@ -20,6 +20,7 @@ import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
 import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.service.LoanRequestService;
+import rs.raf.bank_service.service.TransactionQueueService;
 
 import javax.validation.Valid;
 
@@ -29,6 +30,7 @@ import javax.validation.Valid;
 @RequestMapping("/api/loan-requests")
 public class LoanRequestController {
     private final LoanRequestService loanRequestService;
+    private final TransactionQueueService transactionQueueService;
 
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Get all loan requests for client")
@@ -66,7 +68,7 @@ public class LoanRequestController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Approve a loan", description = "Marks the loan as approved.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan approved successfully"),
@@ -75,14 +77,14 @@ public class LoanRequestController {
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
         try {
-        LoanDto approvedLoan = loanRequestService.approveLoan(id);
-        return ResponseEntity.ok(approvedLoan);
-    } catch (LoanRequestNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    }
+            LoanDto approvedLoan = transactionQueueService.queueLoan("APPROVE_LOAN", id);
+            return ResponseEntity.ok(approvedLoan);
+        } catch (LoanRequestNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Reject a loan", description = "Marks the loan as rejected.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Loan rejected successfully"),
@@ -98,7 +100,7 @@ public class LoanRequestController {
         }
     }
 
-    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get all loan requests")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of loan requests retrieved successfully"),
@@ -117,7 +119,8 @@ public class LoanRequestController {
             return ResponseEntity.ok(loanRequests);
         } catch (InvalidLoanTypeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }    }
+        }
+    }
 
     /// ExceptionHandlers
     @ExceptionHandler(LoanRequestNotFoundException.class)
@@ -137,6 +140,7 @@ public class LoanRequestController {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
+        e.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }

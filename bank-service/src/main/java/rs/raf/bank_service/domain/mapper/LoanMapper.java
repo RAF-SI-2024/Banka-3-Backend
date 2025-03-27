@@ -4,9 +4,9 @@ import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.entity.Loan;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import rs.raf.bank_service.domain.entity.LoanRequest;
+import rs.raf.bank_service.domain.enums.LoanStatus;
+import rs.raf.bank_service.specification.LoanInterestRateCalculator;
 
 @Component
 public class LoanMapper {
@@ -54,6 +54,24 @@ public class LoanMapper {
         loan.setRemainingDebt(loanDto.getRemainingDebt());
         loan.setStatus(loanDto.getStatus());
         return loan;
+    }
+
+    public LoanDto toDtoPreview(LoanRequest loanRequest) {
+        return LoanDto.builder()
+                .loanNumber("N/A")
+                .type(loanRequest.getType())
+                .amount(loanRequest.getAmount())
+                .repaymentPeriod(loanRequest.getRepaymentPeriod())
+                .nominalInterestRate(LoanInterestRateCalculator.calculateNominalRate(loanRequest))
+                .effectiveInterestRate(LoanInterestRateCalculator.calculateEffectiveRate(loanRequest))
+                .startDate(null)
+                .dueDate(null)
+                .nextInstallmentAmount(null)
+                .nextInstallmentDate(null)
+                .remainingDebt(null)
+                .currencyCode(loanRequest.getCurrency().getCode())
+                .status(LoanStatus.APPROVED)
+                .build();
     }
 
 }

@@ -6,4 +6,5 @@ public enum VerificationType {
     CHANGE_LIMIT,
     PAYMENT,
     TRANSFER,
+    CARD_REQUEST
 }

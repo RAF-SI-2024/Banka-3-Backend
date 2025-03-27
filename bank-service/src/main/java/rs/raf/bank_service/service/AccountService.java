@@ -1,6 +1,7 @@
 package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,6 @@ import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -94,7 +94,8 @@ public class AccountService {
         return accounts.map(account -> AccountMapper.toDto(account, client));
     }
 
-    public void createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
+    public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
+        Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
         Long userId = newBankAccountDto.getClientId();
         ClientDto clientDto = userClient.getClientById(userId);
         if (clientDto == null)
@@ -108,7 +109,7 @@ public class AccountService {
             newAccount = new PersonalAccount();
 
         newAccount.setClientId(newBankAccountDto.getClientId());
-        newAccount.setCreatedByEmployeeId(newBankAccountDto.getEmployeeId());
+        newAccount.setCreatedByEmployeeId(employeeId);
         newAccount.setCreationDate(LocalDate.ofEpochDay(Instant.now().getEpochSecond()));
         System.out.println(newBankAccountDto.getCurrency());
         Currency currCurrency = currencyRepository.findByCode(newBankAccountDto.getCurrency())
@@ -139,7 +140,7 @@ public class AccountService {
         String accountNumber = "3330001" + random + accountOwnerTypeNumber;
         newAccount.setAccountNumber(accountNumber);
 
-        accountRepository.save(newAccount);
+        return AccountMapper.toDto(accountRepository.save(newAccount), clientDto);
     }
 
     public List<AccountDto> getMyAccounts(Long clientId) {
@@ -190,7 +191,7 @@ public class AccountService {
                         authorizedPersonnelDto
                 );
 
-
+                companyAccountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
                 companyAccountDetailsDto.setTaxId(companyDto.getTaxId());
@@ -201,6 +202,7 @@ public class AccountService {
 
             return accountDetailsDto;
         } catch (FeignException e) {
+            e.printStackTrace();
             throw new RuntimeException();
         }
     }

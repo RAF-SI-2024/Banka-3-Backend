@@ -19,12 +19,12 @@ import java.time.LocalDate;
 public class Option extends Listing {
     @Enumerated(EnumType.STRING)
     private OptionType optionType;
-    
+
     private BigDecimal strikePrice;
     private BigDecimal impliedVolatility;
     private Integer openInterest;
     private LocalDate settlementDate;
-    
+
     @ManyToOne
     private Stock underlyingStock;
 }

@@ -14,10 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.domain.dto.ClientDto;
-import rs.raf.user_service.domain.dto.CreateClientDto;
-import rs.raf.user_service.domain.dto.ErrorMessageDto;
-import rs.raf.user_service.domain.dto.UpdateClientDto;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
 import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
 import rs.raf.user_service.exceptions.UserAlreadyExistsException;
@@ -34,6 +32,9 @@ public class ClientController {
     @Autowired
     private ClientService clientService;
 
+    @Autowired
+    private BankClient bankClient;
+
    /*
     Parametri za pretragu se prosledjuju kao query parametri ne kao request body
     Endpoint vraca json u sledecem formatu
@@ -48,7 +49,7 @@ public class ClientController {
      */
 
     // GET endpoint sa opcionalnim filterima i sortiranje po prezimenu
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping
     @Operation(summary = "Get all clients with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Clients retrieved successfully")})
@@ -63,7 +64,7 @@ public class ClientController {
         return ResponseEntity.ok(clients);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
     @Operation(summary = "Get client by ID")
     @ApiResponses({
@@ -78,7 +79,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping
     @Operation(summary = "Add new client (password is set during activation)")
     @ApiResponses({
@@ -96,7 +97,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PutMapping("/{id}")
     @Operation(summary = "Update client (only allowed fields)")
     @ApiResponses({
@@ -117,7 +118,7 @@ public class ClientController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete client by ID")
@@ -149,4 +150,5 @@ public class ClientController {
             return ResponseEntity.notFound().build();
         }
     }
+
 }

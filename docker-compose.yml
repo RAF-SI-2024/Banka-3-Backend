@@ -1,13 +1,13 @@
 version: '3.9'
 
 services:
-  postgres:
+  main_db:
     image: postgres:17.3-alpine
     restart: always
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - main_db_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
@@ -16,9 +16,9 @@ services:
     image: postgres:17.3-alpine
     restart: always
     ports:
-      - 5433:5432
+      - "5433:5432"
     volumes:
-      - postgres_data_bank:/var/lib/postgresql/data
+      - bank_db_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
@@ -27,9 +27,9 @@ services:
     image: postgres:17.3-alpine
     restart: always
     ports:
-      - 5434:5432
+      - "5434:5432"
     volumes:
-      - postgres_data_stock:/var/lib/postgresql/data
+      - stock_db_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=lozinka
       - POSTGRES_USER=postgres
@@ -38,42 +38,12 @@ services:
     image: rabbitmq:3-management
     restart: always
     ports:
-      - 5672:5672  # RabbitMQ port
-      - 15672:15672  # RabbitMQ management console port
+      - "5672:5672"  # RabbitMQ port
+      - "15672:15672"  # RabbitMQ management console port
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-#  user-service:
-#    build: ./user-service
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/main_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - postgres
-#      - rabbitmq
-#  email-service:
-#    build: ./email-service
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db:5433/bank_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - bank_db
-#      - rabbitmq
-#  bank-service:
-#    build: ./bank-service
-#    ports:
-#      - "8082:8082"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db:5433/bank_db
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#    depends_on:
-#      - bank_db
-#      - rabbitmq
 volumes:
-  postgres_data:
-  postgres_data_bank:
-  postgres_data_stock:
+  main_db_data:
+  bank_db_data:
+  stock_db_data:

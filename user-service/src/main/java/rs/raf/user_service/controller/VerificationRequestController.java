@@ -1,5 +1,6 @@
 package rs.raf.user_service.controller;
 
+import feign.FeignException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.user_service.domain.dto.ClientDto;
 import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
+import rs.raf.user_service.domain.dto.ErrorMessageDto;
 import rs.raf.user_service.domain.entity.VerificationRequest;
 import rs.raf.user_service.exceptions.VerificationClientNotFoundException;
 import rs.raf.user_service.service.ClientService;
@@ -111,7 +113,7 @@ public class VerificationRequestController {
     })
     @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/approve/{requestId}")
-    public ResponseEntity<String> approveRequest(
+    public ResponseEntity<?> approveRequest(
             @RequestHeader(value="User-Agent", required=false) String userAgent,
             @PathVariable Long requestId,
             @RequestHeader("Authorization") String authHeader) {  // ✅ Dodajemo JWT header
@@ -119,11 +121,17 @@ public class VerificationRequestController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        boolean success = verificationRequestService.processApproval(requestId, authHeader);
+        try {
+            boolean success = verificationRequestService.processApproval(requestId, authHeader);
 
-        return success
-                ? ResponseEntity.ok("Request approved and account limit updated")
-                : ResponseEntity.badRequest().body("Request not found or already processed");
+            return success
+                    ? ResponseEntity.ok("Request approved.")
+                    : ResponseEntity.badRequest().body(new ErrorMessageDto("Request not found or already processed"));
+        } catch (FeignException.BadRequest e) {
+            return ResponseEntity.badRequest().body(new ErrorMessageDto(e.getMessage()));
+        }
+
+
     }
 
 }

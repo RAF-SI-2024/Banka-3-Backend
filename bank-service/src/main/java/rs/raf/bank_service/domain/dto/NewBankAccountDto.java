@@ -18,7 +18,7 @@ public class NewBankAccountDto {
     @NotNull(message = "Client ID cannot be null")
     private Long clientId;
 
-    @NotNull(message = "Employee ID  cannot be null")
+    // bice obrisano, vadi se iz jwt
     private Long employeeId;
 
     private Long companyId;
