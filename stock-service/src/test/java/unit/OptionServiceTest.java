@@ -72,7 +72,7 @@ class OptionServiceTest {
         OptionDto dto = optionService.getOptionByTicker("tsla_call");
 
         assertEquals("TSLA", dto.getStockListing());
-        assertEquals("CALL", dto.getOptionType());
+        assertEquals(OptionType.CALL, dto.getOptionType());
     }
 
     @Test
@@ -113,6 +113,6 @@ class OptionServiceTest {
         List<OptionDto> options = optionService.getOptionsByType(OptionType.CALL);
 
         assertEquals(1, options.size());
-        assertEquals("CALL", options.get(0).getOptionType());
+        assertEquals(OptionType.CALL, options.get(0).getOptionType());
     }
 }
