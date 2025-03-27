@@ -73,6 +73,21 @@ public class AccountController {
         }
     }
 
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/bank")
+    public ResponseEntity<?> getBankAccounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<AccountDto> accounts = accountService.getBankAccounts(pageable);
+            return ResponseEntity.ok(accounts);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto("Unexpected error occurred."));
+        }
+    }
+
     @Operation(summary = "Get client accounts with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
     @PreAuthorize("hasRole('EMPLOYEE')")

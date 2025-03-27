@@ -333,7 +333,7 @@ public class AccountServiceTest {
         account.setClientId(clientDto.getId());
         account.setBalance(BigDecimal.TEN);
         when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
-
+        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
         AccountDetailsDto accountDetails = accountService.getAccountDetails("CLIENT", 1L, "1");
         assertNotNull(accountDetails);
         assertEquals(account.getBalance(), accountDetails.getBalance());

@@ -78,6 +78,7 @@ public class LoanService {
             Account currAccount = accountRepository.findByIdForUpdate(currLoan.getAccount().getAccountNumber());
             if (currLoan.getStatus().compareTo(LoanStatus.PAID_OFF) < 0 && currAccount.getBalance().compareTo(currLoan.getNextInstallmentAmount()) >= 0 ) {
                 currAccount.setBalance(currAccount.getBalance().subtract(currLoan.getNextInstallmentAmount()));
+                currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(currLoan.getNextInstallmentAmount()));
                 accountRepository.save(currAccount);
 
                 List<Installment> installments = currLoan.getInstallments();
@@ -123,6 +124,8 @@ public class LoanService {
         Account currAccount = accountRepository.findByAccountNumber(loan.getAccount().getAccountNumber()).orElseThrow();
         if (loan.getStatus().compareTo(LoanStatus.PAID_OFF) < 0 && currAccount.getBalance().compareTo(loan.getNextInstallmentAmount()) >= 0) {
             currAccount.setBalance(currAccount.getBalance().subtract(loan.getNextInstallmentAmount()));
+            currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(loan.getNextInstallmentAmount()));
+
             accountRepository.save(currAccount);
 
             List<Installment> installments = loan.getInstallments();

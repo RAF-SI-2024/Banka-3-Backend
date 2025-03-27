@@ -21,14 +21,16 @@ public class AccountDetailsDto {
     private BigDecimal availableBalance;
     private BigDecimal reservedFunds;
     private BigDecimal balance;
+    private String currencyCode;
 
     public AccountDetailsDto(String name, String accountNumber, AccountType accountType, BigDecimal availableBalance, BigDecimal reservedFunds,
-                             BigDecimal balance){
+                             BigDecimal balance, String currencyCode){
         this.name = name;
         this.accountNumber = accountNumber;
         this.accountType = accountType;
         this.availableBalance = availableBalance;
         this.reservedFunds = reservedFunds;
         this.balance = balance;
+        this.currencyCode = currencyCode;
     }
 }
