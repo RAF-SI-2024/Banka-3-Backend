@@ -58,7 +58,7 @@ public class OptionService {
             for (int strike = lowerBound; strike <= upperBound; strike++) {
                 OptionDto callOption = new OptionDto();
                 callOption.setStockListing(stockListing);
-                callOption.setOptionType("Call");
+                callOption.setOptionType(OptionType.CALL);
                 callOption.setStrikePrice(BigDecimal.valueOf(strike));
                 callOption.setContractSize(BigDecimal.valueOf(100));
                 callOption.setSettlementDate(exp);
@@ -67,7 +67,7 @@ public class OptionService {
 
                 OptionDto putOption = new OptionDto();
                 putOption.setStockListing(stockListing);
-                putOption.setOptionType("Put");
+                putOption.setOptionType(OptionType.PUT);
                 putOption.setStrikePrice(BigDecimal.valueOf(strike));
                 putOption.setContractSize(BigDecimal.valueOf(100));
                 putOption.setSettlementDate(exp);
@@ -84,7 +84,7 @@ public class OptionService {
 
         OptionDto dto = new OptionDto();
         dto.setStockListing(option.getUnderlyingStock().getTicker());
-        dto.setOptionType(option.getOptionType().name());
+        dto.setOptionType(option.getOptionType());
         dto.setStrikePrice(option.getStrikePrice());
         dto.setContractSize(option.getContractSize());
         dto.setSettlementDate(option.getSettlementDate());
@@ -108,7 +108,7 @@ public class OptionService {
     private OptionDto toDto(Option option) {
         OptionDto dto = new OptionDto();
         dto.setStockListing(option.getUnderlyingStock().getTicker());
-        dto.setOptionType(option.getOptionType().name());
+        dto.setOptionType(option.getOptionType());
         dto.setStrikePrice(option.getStrikePrice());
         dto.setContractSize(option.getContractSize());
         dto.setSettlementDate(option.getSettlementDate());
