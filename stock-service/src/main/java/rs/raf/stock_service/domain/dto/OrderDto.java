@@ -10,6 +10,7 @@ import rs.raf.stock_service.domain.enums.OrderType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -30,4 +31,5 @@ public class OrderDto {
     private LocalDateTime lastModification;
     private Integer remainingPortions;
     private Boolean afterHours;
+    private List<TransactionDto> transactions;
 }

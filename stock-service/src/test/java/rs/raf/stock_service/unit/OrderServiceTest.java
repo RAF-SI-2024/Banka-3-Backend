@@ -1,4 +1,4 @@
-package unit;
+package rs.raf.stock_service.unit;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;

@@ -27,6 +27,7 @@ import rs.raf.stock_service.exceptions.OrderStatusNotFoundException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
+import rs.raf.stock_service.repository.TransactionRepository;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -45,6 +46,7 @@ public class OrderService {
     private final UserClient userClient;
     private final BankClient bankClient;
     private ListingMapper listingMapper;
+    private TransactionRepository transactionRepository;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         Page<Order> ordersPage;
@@ -88,36 +90,42 @@ public class OrderService {
     }
 
     public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader){
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-        Listing listing = listingRepository.findById(createOrderDto.getListingId())
-                .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
+        try{
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            Listing listing = listingRepository.findById(createOrderDto.getListingId())
+                    .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
-        //Nzm odakle se ovo uzima, msm kada se zatvara trziste
-        boolean afterHours = false;
+            //Nzm odakle se ovo uzima, msm kada se zatvara trziste
+            boolean afterHours = false;
 
-        Order order = OrderMapper.toOrder(createOrderDto, userId, listing, afterHours);
+            Order order = OrderMapper.toOrder(createOrderDto, userId, listing, afterHours);
 
-        BigDecimal approxPrice = BigDecimal.valueOf(order.getContractSize()).multiply(order.getPricePerUnit().
-                multiply(BigDecimal.valueOf(order.getQuantity())));
+            BigDecimal approxPrice = BigDecimal.valueOf(order.getContractSize()).multiply(order.getPricePerUnit().
+                    multiply(BigDecimal.valueOf(order.getQuantity())));
 
-        if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT")) {
-            order.setStatus(verifyBalance(order)? OrderStatus.APPROVED : OrderStatus.DECLINED);
-        } else {
-            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound
+            if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT")) {
+                order.setStatus(verifyBalance(order)? OrderStatus.APPROVED : OrderStatus.DECLINED);
+            } else {
+                ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound
 
-            if (!actuaryLimitDto.isNeedsApproval()){
-                if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(approxPrice) >= 0)
-                    order.setStatus(OrderStatus.APPROVED);
+                if (!actuaryLimitDto.isNeedsApproval()){
+                    if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(approxPrice) >= 0)
+                        order.setStatus(OrderStatus.APPROVED);
+                }
             }
+
+            orderRepository.save(order);
+
+            if (order.getStatus()  == OrderStatus.APPROVED)
+                executeOrder(order);
+
+            return OrderMapper.toDto(order, listingMapper.toDto(listing,
+                    dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
+        } catch (Exception e){
+            e.printStackTrace();
         }
 
-        orderRepository.save(order);
-
-        if (order.getStatus()  == OrderStatus.APPROVED)
-            executeOrder(order);
-
-        return OrderMapper.toDto(order, listingMapper.toDto(listing,
-                dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
+        return null;
     }
 
     private boolean verifyBalance(Order order){
@@ -152,19 +160,24 @@ public class OrderService {
         Random random = new Random();
 
         while (order.getRemainingPortions() > 0 ){
-            Integer batchSize = random.nextInt(1, order.getRemainingPortions());
+            Integer remainingPortions = order.getRemainingPortions();
+            Integer batchSize = random.nextInt(1, remainingPortions + 1);
 
             BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
                     .multiply(BigDecimal.valueOf(order.getContractSize()));
 
-            order.getTransactions().add(new Transaction(batchSize, order.getPricePerUnit(), totalPrice));
-            order.setRemainingPortions(order.getRemainingPortions() - batchSize);
+            Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
+            transactionRepository.save(transaction);
+
+            order.getTransactions().add(transaction);
+
+            order.setRemainingPortions(remainingPortions - batchSize);
 
             order.setLastModification(LocalDateTime.now());
             orderRepository.save(order);
 
             try {
-                Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() /  order.getRemainingPortions())));
+                Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() /  remainingPortions)));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

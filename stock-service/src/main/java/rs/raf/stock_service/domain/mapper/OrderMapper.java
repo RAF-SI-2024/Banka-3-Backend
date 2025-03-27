@@ -6,6 +6,8 @@ import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Order;
 
+import java.util.stream.Collectors;
+
 public class OrderMapper {
 
     public static OrderDto toDto(Order order, ListingDto listingDto) {
@@ -24,7 +26,8 @@ public class OrderMapper {
             order.getIsDone(),
             order.getLastModification(),
             order.getRemainingPortions(),
-            order.getAfterHours()
+            order.getAfterHours(),
+            order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
         );
     }
 

@@ -28,10 +28,15 @@ public class Transaction {
 
     private LocalDateTime timestamp;
 
-    public Transaction(Integer quantity, BigDecimal pricePerUnit, BigDecimal totalPrice){
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
+
+    public Transaction(Integer quantity, BigDecimal pricePerUnit, BigDecimal totalPrice, Order order){
         this.quantity = quantity;
         this.pricePerUnit = pricePerUnit;
         this.totalPrice = totalPrice;
         this.timestamp = LocalDateTime.now();
+        this.order = order;
     }
 }

@@ -8,6 +8,7 @@ import rs.raf.stock_service.domain.enums.OrderType;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -66,7 +67,7 @@ public class Order {
 
     private String accountNumber;
 
-    @OneToMany
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 
     public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber){
@@ -77,13 +78,14 @@ public class Order {
         this.contractSize = contractSize;
         this.direction = direction;
         //valjda je price ustvari BID price, jer promenljiva bid ne postoji
-        this.pricePerUnit = direction == OrderDirection.BUY ? listing.getAsk() : listing.getPrice();
+        this.pricePerUnit = direction == OrderDirection.BUY ? listing.getAsk() == null ? BigDecimal.ONE : listing.getAsk() : listing.getPrice();
         this.status = OrderStatus.PENDING;
         this.isDone = false;
         this.lastModification = LocalDateTime.now();
         this.remainingPortions = quantity;
         this.afterHours = afterHours;
         this.accountNumber = accountNumber;
+        this.transactions = new ArrayList<>();
     }
 }
 
