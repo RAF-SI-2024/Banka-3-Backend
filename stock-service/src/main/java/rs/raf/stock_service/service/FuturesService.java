@@ -40,7 +40,7 @@ public class FuturesService {
         try (InputStream is = getClass().getResourceAsStream("/future_data.csv");
              BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
 
-            reader.readLine(); // skip header
+            reader.readLine();
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] fields = line.split(",");
@@ -51,7 +51,7 @@ public class FuturesService {
                 String contractUnit = fields[2].trim();
                 BigDecimal maintenanceMargin = new BigDecimal(fields[3].trim());
 
-                // Calculate price = margin / (contractSize * 0.10)
+                // margin / (contractSize * 0.10)
                 BigDecimal price = maintenanceMargin
                         .divide(new BigDecimal(contractSize), 10, BigDecimal.ROUND_HALF_UP)
                         .divide(new BigDecimal("0.10"), 2, BigDecimal.ROUND_HALF_UP);
@@ -59,9 +59,8 @@ public class FuturesService {
                 // Generate random future settlement date (30 to 210 days from now)
                 LocalDate settlementDate = LocalDate.now().plusDays((int) (Math.random() * 180) + 30);
 
-                // Construct DTO
                 FuturesContractDto dto = new FuturesContractDto();
-                dto.setTicker(contractName.toUpperCase().replaceAll("\\s+", "_")); // e.g. "soybean oil" → "SOYBEAN_OIL"
+                dto.setTicker(contractName.toUpperCase().replaceAll("\\s+", "_"));
                 dto.setContractSize(contractSize);
                 dto.setContractUnit(contractUnit);
                 dto.setMaintenanceMargin(maintenanceMargin);

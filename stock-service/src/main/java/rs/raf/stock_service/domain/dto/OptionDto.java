@@ -7,10 +7,10 @@ import java.time.LocalDate;
 
 @Data
 public class OptionDto {
-    private String stockListing;      // npr. "AAPL"
-    private String optionType;        // "Call" ili "Put"
-    private BigDecimal strikePrice; // sada BigDecimal
-    private BigDecimal contractSize;      // obično 100
-    private LocalDate settlementDate; // datum isteka opcije
+    private String stockListing;
+    private String optionType;// "Call" ili "Put"
+    private BigDecimal strikePrice;
+    private BigDecimal contractSize;
+    private LocalDate settlementDate;
     private BigDecimal maintenanceMargin;
 }

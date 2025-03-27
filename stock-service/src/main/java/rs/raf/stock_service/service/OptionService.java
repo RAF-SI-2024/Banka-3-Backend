@@ -22,15 +22,15 @@ public class OptionService {
     /**
      * Generiše opcije za dati stock koristeći ručni model.
      * - Za trenutnu cenu se zaokružuje na najbliži ceo broj.
-     * - Definišu se strike cene: 5 ispod i 5 iznad zaokružene cene (ukupno 11 strike vrijednosti).
+     * - Definišu se strike cene: 5 ispod i 5 iznad zaokružene cene (ukupno 11 strike vrednosti).
      * - Prvi datum isteka je 6 dana od danas, zatim se generišu opcije svakih 6 dana dok razlika ne dostigne 30 dana,
      * a potom se dodaje još 6 datuma sa razmakom od 30 dana.
-     * - Za svaku kombinaciju datuma i strike cijene kreira se CALL i PUT opcija.
+     * - Za svaku kombinaciju datuma i strike cene kreira se CALL i PUT opcija.
      * - Derived maintenance margin za opcije = 100 * 0.5 * currentPrice = 50 * currentPrice.
      *
      * @param stockListing simbol stocka, npr. "AAPL"
-     * @param currentPrice trenutna cijena dionice
-     * @return Lista generiranih opcija kao OptionDto
+     * @param currentPrice trenutna cena deonice
+     * @return Lista generisanih opcija kao OptionDto
      */
     public List<OptionDto> generateOptions(String stockListing, BigDecimal currentPrice) {
         List<OptionDto> options = new ArrayList<>();
@@ -38,23 +38,21 @@ public class OptionService {
         int lowerBound = roundedPrice - 5;
         int upperBound = roundedPrice + 5;
 
-        // Prvi datum isteka je 6 dana od danas
         LocalDate firstExpiry = LocalDate.now().plusDays(6);
         List<LocalDate> expiryDates = new ArrayList<>();
 
-        // Generiramo opcije svakih 6 dana dok razlika ne dostigne 30 dana
         LocalDate expiry = firstExpiry;
         while (!expiry.isAfter(firstExpiry.plusDays(30))) {
             expiryDates.add(expiry);
             expiry = expiry.plusDays(6);
         }
-        // Dodajemo dodatnih 6 datuma sa razmakom od 30 dana
+
         for (int i = 1; i <= 6; i++) {
             expiryDates.add(expiry.plusDays((long) (i - 1) * 30));
         }
 
-        // Derived maintenance margin = 50 * currentPrice
-        BigDecimal derivedMargin = currentPrice.multiply(new BigDecimal("50"));
+        // margin = 50 * currentPrice
+        BigDecimal margin = currentPrice.multiply(new BigDecimal("50"));
 
         for (LocalDate exp : expiryDates) {
             for (int strike = lowerBound; strike <= upperBound; strike++) {
@@ -64,7 +62,7 @@ public class OptionService {
                 callOption.setStrikePrice(BigDecimal.valueOf(strike));
                 callOption.setContractSize(BigDecimal.valueOf(100));
                 callOption.setSettlementDate(exp);
-                callOption.setMaintenanceMargin(derivedMargin);
+                callOption.setMaintenanceMargin(margin);
                 options.add(callOption);
 
                 OptionDto putOption = new OptionDto();
@@ -73,7 +71,7 @@ public class OptionService {
                 putOption.setStrikePrice(BigDecimal.valueOf(strike));
                 putOption.setContractSize(BigDecimal.valueOf(100));
                 putOption.setSettlementDate(exp);
-                putOption.setMaintenanceMargin(derivedMargin);
+                putOption.setMaintenanceMargin(margin);
                 options.add(putOption);
             }
         }
