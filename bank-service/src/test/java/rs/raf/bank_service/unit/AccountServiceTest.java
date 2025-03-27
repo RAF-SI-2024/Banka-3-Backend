@@ -1,362 +1,684 @@
 package rs.raf.bank_service.unit;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
-import feign.Request;
-import feign.RequestTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.*;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
-import rs.raf.bank_service.domain.entity.Account;
+import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.entity.Currency;
-import rs.raf.bank_service.domain.entity.PersonalAccount;
-import rs.raf.bank_service.exceptions.ClientNotAccountOwnerException;
-import rs.raf.bank_service.exceptions.ClientNotFoundException;
-import rs.raf.bank_service.exceptions.CurrencyNotFoundException;
-import rs.raf.bank_service.exceptions.UserNotAClientException;
+import rs.raf.bank_service.domain.enums.*;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class AccountServiceTest {
-
-
-    @Mock
-    private CurrencyRepository currencyRepository;
-
-    @Mock
-    private AccountRepository accountRepository;
 
     @InjectMocks
     private AccountService accountService;
 
     @Mock
+    private CompanyAccountRepository companyAccountRepository;
+
+    @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
     private ChangeLimitRequestRepository changeLimitRequestRepository;
+
+    @Mock
+    private CurrencyRepository currencyRepository;
 
     @Mock
     private JwtTokenUtil jwtTokenUtil;
 
-
     @Mock
     private UserClient userClient;
 
+    @Mock
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setUp() {
-//        accountService = new AccountService(currencyRepository, accountRepository , changeLimitRequestRepository ,jwtTokenUtil,userClient);
+        MockitoAnnotations.openMocks(this);
+        accountService = new AccountService(
+                currencyRepository,
+                companyAccountRepository,
+                accountRepository,
+                changeLimitRequestRepository,
+                jwtTokenUtil,
+                userClient,
+                objectMapper
+        );
+
+
+    }
+
+
+    @Test
+    void shouldThrowExceptionIfClientNotAccountOwner() {
+        Account acc = new PersonalAccount();
+        acc.setAccountNumber("123");
+        acc.setClientId(1L);
+
+        ClientDto caller = new ClientDto();
+        caller.setId(2L); // != acc.getClientId()
+
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(acc));
+        when(userClient.getClientById(2L)).thenReturn(caller);
+
+        assertThrows(ClientNotAccountOwnerException.class, () ->
+                accountService.getAccountDetails("CLIENT", 2L, "123")
+        );
     }
 
     @Test
-    public void testGetAccounts_noFilters_returnsAllSorted() {
-        // Pravimo tri dummy računa
-        PersonalAccount account1 = new PersonalAccount();
-        account1.setAccountNumber("123");
-        account1.setClientId(1L);
+    void shouldReturnDetailsDtoForClientOwner() {
+        Account acc = new PersonalAccount();
+        acc.setAccountNumber("123");
+        acc.setClientId(1L);
+        acc.setAccountOwnerType(AccountOwnerType.STUDENT);
 
-        PersonalAccount account2 = new PersonalAccount();
-        account2.setAccountNumber("456");
-        account2.setClientId(2L);
+        ClientDto caller = new ClientDto();
+        caller.setId(1L);
+        caller.setFirstName("Pera");
+        caller.setLastName("Peric");
 
-        PersonalAccount account3 = new PersonalAccount();
-        account3.setAccountNumber("789");
-        account3.setClientId(3L);
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(acc));
+        when(userClient.getClientById(1L)).thenReturn(caller);
 
-        List<Account> accountList = List.of(account1, account2, account3);
-        when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
+        AccountDetailsDto result = accountService.getAccountDetails("CLIENT", 1L, "123");
 
-        // Pravimo odgovarajuće ClientDto objekte
-        ClientDto client1 = new ClientDto();
-        client1.setFirstName("Marko");
-        client1.setLastName("Markovic");
+        assertEquals("Pera Peric", result.getAccountOwner());
+    }
 
-        ClientDto client2 = new ClientDto();
-        client2.setFirstName("Jovan");
-        client2.setLastName("Jovic");
+    @Test
+    void shouldReturnDetailsDtoForAdminOrOtherRole() {
+        Account acc = new CompanyAccount();
+        acc.setAccountNumber("123");
+        acc.setClientId(1L);
+        acc.setAccountOwnerType(AccountOwnerType.STUDENT);
 
-        ClientDto client3 = new ClientDto();
-        client3.setFirstName("Zoran");
-        client3.setLastName("Zoric");
+        ClientDto client = new ClientDto();
+        client.setId(1L);
+        client.setFirstName("Ana");
+        client.setLastName("Anic");
 
-        when(userClient.getClientById(1L)).thenReturn(client1);
-        when(userClient.getClientById(2L)).thenReturn(client2);
-        when(userClient.getClientById(3L)).thenReturn(client3);
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(acc));
+        when(userClient.getClientById(1L)).thenReturn(client);
 
-        // Kreiramo Pageable - prvi page sa dovoljno velikom veličinom da obuhvati sve
+        AccountDetailsDto result = accountService.getAccountDetails("EMPLOYEE", 5L, "123");
+
+        assertEquals("Ana Anic", result.getAccountOwner());
+    }
+
+    @Test
+    void shouldReturnCompanyDetailsWithAuthorizedPerson() {
+        CompanyAccount acc = new CompanyAccount();
+        acc.setAccountNumber("456");
+        acc.setClientId(1L);
+        acc.setAccountOwnerType(AccountOwnerType.COMPANY);
+        acc.setCompanyId(100L);
+        acc.setAuthorizedPersonId(200L);
+
+        ClientDto client = new ClientDto();
+        client.setId(1L);
+        client.setFirstName("Mika");
+        client.setLastName("Mikic");
+
+        CompanyDto companyDto = new CompanyDto();
+        companyDto.setName("Test d.o.o.");
+        companyDto.setRegistrationNumber("123");
+        companyDto.setTaxId("456");
+        companyDto.setAddress("Adresa 1");
+
+        AuthorizedPersonelDto authorizedDto = new AuthorizedPersonelDto(200L, "Nikola", "Nikolic", 100L);
+        authorizedDto.setEmail("nikola@example.com");
+        authorizedDto.setAddress("Ulica 1");
+        authorizedDto.setPhoneNumber("0601234567");
+        authorizedDto.setDateOfBirth(LocalDate.of(1990, 1, 1));
+        authorizedDto.setGender("MALE");
+
+
+        when(accountRepository.findByAccountNumber("456")).thenReturn(Optional.of(acc));
+        when(userClient.getClientById(1L)).thenReturn(client);
+        when(userClient.getCompanyById(100L)).thenReturn(companyDto);
+        when(userClient.getAuthorizedPersonnelById(200L)).thenReturn(authorizedDto);
+
+        AccountDetailsDto result = accountService.getAccountDetails("EMPLOYEE", 1L, "456");
+
+        assertTrue(result instanceof CompanyAccountDetailsDto);
+        CompanyAccountDetailsDto dto = (CompanyAccountDetailsDto) result;
+        assertEquals("Test d.o.o.", dto.getCompanyName());
+        assertEquals("Mika Mikic", dto.getAccountOwner());
+    }
+
+    @Test
+    void shouldReturnCompanyDetailsWithoutAuthorizedPerson() {
+        CompanyAccount acc = new CompanyAccount();
+        acc.setAccountNumber("456");
+        acc.setClientId(1L);
+        acc.setAccountOwnerType(AccountOwnerType.COMPANY);
+        acc.setCompanyId(100L);
+        acc.setAuthorizedPersonId(null); // Nema ovlašćenog lica
+
+        ClientDto client = new ClientDto();
+        client.setId(1L);
+        client.setFirstName("Mika");
+        client.setLastName("Mikic");
+
+        CompanyDto companyDto = new CompanyDto();
+        companyDto.setName("Test d.o.o.");
+        companyDto.setRegistrationNumber("123");
+        companyDto.setTaxId("456");
+        companyDto.setAddress("Adresa 1");
+
+        when(accountRepository.findByAccountNumber("456")).thenReturn(Optional.of(acc));
+        when(userClient.getClientById(1L)).thenReturn(client);
+        when(userClient.getCompanyById(100L)).thenReturn(companyDto);
+
+        AccountDetailsDto result = accountService.getAccountDetails("EMPLOYEE", 1L, "456");
+
+        assertTrue(result instanceof CompanyAccountDetailsDto);
+        CompanyAccountDetailsDto dto = (CompanyAccountDetailsDto) result;
+        assertNull(dto.getAuthorizedPerson());
+    }
+
+    @Test
+    void shouldThrowExceptionIfAccountNotFound() {
+        when(accountRepository.findByAccountNumber("999")).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () ->
+                accountService.getAccountDetails("CLIENT", 1L, "999")
+        );
+    }
+
+    @Test
+    void shouldThrowRuntimeExceptionOnFeignError() {
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(new PersonalAccount()));
+        when(userClient.getClientById(anyLong())).thenThrow(FeignException.class);
+
+        assertThrows(RuntimeException.class, () ->
+                accountService.getAccountDetails("CLIENT", 1L, "123")
+        );
+    }
+
+    @Test
+    void getAccounts_FilterByFirstAndLastName_Success() {
+        String accountNumber = "123";
+        String firstName = "john";
+        String lastName = "doe";
         Pageable pageable = PageRequest.of(0, 10);
-        Page<AccountDto> result = accountService.getAccounts(null, null, null, pageable);
 
-        // Očekujemo da su rezultati sortirani po prezimenu u rastućem redosledu:
-        // "Jovic" < "Markovic" < "Zoric"
-        List<AccountDto> dtos = result.getContent();
-        assertEquals(3, dtos.size());
-        assertEquals("456", dtos.get(0).getAccountNumber());
-        assertEquals("123", dtos.get(1).getAccountNumber());
-        assertEquals("789", dtos.get(2).getAccountNumber());
+        ClientDto clientDto = new ClientDto(1L, "John", "Doe");
+
+        PersonalAccount account = new PersonalAccount();
+        account.setClientId(1L);
+        account.setAccountNumber(accountNumber);
+
+        //when(accountRepository.findAll(any())).thenReturn(List.of(account));
+        when(accountRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList(account));
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
+
+        Page<AccountDto> result = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(accountNumber, result.getContent().get(0).getAccountNumber());
     }
 
     @Test
-    public void testGetAccounts_filterByFirstName() {
-        // Pravimo dva računa
-        PersonalAccount account1 = new PersonalAccount();
-        account1.setAccountNumber("123");
-        account1.setClientId(1L);
+    void getAccounts_PaginationOnly_Success() {
+        String accountNumber = "acc";
+        Pageable pageable = PageRequest.of(0, 1);
 
-        PersonalAccount account2 = new PersonalAccount();
-        account2.setAccountNumber("456");
-        account2.setClientId(2L);
+        ClientDto clientDto1 = new ClientDto(1L, "Ana", "Popovic");
+        ClientDto clientDto2 = new ClientDto(2L, "Ivan", "Zoric");
 
-        List<Account> accountList = List.of(account1, account2);
-        when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
+        PersonalAccount acc1 = new PersonalAccount();
+        acc1.setAccountNumber("acc1");
+        acc1.setClientId(1L);
+        PersonalAccount acc2 = new PersonalAccount();
+        acc2.setAccountNumber("acc2");
+        acc2.setClientId(2L);
 
-        // Postavljamo ClientDto objekte
-        ClientDto client1 = new ClientDto();
-        client1.setFirstName("Marko");
-        client1.setLastName("Markovic");
+        when(accountRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList(acc1, acc2));
 
-        ClientDto client2 = new ClientDto();
-        client2.setFirstName("Jovan");
-        client2.setLastName("Jovic");
+        when(userClient.getClientById(1L)).thenReturn(clientDto1);
+        when(userClient.getClientById(2L)).thenReturn(clientDto2);
 
-        when(userClient.getClientById(1L)).thenReturn(client1);
-        when(userClient.getClientById(2L)).thenReturn(client2);
+        Page<AccountDto> result = accountService.getAccounts(accountNumber, null, null, pageable);
 
+        assertEquals(1, result.getContent().size());
+        assertEquals("acc1", result.getContent().get(0).getAccountNumber());
+    }
+
+    @Test
+    void getAccountsForClient_Success() {
+        String accountNumber = "acc";
+        Long clientId = 10L;
+        Pageable pageable = PageRequest.of(0, 5);
+
+        PersonalAccount acc = new PersonalAccount();
+        acc.setAccountNumber(accountNumber);
+        acc.setClientId(clientId);
+
+        ClientDto clientDto = new ClientDto(clientId, "Pera", "Peric");
+
+        when(userClient.getClientById(clientId)).thenReturn(clientDto);
+        when(accountRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(acc)));
+
+        Page<AccountDto> result = accountService.getAccountsForClient(accountNumber, clientId, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(accountNumber, result.getContent().get(0).getAccountNumber());
+    }
+
+
+    @Test
+    void getAccounts_FilterByNonMatchingName_EmptyResult() {
+        String accountNumber = "acc";
+        String firstName = "marko";
+        String lastName = "markovic";
         Pageable pageable = PageRequest.of(0, 10);
-        // Filtriramo po imenu koje sadrži "Mar"
-        Page<AccountDto> result = accountService.getAccounts(null, "Mar", null, pageable);
-        List<AccountDto> dtos = result.getContent();
 
-        // Očekujemo da samo račun sa imenom "Marko" bude vraćen
-        assertEquals(1, dtos.size());
-        assertEquals("Marko", dtos.get(0).getOwner().getFirstName());
+        PersonalAccount acc = new PersonalAccount();
+        acc.setClientId(1L);
+        acc.setAccountNumber(accountNumber);
+
+        when(accountRepository.findAll((Specification<Account>) any(Specification.class)))
+                .thenReturn(Arrays.asList(acc));
+
+        when(userClient.getClientById(1L)).thenReturn(new ClientDto(1L, "Ana", "Popovic"));
+
+        Page<AccountDto> result = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
+
+        assertEquals(0, result.getTotalElements());
+    }
+
+
+
+    @Test
+    void changeAccountName_Success() {
+        String accountNumber = "123";
+        String newName = "New Name";
+        String auth = "Bearer token";
+        Long clientId = 1L;
+
+        Account account = new PersonalAccount();
+        account.setClientId(clientId);
+        account.setName("Old Name");
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(auth)).thenReturn(clientId);
+        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)).thenReturn(Optional.of(account));
+        when(accountRepository.existsByNameAndClientId(newName, clientId)).thenReturn(false);
+
+        accountService.changeAccountName(accountNumber, newName, auth);
+
+        assertEquals(newName, account.getName());
+        verify(accountRepository).save(account);
     }
 
     @Test
-    public void testGetAccounts_filterByLastName() {
-        // Pravimo dva računa
-        PersonalAccount account1 = new PersonalAccount();
-        account1.setAccountNumber("123");
-        account1.setClientId(1L);
+    void changeAccountName_DuplicateName() {
+        String accountNumber = "123";
+        String newName = "Duplicate";
+        String auth = "Bearer token";
+        Long clientId = 1L;
 
-        PersonalAccount account2 = new PersonalAccount();
-        account2.setAccountNumber("456");
-        account2.setClientId(2L);
+        Account account = new PersonalAccount();
+        account.setClientId(clientId);
 
-        List<Account> accountList = List.of(account1, account2);
-        when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
+        when(jwtTokenUtil.getUserIdFromAuthHeader(auth)).thenReturn(clientId);
+        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)).thenReturn(Optional.of(account));
+        when(accountRepository.existsByNameAndClientId(newName, clientId)).thenReturn(true);
 
-        // Postavljamo ClientDto objekte
-        ClientDto client1 = new ClientDto();
-        client1.setFirstName("Marko");
-        client1.setLastName("Markovic");
-
-        ClientDto client2 = new ClientDto();
-        client2.setFirstName("Jovan");
-        client2.setLastName("Jovic");
-
-        when(userClient.getClientById(1L)).thenReturn(client1);
-        when(userClient.getClientById(2L)).thenReturn(client2);
-
-        Pageable pageable = PageRequest.of(0, 10);
-        // Filtriramo po prezimenu koje sadrži "vic"
-        Page<AccountDto> result = accountService.getAccounts(null, null, "vic", pageable);
-        List<AccountDto> dtos = result.getContent();
-
-        // Očekujemo da su oba računa vraćena jer oba prezimena sadrže "vic"
-        assertEquals(2, dtos.size());
+        assertThrows(DuplicateAccountNameException.class, () -> {
+            accountService.changeAccountName(accountNumber, newName, auth);
+        });
     }
 
     @Test
-    public void testGetAccounts_pagination() {
-        // Kreiramo 5 računa
-        List<Account> accountList = new ArrayList<>();
-        for (long i = 1; i <= 5; i++) {
-            PersonalAccount account = new PersonalAccount();
-            account.setAccountNumber(String.valueOf(i));
-            account.setClientId(i);
-            accountList.add(account);
-        }
-        when(accountRepository.findAll(ArgumentMatchers.<Specification<Account>>any())).thenReturn(accountList);
+    void requestAccountLimitChange_Success() throws JsonProcessingException {
+        String accountNumber = "123";
+        BigDecimal limit = BigDecimal.valueOf(1000);
+        String auth = "Bearer token";
+        Long clientId = 1L;
 
-        // Kreiramo odgovarajuće ClientDto objekte sa različitim prezimenima radi
-        // sortiranja
-        for (long i = 1; i <= 5; i++) {
-            ClientDto client = new ClientDto();
-            client.setFirstName("First" + i);
-            client.setLastName("Last" + i);
-            when(userClient.getClientById(i)).thenReturn(client);
-        }
+        Account account = new PersonalAccount();
+        account.setAccountNumber(accountNumber);
+        account.setClientId(clientId);
+        account.setDailyLimit(BigDecimal.valueOf(500));
 
-        // Zatražimo page 1 (drugi page) sa veličinom stranice 2
-        Pageable pageable = PageRequest.of(1, 2);
-        Page<AccountDto> result = accountService.getAccounts(null, null, null, pageable);
-        List<AccountDto> dtos = result.getContent();
+        when(jwtTokenUtil.getUserIdFromAuthHeader(auth)).thenReturn(clientId);
+        when(accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)).thenReturn(Optional.of(account));
+        when(changeLimitRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
-        // Pošto se računi sortiraju po prezimenu (Last1, Last2, Last3, Last4, Last5),
-        // drugi page treba da sadrži 3. i 4. račun (prema sortiranju)
-        assertEquals(2, dtos.size());
-        assertEquals("3", dtos.get(0).getAccountNumber());
-        assertEquals("4", dtos.get(1).getAccountNumber());
+        accountService.requestAccountLimitChange(accountNumber, limit, auth);
+
+        verify(userClient).createVerificationRequest(any());
     }
 
     @Test
-    public void testCreateNewBankAccount_Success() {
-        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-        newBankAccountDto.setClientId(1L);
-        newBankAccountDto.setAccountType("CURRENT");
-        newBankAccountDto.setCurrency("EUR");
-        newBankAccountDto.setIsActive("ACTIVE");
-        newBankAccountDto.setAccountOwnerType("PERSONAL");
-        String token = "Bearer token";
+    void requestAccountLimitChange_InvalidLimit() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            accountService.requestAccountLimitChange("123", BigDecimal.ZERO, "auth");
+        });
+    }
+
+    @Test
+    void changeAccountLimit_Success() {
+        Long requestId = 1L;
+        ChangeLimitRequest request = new ChangeLimitRequest("123", BigDecimal.valueOf(3000));
+        request.setId(requestId);
+
+        Account account = new PersonalAccount();
+        account.setAccountNumber("123");
+
+        when(changeLimitRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(account));
+
+        accountService.changeAccountLimit(requestId);
+
+        assertEquals(BigDecimal.valueOf(3000), account.getDailyLimit());
+        assertEquals(VerificationStatus.APPROVED, request.getStatus());
+        verify(accountRepository).save(account);
+    }
+
+    @Test
+    void changeAccountLimit_RequestNotFound() {
+        when(changeLimitRequestRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(IllegalStateException.class, () -> {
+            accountService.changeAccountLimit(1L);
+        });
+    }
+
+    @Test
+    void getMyAccounts_Success() {
+        Long clientId = 1L;
+
+        Account acc = new PersonalAccount();
+        acc.setAccountNumber("123");
+        acc.setAvailableBalance(BigDecimal.valueOf(100));
+        List<Account> accountList = List.of(acc);
+
+        when(userClient.getClientById(clientId)).thenReturn(new ClientDto(clientId, "John", "Doe"));
+        when(accountRepository.findAllByClientId(clientId)).thenReturn(accountList);
+
+        List<AccountDto> result = accountService.getMyAccounts(clientId);
+        assertEquals(1, result.size());
+        assertEquals("123", result.get(0).getAccountNumber());
+    }
+
+    @Test
+    void getMyAccounts_ClientNotFound() {
+        Long clientId = 1L;
+        when(userClient.getClientById(clientId)).thenThrow(FeignException.NotFound.class);
+        assertThrows(UserNotAClientException.class, () -> {
+            accountService.getMyAccounts(clientId);
+        });
+    }
+
+    @Test
+    void createNewBankAccount_ThrowsClientNotFound() {
+        NewBankAccountDto dto = new NewBankAccountDto();
+        dto.setClientId(1L);
+        dto.setCurrency("RSD");
+
+        when(userClient.getClientById(dto.getClientId())).thenReturn(null);
+
+        assertThrows(ClientNotFoundException.class, () -> {
+            accountService.createNewBankAccount(dto, "auth");
+        });
+    }
+
+    @Test
+    void createNewBankAccount_ThrowsCurrencyNotFound() {
+        NewBankAccountDto dto = new NewBankAccountDto();
+        dto.setClientId(1L);
+        dto.setCurrency("RSD");
+        dto.setAccountType("PERSONAL");
+        dto.setAccountOwnerType("PERSONAL");
+        dto.setInitialBalance(BigDecimal.TEN);
+        dto.setDailyLimit(BigDecimal.TEN);
+        dto.setMonthlyLimit(BigDecimal.TEN);
+        dto.setDailySpending(BigDecimal.ONE);
+        dto.setMonthlySpending(BigDecimal.ONE);
+
+        when(userClient.getClientById(dto.getClientId())).thenReturn(new ClientDto());
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.empty());
+
+        assertThrows(CurrencyNotFoundException.class, () -> {
+            accountService.createNewBankAccount(dto, "auth");
+        });
+    }
+
+
+
+
+    //ispod su promenjeni testovi iz "AuthorizedPersonServiceTest", mislim da ne nepotrebna posebna klasa za to
+
+
+
+
+    @Test
+    void setAuthorizedPerson_AccountNotFound() {
+        Long companyAccountId = 1L;
+        Long authorizedPersonId = 2L;
+        Long employeeId = 10L;
+
+        when(accountRepository.findById(companyAccountId)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> {
+            accountService.setAuthorizedPerson(companyAccountId, authorizedPersonId, employeeId);
+        });
+    }
+
+    @Test
+    void setAuthorizedPerson_UnauthorizedUser() {
+        Long companyAccountId = 1L;
+        Long authorizedPersonId = 2L;
+        Long employeeId = 10L;
+
+        CompanyAccount companyAccount = new CompanyAccount();
+        companyAccount.setCompanyId(5L);
+
+        CompanyDto companyDto = new CompanyDto();
+        companyDto.setMajorityOwner(new ClientDto(99L, "Not", "Owner")); // nije owner
+
+        when(accountRepository.findById(companyAccountId)).thenReturn(Optional.of(companyAccount));
+        when(userClient.getCompanyById(5L)).thenReturn(companyDto);
+
+        assertThrows(UnauthorizedException.class, () -> {
+            accountService.setAuthorizedPerson(companyAccountId, authorizedPersonId, employeeId);
+        });
+    }
+
+    @Test
+    void setAuthorizedPerson_InvalidAuthorizedPerson() {
+        Long companyAccountId = 1L;
+        Long authorizedPersonId = 2L;
+        Long employeeId = 10L;
+
+        CompanyAccount companyAccount = new CompanyAccount();
+        companyAccount.setCompanyId(5L);
+
+        CompanyDto companyDto = new CompanyDto();
+        companyDto.setMajorityOwner(new ClientDto(employeeId, "Marko", "Markovic")); // jeste vlasnik
+
+        List<AuthorizedPersonelDto> personnelList = List.of(); // prazna lista
+
+        when(accountRepository.findById(companyAccountId)).thenReturn(Optional.of(companyAccount));
+        when(userClient.getCompanyById(5L)).thenReturn(companyDto);
+        when(userClient.getAuthorizedPersonnelByCompany(5L)).thenReturn(personnelList);
+
+        assertThrows(InvalidAuthorizedPersonException.class, () -> {
+            accountService.setAuthorizedPerson(companyAccountId, authorizedPersonId, employeeId);
+        });
+    }
+
+
+
+
+
+    @Test
+    void shouldCreateValidPersonalAccount() {
+        NewBankAccountDto dto = new NewBankAccountDto();
+        dto.setAccountType("CURRENT"); // validan AccountType
+        dto.setAccountOwnerType("PERSONAL"); // personal suffix = "11"
+        dto.setClientId(1L);
+        dto.setCurrency("RSD");
+        dto.setIsActive("ACTIVE");
+        dto.setInitialBalance(BigDecimal.valueOf(1000));
+        dto.setDailyLimit(BigDecimal.valueOf(100));
+        dto.setMonthlyLimit(BigDecimal.valueOf(300));
+        dto.setDailySpending(BigDecimal.ZERO);
+        dto.setMonthlySpending(BigDecimal.ZERO);
+
+        String header = "Bearer test.token";
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(header)).thenReturn(10L);
 
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
+        when(userClient.getClientById(1L)).thenReturn(clientDto);
 
         Currency currency = new Currency();
-        currency.setCode("EUR");
+        currency.setCode("RSD");
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(currency));
 
-        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(2L);
-        when(userClient.getClientById(1L)).thenReturn(clientDto);
-        // Use eq() to match the exact "EUR" string.
-        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(currency));
-        when(accountRepository.save(any())).thenReturn(new PersonalAccount());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        when(accountRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        accountService.createNewBankAccount(newBankAccountDto, token);
+        // Act
+        AccountDto result = accountService.createNewBankAccount(dto, header);
 
-        verify(accountRepository, times(1)).save(any(Account.class));
-    }
-
-    @Test
-    public void testCreateNewBankAccount_ClientNotFound() {
-        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-        newBankAccountDto.setClientId(999L);
-        newBankAccountDto.setAccountType("PERSONAL");
-        newBankAccountDto.setCurrency("USD");
-        String token = "Bearer token";
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(2L);
-        when(userClient.getClientById(999L)).thenReturn(null);
-
-        Exception exception = assertThrows(ClientNotFoundException.class, () -> {
-            accountService.createNewBankAccount(newBankAccountDto, token);
-        });
-        // Adjusted expected message:
-        assertEquals("Cannot find client with id: 999", exception.getMessage());
-        verify(accountRepository, never()).save(any(Account.class));
-    }
-
-    @Test
-    public void testCreateNewBankAccount_InvalidCurrency() {
-        NewBankAccountDto newBankAccountDto = new NewBankAccountDto();
-        newBankAccountDto.setClientId(1L);
-        newBankAccountDto.setAccountType("PERSONAL");
-        newBankAccountDto.setCurrency("INVALID");
-        String token = "Bearer token";
-
-        ClientDto clientDto = new ClientDto();
-        clientDto.setId(1L);
-
-        when(jwtTokenUtil.getUserIdFromAuthHeader(token)).thenReturn(2L);
-        when(userClient.getClientById(1L)).thenReturn(clientDto);
-        lenient().when(currencyRepository.findByCode("INVALID")).thenReturn(Optional.empty());
-
-        Exception exception = assertThrows(CurrencyNotFoundException.class, () -> {
-            accountService.createNewBankAccount(newBankAccountDto, token);
-        });
-
-        // Update this to match the actual exception message
-        assertEquals("Currency not found: INVALID", exception.getMessage()); // ✅ FIXED
+        // Assert
+        Account saved = captor.getValue();
+        assertTrue(saved instanceof PersonalAccount); // else grana
+        assertEquals(AccountType.CURRENT, saved.getType());
+        assertEquals(AccountOwnerType.PERSONAL, saved.getAccountOwnerType());
+        assertEquals(currency, saved.getCurrency());
+        assertEquals(BigDecimal.valueOf(1000), saved.getBalance());
+        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+        assertTrue(saved.getAccountNumber().endsWith("11"));
     }
 
 
-    @Test
-    public void testGetMyAccounts_Success() {
+    @ParameterizedTest
+    @ValueSource(strings = { "PERSONAL", "SAVINGS", "RETIREMENT", "YOUTH", "STUDENT", "UNEMPLOYED" })
+    void shouldCreatePersonalAccountWithCorrectSuffixBasedOnOwnerType(String ownerType) {
+        // Arrange
+        NewBankAccountDto dto = new NewBankAccountDto();
+        dto.setAccountType("CURRENT"); // valid AccountType enum
+        dto.setAccountOwnerType(ownerType);
+        dto.setClientId(1L);
+        dto.setCurrency("RSD");
+        dto.setIsActive("ACTIVE");
+        dto.setInitialBalance(BigDecimal.valueOf(1000));
+        dto.setDailyLimit(BigDecimal.valueOf(100));
+        dto.setMonthlyLimit(BigDecimal.valueOf(300));
+        dto.setDailySpending(BigDecimal.ZERO);
+        dto.setMonthlySpending(BigDecimal.ZERO);
+
+        String header = "Bearer test.token";
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(header)).thenReturn(10L);
+
         ClientDto clientDto = new ClientDto();
         clientDto.setId(1L);
         when(userClient.getClientById(1L)).thenReturn(clientDto);
 
-        List<Account> accountList = new ArrayList<>();
-        for (long i = 1; i <= 5; i++) {
-            PersonalAccount account = new PersonalAccount();
-            account.setAccountNumber(String.valueOf(i));
-            account.setClientId(clientDto.getId());
+        Currency currency = new Currency();
+        currency.setCode("RSD");
+        when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(currency));
 
-            accountList.add(account);
-        }
-        when(accountRepository.findAllByClientId(clientDto.getId())).thenReturn(accountList);
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        when(accountRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        List<AccountDto> accounts = accountService.getMyAccounts(1L);
-        assertNotNull(accounts);
-        assertEquals(5, accountList.size());
+        // Act
+        AccountDto result = accountService.createNewBankAccount(dto, header);
+
+        // Assert
+        Account saved = captor.getValue();
+        assertTrue(saved instanceof PersonalAccount);
+
+        assertEquals(AccountType.CURRENT, saved.getType());
+        assertEquals(AccountOwnerType.valueOf(ownerType), saved.getAccountOwnerType());
+        assertEquals(currency, saved.getCurrency());
+
+        assertNotNull(saved.getAccountNumber());
+        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+
+        // Očekivani sufiks na osnovu ownerType
+        String expectedSuffix = switch (ownerType) {
+            case "PERSONAL" -> "11";
+            case "SAVINGS" -> "13";
+            case "RETIREMENT" -> "14";
+            case "YOUTH" -> "15";
+            case "STUDENT" -> "16";
+            case "UNEMPLOYED" -> "17";
+            default -> throw new IllegalArgumentException("Nepodržan accountOwnerType u testu: " + ownerType);
+        };
+
+        assertTrue(saved.getAccountNumber().endsWith(expectedSuffix),
+                "Expected suffix " + expectedSuffix + " for ownerType " + ownerType +
+                        ", but got: " + saved.getAccountNumber());
     }
 
     @Test
-    public void testGetMyAccounts_UserNotAClient() {
-        Request request = Request.create(Request.HttpMethod.GET, "url", new HashMap<>(), null, new RequestTemplate());
+    void shouldThrowInvalidAuthorizedPersonExceptionWhenPersonNotInCompanyList() {
+        // Arrange
+        Long accountId = 1L;
+        Long authorizedPersonId = 222L;
+        Long employeeId = 99L;
 
-        when(userClient.getClientById(5L)).thenThrow(
-                new FeignException.NotFound("User not found", request, null, null));
+        CompanyAccount account = new CompanyAccount();
+        account.setAccountNumber(String.valueOf(accountId));
+        account.setCompanyId(100L);
+        account.setAccountNumber("ACC-001");
 
-        UserNotAClientException exception = assertThrows(UserNotAClientException.class, () ->
-                accountService.getMyAccounts(5L));
-        assertEquals("User sending request is not a client.", exception.getMessage());
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+
+        CompanyDto companyDto = new CompanyDto();
+        ClientDto owner = new ClientDto();
+        owner.setId(employeeId);
+        companyDto.setMajorityOwner(owner);
+        when(userClient.getCompanyById(100L)).thenReturn(companyDto);
+
+        // Vrati listu ovlašćenih lica, ali nijedno sa traženim ID-jem
+        AuthorizedPersonelDto otherPerson = new AuthorizedPersonelDto(999L, "Marko", "Marković", 100L);
+        when(userClient.getAuthorizedPersonnelByCompany(100L)).thenReturn(List.of(otherPerson));
+
+        // Act & Assert
+        assertThrows(InvalidAuthorizedPersonException.class, () ->
+                accountService.setAuthorizedPerson(accountId, authorizedPersonId, employeeId)
+        );
+
+        verify(accountRepository, never()).save(any());
     }
 
-    @Test
-    public void testGetAccountDetails_Success() {
-        ClientDto clientDto = new ClientDto();
-        clientDto.setId(1L);
-        when(userClient.getClientById(1L)).thenReturn(clientDto);
 
-        PersonalAccount account = new PersonalAccount();
-        account.setAccountNumber("1");
-        account.setClientId(clientDto.getId());
-        account.setBalance(BigDecimal.TEN);
-        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
-        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
-        AccountDetailsDto accountDetails = accountService.getAccountDetails("CLIENT", 1L, "1");
-        assertNotNull(accountDetails);
-        assertEquals(account.getBalance(), accountDetails.getBalance());
-    }
 
-    @Test
-    public void testGetAccountDetails_ClientNotAccountOwner() {
-        ClientDto clientDto = new ClientDto();
-        clientDto.setId(1L);
 
-        when(userClient.getClientById(anyLong())).thenReturn(clientDto); // ✅ FIXED
-
-        PersonalAccount account = new PersonalAccount();
-        account.setAccountNumber("1");
-        account.setClientId(99L); // Different ID than clientDto
-
-        when(accountRepository.findByAccountNumber("1")).thenReturn(Optional.of(account));
-
-        ClientNotAccountOwnerException exception = assertThrows(ClientNotAccountOwnerException.class, () -> {
-            accountService.getAccountDetails("CLIENT", 99L, "1"); // This should trigger the exception
-        });
-
-        assertEquals("Client sending request is not the account owner.", exception.getMessage());
-    }
 
 }
