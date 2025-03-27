@@ -17,8 +17,6 @@ import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.service.OrderService;
 
-import javax.validation.Valid;
-import javax.websocket.server.PathParam;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -57,7 +55,7 @@ public class OrderController {
     })
     public ResponseEntity<?> approveOrder(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         try {
-            orderService.approveOrder(id,authHeader);
+            orderService.approveOrder(id, authHeader);
             return ResponseEntity.ok().build();
         } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -73,7 +71,7 @@ public class OrderController {
     })
     public ResponseEntity<?> decline(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         try {
-            orderService.declineOrder(id,authHeader);
+            orderService.declineOrder(id, authHeader);
             return ResponseEntity.ok().build();
         } catch (OrderNotFoundException | CantApproveNonPendingOrder e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

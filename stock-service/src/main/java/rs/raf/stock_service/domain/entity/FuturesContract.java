@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -17,8 +18,8 @@ import java.time.LocalDate;
 @DiscriminatorValue("FUTURES")
 public class FuturesContract extends Listing {
     private Integer contractSize;
-
-    // mozda bude enum ? zavisi sta ima na apiju / podacima
+    private String ticker;
+    private BigDecimal maintenanceMargin;
     private String contractUnit;
     private LocalDate settlementDate;
 }

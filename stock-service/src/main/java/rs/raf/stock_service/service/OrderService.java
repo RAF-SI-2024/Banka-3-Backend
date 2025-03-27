@@ -1,8 +1,6 @@
 package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
@@ -15,15 +13,12 @@ import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.Transaction;
-import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.domain.enums.OrderType;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
-import rs.raf.stock_service.exceptions.OrderStatusNotFoundException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
@@ -32,7 +27,6 @@ import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Random;
 
 @Service

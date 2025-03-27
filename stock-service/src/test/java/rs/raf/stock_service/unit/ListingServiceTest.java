@@ -6,28 +6,23 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
 import rs.raf.stock_service.domain.entity.Stock;
-import rs.raf.stock_service.domain.dto.ListingDto;
-import rs.raf.stock_service.domain.dto.ListingFilterDto;
-import rs.raf.stock_service.domain.dto.ListingDetailsDto;
-import rs.raf.stock_service.domain.dto.PriceHistoryDto;
-import rs.raf.stock_service.domain.dto.ListingUpdateDto;
 import rs.raf.stock_service.domain.enums.ListingType;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
+import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
-import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
-import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -163,6 +158,7 @@ class ListingServiceTest {
         verifyNoInteractions(dailyPriceInfoRepository);
         verifyNoInteractions(listingMapper);
     }
+
     @Test
     void updateListing_ShouldUpdateListing_WhenUserIsSupervisor() {
         Long listingId = 1L;

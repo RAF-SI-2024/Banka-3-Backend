@@ -29,5 +29,5 @@ public class CreateOrderDto {
     private OrderDirection orderDirection;
 
     @NotNull(message = "Account number cannot be null")
-    private String  accountNumber;
+    private String accountNumber;
 }

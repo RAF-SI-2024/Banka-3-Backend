@@ -7,36 +7,27 @@ import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
-import rs.raf.stock_service.domain.entity.Order;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
-import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.specification.ListingSpecification;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class ListingService {
-
     @Autowired
     private ListingRepository listingRepository;
-
     @Autowired
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
 
     @Autowired
     private ListingMapper listingMapper;
-
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
 

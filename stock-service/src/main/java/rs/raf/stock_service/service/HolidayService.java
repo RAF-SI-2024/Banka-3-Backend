@@ -26,7 +26,7 @@ public class HolidayService {
     private final ObjectMapper objectMapper;
 
 
-    public void importHolidays(){
+    public void importHolidays() {
         CountryHolidaysDto countryHolidaysDto;
         ClassPathResource resource = new ClassPathResource("holidays.json");
 

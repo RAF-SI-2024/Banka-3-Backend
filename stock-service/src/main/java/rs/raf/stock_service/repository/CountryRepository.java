@@ -11,5 +11,6 @@ import java.util.Optional;
 public interface CountryRepository extends JpaRepository<Country, Long> {
 
     Long countByName(String name);
+
     Optional<Country> findByName(String name);
 }
