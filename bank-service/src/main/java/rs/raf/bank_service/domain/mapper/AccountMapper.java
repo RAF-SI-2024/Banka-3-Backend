@@ -68,7 +68,7 @@ public class AccountMapper {
                 BigDecimal.ZERO,
                 account.getBalance(),
                 authorizedPerson, //  Dodato ovlašćeno lice
-                account.getCurrency().getCode()
+                account.getCurrency() == null ? null : account.getCurrency().getCode()
         );
 
         dto.setCompanyName(company.getName()); // Postavljamo pravi naziv firme
