@@ -8,16 +8,12 @@ import rs.raf.stock_service.domain.dto.OptionDto;
 import rs.raf.stock_service.domain.dto.StockDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OptionType;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.domain.enums.OrderType;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -57,7 +53,7 @@ public class BootstrapData implements CommandLineRunner {
         importForexPairs();
         addStock(nasdaq);
         addStockWithDailyInfo(nasdaq);
-        loadOrders();
+//        loadOrders();
 
         // Futures and Options data
         addFutures();
@@ -256,43 +252,44 @@ public class BootstrapData implements CommandLineRunner {
         System.out.println("Finished importing selected forex pairs.");
     }
 
-    private void loadOrders() {
-        if (orderRepository.count() == 0) {
-            Order order1 = Order.builder()
-                    .userId(1L)
-                    .asset(100L)
-                    .orderType(OrderType.LIMIT)
-                    .quantity(10)
-                    .contractSize(1)
-                    .pricePerUnit(new BigDecimal("150.50"))
-                    .direction(OrderDirection.BUY)
-                    .status(OrderStatus.PENDING)
-                    .approvedBy(null)
-                    .isDone(false)
-                    .lastModification(LocalDateTime.now())
-                    .remainingPortions(10)
-                    .afterHours(false)
-                    .build();
-
-            Order order2 = Order.builder()
-                    .userId(2L)
-                    .asset(200L)
-                    .orderType(OrderType.MARKET)
-                    .quantity(5)
-                    .contractSize(2)
-                    .pricePerUnit(new BigDecimal("200.00"))
-                    .direction(OrderDirection.SELL)
-                    .status(OrderStatus.APPROVED)
-                    .approvedBy(1L)
-                    .isDone(true)
-                    .lastModification(LocalDateTime.now().minusDays(1))
-                    .remainingPortions(0)
-                    .afterHours(true)
-                    .build();
-
-            orderRepository.saveAll(List.of(order1, order2));
-
-            System.out.println("Loaded initial test orders into database.");
-        }
-    }
+    //Smatram da order ne treba da se kreira, jer onda ne mozemo da pokrenemo execution, barem meni nema logike
+//    private void loadOrders() {
+//        if (orderRepository.count() == 0) {
+//            Order order1 = Order.builder()
+//                    .userId(1L)
+//                    .listing(100L)
+//                    .orderType(OrderType.LIMIT)
+//                    .quantity(10)
+//                    .contractSize(1)
+//                    .pricePerUnit(new BigDecimal("150.50"))
+//                    .direction(OrderDirection.BUY)
+//                    .status(OrderStatus.PENDING)
+//                    .approvedBy(null)
+//                    .isDone(false)
+//                    .lastModification(LocalDateTime.now())
+//                    .remainingPortions(10)
+//                    .afterHours(false)
+//                    .build();
+//
+//            Order order2 = Order.builder()
+//                    .userId(2L)
+//                    .listing(200L)
+//                    .orderType(OrderType.MARKET)
+//                    .quantity(5)
+//                    .contractSize(2)
+//                    .pricePerUnit(new BigDecimal("200.00"))
+//                    .direction(OrderDirection.SELL)
+//                    .status(OrderStatus.APPROVED)
+//                    .approvedBy(1L)
+//                    .isDone(true)
+//                    .lastModification(LocalDateTime.now().minusDays(1))
+//                    .remainingPortions(0)
+//                    .afterHours(true)
+//                    .build();
+//
+//            orderRepository.saveAll(List.of(order1, order2));
+//
+//            System.out.println("Loaded initial test orders into database.");
+//        }
+//    }
 }

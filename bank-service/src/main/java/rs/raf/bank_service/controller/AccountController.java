@@ -214,6 +214,21 @@ public class AccountController {
         }
     }
 
+    // interni endpoint
+    @Operation(summary = "Get client account balance")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Account balance retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Account balance retrieved successfully")
+    })
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/{accountNumber}/balance")
+    public ResponseEntity<?> getAccountBalance(@PathVariable String accountNumber) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountBalance(accountNumber));
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 
     // Globalni Exception Handleri
 

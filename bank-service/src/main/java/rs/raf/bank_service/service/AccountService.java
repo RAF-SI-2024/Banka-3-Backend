@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -327,5 +328,12 @@ public class AccountService {
 
         System.out.println("Uspešno postavljeno ovlašćeno lice " + authorizedPerson.getFirstName() + " za račun " + accountId);
 
+    }
+
+    public BigDecimal getAccountBalance(String accountNumber){
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        return account.getBalance(); //vidi da li treba balance ili availabe balance
     }
 }
