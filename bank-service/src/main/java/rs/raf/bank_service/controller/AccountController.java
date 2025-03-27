@@ -214,6 +214,7 @@ public class AccountController {
         }
     }
 
+    // interni endpoint
     @Operation(summary = "Get client account balance")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Account balance retrieved successfully"),
@@ -221,7 +222,7 @@ public class AccountController {
     })
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{accountNumber}/balance")
-    public ResponseEntity<?> getAccountsForClient(@PathVariable String accountNumber) {
+    public ResponseEntity<?> getAccountBalance(@PathVariable String accountNumber) {
         try {
             return ResponseEntity.ok(accountService.getAccountBalance(accountNumber));
         } catch (AccountNotFoundException e) {
