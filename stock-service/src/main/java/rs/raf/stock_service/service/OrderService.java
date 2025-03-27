@@ -1,24 +1,18 @@
 package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.domain.dto.OrderDto;
-import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
-import rs.raf.stock_service.exceptions.OrderStatusNotFoundException;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @AllArgsConstructor

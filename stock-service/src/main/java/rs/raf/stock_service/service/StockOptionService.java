@@ -2,8 +2,8 @@ package rs.raf.stock_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.raf.stock_service.domain.entity.Option;
 import rs.raf.stock_service.domain.dto.StockOptionDto;
+import rs.raf.stock_service.domain.entity.Option;
 import rs.raf.stock_service.domain.mapper.StockOptionMapper;
 import rs.raf.stock_service.repository.OptionRepository;
 

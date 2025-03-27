@@ -1,16 +1,10 @@
 package unit;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -22,11 +16,16 @@ import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.time.LocalDateTime;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class OrderServiceTest {
@@ -108,11 +107,12 @@ public class OrderServiceTest {
             orderService.approveOrder(orderId, authHeader);
         });
 
-        assertEquals("Order with ID "+orderId+" not found.", exception.getMessage());
+        assertEquals("Order with ID " + orderId + " not found.", exception.getMessage());
         verify(orderRepository, times(1)).findById(orderId);
         verify(jwtTokenUtil, never()).getUserIdFromAuthHeader(anyString());
         verify(orderRepository, never()).save(any(Order.class));
     }
+
     @Test
     void approveOrder_ShouldApproveOrder_WhenOrderIsPending() {
         Long orderId = 1L;
@@ -148,7 +148,7 @@ public class OrderServiceTest {
             orderService.approveOrder(orderId, authHeader);
         });
 
-        assertEquals("Order with ID "+orderId+" is not in pending status.", exception.getMessage());
+        assertEquals("Order with ID " + orderId + " is not in pending status.", exception.getMessage());
         verify(orderRepository, never()).save(any(Order.class));
     }
 

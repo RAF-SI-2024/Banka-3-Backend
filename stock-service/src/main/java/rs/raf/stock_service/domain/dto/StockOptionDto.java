@@ -2,6 +2,7 @@ package rs.raf.stock_service.domain.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+
 import java.math.BigDecimal;
 
 @Getter
@@ -12,7 +13,8 @@ public class StockOptionDto {
     private Integer openInterest;
     private String optionType;
 
-    public StockOptionDto() {}
+    public StockOptionDto() {
+    }
 
     public StockOptionDto(BigDecimal strikePrice, BigDecimal impliedVolatility, Integer openInterest, String optionType) {
         this.strikePrice = strikePrice;

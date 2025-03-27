@@ -1,17 +1,14 @@
 package unit;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
 import rs.raf.stock_service.domain.dto.BuyListingDto;
-import rs.raf.stock_service.domain.entity.FuturesContract; // Konkretna implementacija Listing
-import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.FuturesContract;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
@@ -19,11 +16,15 @@ import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
-import rs.raf.stock_service.client.UserClient;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 public class ListingServiceTest {
 
@@ -154,7 +155,6 @@ public class ListingServiceTest {
                         order.getAsset().equals(listing.getId())
         ));
     }
-
 
 
     @Test

@@ -12,7 +12,8 @@ import rs.raf.stock_service.domain.dto.BuyListingDto;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.service.ListingService;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class ListingControllerTest {
