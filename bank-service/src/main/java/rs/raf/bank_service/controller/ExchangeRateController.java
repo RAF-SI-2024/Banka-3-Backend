@@ -18,13 +18,6 @@ import rs.raf.bank_service.service.ExchangeRateService;
 
 import javax.validation.Valid;
 
-import java.math.BigDecimal;
-
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import java.util.HashMap;
-import java.util.Map;
-
 @Tag(name = "Exchange rate controller", description = "API for retrieving exchange rates")
 @RestController
 @RequestMapping("/api/exchange-rates")
@@ -40,7 +33,7 @@ public class ExchangeRateController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved exchange rate"),
             @ApiResponse(responseCode = "500", description = "Exchange rates retrieval failed")
     })
-    public ResponseEntity<?> getExchangeRates(){
+    public ResponseEntity<?> getExchangeRates() {
         try {
             return ResponseEntity.ok(exchangeRateService.getExchangeRates());
         } catch (Exception e) {
@@ -56,12 +49,12 @@ public class ExchangeRateController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "500", description = "Conversion failed")
     })
-    public ResponseEntity<?> convert(@RequestBody @Valid ConvertDto convertDto){
+    public ResponseEntity<?> convert(@RequestBody @Valid ConvertDto convertDto) {
         try {
             return ResponseEntity.ok(exchangeRateService.convert(convertDto));
-        }catch (ExchangeRateNotFoundException |CurrencyNotFoundException e) {
+        } catch (ExchangeRateNotFoundException | CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }

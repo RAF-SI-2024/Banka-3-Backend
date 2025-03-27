@@ -17,7 +17,10 @@ import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
-import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.exceptions.InvalidLoanStatusException;
+import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
+import rs.raf.bank_service.exceptions.LoanNotFoundException;
+import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.service.LoanService;
 
 import java.util.List;
@@ -70,7 +73,8 @@ public class LoanController {
             return ResponseEntity.ok(installments);
         } catch (LoanNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }    }
+        }
+    }
 
     // nema provere autorizacije sry mozda nekad fixati
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
@@ -109,7 +113,7 @@ public class LoanController {
             Pageable pageable = PageRequest.of(page, size, Sort.by("account.accountNumber").ascending());
             Page<LoanDto> loans = loanService.getAllLoans(type, accountNumber, status, pageable);
             return ResponseEntity.ok(loans);
-    } catch (InvalidLoanTypeException | InvalidLoanStatusException e) {
+        } catch (InvalidLoanTypeException | InvalidLoanStatusException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }

@@ -11,7 +11,7 @@ import java.util.List;
 
 
 /// Klasa koja sluzi za slanje HTTP poziva na userService
-@FeignClient(name = "user-service", url = "${spring.cloud.openfeign.client.config.user-service.url}",  fallbackFactory = UserClientFallbackFactory.class, decode404 = true)
+@FeignClient(name = "user-service", url = "${spring.cloud.openfeign.client.config.user-service.url}", fallbackFactory = UserClientFallbackFactory.class, decode404 = true)
 public interface UserClient {
 
     @GetMapping("/api/admin/clients/{id}")

@@ -19,7 +19,7 @@ public class ExchangeRateDto {
     private BigDecimal exchangeRate;
     private BigDecimal sellRate;
 
-    public boolean equals(Object object){
+    public boolean equals(Object object) {
         if (this == object)
             return true;
 

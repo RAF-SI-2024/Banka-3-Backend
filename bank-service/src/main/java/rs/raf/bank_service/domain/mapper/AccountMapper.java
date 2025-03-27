@@ -1,12 +1,10 @@
 package rs.raf.bank_service.domain.mapper;
 
-import rs.raf.bank_service.domain.dto.*;
 import org.springframework.stereotype.Component;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
-import rs.raf.bank_service.domain.entity.PersonalAccount;
-import rs.raf.bank_service.domain.enums.AccountOwnerType;
-import rs.raf.bank_service.domain.enums.AccountType;
+
 import java.math.BigDecimal;
 
 @Component

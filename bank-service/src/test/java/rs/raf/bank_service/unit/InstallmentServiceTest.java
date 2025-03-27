@@ -2,55 +2,84 @@ package rs.raf.bank_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.bank_service.domain.dto.InstallmentDto;
 import rs.raf.bank_service.domain.entity.Installment;
+import rs.raf.bank_service.domain.enums.InstallmentStatus;
 import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.repository.InstallmentRepository;
 import rs.raf.bank_service.service.InstallmentService;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class InstallmentServiceTest {
+@ExtendWith(MockitoExtension.class)
+public class InstallmentServiceTest {
 
+    @Mock
     private InstallmentRepository installmentRepository;
+
+    @Mock
     private InstallmentMapper installmentMapper;
+
+    @InjectMocks
     private InstallmentService installmentService;
+
+    private Installment installment;
+    private InstallmentDto installmentDto;
 
     @BeforeEach
     void setUp() {
-        installmentRepository = mock(InstallmentRepository.class);
-        installmentMapper = mock(InstallmentMapper.class);
-        installmentService = new InstallmentService(installmentRepository, installmentMapper);
+        installment = Installment.builder()
+                .amount(BigDecimal.valueOf(10000))
+                .interestRate(BigDecimal.valueOf(5.5))
+                .expectedDueDate(LocalDate.now())
+                .actualDueDate(LocalDate.now().plusMonths(1))
+                .installmentStatus(InstallmentStatus.UNPAID)
+                .build();
+
+        installmentDto = InstallmentDto.builder()
+                .amount(BigDecimal.valueOf(10000))
+                .interestRate(BigDecimal.valueOf(5.5))
+                .expectedDueDate(LocalDate.now())
+                .actualDueDate(LocalDate.now().plusMonths(1))
+                .installmentStatus(InstallmentStatus.UNPAID)
+                .build();
     }
 
     @Test
-    void testGetInstallmentsByLoanId() {
-        // Arrange
-        Long loanId = 1L;
+    void testGetInstallmentsByLoanId_Success() {
+        when(installmentRepository.findByLoanId(1L)).thenReturn(List.of(installment));
+        when(installmentMapper.toDtoList(List.of(installment))).thenReturn(List.of(installmentDto));
 
-        List<Installment> installments = Arrays.asList(
-                new Installment(), new Installment()
-        );
+        List<InstallmentDto> result = installmentService.getInstallmentsByLoanId(1L);
 
-        List<InstallmentDto> installmentDtos = Arrays.asList(
-                new InstallmentDto(), new InstallmentDto()
-        );
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(installmentDto.getAmount(), result.get(0).getAmount());
+    }
 
-        when(installmentRepository.findByLoanId(loanId)).thenReturn(installments);
-        when(installmentMapper.toDtoList(installments)).thenReturn(installmentDtos);
+    @Test
+    void testGetInstallmentsByLoanId_EmptyList() {
+        when(installmentRepository.findByLoanId(1L)).thenReturn(Collections.emptyList());
+        when(installmentMapper.toDtoList(Collections.emptyList())).thenReturn(Collections.emptyList());
 
-        // Act
-        List<InstallmentDto> result = installmentService.getInstallmentsByLoanId(loanId);
+        List<InstallmentDto> result = installmentService.getInstallmentsByLoanId(1L);
+        assertTrue(result.isEmpty());
+    }
 
-        // Assert
-        assertEquals(installmentDtos.size(), result.size());
-        assertEquals(installmentDtos, result);
+    @Test
+    void testGetInstallmentsByLoanId_Exception() {
+        when(installmentRepository.findByLoanId(1L)).thenThrow(new RuntimeException("DB error"));
 
-        verify(installmentRepository, times(1)).findByLoanId(loanId);
-        verify(installmentMapper, times(1)).toDtoList(installments);
+        assertThrows(RuntimeException.class, () -> installmentService.getInstallmentsByLoanId(1L));
     }
 }

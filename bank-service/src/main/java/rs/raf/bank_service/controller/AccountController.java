@@ -6,28 +6,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
-
-import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
-import java.math.BigDecimal;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
@@ -35,8 +29,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class AccountController {
 
-    private AccountService accountService;
     private final JwtTokenUtil jwtTokenUtil;
+    private final UserClient userClient;
+    private final ChangeLimitRequestRepository changeLimitRequestRepository;
+    private AccountService accountService;
 
     /// Refaktorisano tako da getAccounts bude jedna GET metoda a ne dve jer tako kod ne radi
     /// Ovde proverava da li se request salje kao klijent ili admin/employee
@@ -91,7 +87,6 @@ public class AccountController {
     }
 
 
-
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping
     @Operation(summary = "Add new bank account.")
@@ -119,14 +114,14 @@ public class AccountController {
             @ApiResponse(responseCode = "500", description = "Account details retrieval failed")
     })
     public ResponseEntity<?> getAccountDetails(@RequestHeader("Authorization") String auth,
-                                               @PathVariable("accountNumber") String accountNumber){
+                                               @PathVariable("accountNumber") String accountNumber) {
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
             String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
             return ResponseEntity.ok(accountService.getAccountDetails(role, clientId, accountNumber));
-        }catch (ClientNotAccountOwnerException e) {
+        } catch (ClientNotAccountOwnerException e) {
             return ResponseEntity.badRequest().body(new ErrorMessageDto(e.getMessage()));
-        }catch (RuntimeException e){
+        } catch (RuntimeException e) {
             return ResponseEntity.internalServerError().body(new ErrorMessageDto(e.getMessage()));
         }
     }
