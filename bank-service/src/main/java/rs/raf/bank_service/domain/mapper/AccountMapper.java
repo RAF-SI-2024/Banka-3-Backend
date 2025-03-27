@@ -51,8 +51,8 @@ public class AccountMapper {
                 account.getType(),
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
-                account.getBalance()
-
+                account.getBalance(),
+                account.getCurrency() == null ? null : account.getCurrency().getCode()
         );
     }
 
@@ -67,7 +67,8 @@ public class AccountMapper {
                 account.getAvailableBalance(),
                 BigDecimal.ZERO,
                 account.getBalance(),
-                authorizedPerson //  Dodato ovlašćeno lice
+                authorizedPerson, //  Dodato ovlašćeno lice
+                account.getCurrency() == null ? null : account.getCurrency().getCode()
         );
 
         dto.setCompanyName(company.getName()); // Postavljamo pravi naziv firme

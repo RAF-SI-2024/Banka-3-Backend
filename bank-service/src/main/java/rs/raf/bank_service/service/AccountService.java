@@ -20,6 +20,7 @@ import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -37,12 +38,17 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AccountService {
     private final CurrencyRepository currencyRepository;
+    private final CompanyAccountRepository companyAccountRepository;
     private final AccountRepository accountRepository;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
     private final JwtTokenUtil jwtTokenUtil;
     @Autowired
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
+
+    public Page<AccountDto> getBankAccounts(Pageable pageable) {
+        return companyAccountRepository.findByCompanyId(1L, pageable).map((account) -> AccountMapper.toDto(account, null));
+    }
 
     public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
 

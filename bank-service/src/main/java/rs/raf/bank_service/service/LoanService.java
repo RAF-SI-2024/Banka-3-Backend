@@ -132,6 +132,7 @@ public class LoanService {
     public void queueDueInstallments() {
         LocalDate today = LocalDate.now();
 
+
         List<Loan> loans = loanRepository.findByNextInstallmentDateAndStartDateBefore(today, today);
 
         for (Loan loan : loans) {
@@ -151,6 +152,8 @@ public class LoanService {
         Account currAccount = accountRepository.findByAccountNumber(loan.getAccount().getAccountNumber()).orElseThrow();
         if (loan.getStatus().compareTo(LoanStatus.PAID_OFF) < 0 && currAccount.getBalance().compareTo(loan.getNextInstallmentAmount()) >= 0) {
             currAccount.setBalance(currAccount.getBalance().subtract(loan.getNextInstallmentAmount()));
+            currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(loan.getNextInstallmentAmount()));
+
             accountRepository.save(currAccount);
 
             List<Installment> installments = loan.getInstallments();

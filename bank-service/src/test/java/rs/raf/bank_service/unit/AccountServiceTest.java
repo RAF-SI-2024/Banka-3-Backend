@@ -18,6 +18,7 @@ import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -33,6 +34,9 @@ public class AccountServiceTest {
 
     @InjectMocks
     private AccountService accountService;
+
+    @Mock
+    private CompanyAccountRepository companyAccountRepository;
 
     @Mock
     private AccountRepository accountRepository;
@@ -57,6 +61,7 @@ public class AccountServiceTest {
         MockitoAnnotations.openMocks(this);
         accountService = new AccountService(
                 currencyRepository,
+                companyAccountRepository,
                 accountRepository,
                 changeLimitRequestRepository,
                 jwtTokenUtil,
@@ -470,7 +475,7 @@ public class AccountServiceTest {
 
 
 
-        //ispod su promenjeni testovi iz "AuthorizedPersonServiceTest", mislim da ne nepotrebna posebna klasa za to
+    //ispod su promenjeni testovi iz "AuthorizedPersonServiceTest", mislim da ne nepotrebna posebna klasa za to
 
 
 
