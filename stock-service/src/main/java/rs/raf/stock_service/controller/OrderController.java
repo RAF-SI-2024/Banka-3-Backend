@@ -37,7 +37,7 @@ public class OrderController {
             @ApiResponse(responseCode = "403", description = "Access denied – only supervisors can view orders"),
             @ApiResponse(responseCode = "500", description = "Server error")
     })
-    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT')")
     @GetMapping
     public ResponseEntity<Page<OrderDto>> getOrders(
             @RequestParam(required = false) OrderStatus status,

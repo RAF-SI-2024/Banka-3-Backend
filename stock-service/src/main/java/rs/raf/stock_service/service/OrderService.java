@@ -41,6 +41,7 @@ public class OrderService {
     private final BankClient bankClient;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
+    private final PortfolioService portfolioService;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         Page<Order> ordersPage;
@@ -54,6 +55,7 @@ public class OrderService {
         return ordersPage.map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
                 dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))));
     }
+
 
     public void approveOrder(Long id, String authHeader) {
         Order order = orderRepository.findById(id)
@@ -107,6 +109,8 @@ public class OrderService {
             }
         }
 
+        System.out.println("Direction: " + order.getDirection());
+
         orderRepository.save(order);
 
         if (order.getStatus()  == OrderStatus.APPROVED)
@@ -140,6 +144,10 @@ public class OrderService {
 
         order.setIsDone(true);
         orderRepository.save(order);
+
+
+        portfolioService.updateHoldingsOnOrderExecution(order);
+
 
         //mozda uvesti neko slanje notifikacije da je order zavrsen, nzm da li smo igde uveli notifikacije ili da li je opste scope
     }
