@@ -33,7 +33,7 @@ public class TransactionQueueService {
         return queueTransaction(type, dto, null);
     }
 
-    public LoanDto queueLoan(String type, Long loanRequestId) {
+    public LoanDto queueLoan(TransactionType type, Long loanRequestId) {
         if (type.equals(TransactionType.APPROVE_LOAN)) {
             LoanDto loanDto = loanRequestService.returnLoanDto(loanRequestId);
 

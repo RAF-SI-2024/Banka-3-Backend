@@ -16,6 +16,7 @@ import rs.raf.bank_service.domain.dto.CreateLoanRequestDto;
 import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanRequestDto;
 import rs.raf.bank_service.domain.enums.LoanType;
+import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
 import rs.raf.bank_service.exceptions.LoanRequestNotFoundException;
 import rs.raf.bank_service.exceptions.UnauthorizedException;
@@ -77,7 +78,7 @@ public class LoanRequestController {
     @PutMapping("/approve/{id}")
     public ResponseEntity<?> approveLoan(@PathVariable Long id) {
         try {
-            LoanDto approvedLoan = transactionQueueService.queueLoan("APPROVE_LOAN", id);
+            LoanDto approvedLoan = transactionQueueService.queueLoan(TransactionType.APPROVE_LOAN, id);
             return ResponseEntity.ok(approvedLoan);
         } catch (LoanRequestNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

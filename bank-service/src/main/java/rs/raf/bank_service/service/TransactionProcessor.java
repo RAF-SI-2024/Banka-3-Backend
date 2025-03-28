@@ -43,9 +43,6 @@ public class TransactionProcessor {
                     loanRequestService.approveLoan(requestId);
                     log.info("Processed loan approval for loan request id {}", requestId);
 
-                    Long loanId = loanService.findLoanIdByLoanRequestId(requestId);
-                    transactionQueueService.queueTransaction(TransactionType.PAY_INSTALLMENT, loanId);
-                    log.info("Queued PAY_INSTALLMENT for loan id {}", loanId);
                     break;
 
                 case PAY_INSTALLMENT:
