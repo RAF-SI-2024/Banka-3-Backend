@@ -102,6 +102,8 @@
                         <exclude>**rs/raf/user_service/configuration/**</exclude>
                         <exclude>**rs/raf/user_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/user_service/client/**</exclude>
+                        <exclude>**rs/raf/user_service/controller/**</exclude>
+                        <exclude>**rs/raf/user_service/specification/**</exclude>
                         <!--bank_service-->
                         <exclude>**rs/raf/bank_service/domain/**</exclude>
                         <exclude>**rs/raf/bank_service/repository/**</exclude>
@@ -109,6 +111,8 @@
                         <exclude>**rs/raf/bank_service/configuration/**</exclude>
                         <exclude>**rs/raf/bank_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/bank_service/client/**</exclude>
+                        <exclude>**rs/raf/bank_service/controller/**</exclude>
+                        <exclude>**rs/raf/bank_service/specification/**</exclude>
                         <!--stock_service-->
                         <exclude>**rs/raf/stock_service/domain/**</exclude>
                         <exclude>**rs/raf/stock_service/repository/**</exclude>
@@ -116,6 +120,8 @@
                         <exclude>**rs/raf/stock_service/configuration/**</exclude>
                         <exclude>**rs/raf/stock_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/stock_service/client/**</exclude>
+                        <exclude>**rs/raf/stock_service/controller/**</exclude>
+                        <exclude>**rs/raf/stock_service/specification/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
