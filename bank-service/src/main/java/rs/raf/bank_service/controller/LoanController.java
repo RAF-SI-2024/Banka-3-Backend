@@ -17,10 +17,7 @@ import rs.raf.bank_service.domain.dto.LoanDto;
 import rs.raf.bank_service.domain.dto.LoanShortDto;
 import rs.raf.bank_service.domain.enums.LoanStatus;
 import rs.raf.bank_service.domain.enums.LoanType;
-import rs.raf.bank_service.exceptions.InvalidLoanStatusException;
-import rs.raf.bank_service.exceptions.InvalidLoanTypeException;
-import rs.raf.bank_service.exceptions.LoanNotFoundException;
-import rs.raf.bank_service.exceptions.UnauthorizedException;
+import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.service.LoanService;
 
 import java.util.List;
@@ -93,6 +90,23 @@ public class LoanController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
+    //za testiranje
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Pay loan installment")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Installment paid successfully"),
+            @ApiResponse(responseCode = "400", description = "Insufficient funds or invalid loan"),
+            @ApiResponse(responseCode = "404", description = "Loan not found")
+    })
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<Void> payInstallment(@PathVariable Long id) {
+        try {
+            loanService.payInstallment(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @Operation(summary = "Get all loans")
@@ -142,5 +156,10 @@ public class LoanController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<String> handleInsufficientFundsException(InsufficientFundsException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }
