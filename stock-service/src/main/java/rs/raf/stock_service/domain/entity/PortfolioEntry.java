@@ -32,7 +32,7 @@ public class PortfolioEntry {
 
     private BigDecimal averagePrice;
 
-    private Boolean isPublic = false;      // Za akcije i futures (OTC)
+    private Integer publicAmount = 0;
 
     private Boolean inTheMoney = false;    // Za opcije
 

@@ -181,7 +181,7 @@ public class PortfolioServiceTest {
                 .amount(10)
                 .averagePrice(BigDecimal.TEN)
                 .lastModified(LocalDateTime.now())
-                .isPublic(false)
+                .publicAmount(0)
                 .inTheMoney(false)
                 .used(false)
                 .build();
@@ -193,7 +193,7 @@ public class PortfolioServiceTest {
                 .amount(5)
                 .averagePrice(BigDecimal.valueOf(2000))
                 .lastModified(LocalDateTime.now())
-                .isPublic(true)
+                .publicAmount(0)
                 .inTheMoney(true)
                 .used(false)
                 .build();

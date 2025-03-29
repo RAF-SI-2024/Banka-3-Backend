@@ -37,10 +37,10 @@ public class PortfolioService {
                 entry = PortfolioEntry.builder()
                         .userId(order.getUserId())
                         .listing(order.getListing())
-                        .type(ListingType.valueOf(order.getListing().getClass().getSimpleName().toUpperCase())) // npr. "STOCK"
+                        .type(order.getListing().getType())
                         .amount(totalQuantity)
                         .averagePrice(price)
-                        .isPublic(false)
+                        .publicAmount(0) // privremeno 0 moze neka logika kasnije kad bude bilo potrebno
                         .inTheMoney(false)
                         .used(false)
                         .lastModified(LocalDateTime.now())

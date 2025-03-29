@@ -25,9 +25,11 @@ public class PortfolioEntryDto {
     private BigDecimal profit;
     private LocalDateTime lastModified;
 
-    private Boolean isPublic;        // samo za STOCK/FUTURES
+    private Integer publicAmount;
     private Boolean inTheMoney;      // samo za opcije
     private Boolean used;            // samo za opcije
+
+
 
 
 }

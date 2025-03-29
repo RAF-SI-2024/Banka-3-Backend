@@ -14,7 +14,7 @@ public class PortfolioMapper {
                 .averagePrice(entry.getAveragePrice())
                 .profit(profit)
                 .lastModified(entry.getLastModified())
-                .isPublic(entry.getIsPublic())
+                .publicAmount(entry.getPublicAmount())
                 .inTheMoney(entry.getInTheMoney())
                 .used(entry.getUsed())
                 .build();

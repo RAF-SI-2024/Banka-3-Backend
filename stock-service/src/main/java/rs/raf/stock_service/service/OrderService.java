@@ -109,8 +109,6 @@ public class OrderService {
             }
         }
 
-        System.out.println("Direction: " + order.getDirection());
-
         orderRepository.save(order);
 
         if (order.getStatus()  == OrderStatus.APPROVED)
