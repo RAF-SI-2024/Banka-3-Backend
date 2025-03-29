@@ -11,14 +11,14 @@ import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
+import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Installment;
 import rs.raf.bank_service.domain.entity.Loan;
-import rs.raf.bank_service.domain.enums.InstallmentStatus;
-import rs.raf.bank_service.domain.enums.LoanStatus;
-import rs.raf.bank_service.domain.enums.LoanType;
-import rs.raf.bank_service.domain.enums.TransactionType;
+import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
+import rs.raf.bank_service.exceptions.BankAccountNotFoundException;
+import rs.raf.bank_service.exceptions.InsufficientFundsException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.InstallmentRepository;
 import rs.raf.bank_service.repository.LoanRepository;
@@ -28,6 +28,7 @@ import rs.raf.bank_service.specification.LoanSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -94,12 +95,27 @@ public class LoanService {
         Account account = loan.getAccount();
 
         if (account.getBalance().compareTo(loan.getNextInstallmentAmount()) < 0) {
-            throw new RuntimeException("Insufficient funds for loan installment.");
+            throw new InsufficientFundsException(account.getBalance(), loan.getNextInstallmentAmount());
         }
 
-        account.setBalance(account.getBalance().subtract(loan.getNextInstallmentAmount()));
-        account.setAvailableBalance(account.getAvailableBalance().subtract(loan.getNextInstallmentAmount()));
+        BigDecimal amount = loan.getNextInstallmentAmount();
+
+        account.setBalance(account.getBalance().subtract(amount));
+        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
         accountRepository.save(account);
+
+        //azurira stanje banke
+        CompanyAccount bankAccount = accountRepository
+                .findFirstByCurrencyAndCompanyId(account.getCurrency(), 1L)
+                .orElseThrow(() -> new BankAccountNotFoundException("Bank account not found for currency: " + account.getCurrency().getCode()));
+
+        bankAccount.setBalance(bankAccount.getBalance().add(amount));
+        bankAccount.setAvailableBalance(bankAccount.getBalance());
+        accountRepository.save(bankAccount);
+
+        // azurira remainingDebt
+        BigDecimal updatedDebt = loan.getRemainingDebt().subtract(amount);
+        loan.setRemainingDebt(updatedDebt.max(BigDecimal.ZERO));
 
         List<Installment> installments = loan.getInstallments();
         installments.sort(Comparator.comparing(Installment::getId));
@@ -150,29 +166,44 @@ public class LoanService {
     @Transactional
     public void retryLoanPayment(Loan loan) {
         Account currAccount = accountRepository.findByAccountNumber(loan.getAccount().getAccountNumber()).orElseThrow();
-        if (loan.getStatus().compareTo(LoanStatus.PAID_OFF) < 0 && currAccount.getBalance().compareTo(loan.getNextInstallmentAmount()) >= 0) {
-            currAccount.setBalance(currAccount.getBalance().subtract(loan.getNextInstallmentAmount()));
-            currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(loan.getNextInstallmentAmount()));
 
+        if (loan.getStatus().compareTo(LoanStatus.PAID_OFF) < 0 &&
+                currAccount.getBalance().compareTo(loan.getNextInstallmentAmount()) >= 0) {
+
+            BigDecimal amount = loan.getNextInstallmentAmount();
+
+            currAccount.setBalance(currAccount.getBalance().subtract(amount));
+            currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(amount));
             accountRepository.save(currAccount);
+
+            // Ažuriraj remainingDebt
+            BigDecimal updatedDebt = loan.getRemainingDebt().subtract(amount);
+            loan.setRemainingDebt(updatedDebt.max(BigDecimal.ZERO));
 
             List<Installment> installments = loan.getInstallments();
             installments.sort(Comparator.comparing(Installment::getId));
             Installment installment1 = installments.get(installments.size() - 1);
             installment1.setInstallmentStatus(InstallmentStatus.PAID);
             installment1.setActualDueDate(LocalDate.now());
+            installmentRepository.save(installment1);
 
             if (loan.getInstallments().size() < loan.getRepaymentPeriod()) {
-                Installment newInstallment = new Installment(loan, LoanRateCalculator.calculateMonthlyRate(loan.getAmount()
-                        , loan.getEffectiveInterestRate(),
-                        loan.getRepaymentPeriod()), loan.getEffectiveInterestRate(), LocalDate.now(), InstallmentStatus.UNPAID);
+                Installment newInstallment = new Installment(
+                        loan,
+                        LoanRateCalculator.calculateMonthlyRate(loan.getAmount(), loan.getEffectiveInterestRate(), loan.getRepaymentPeriod()),
+                        loan.getEffectiveInterestRate(),
+                        LocalDate.now().plusMonths(1),
+                        InstallmentStatus.UNPAID
+                );
                 loan.getInstallments().add(newInstallment);
                 loan.setNextInstallmentDate(newInstallment.getExpectedDueDate());
                 loan.setNextInstallmentAmount(newInstallment.getAmount());
-                loanRepository.save(loan);
-            } else
+                installmentRepository.save(newInstallment);
+            } else {
                 loan.setStatus(LoanStatus.PAID_OFF);
+            }
 
+            loanRepository.save(loan);
 
         } else {
             EmailRequestDto emailRequestDto = new EmailRequestDto();
@@ -181,11 +212,69 @@ public class LoanService {
             ClientDto client = userClient.getClientById(clientId);
             emailRequestDto.setDestination(client.getEmail());
             //rabbitTemplate.convertAndSend("insufficient-funds", emailRequestDto);
+
             loan.setNominalInterestRate(loan.getNominalInterestRate().add(new BigDecimal("0.05")));
             loan.setEffectiveInterestRate(loan.getEffectiveInterestRate().add(new BigDecimal("0.05")));
+
             scheduleRetry(loan, 72, TimeUnit.HOURS);
             loanRepository.save(loan);
         }
+    }
+
+    @Scheduled(cron = "0 0 3 1 * *") //prvog u mesecu
+    //@Scheduled(fixedRate = 15000) //za test
+    @Transactional
+    public void updateVariableInterestRates() {
+        List<Loan> variableLoans = loanRepository.findAll().stream()
+                .filter(loan -> loan.getInterestRateType().equals(InterestRateType.VARIABLE))
+                .collect(Collectors.toList());
+
+        for (Loan loan : variableLoans) {
+            BigDecimal osnovica = getOsnovica(loan.getAmount());
+            BigDecimal pomeraj = getRandomPomeraj();
+            BigDecimal marza = getMarza(loan.getType());
+
+            BigDecimal novaEfektivna = osnovica.add(pomeraj).add(marza.divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP));
+
+            loan.setNominalInterestRate(osnovica);
+            loan.setEffectiveInterestRate(novaEfektivna);
+
+            BigDecimal novaRata = LoanRateCalculator.calculateMonthlyRate(
+                    loan.getAmount(),
+                    novaEfektivna,
+                    loan.getRepaymentPeriod()
+            );
+
+            loan.setNextInstallmentAmount(novaRata);
+            loanRepository.save(loan);
+        }
+
+        log.info("Updated variable interest rates for {} loans.", variableLoans.size());
+    }
+    private BigDecimal getOsnovica(BigDecimal amount) {
+        if (amount.compareTo(new BigDecimal("500000")) <= 0) return new BigDecimal("6.25");
+        if (amount.compareTo(new BigDecimal("1000000")) <= 0) return new BigDecimal("6.00");
+        if (amount.compareTo(new BigDecimal("2000000")) <= 0) return new BigDecimal("5.75");
+        if (amount.compareTo(new BigDecimal("5000000")) <= 0) return new BigDecimal("5.50");
+        if (amount.compareTo(new BigDecimal("10000000")) <= 0) return new BigDecimal("5.25");
+        if (amount.compareTo(new BigDecimal("20000000")) <= 0) return new BigDecimal("5.00");
+        return new BigDecimal("4.75");
+    }
+
+    private BigDecimal getMarza(LoanType type) {
+        switch (type) {
+            case CASH: return new BigDecimal("1.75");
+            case MORTGAGE: return new BigDecimal("1.50");
+            case AUTO: return new BigDecimal("1.25");
+            case REFINANCING: return new BigDecimal("1.00");
+            case STUDENT: return new BigDecimal("0.75");
+            default: return BigDecimal.ZERO;
+        }
+    }
+
+    private BigDecimal getRandomPomeraj() {
+        double random = -1.5 + (Math.random() * 3.0); // u rasponu [-1.5, +1.5]
+        return BigDecimal.valueOf(random).setScale(2, RoundingMode.HALF_UP);
     }
 
 }
