@@ -1,5 +1,6 @@
 package rs.raf.bank_service.integration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -17,7 +18,17 @@ import rs.raf.bank_service.controller.AccountController;
 import rs.raf.bank_service.controller.CardController;
 import rs.raf.bank_service.controller.PaymentController;
 import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.entity.Account;
+import rs.raf.bank_service.domain.entity.CardRequest;
+import rs.raf.bank_service.domain.entity.Payment;
+import rs.raf.bank_service.domain.enums.CardIssuer;
+import rs.raf.bank_service.domain.enums.CardType;
+import rs.raf.bank_service.domain.enums.RequestStatus;
+import rs.raf.bank_service.exceptions.PaymentNotFoundException;
+import rs.raf.bank_service.exceptions.ReceiverAccountNotFoundException;
 import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.CardRequestRepository;
+import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -46,6 +57,12 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     AccountRepository accountRepository;
 
     @Autowired
+    CardRequestRepository cardRequestRepository;
+
+    @Autowired
+    PaymentRepository paymentRepository;
+
+    @Autowired
     JwtTokenUtil jwtTokenUtil;
 
     private String employeeToken;
@@ -57,6 +74,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     private CardDtoNoOwner cardDto;
     private BigDecimal senderInitialBalance;
     private BigDecimal recieverInitialBalance;
+    private Long payment;
 
     public void authenticateWithJwtEmployee(String authHeader, JwtTokenUtil jwtTokenUtil) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -137,6 +155,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         }
         createClientDto.setBirthDate(date);
 
+        authenticateWithJwtEmployee("Bearer " + employeeToken, jwtTokenUtil);
         clientDto = userClient.addClient(createClientDto);
     }
 
@@ -206,43 +225,48 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         clientToken = loginResponseDto.getToken();
     }
 
-//    @And("the client requests a new card")
-//    public void theClientRequestsANewCard() {
-//        CreateCardDto createCardDto = new CreateCardDto();
-//        createCardDto.setType(CardType.DEBIT);
-//        createCardDto.setName("Mastercard");
-//        createCardDto.setCardLimit(BigDecimal.valueOf(1000000L));
-//        Page<AccountDto> accountsPage = (Page<AccountDto>) accountController.getAccountsForClient(null, clientDto.getId(), 0, 10).getBody();
-//        if (accountsPage == null || accountsPage.getContent().isEmpty()) {
-//            fail("No accounts found for client: " + clientDto.getId());
-//        }
-//
-//        String accountNumber = accountsPage.getContent().get(0).getAccountNumber();
-//
-//        createCardDto.setAccountNumber(accountNumber);
-//        dto = createCardDto;
-//
-//        authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
-//        cardController.requestCardForAccount(createCardDto);
-//    }
-//
-//    @And("the client confirms card creation request using token sent to his email and the card is created")
-//    public void theClientConfirmsCardCreationRequestUsingTokenSentToHisEmailAndTheCardIsCreated() {
-//        CardRequestDto cardRequestDto = new CardRequestDto();
-//        cardRequestDto.setToken("df7ff5f0-70bd-492c-9569-ac5f3fbda7xd");    //hardcoded token, added in user service bootstrap
-//        cardRequestDto.setCreateCardDto(dto);
-//
-//        cardDto = cardController.verifyAndReceiveCard(cardRequestDto).getBody();
-//    }
+    @And("the client requests a new card")
+    public void theClientRequestsANewCard() throws JsonProcessingException {
+        CreateCardDto createCardDto = new CreateCardDto();
+        createCardDto.setType(CardType.DEBIT);
+        createCardDto.setName("Mastercard");
+        createCardDto.setCardLimit(BigDecimal.valueOf(1000000L));
+        Page<AccountDto> accountsPage = (Page<AccountDto>) accountController.getAccountsForClient(null, clientDto.getId(), 0, 10).getBody();
+        if (accountsPage == null || accountsPage.getContent().isEmpty()) {
+            fail("No accounts found for client: " + clientDto.getId());
+        }
+        String accountNumber = accountsPage.getContent().get(0).getAccountNumber();
+        createCardDto.setAccountNumber(accountNumber);
+        createCardDto.setIssuer(CardIssuer.MASTERCARD);
+
+        dto = createCardDto;
+
+        authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
+        cardController.requestNewCard(createCardDto, "Bearer " + clientToken);
+    }
+
+    @And("the employee confirms card creation request and the card is created")
+    public void theEmployeeConfirmsCardCreationRequestAndTheCardIsCreated() {
+        authenticateWithJwtAdmin("Bearer " + employeeToken, jwtTokenUtil);
+        List<CardRequest> pendingRequests = cardRequestRepository.findByAccountNumberAndStatus(
+                dto.getAccountNumber(), RequestStatus.PENDING);
+
+        if (pendingRequests.isEmpty()) {
+            fail("No pending card requests found");
+        }
+
+        Long cardRequestId = pendingRequests.get(0).getId();
+        cardController.approveCardRequest(cardRequestId);
+    }
 
 
     @Then("when all cards are listed for account, the list is not empty")
     public void whenAllCardsAreListedForAccountTheListIsNotEmpty() {
         authenticateWithJwtEmployee("Bearer " + employeeToken, jwtTokenUtil);
-        Object response = cardController.getCardsByAccount(cardDto.getAccountNumber()).getBody();
+        Object response = cardController.getCardsByAccount(dto.getAccountNumber()).getBody();
 
         if (response == null) {
-            fail("Failed to recover cards for account: " + cardDto.getAccountNumber());
+            fail("Failed to recover cards for account: " + dto.getAccountNumber());
         }
 
         List<CardDto> listOfCards;
@@ -254,7 +278,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         }
 
         if (listOfCards.isEmpty()) {
-            fail("No cards were created for account: " + cardDto.getAccountNumber());
+            fail("No cards were created for account: " + dto.getAccountNumber());
         }
     }
 
@@ -262,13 +286,13 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     public void theClientInitiatesAPaymentToAnotherBootstrapAccount() {
         CreatePaymentDto createPaymentDto = new CreatePaymentDto();
         createPaymentDto.setPaymentCode("222");
-        createPaymentDto.setAmount(BigDecimal.valueOf(500L));
+        createPaymentDto.setAmount(BigDecimal.valueOf(200L));
         createPaymentDto.setPurposeOfPayment("Isplata caciju za blejanje u Pionirskom parku");
         createPaymentDto.setReferenceNumber("");
-        createPaymentDto.setSenderAccountNumber(cardDto.getAccountNumber());
+        createPaymentDto.setSenderAccountNumber(dto.getAccountNumber());
         createPaymentDto.setReceiverAccountNumber("111111111111111111");
 
-        senderInitialBalance = accountRepository.findByAccountNumber(cardDto.getAccountNumber()).get().getBalance();
+        senderInitialBalance = accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance();
         recieverInitialBalance = accountRepository.findByAccountNumber("111111111111111111").get().getBalance();
 
         authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
@@ -277,7 +301,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
 
     @Then("the money has not been sent yet")
     public void theMoneyHasNotBeenSentYet() {
-        if (!senderInitialBalance.equals(accountRepository.findByAccountNumber(cardDto.getAccountNumber()).get().getBalance()) ||
+        if (!senderInitialBalance.equals(accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance()) ||
                 !recieverInitialBalance.equals(accountRepository.findByAccountNumber("111111111111111111").get().getBalance())) {
             fail("Balance has been transfered before the payment was confirmed.");
         }
@@ -286,16 +310,25 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     @When("the admin approves the payment")
     public void theAdminApprovesThePayment() {
         Long paymentId = paymentController.getPayments("Bearer " + clientToken, null, null, null, null,
-                null, cardDto.getAccountNumber(), null, 0, 10).getBody().toList().get(0).getId();
-
+                null, dto.getAccountNumber(), null, 0, 10).getBody().toList().get(0).getId();
+        payment = paymentId;
         authenticateWithJwtAdmin("Bearer " + employeeToken, jwtTokenUtil);
         paymentController.confirmPayment(paymentId);
     }
 
     @Then("the money is successfully transferred")
     public void theMoneyIsSuccessfullyTransferred() {
-        if (!senderInitialBalance.equals(accountRepository.findByAccountNumber(cardDto.getAccountNumber()).get().getBalance().add(BigDecimal.valueOf(500L))) ||
-                !recieverInitialBalance.equals(accountRepository.findByAccountNumber("111111111111111111").get().getBalance().subtract(BigDecimal.valueOf(500L)))) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        BigDecimal newSenderBalance = accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance();
+        BigDecimal newReceiverBalance = accountRepository.findByAccountNumber("111111111111111111").get().getBalance();
+
+        if (!senderInitialBalance.subtract(BigDecimal.valueOf(200L)).equals(newSenderBalance) ||
+                !recieverInitialBalance.add(BigDecimal.valueOf(200L)).equals(newReceiverBalance)) {
             fail("Payment has failed.");
         }
     }

@@ -10,7 +10,7 @@ Feature: Testing the bank service
     When the client sets "dvadesettrecimaj" as password
     And the client with email "something@example.com" and password "dvadesettrecimaj" logs in
     And the client requests a new card
-    And the client confirms card creation request using token sent to his email and the card is created
+    And the employee confirms card creation request and the card is created
     Then when all cards are listed for account, the list is not empty
     When the client initiates a payment to another bootstrap account
     Then the money has not been sent yet
