@@ -9,6 +9,7 @@ import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
+import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
@@ -30,7 +31,7 @@ public class ListingService {
     private TwelveDataClient twelveDataClient;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private TimeSeriesMapper timeSeriesMapper;
 
     @Autowired
     private ListingMapper listingMapper;
@@ -79,15 +80,9 @@ public class ListingService {
             interval = "1day";
         }
 
-        String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30"); // Poslednjih 30 vrednosti
-        System.out.println(listing.getTicker());
+        String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30");
 
-        System.out.println("API Response: " + response);
-        try {
-            return objectMapper.readValue(response, TimeSeriesDto.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Error mapping Time Series API response", e);
-        }
+        return timeSeriesMapper.mapJsonToCustomTimeSeries(response, listing);
     }
 
 }

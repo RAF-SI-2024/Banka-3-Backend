@@ -6,12 +6,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.domain.Specification;
+import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
+import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
@@ -45,6 +47,13 @@ class ListingServiceTest {
 
     @InjectMocks
     private ListingService listingService;
+
+    @Mock
+    private TwelveDataClient twelveDataClient;
+
+    @Mock
+    private TimeSeriesMapper timeSeriesMapper;
+
 
     @BeforeEach
     void setUp() {
@@ -223,5 +232,102 @@ class ListingServiceTest {
         verify(jwtTokenUtil, times(1)).getUserRoleFromAuthHeader(fakeToken);
         verifyNoInteractions(listingRepository);
     }
+
+    @Test
+    void getPriceHistory_ShouldReturnTimeSeriesDto_WhenListingExists() throws Exception {
+        // Mock podaci
+        Long listingId = 1L;
+        String interval = "1day";
+        String apiResponse = "{ \"meta\": { \"symbol\": \"AAPL\", \"interval\": \"1day\", \"currency\": \"USD\" }, \"values\": [] }";
+
+        Exchange exchange = new Exchange();
+        exchange.setAcronym("XNAS");
+
+        Stock stock = new Stock();
+        stock.setId(listingId);
+        stock.setTicker("AAPL");
+        stock.setExchange(exchange);
+
+        TimeSeriesDto mockDto = new TimeSeriesDto();
+        TimeSeriesDto.MetaDto metaDto = new TimeSeriesDto.MetaDto();
+        metaDto.setSymbol("AAPL");
+        metaDto.setInterval("1day");
+        metaDto.setCurrency("USD");
+        metaDto.setExchange("XNAS");
+        mockDto.setMeta(metaDto);
+
+        // Mock ponašanje
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(stock));
+        when(twelveDataClient.getTimeSeries("AAPL", interval, "30")).thenReturn(apiResponse);
+        when(timeSeriesMapper.mapJsonToCustomTimeSeries(apiResponse, stock)).thenReturn(mockDto);
+
+        // Poziv metode
+        TimeSeriesDto result = listingService.getPriceHistory(listingId, interval);
+
+        // Provera rezultata
+        assertEquals("AAPL", result.getMeta().getSymbol());
+        assertEquals("1day", result.getMeta().getInterval());
+        assertEquals("XNAS", result.getMeta().getExchange());
+
+        // Verifikacija poziva
+        verify(listingRepository, times(1)).findById(listingId);
+        verify(twelveDataClient, times(1)).getTimeSeries("AAPL", interval, "30");
+        verify(timeSeriesMapper, times(1)).mapJsonToCustomTimeSeries(apiResponse, stock);
+    }
+
+    @Test
+    void getPriceHistory_ShouldThrowListingNotFoundException_WhenListingDoesNotExist() {
+        Long listingId = 2L;
+        String interval = "1day";
+
+        // Mock ponašanje - listing sa ID 2 ne postoji
+        when(listingRepository.findById(listingId)).thenReturn(Optional.empty());
+
+        // Provera da li baca ListingNotFoundException
+        Exception exception = assertThrows(ListingNotFoundException.class, () -> {
+            listingService.getPriceHistory(listingId, interval);
+        });
+
+        assertEquals("Listing with ID 2 not found.", exception.getMessage());
+
+        // Verifikacija poziva
+        verify(listingRepository, times(1)).findById(listingId);
+        verifyNoInteractions(twelveDataClient);
+        verifyNoInteractions(timeSeriesMapper);
+    }
+
+    @Test
+    void getPriceHistory_ShouldThrowRuntimeException_WhenApiResponseInvalid() {
+        Long listingId = 1L;
+        String interval = "1day";
+        String invalidApiResponse = "INVALID_JSON_RESPONSE";
+
+        Exchange exchange = new Exchange();
+        exchange.setAcronym("XNAS");
+
+        Stock stock = new Stock();
+        stock.setId(listingId);
+        stock.setTicker("AAPL");
+        stock.setExchange(exchange);
+
+        // Mock ponašanje - validan listing, ali neispravan JSON iz API-ja
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(stock));
+        when(twelveDataClient.getTimeSeries("AAPL", interval, "30")).thenReturn(invalidApiResponse);
+        when(timeSeriesMapper.mapJsonToCustomTimeSeries(invalidApiResponse, stock))
+                .thenThrow(new RuntimeException("Error mapping JSON to Time Series DTO"));
+
+        // Provera da li baca RuntimeException
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            listingService.getPriceHistory(listingId, interval);
+        });
+
+        assertEquals("Error mapping JSON to Time Series DTO", exception.getMessage());
+
+        // Verifikacija poziva
+        verify(listingRepository, times(1)).findById(listingId);
+        verify(twelveDataClient, times(1)).getTimeSeries("AAPL", interval, "30");
+        verify(timeSeriesMapper, times(1)).mapJsonToCustomTimeSeries(invalidApiResponse, stock);
+    }
+
 
 }

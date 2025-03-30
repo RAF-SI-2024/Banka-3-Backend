@@ -16,6 +16,8 @@ public class TimeSeriesDto {
         private String symbol;
         private String interval;
         private String currency;
+        private String currency_base;
+        private String currency_quote;
         private String exchange;
         private String type;
     }

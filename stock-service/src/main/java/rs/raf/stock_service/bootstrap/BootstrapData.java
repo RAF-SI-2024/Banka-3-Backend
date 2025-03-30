@@ -56,8 +56,8 @@ public class BootstrapData implements CommandLineRunner {
 //        loadOrders();
 
         // Futures and Options data
-        addFutures();
-        addOptionsForStocks();
+//        addFutures();
+//        addOptionsForStocks();
     }
 
     private void addFutures() {
