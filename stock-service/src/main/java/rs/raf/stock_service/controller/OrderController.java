@@ -89,7 +89,7 @@ public class OrderController {
     public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        }  catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }

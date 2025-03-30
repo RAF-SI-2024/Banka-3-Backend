@@ -70,7 +70,7 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 
-    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber){
+    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber) {
         this.userId = userId;
         this.listing = listing;
         this.orderType = orderType;

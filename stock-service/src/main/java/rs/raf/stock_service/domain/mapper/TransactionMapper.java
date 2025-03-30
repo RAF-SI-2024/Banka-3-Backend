@@ -5,7 +5,7 @@ import rs.raf.stock_service.domain.entity.Transaction;
 
 public class TransactionMapper {
 
-    public static TransactionDto toDto(Transaction transaction){
+    public static TransactionDto toDto(Transaction transaction) {
         if (transaction == null) return null;
         return new TransactionDto(
                 transaction.getId(),

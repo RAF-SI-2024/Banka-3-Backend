@@ -34,11 +34,11 @@ import java.util.Random;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private ListingRepository listingRepository;
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
     private final BankClient bankClient;
+    private ListingRepository listingRepository;
+    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
 
@@ -83,7 +83,7 @@ public class OrderService {
         orderRepository.save(order);
     }
 
-    public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader){
+    public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader) {
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         Listing listing = listingRepository.findById(createOrderDto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
@@ -97,11 +97,11 @@ public class OrderService {
                 multiply(BigDecimal.valueOf(order.getQuantity())));
 
         if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT")) {
-            order.setStatus(verifyBalance(order)? OrderStatus.APPROVED : OrderStatus.DECLINED);
+            order.setStatus(verifyBalance(order) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
         } else {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound
 
-            if (!actuaryLimitDto.isNeedsApproval()){
+            if (!actuaryLimitDto.isNeedsApproval()) {
                 if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(approxPrice) >= 0)
                     order.setStatus(OrderStatus.APPROVED);
             }
@@ -109,32 +109,32 @@ public class OrderService {
 
         orderRepository.save(order);
 
-        if (order.getStatus()  == OrderStatus.APPROVED)
+        if (order.getStatus() == OrderStatus.APPROVED)
             executeOrder(order);
 
         return OrderMapper.toDto(order, listingMapper.toDto(listing,
                 dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
     }
 
-    private boolean verifyBalance(Order order){
+    private boolean verifyBalance(Order order) {
         BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
 
         BigDecimal commissionPercentage = price.multiply(BigDecimal.valueOf(0.14));
         BigDecimal commission = commissionPercentage.compareTo(BigDecimal.valueOf(7)) < 0 ? commissionPercentage : BigDecimal.valueOf(7);
 
-        price =  price.add(commission);
+        price = price.add(commission);
         return price.compareTo(bankClient.getAccountBalance(order.getAccountNumber())) <= 0;
     }
 
     //async da bi se vratio OrderDto response paralelno sa izvrsenjem ordera,
     @Async
-    public void executeOrder(Order order){
+    public void executeOrder(Order order) {
         // za svaki slucaj provera ako se zaboravi pre poziva ove metode da se proveri
         if (order.getStatus() != OrderStatus.APPROVED)
             return;
 
-        switch(order.getOrderType()){
+        switch (order.getOrderType()) {
             case MARKET -> executeMarketOrder(order);
         }
 
@@ -144,10 +144,10 @@ public class OrderService {
         //mozda uvesti neko slanje notifikacije da je order zavrsen, nzm da li smo igde uveli notifikacije ili da li je opste scope
     }
 
-    private void executeMarketOrder(Order order){
+    private void executeMarketOrder(Order order) {
         Random random = new Random();
 
-        while (order.getRemainingPortions() > 0 ){
+        while (order.getRemainingPortions() > 0) {
             Integer remainingPortions = order.getRemainingPortions();
             Integer batchSize = random.nextInt(1, remainingPortions + 1);
 
@@ -165,7 +165,7 @@ public class OrderService {
             orderRepository.save(order);
 
             try {
-                Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() /  remainingPortions)));
+                Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() / remainingPortions)));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -173,5 +173,6 @@ public class OrderService {
     }
 
     //Pomoc za ovo pliz
-    private void transferCommissionToBankAccount(){}
+    private void transferCommissionToBankAccount() {
+    }
 }

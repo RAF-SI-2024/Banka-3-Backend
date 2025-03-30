@@ -1,44 +1,16 @@
 package rs.raf.stock_service.unit;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
-import rs.raf.stock_service.domain.dto.CreateOrderDto;
-import rs.raf.stock_service.domain.dto.OrderDto;
-import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.domain.enums.OrderType;
-import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
-import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
-import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.service.OrderService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 public class OrderServiceTest {
 

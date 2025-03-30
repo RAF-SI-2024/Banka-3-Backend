@@ -105,7 +105,8 @@ public class BootstrapData implements CommandLineRunner {
                 opt.setUnderlyingStock(stock);
                 opt.setImpliedVolatility(BigDecimal.valueOf(1));
                 opt.setOpenInterest(new Random().nextInt(500) + 100);
-
+                opt.setPrice(dto.getPrice());
+                opt.setTicker(dto.getTicker());
                 optionRepository.save(opt);
             }
 

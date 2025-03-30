@@ -59,7 +59,7 @@ public class ForexService {
 
             ForexPair forexPair = new ForexPair();
             forexPair.setName(fromCurrency + "/" + toCurrency);
-            forexPair.setTicker(fromCurrency + toCurrency);
+            forexPair.setTicker(fromCurrency + "/" + toCurrency);
             forexPair.setBaseCurrency(fromCurrency);
             forexPair.setQuoteCurrency(toCurrency);
             forexPair.setExchangeRate(exchangeRate);

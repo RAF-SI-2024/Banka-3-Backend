@@ -1,9 +1,10 @@
 package rs.raf.stock_service.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
@@ -25,6 +26,11 @@ public class ListingService {
     private ListingRepository listingRepository;
     @Autowired
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+
+    private TwelveDataClient twelveDataClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private ListingMapper listingMapper;
@@ -64,4 +70,24 @@ public class ListingService {
 
         return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
     }
+
+    public TimeSeriesDto getPriceHistory(Long id, String interval) {
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
+
+        if (interval == null || interval.isEmpty()) {
+            interval = "1day";
+        }
+
+        String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30"); // Poslednjih 30 vrednosti
+        System.out.println(listing.getTicker());
+
+        System.out.println("API Response: " + response);
+        try {
+            return objectMapper.readValue(response, TimeSeriesDto.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Error mapping Time Series API response", e);
+        }
+    }
+
 }

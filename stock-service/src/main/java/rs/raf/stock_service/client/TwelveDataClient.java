@@ -15,4 +15,12 @@ public interface TwelveDataClient {
     // Endpoint za sve forex parove
     @GetMapping("/forex_pairs")
     String getAllForexPairs(@RequestParam("apikey") String dummy);
+
+    // Time series za price history
+    @GetMapping("/time_series")
+    String getTimeSeries(
+            @RequestParam("symbol") String symbol,
+            @RequestParam("interval") String interval,
+            @RequestParam(value = "outputsize", required = false, defaultValue = "30") String outputSize
+    );
 }
