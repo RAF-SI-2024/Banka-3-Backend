@@ -135,6 +135,7 @@ public class LoanService {
             );
             loan.getInstallments().add(next);
             loan.setNextInstallmentDate(next.getExpectedDueDate());
+            loan.setNextInstallmentAmount(next.getAmount()); //dodato
             installmentRepository.save(next);
         } else {
             loan.setStatus(LoanStatus.PAID_OFF);
@@ -172,11 +173,22 @@ public class LoanService {
 
             BigDecimal amount = loan.getNextInstallmentAmount();
 
+
+            //azurira balance
             currAccount.setBalance(currAccount.getBalance().subtract(amount));
             currAccount.setAvailableBalance(currAccount.getAvailableBalance().subtract(amount));
             accountRepository.save(currAccount);
 
-            // Ažuriraj remainingDebt
+            //azurira stanje banke
+            CompanyAccount bankAccount = accountRepository
+                    .findFirstByCurrencyAndCompanyId(currAccount.getCurrency(), 1L)
+                    .orElseThrow(() -> new BankAccountNotFoundException("Bank account not found for currency: " + currAccount.getCurrency().getCode()));
+
+            bankAccount.setBalance(bankAccount.getBalance().add(amount));
+            bankAccount.setAvailableBalance(bankAccount.getBalance());
+            accountRepository.save(bankAccount);
+
+            // azurira remainingDebt
             BigDecimal updatedDebt = loan.getRemainingDebt().subtract(amount);
             loan.setRemainingDebt(updatedDebt.max(BigDecimal.ZERO));
 
@@ -219,62 +231,6 @@ public class LoanService {
             scheduleRetry(loan, 72, TimeUnit.HOURS);
             loanRepository.save(loan);
         }
-    }
-
-    @Scheduled(cron = "0 0 3 1 * *") //prvog u mesecu
-    //@Scheduled(fixedRate = 15000) //za test
-    @Transactional
-    public void updateVariableInterestRates() {
-        List<Loan> variableLoans = loanRepository.findAll().stream()
-                .filter(loan -> loan.getInterestRateType().equals(InterestRateType.VARIABLE))
-                .collect(Collectors.toList());
-
-        for (Loan loan : variableLoans) {
-            BigDecimal osnovica = getOsnovica(loan.getAmount());
-            BigDecimal pomeraj = getRandomPomeraj();
-            BigDecimal marza = getMarza(loan.getType());
-
-            BigDecimal novaEfektivna = osnovica.add(pomeraj).add(marza.divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP));
-
-            loan.setNominalInterestRate(osnovica);
-            loan.setEffectiveInterestRate(novaEfektivna);
-
-            BigDecimal novaRata = LoanRateCalculator.calculateMonthlyRate(
-                    loan.getAmount(),
-                    novaEfektivna,
-                    loan.getRepaymentPeriod()
-            );
-
-            loan.setNextInstallmentAmount(novaRata);
-            loanRepository.save(loan);
-        }
-
-        log.info("Updated variable interest rates for {} loans.", variableLoans.size());
-    }
-    private BigDecimal getOsnovica(BigDecimal amount) {
-        if (amount.compareTo(new BigDecimal("500000")) <= 0) return new BigDecimal("6.25");
-        if (amount.compareTo(new BigDecimal("1000000")) <= 0) return new BigDecimal("6.00");
-        if (amount.compareTo(new BigDecimal("2000000")) <= 0) return new BigDecimal("5.75");
-        if (amount.compareTo(new BigDecimal("5000000")) <= 0) return new BigDecimal("5.50");
-        if (amount.compareTo(new BigDecimal("10000000")) <= 0) return new BigDecimal("5.25");
-        if (amount.compareTo(new BigDecimal("20000000")) <= 0) return new BigDecimal("5.00");
-        return new BigDecimal("4.75");
-    }
-
-    private BigDecimal getMarza(LoanType type) {
-        switch (type) {
-            case CASH: return new BigDecimal("1.75");
-            case MORTGAGE: return new BigDecimal("1.50");
-            case AUTO: return new BigDecimal("1.25");
-            case REFINANCING: return new BigDecimal("1.00");
-            case STUDENT: return new BigDecimal("0.75");
-            default: return BigDecimal.ZERO;
-        }
-    }
-
-    private BigDecimal getRandomPomeraj() {
-        double random = -1.5 + (Math.random() * 3.0); // u rasponu [-1.5, +1.5]
-        return BigDecimal.valueOf(random).setScale(2, RoundingMode.HALF_UP);
     }
 
 }

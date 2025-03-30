@@ -29,9 +29,4 @@ public class LoanDto {
     private BigDecimal remainingDebt;
     private String currencyCode;
     private LoanStatus status;
-
-    // Dodato za varijabilnu kamatu
-    private BigDecimal baseInterestRate;
-    private BigDecimal rateDelta;
-    private BigDecimal bankMargin;
 }

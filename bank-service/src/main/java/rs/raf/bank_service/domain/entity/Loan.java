@@ -36,13 +36,6 @@ public class Loan {
 
     private BigDecimal effectiveInterestRate;
 
-    // Dodato za podršku varijabilne kamate
-    private BigDecimal baseInterestRate;
-
-    private BigDecimal rateDelta;
-
-    private BigDecimal bankMargin;
-
     private LocalDate startDate;
 
     private LocalDate dueDate;

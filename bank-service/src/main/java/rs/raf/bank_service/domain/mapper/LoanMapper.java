@@ -26,9 +26,6 @@ public class LoanMapper {
                 .remainingDebt(loan.getRemainingDebt())
                 .currencyCode(loan.getCurrency().getCode())
                 .status(loan.getStatus())
-                .baseInterestRate(loan.getBaseInterestRate())
-                .rateDelta(loan.getRateDelta())
-                .bankMargin(loan.getBankMargin())
                 .build();
     }
 
@@ -55,9 +52,6 @@ public class LoanMapper {
         loan.setNextInstallmentDate(loanDto.getNextInstallmentDate());
         loan.setRemainingDebt(loanDto.getRemainingDebt());
         loan.setStatus(loanDto.getStatus());
-        loan.setBaseInterestRate(loanDto.getBaseInterestRate());
-        loan.setRateDelta(loanDto.getRateDelta());
-        loan.setBankMargin(loanDto.getBankMargin());
         return loan;
     }
 
@@ -76,9 +70,6 @@ public class LoanMapper {
                 .remainingDebt(null)
                 .currencyCode(loanRequest.getCurrency().getCode())
                 .status(LoanStatus.APPROVED)
-                .baseInterestRate(null)
-                .rateDelta(null)
-                .bankMargin(null)
                 .build();
     }
 }
