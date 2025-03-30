@@ -8,6 +8,7 @@ import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.repository.OptionRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ public class OptionService {
      */
     public List<OptionDto> generateOptions(String stockListing, BigDecimal currentPrice) {
         List<OptionDto> options = new ArrayList<>();
-        int roundedPrice = currentPrice.setScale(0, BigDecimal.ROUND_HALF_UP).intValue();
+        int roundedPrice = currentPrice.setScale(0, RoundingMode.HALF_UP).intValue();
         int lowerBound = roundedPrice - 5;
         int upperBound = roundedPrice + 5;
 
@@ -56,27 +57,54 @@ public class OptionService {
 
         for (LocalDate exp : expiryDates) {
             for (int strike = lowerBound; strike <= upperBound; strike++) {
-                OptionDto callOption = new OptionDto();
-                callOption.setStockListing(stockListing);
-                callOption.setOptionType(OptionType.CALL);
-                callOption.setStrikePrice(BigDecimal.valueOf(strike));
-                callOption.setContractSize(BigDecimal.valueOf(100));
-                callOption.setSettlementDate(exp);
-                callOption.setMaintenanceMargin(margin);
+                BigDecimal strikePrice = BigDecimal.valueOf(strike);
+                long daysUntilExpiry = LocalDate.now().until(exp).getDays();
+
+                OptionDto callOption = createOption(stockListing, OptionType.CALL, currentPrice, strikePrice, exp, margin, daysUntilExpiry);
                 options.add(callOption);
 
-                OptionDto putOption = new OptionDto();
-                putOption.setStockListing(stockListing);
-                putOption.setOptionType(OptionType.PUT);
-                putOption.setStrikePrice(BigDecimal.valueOf(strike));
-                putOption.setContractSize(BigDecimal.valueOf(100));
-                putOption.setSettlementDate(exp);
-                putOption.setMaintenanceMargin(margin);
+                OptionDto putOption = createOption(stockListing, OptionType.PUT, currentPrice, strikePrice, exp, margin, daysUntilExpiry);
                 options.add(putOption);
             }
         }
         return options;
     }
+
+    private OptionDto createOption(String stockListing, OptionType type, BigDecimal currentPrice,
+                                   BigDecimal strikePrice, LocalDate expiry, BigDecimal margin, long daysUntilExpiry) {
+        OptionDto option = new OptionDto();
+        option.setStockListing(stockListing);
+        option.setOptionType(type);
+        option.setStrikePrice(strikePrice);
+        option.setContractSize(BigDecimal.valueOf(100));
+        option.setSettlementDate(expiry);
+        option.setMaintenanceMargin(margin);
+        option.setPrice(calculateOptionPrice(type, currentPrice, strikePrice, daysUntilExpiry));
+
+        String ticker = stockListing + expiry.getYear() % 100 +
+                String.format("%02d", expiry.getMonthValue()) +
+                String.format("%02d", expiry.getDayOfMonth()) +
+                (type == OptionType.CALL ? "C" : "P") +
+                String.format("%08d", strikePrice.multiply(BigDecimal.valueOf(100)).intValue());
+        option.setTicker(ticker);
+
+        return option;
+    }
+
+    private BigDecimal calculateOptionPrice(OptionType type, BigDecimal currentPrice, BigDecimal strikePrice, long daysUntilExpiry) {
+        BigDecimal timeValue = currentPrice.multiply(BigDecimal.valueOf(0.05))
+                .multiply(BigDecimal.valueOf(Math.sqrt((double) daysUntilExpiry / 365)));
+
+        if (type == OptionType.CALL) {
+            BigDecimal intrinsicValue = currentPrice.subtract(strikePrice).max(BigDecimal.ZERO);
+            return intrinsicValue.add(timeValue).setScale(2, RoundingMode.HALF_UP);
+        } else if (type == OptionType.PUT) {
+            BigDecimal intrinsicValue = strikePrice.subtract(currentPrice).max(BigDecimal.ZERO);
+            return intrinsicValue.add(timeValue).setScale(2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO;
+    }
+
 
     public OptionDto getOptionByTicker(String ticker) {
         Option option = optionRepository.findByTicker(ticker.toUpperCase())

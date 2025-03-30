@@ -32,7 +32,7 @@ public class Transaction {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    public Transaction(Integer quantity, BigDecimal pricePerUnit, BigDecimal totalPrice, Order order){
+    public Transaction(Integer quantity, BigDecimal pricePerUnit, BigDecimal totalPrice, Order order) {
         this.quantity = quantity;
         this.pricePerUnit = pricePerUnit;
         this.totalPrice = totalPrice;

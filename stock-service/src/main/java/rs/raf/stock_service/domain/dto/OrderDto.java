@@ -3,7 +3,6 @@ package rs.raf.stock_service.domain.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;

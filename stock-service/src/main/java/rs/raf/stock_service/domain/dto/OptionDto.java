@@ -14,4 +14,6 @@ public class OptionDto {
     private BigDecimal contractSize;
     private LocalDate settlementDate;
     private BigDecimal maintenanceMargin;
+    private BigDecimal price;
+    private String ticker;
 }
