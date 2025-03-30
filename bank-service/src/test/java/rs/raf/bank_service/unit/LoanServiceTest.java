@@ -220,12 +220,37 @@ public class LoanServiceTest {
 
     @Test
     void testRetryLoanPayment_SuccessfulRetry() {
-        loan.setInstallments(new ArrayList<>(List.of(installment)));
-        when(accountRepository.findByAccountNumber(account.getAccountNumber())).thenReturn(Optional.of(account));
+        // Setup valuta
+        Currency currency = new Currency();
+        currency.setCode("RSD");
 
+        // Setup account i bank account
+        account.setCurrency(currency);
+        account.setBalance(new BigDecimal("100000"));
+        account.setAvailableBalance(new BigDecimal("100000"));
+
+        CompanyAccount bankAccount = new CompanyAccount();
+        bankAccount.setCurrency(currency);
+        bankAccount.setBalance(new BigDecimal("50000000"));
+        bankAccount.setAvailableBalance(new BigDecimal("50000000"));
+
+        // Setup loan
+        loan.setInterestRateType(InterestRateType.VARIABLE);
+        loan.setInstallments(new ArrayList<>(List.of(installment)));
+
+        // Mockovi
+        when(accountRepository.findByAccountNumber(account.getAccountNumber()))
+                .thenReturn(Optional.of(account));
+
+        when(accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L))
+                .thenReturn(Optional.of(bankAccount));
+
+        // Poziv
         loanService.retryLoanPayment(loan);
 
+        // Provere
         verify(accountRepository).save(account);
+        verify(accountRepository).save(bankAccount);
         assertEquals(InstallmentStatus.PAID, installment.getInstallmentStatus());
         assertNotNull(installment.getActualDueDate());
     }
