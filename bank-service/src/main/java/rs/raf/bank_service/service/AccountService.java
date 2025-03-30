@@ -300,6 +300,15 @@ public class AccountService {
 
         log.info("Account limit updated successfully for account {}", account.getAccountNumber());
     }
+    public void rejectAccountLimitChange(Long requestId){
+        ChangeLimitRequest changeLimitRequest = changeLimitRequestRepository
+                .findById(requestId)
+                .orElseThrow(() -> new ChangeLimitReqNotFoundException(requestId));
+        if (!changeLimitRequest.getStatus().equals(VerificationStatus.PENDING))
+            throw new RejectNonPendingRequestException();
+        changeLimitRequest.setStatus(VerificationStatus.DENIED);
+        changeLimitRequestRepository.save(changeLimitRequest);
+    }
 
     public void setAuthorizedPerson(Long accountId, Long authorizedPersonId, Long employeeId) {
 

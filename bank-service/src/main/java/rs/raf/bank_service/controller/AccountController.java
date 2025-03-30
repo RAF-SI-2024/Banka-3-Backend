@@ -176,6 +176,21 @@ public class AccountController {
         accountService.changeAccountLimit(id);
         return ResponseEntity.ok("Account limit updated successfully");
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/change-limit/reject")
+    @Operation(summary = "Reject account limit change", description = "Allows user service to reject request.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account limit change request rejected successfully."),
+            @ApiResponse(responseCode = "404", description = "Request not found.")
+    })
+    public ResponseEntity<?> rejectAccountLimitChange(@PathVariable Long id) {
+        try {
+            accountService.rejectAccountLimitChange(id);
+            return ResponseEntity.ok("Request rejected successfully.");
+        }catch (ChangeLimitReqNotFoundException | RejectNonPendingRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 
     @PreAuthorize("hasRole('CLIENT')")
     @PutMapping("/{accountNumber}/request-change-limit")

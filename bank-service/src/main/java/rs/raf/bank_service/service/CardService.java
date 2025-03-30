@@ -313,5 +313,14 @@ public class CardService {
         log.info("Card created for request {} and client {}", id, cardRequest.getClientId());
     }
 
+    public void rejectCardRequest(Long id) {
+        CardRequest cardRequest = cardRequestRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(String.valueOf(id)));
+        if (!cardRequest.getStatus().equals(RequestStatus.PENDING))
+            throw new RejectNonPendingRequestException();
+
+        cardRequest.setStatus(RequestStatus.REJECTED);
+        cardRequestRepository.save(cardRequest);
+    }
 
 }

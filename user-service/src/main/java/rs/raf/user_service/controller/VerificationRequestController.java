@@ -13,7 +13,9 @@ import rs.raf.user_service.domain.dto.ClientDto;
 import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
 import rs.raf.user_service.domain.dto.ErrorMessageDto;
 import rs.raf.user_service.domain.entity.VerificationRequest;
+import rs.raf.user_service.exceptions.RejectNonPendingRequestException;
 import rs.raf.user_service.exceptions.VerificationClientNotFoundException;
+import rs.raf.user_service.exceptions.VerificationNotFoundException;
 import rs.raf.user_service.service.ClientService;
 import rs.raf.user_service.service.VerificationRequestService;
 
@@ -79,19 +81,19 @@ public class VerificationRequestController {
     })
     @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/deny/{requestId}")
-    public ResponseEntity<String> denyRequest(
-            @RequestHeader(value="User-Agent", required=false) String userAgent,
+    public ResponseEntity<?> denyRequest(
+            @RequestHeader String userAgent,
             @PathVariable Long requestId,
             @RequestHeader("Authorization") String authHeader) {
-        if (!verificationRequestService.calledFromMobile(userAgent)) {
+        if (verificationRequestService.calledFromMobile(userAgent))
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        try {
+            verificationRequestService.denyVerificationRequest(requestId, authHeader);
+            return ResponseEntity.ok("Request denied successfully.");
+        }catch (VerificationNotFoundException | RejectNonPendingRequestException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        boolean success = verificationRequestService.denyVerificationRequest(requestId, authHeader);
-
-        return success
-                ? ResponseEntity.ok("Request denied")
-                : ResponseEntity.badRequest().body("Request not found or already processed");
     }
 
     // ovo nije za mobilnu, zove se iz servisa na beku

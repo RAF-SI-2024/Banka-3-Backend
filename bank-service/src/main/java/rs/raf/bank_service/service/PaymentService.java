@@ -159,6 +159,17 @@ public class PaymentService {
         return true;
     }
 
+    public void rejectTransfer(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!payment.getStatus().equals(PaymentStatus.PENDING_CONFIRMATION))
+            throw new RejectNonPendingRequestException();
+
+        payment.setStatus(PaymentStatus.CANCELED);
+        paymentRepository.save(payment);
+    }
+
 
     public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
@@ -320,5 +331,16 @@ public class PaymentService {
         Payment payment = paymentRepository.findByIdAndClientId(id, clientId)
                 .orElseThrow(() -> new PaymentNotFoundException(id));
         return paymentMapper.toDetailsDto(payment);
+    }
+
+    public void rejectPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!payment.getStatus().equals(PaymentStatus.PENDING_CONFIRMATION))
+            throw new RejectNonPendingRequestException();
+
+        payment.setStatus(PaymentStatus.CANCELED);
+        paymentRepository.save(payment);
     }
 }
