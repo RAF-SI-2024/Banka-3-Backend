@@ -38,7 +38,6 @@ public class LoanMapper {
                 .build();
     }
 
-
     public Loan toEntity(LoanDto loanDto) {
         Loan loan = new Loan();
         loan.setLoanNumber(loanDto.getLoanNumber());
@@ -73,5 +72,4 @@ public class LoanMapper {
                 .status(LoanStatus.APPROVED)
                 .build();
     }
-
 }

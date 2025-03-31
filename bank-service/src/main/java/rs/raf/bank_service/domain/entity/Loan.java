@@ -18,6 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Loan {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,14 +29,23 @@ public class Loan {
     private LoanType type;
 
     private BigDecimal amount;
+
     private Integer repaymentPeriod;
+
     private BigDecimal nominalInterestRate;
+
     private BigDecimal effectiveInterestRate;
+
     private LocalDate startDate;
+
     private LocalDate dueDate;
+
     private BigDecimal nextInstallmentAmount;
+
     private LocalDate nextInstallmentDate;
+
     private BigDecimal remainingDebt;
+
     @ManyToOne
     private Currency currency;
 
