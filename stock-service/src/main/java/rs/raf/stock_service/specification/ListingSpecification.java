@@ -18,12 +18,12 @@ public class ListingSpecification {
 
             // Pridružujemo ListingDailyPriceInfo koristeći podupit da nađemo najnoviji zapis
             Subquery<LocalDate> subquery = query.subquery(LocalDate.class);
-            Root<ListingDailyPriceInfo> subRoot = subquery.from(ListingDailyPriceInfo.class);
+            Root<ListingPriceHistory> subRoot = subquery.from(ListingPriceHistory.class);
             subquery.select(cb.greatest(subRoot.<LocalDate>get("date")));
             subquery.where(cb.equal(subRoot.get("listing"), root));
 
             // Join sa ListingDailyPriceInfo
-            Join<Listing, ListingDailyPriceInfo> dailyInfoJoin = root.join("listingDailyPriceInfos", JoinType.LEFT);
+            Join<Listing, ListingPriceHistory> dailyInfoJoin = root.join("listingDailyPriceInfos", JoinType.LEFT);
             predicates.add(cb.or(
                     cb.isNull(dailyInfoJoin.get("date")),
                     cb.equal(dailyInfoJoin.get("date"), subquery)

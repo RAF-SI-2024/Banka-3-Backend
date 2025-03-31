@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.StockDto;
@@ -52,6 +53,7 @@ public class StocksService {
         }
     }
 
+    @Transactional
     public StockDto getStockData(String symbol) {
         try {
             String quoteResponse = alphavantageClient.getGlobalQuote(symbol);
@@ -68,7 +70,7 @@ public class StocksService {
             JsonNode overviewRoot = objectMapper.readTree(overviewResponse);
             long outstandingShares = overviewRoot.path("SharesOutstanding").asLong();
             String dividendYieldStr = overviewRoot.path("DividendYield").asText();
-            BigDecimal dividendYield = dividendYieldStr.isEmpty() ? BigDecimal.ZERO : new BigDecimal(dividendYieldStr);
+            BigDecimal dividendYield = (dividendYieldStr.isEmpty() || dividendYieldStr.equalsIgnoreCase("none")) ? BigDecimal.ZERO : new BigDecimal(dividendYieldStr);
             String name = overviewRoot.path("Name").asText();
 
             String micCode = overviewRoot.path("Exchange").asText();
@@ -93,6 +95,7 @@ public class StocksService {
             stock.setTicker(symbol);
             stock.setMaintenanceMargin(maintenanceMargin);
             stock.setExchange(exchange);
+            //stock.setCurrencyCode(exchange.getCurrencyCode());
 
             return mapToDto(stock);
         } catch (Exception e) {

@@ -26,7 +26,7 @@ public class ListingMapper {
         return null;
     }
 
-    public ListingDto toDto(Listing listing, ListingDailyPriceInfo dailyInfo) {
+    public ListingDto toDto(Listing listing, ListingPriceHistory dailyInfo) {
         return new ListingDto(
                 listing.getId(),
                 getListingType(listing),
@@ -40,15 +40,29 @@ public class ListingMapper {
         );
     }
 
-    public ListingDetailsDto toDetailsDto(Listing listing, List<ListingDailyPriceInfo> priceHistory) {
+    public ListingDetailsDto toDetailsDto(Listing listing, List<ListingPriceHistory> priceHistory) {
         Integer contractSize = null;
         String contractUnit = null;
 
+        // Ako je listing FuturesContract, postavi contractSize i contractUnit
         if (listing instanceof FuturesContract futures) {
             contractSize = futures.getContractSize();
             contractUnit = futures.getContractUnit();
         }
 
+        // Mapiranje ListingPriceHistory u PriceHistoryDto sa novim poljima
+        List<PriceHistoryDto> priceHistoryDtos = priceHistory.stream()
+                .map(info -> new PriceHistoryDto(
+                        info.getDate(),
+                        info.getOpen(),
+                        info.getHigh(),
+                        info.getLow(),
+                        info.getClose(),
+                        info.getVolume()
+                ))
+                .collect(Collectors.toList());
+
+        // Vraćanje prilagođenog ListingDetailsDto sa novim podacima
         return new ListingDetailsDto(
                 listing.getId(),
                 getListingType(listing),
@@ -56,9 +70,7 @@ public class ListingMapper {
                 listing.getName(),
                 listing.getPrice(),
                 listing.getExchange().getMic(),
-                priceHistory.stream()
-                        .map(info -> new PriceHistoryDto(info.getDate(), info.getPrice()))
-                        .collect(Collectors.toList()),
+                priceHistoryDtos,
                 contractSize,
                 contractUnit
         );

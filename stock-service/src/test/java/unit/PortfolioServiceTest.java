@@ -6,7 +6,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
-import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
+import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
@@ -14,46 +16,43 @@ import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.PortfolioService;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 public class PortfolioServiceTest {
 
 
+    private final Long userId = 123L;
+    Stock stock = new Stock();
+    Stock stock2 = new Stock();
     @InjectMocks
     private PortfolioService portfolioService;
-
     @Mock
     private PortfolioEntryRepository portfolioEntryRepository;
-
     @Mock
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
-
     @Mock
     private PortfolioMapper portfolioEntryMapper;
 
-    Stock stock = new Stock();
-    Stock stock2 = new Stock();
-
-    private final Long userId = 123L;
-
-    private void initialiseStock(){
+    private void initialiseStock() {
         stock.setId(1L);
         stock.setTicker("AAPL");
         stock.setName("Apple Inc.");
         stock.setContractSize(1);
         stock.setMaintenanceMargin(BigDecimal.ZERO);
     }
-    private void initialiseGOOGLStock(){
+
+    private void initialiseGOOGLStock() {
         stock2.setId(2L);
         stock2.setTicker("GOOGL");
         stock2.setName("Alphabet Inc.");

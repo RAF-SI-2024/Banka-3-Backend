@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.ExchangeRateApiClient;
 import rs.raf.stock_service.client.TwelveDataClient;
@@ -31,6 +32,7 @@ public class ForexService {
     private final TwelveDataClient twelveDataClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Transactional
     public ForexPairDto getForexPair(String fromCurrency, String toCurrency) {
         try {
             String response = alphavantageClient.getCurrencyExchangeRate(fromCurrency, toCurrency);

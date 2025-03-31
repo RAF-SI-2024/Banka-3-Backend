@@ -24,4 +24,19 @@ public interface AlphavantageClient {
     @GetMapping("/query?function=CURRENCY_EXCHANGE_RATE")
     String getCurrencyExchangeRate(@RequestParam("from_currency") String fromCurrency,
                                    @RequestParam("to_currency") String toCurrency);
+
+    // Endpoint za Stock intraday
+    @GetMapping("/query?function=TIME_SERIES_INTRADAY")
+    String getIntradayData(@RequestParam("symbol") String symbol,
+                           @RequestParam("interval") String interval,
+                           @RequestParam(value = "outputsize", defaultValue = "compact") String outputsize,
+                           @RequestParam(value = "datatype", defaultValue = "json") String datatype);
+
+    // Endpoint za FX_INTRADAY
+    @GetMapping("/query?function=FX_INTRADAY")
+    String getForexPriceHistory(@RequestParam("from_symbol") String fromSymbol,
+                                @RequestParam("to_symbol") String toSymbol,
+                                @RequestParam("interval") String interval,
+                                @RequestParam(value = "outputsize", required = false, defaultValue = "compact") String outputsize);
+
 }

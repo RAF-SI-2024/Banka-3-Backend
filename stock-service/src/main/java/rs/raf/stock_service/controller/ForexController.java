@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +21,10 @@ import java.util.Map;
 @Tag(name = "Forex API", description = "Api for managing forex pairs")
 @RestController
 @RequestMapping("/api/forex")
+@AllArgsConstructor
 public class ForexController {
 
     private final ForexService forexService;
-
-    public ForexController(ForexService forexService) {
-        this.forexService = forexService;
-    }
 
     @Operation(summary = "Get forex pair details", description = "Returns detailed forex pair data for given base and quote currencies.")
     @ApiResponses(value = {

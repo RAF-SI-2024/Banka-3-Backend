@@ -2,6 +2,7 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.domain.dto.FuturesContractDto;
 import rs.raf.stock_service.domain.entity.FuturesContract;
 import rs.raf.stock_service.repository.FuturesRepository;
@@ -35,6 +36,7 @@ public class FuturesService {
         return dto;
     }
 
+    @Transactional
     public List<FuturesContractDto> getFuturesContracts() {
         List<FuturesContractDto> dtos = new ArrayList<>();
         try (InputStream is = getClass().getResourceAsStream("/future_data.csv");

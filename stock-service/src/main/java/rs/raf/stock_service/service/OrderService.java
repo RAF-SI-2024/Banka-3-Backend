@@ -37,11 +37,11 @@ public class OrderService {
     private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
     private final BankClient bankClient;
+    private final PortfolioService portfolioService;
     private ListingRepository listingRepository;
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
-    private final PortfolioService portfolioService;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         Page<Order> ordersPage;

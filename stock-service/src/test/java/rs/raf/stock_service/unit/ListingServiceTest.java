@@ -9,7 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
-import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
+import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
@@ -22,7 +22,7 @@ import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +72,7 @@ class ListingServiceTest {
         stock.setPrice(new BigDecimal("150.50"));
         stock.setExchange(exchange);
 
-        ListingDailyPriceInfo dailyInfo = new ListingDailyPriceInfo();
+        ListingPriceHistory dailyInfo = new ListingPriceHistory();
         dailyInfo.setChange(new BigDecimal("2.50"));
         dailyInfo.setVolume(2000000L);
 
@@ -112,21 +112,52 @@ class ListingServiceTest {
         stock.setPrice(new BigDecimal("150.50"));
         stock.setExchange(exchange);
 
-        ListingDailyPriceInfo dailyInfo1 = new ListingDailyPriceInfo();
-        dailyInfo1.setDate(LocalDate.of(2024, 3, 1));
-        dailyInfo1.setPrice(new BigDecimal("150.00"));
+        ListingPriceHistory dailyInfo1 = new ListingPriceHistory();
+        dailyInfo1.setDate(LocalDateTime.of(2024, 3, 1, 14, 30));
+        dailyInfo1.setOpen(new BigDecimal("149.00"));
+        dailyInfo1.setHigh(new BigDecimal("151.00"));
+        dailyInfo1.setLow(new BigDecimal("148.50"));
+        dailyInfo1.setClose(new BigDecimal("150.00"));
+        dailyInfo1.setVolume(1500L);
 
-        ListingDailyPriceInfo dailyInfo2 = new ListingDailyPriceInfo();
-        dailyInfo2.setDate(LocalDate.of(2024, 3, 2));
-        dailyInfo2.setPrice(new BigDecimal("152.00"));
+        ListingPriceHistory dailyInfo2 = new ListingPriceHistory();
+        dailyInfo2.setDate(LocalDateTime.of(2024, 3, 2, 14, 30));
+        dailyInfo2.setOpen(new BigDecimal("151.00"));
+        dailyInfo2.setHigh(new BigDecimal("153.00"));
+        dailyInfo2.setLow(new BigDecimal("150.50"));
+        dailyInfo2.setClose(new BigDecimal("152.00"));
+        dailyInfo2.setVolume(2000L);
 
-        List<ListingDailyPriceInfo> priceHistory = List.of(dailyInfo2, dailyInfo1);
+        List<ListingPriceHistory> priceHistory = List.of(dailyInfo2, dailyInfo1);
 
+        // Očekivani DTO sa novim podacima
         ListingDetailsDto expectedDto = new ListingDetailsDto(
-                1L, ListingType.STOCK, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
-                List.of(new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
-                        new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))),
-                null, null
+                1L,
+                ListingType.STOCK,
+                "AAPL",
+                "Apple Inc.",
+                new BigDecimal("150.50"),
+                "XNAS",
+                List.of(
+                        new PriceHistoryDto(
+                                LocalDateTime.of(2024, 3, 2, 14, 30),
+                                new BigDecimal("151.00"),
+                                new BigDecimal("153.00"),
+                                new BigDecimal("150.50"),
+                                new BigDecimal("152.00"),
+                                2000L
+                        ),
+                        new PriceHistoryDto(
+                                LocalDateTime.of(2024, 3, 1, 14, 30),
+                                new BigDecimal("149.00"),
+                                new BigDecimal("151.00"),
+                                new BigDecimal("148.50"),
+                                new BigDecimal("150.00"),
+                                1500L
+                        )
+                ),
+                null,
+                null
         );
 
         // Mock ponašanje repozitorijuma
@@ -149,6 +180,7 @@ class ListingServiceTest {
         verify(dailyPriceInfoRepository, times(1)).findAllByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
     }
+
 
     @Test
     void getListingDetails_ShouldThrowListingNotFoundException() {
@@ -183,7 +215,7 @@ class ListingServiceTest {
         listing.setPrice(new BigDecimal("150.00"));
         listing.setAsk(new BigDecimal("151.00"));
 
-        ListingDailyPriceInfo dailyInfo = new ListingDailyPriceInfo();
+        ListingPriceHistory dailyInfo = new ListingPriceHistory();
         dailyInfo.setChange(new BigDecimal("2.50"));
         dailyInfo.setVolume(2000000L);
 

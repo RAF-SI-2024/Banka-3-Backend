@@ -22,4 +22,5 @@ public class Stock extends Listing {
     private BigDecimal marketCap;
     private int contractSize = 1;
     private BigDecimal maintenanceMargin;
+    private String currencyCode;
 }
