@@ -82,10 +82,10 @@ public class VerificationRequestController {
     @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/deny/{requestId}")
     public ResponseEntity<?> denyRequest(
-            @RequestHeader String userAgent,
+            @RequestHeader(value="User-Agent", required=false) String userAgent,
             @PathVariable Long requestId,
             @RequestHeader("Authorization") String authHeader) {
-        if (verificationRequestService.calledFromMobile(userAgent))
+        if (!verificationRequestService.calledFromMobile(userAgent))
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         try {
