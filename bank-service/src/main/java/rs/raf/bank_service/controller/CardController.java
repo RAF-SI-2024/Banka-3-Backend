@@ -83,7 +83,7 @@ public class CardController {
             return ResponseEntity.ok("Card request sent for verification.");
         } catch (CardLimitExceededException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
-        } catch (AccountNotFoundException e) {
+        } catch (AccNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
         }
     }
@@ -93,6 +93,17 @@ public class CardController {
     public ResponseEntity<?> approveCardRequest(@PathVariable Long id) {
         cardService.approveCardRequest(id);
         return ResponseEntity.ok("Card request approved.");
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/reject/{id}")
+    public ResponseEntity<?> rejectCardRequest(@PathVariable Long id) {
+        try {
+            cardService.rejectCardRequest(id);
+            return ResponseEntity.ok("Card request rejected successfully");
+        } catch (CardNotFoundException | RejectNonPendingRequestException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('EMPLOYEE')")
