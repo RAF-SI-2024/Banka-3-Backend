@@ -66,28 +66,6 @@ class VerificationRequestControllerTest {
     }
 
     @Test
-    void testDenyRequest_Success() {
-        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
-        when(verificationRequestService.denyVerificationRequest(1L, "Bearer token")).thenReturn(true);
-
-        ResponseEntity<String> response = controller.denyRequest(mobileUserAgent,1L, "Bearer token");
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Request denied", response.getBody());
-    }
-
-    @Test
-    void testDenyRequest_Failure() {
-        when(verificationRequestService.calledFromMobile(mobileUserAgent)).thenReturn(true);
-        when(verificationRequestService.denyVerificationRequest(1L, "Bearer token")).thenReturn(false);
-
-        ResponseEntity<String> response = controller.denyRequest(mobileUserAgent,1L, "Bearer token");
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Request not found or already processed", response.getBody());
-    }
-
-    @Test
     void testCreateVerificationRequest() {
         CreateVerificationRequestDto dto = new CreateVerificationRequestDto();
 

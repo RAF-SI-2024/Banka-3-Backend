@@ -93,6 +93,18 @@ public class PaymentController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/reject-transfer/{paymentId}")
+    @Operation(summary = "Reject transfer", description = "Rejects transfer.")
+    public ResponseEntity<?> rejectTransfer(@PathVariable Long paymentId) {
+        try {
+                paymentService.rejectTransfer(paymentId);
+            return ResponseEntity.status(HttpStatus.OK).body("Transfer rejected successfully.");
+        } catch (PaymentNotFoundException | RejectNonPendingRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PreAuthorize("hasRole('CLIENT')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
     @PostMapping()
@@ -144,6 +156,22 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized access: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to complete payment: " + e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/reject-payment/{paymentId}")
+    @Operation(summary = "Reject payment", description = "Rejects a payment")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment rejected successfully"),
+            @ApiResponse(responseCode = "404", description = "Payment not found, or rejecting a non pending request."),
+    })
+    public ResponseEntity<String> rejectPayment(@PathVariable Long paymentId) {
+        try {
+            paymentService.rejectPayment(paymentId);
+            return ResponseEntity.status(HttpStatus.OK).body("Payment rejected successfully.");
+        } catch (PaymentNotFoundException | RejectNonPendingRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
