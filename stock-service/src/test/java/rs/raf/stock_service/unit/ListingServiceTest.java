@@ -18,6 +18,7 @@ import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
+import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -53,6 +54,9 @@ class ListingServiceTest {
 
     @Mock
     private TimeSeriesMapper timeSeriesMapper;
+
+    @Mock
+    private OptionRepository optionRepository;
 
 
     @BeforeEach
@@ -126,13 +130,14 @@ class ListingServiceTest {
                 1L, ListingType.STOCK, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
                 List.of(new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
                         new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))),
-                null, null
+                100, "gas", null
         );
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
         when(dailyPriceInfoRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
         when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
+        when(optionRepository.findAllByStock(stock)).thenReturn(List.of());
 
         // Poziv metode
         ListingDetailsDto result = listingService.getListingDetails(1L);
