@@ -321,6 +321,7 @@ class PaymentServiceTest {
         Account sender = new PersonalAccount();
         sender.setBalance(BigDecimal.valueOf(1000));
         sender.setCurrency(new Currency("USD"));
+        sender.setClientId(clientId);
 
         Account receiver = new PersonalAccount();
         receiver.setBalance(BigDecimal.valueOf(500));
@@ -332,8 +333,10 @@ class PaymentServiceTest {
         clientDto.setLastName("Doe");
 
         // Simuliramo da accountRepository vraća sender i receiver
-        when(accountRepository.findByAccountNumber(eq("111111"))).thenReturn(Optional.of(sender));
-        when(accountRepository.findByAccountNumber(eq("222222"))).thenReturn(Optional.of(receiver));
+        when(accountRepository.findByAccountNumberAndClientId(eq("111111"), eq(clientId)))
+                .thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber(eq("222222")))
+                .thenReturn(Optional.of(receiver));
 
         // Simuliramo da userClient vraća klijenta
         when(userClient.getClientById(clientId)).thenReturn(clientDto);
@@ -348,16 +351,15 @@ class PaymentServiceTest {
         // Simulacija mapper-a koji konvertuje u DTO
         when(paymentMapper.toPaymentDto(any(Payment.class), anyString())).thenAnswer(invocation -> {
             Payment payment = invocation.getArgument(0);
-            return new PaymentDto(payment.getId(),payment.getAmount(),payment.getPurposeOfPayment(),payment.getSenderAccount().getAccountNumber(),payment.getAccountNumberReceiver(),
-                    "",payment.getPaymentCode(),payment.getPaymentCode());
+            return new PaymentDto(payment.getId(), payment.getAmount(), payment.getPurposeOfPayment(),
+                    payment.getSenderAccount().getAccountNumber(), payment.getAccountNumberReceiver(),
+                    "", payment.getPaymentCode(), payment.getPaymentCode());
         });
 
         doNothing().when(userClient).createVerificationRequest(any(CreateVerificationRequestDto.class));
 
         // Act
         PaymentDto result = paymentService.createPaymentBeforeConfirmation(paymentDto, clientId);
-
-        // Debugging ako test ne radi
 
         // Assert
         assertNotNull(result, "PaymentDto should not be null");
