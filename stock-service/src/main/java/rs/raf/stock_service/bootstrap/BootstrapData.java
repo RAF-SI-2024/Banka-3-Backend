@@ -147,7 +147,7 @@ public class BootstrapData implements CommandLineRunner {
         option.setImpliedVolatility(new BigDecimal("0.25"));
         option.setExchange(exchange);
 
-        option.setStock(stock);
+        option.setUnderlyingStock(stock);
 
         listingRepository.save(option);
 
@@ -163,7 +163,7 @@ public class BootstrapData implements CommandLineRunner {
         option1.setImpliedVolatility(new BigDecimal("0.22"));
         option1.setExchange(exchange);
 
-        option1.setStock(stock);
+        option1.setUnderlyingStock(stock);
 
 
         listingRepository.save(option1);
@@ -179,7 +179,7 @@ public class BootstrapData implements CommandLineRunner {
         option2.setImpliedVolatility(new BigDecimal("0.23"));
         option2.setExchange(exchange);
 
-        option2.setStock(stock);
+        option2.setUnderlyingStock(stock);
 
         listingRepository.save(option2);
     }

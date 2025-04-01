@@ -26,9 +26,7 @@ public class Option extends Listing {
     private LocalDate settlementDate;
 
     @ManyToOne
+    @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
 
-    @ManyToOne
-    @JoinColumn(name = "stock_id")
-    private Listing stock;
 }
