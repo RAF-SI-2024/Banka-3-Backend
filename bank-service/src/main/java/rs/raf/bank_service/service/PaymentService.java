@@ -240,7 +240,7 @@ public class PaymentService {
             CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
             userClient.createVerificationRequest(createVerificationRequestDto);
 
-            return paymentMapper.toPaymentDto(payment);
+            return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
     }
 
     public void handleTax(TaxDto taxDto) throws JsonProcessingException {
@@ -251,6 +251,7 @@ public class PaymentService {
             createPaymentDto.setAmount(taxDto.getAmount());
             createPaymentDto.setReferenceNumber("N/A");
             createPaymentDto.setPaymentCode("N/A");
+            createPaymentDto.setRecieverName("Republika Srbija");
             Account account = companyAccountRepository.findByCompanyId(2L);
             createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
             PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());

@@ -28,4 +28,5 @@ public class CreatePaymentDto {
     private String purposeOfPayment;
 
     private String referenceNumber;
+    private String recieverName;
 }

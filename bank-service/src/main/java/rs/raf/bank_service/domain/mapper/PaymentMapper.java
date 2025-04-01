@@ -67,16 +67,16 @@ public class PaymentMapper {
 
         return dto;
     }
-    public PaymentDto toPaymentDto(Payment payment){
+    public PaymentDto toPaymentDto(Payment payment,String recieverName){
         PaymentDto paymentDto = new PaymentDto();
         paymentDto.setId(payment.getId());
-        paymentDto.setPaymentPurpose("Tax");
-        paymentDto.setPaymentCode("N/A");
-        paymentDto.setRecieverName("Republika Srbija");
+        paymentDto.setPaymentPurpose(payment.getPurposeOfPayment());
+        paymentDto.setPaymentCode(payment.getPaymentCode());
+        paymentDto.setRecieverName(recieverName);
         paymentDto.setAmount(payment.getAmount());
         paymentDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
         paymentDto.setToAccountNumber(payment.getAccountNumberReceiver());
-        paymentDto.setCurrencyCode("RSD");
+        paymentDto.setCurrencyCode(payment.getPaymentCode());
         return paymentDto;
     }
 }
