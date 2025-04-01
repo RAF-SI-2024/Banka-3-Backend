@@ -176,87 +176,87 @@ public class PaymentService {
 
     public PaymentDto createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
 
-            if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
-                throw new PaymentCodeNotProvidedException();
-            }
+        if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
+            throw new PaymentCodeNotProvidedException();
+        }
 
-            if (paymentDto.getPurposeOfPayment() == null || paymentDto.getPurposeOfPayment().isEmpty()) {
-                throw new PurposeOfPaymentNotProvidedException();
-            }
+        if (paymentDto.getPurposeOfPayment() == null || paymentDto.getPurposeOfPayment().isEmpty()) {
+            throw new PurposeOfPaymentNotProvidedException();
+        }
 
-            // Preuzimanje sender računa
-            Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
-                    .stream().findFirst()
-                    .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
+        // Preuzimanje sender računa
+        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
-            Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
-                    .stream().findFirst()
-                    .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
+        Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
+                .stream().findFirst()
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
 
 
-            // Provera balansa sender računa
-            if (sender.getBalance().compareTo(paymentDto.getAmount()) < 0) {
-                throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
-            }
+        // Provera balansa sender računa
+        if (sender.getBalance().compareTo(paymentDto.getAmount()) < 0) {
+            throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
+        }
 
-            ClientDto clientDto = userClient.getClientById(clientId);
+        ClientDto clientDto = userClient.getClientById(clientId);
 
-            BigDecimal amount = paymentDto.getAmount();
-            BigDecimal convertedAmount = amount;
-            BigDecimal exchangeRateValue = BigDecimal.ONE;
+        BigDecimal amount = paymentDto.getAmount();
+        BigDecimal convertedAmount = amount;
+        BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-            // Provera da li su valute različite
-            if (!sender.getCurrency().equals(receiver.getCurrency())) {
-                ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
-                exchangeRateValue = exchangeRateDto.getSellRate();
-                convertedAmount = amount.multiply(exchangeRateValue);
-            }
+        // Provera da li su valute različite
+        if (!sender.getCurrency().equals(receiver.getCurrency())) {
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+            exchangeRateValue = exchangeRateDto.getSellRate();
+            convertedAmount = amount.multiply(exchangeRateValue);
+        }
 
-            // Kreiranje Payment entiteta
-            Payment payment = new Payment();
-            payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
-            payment.setClientId(clientId);
-            payment.setSenderAccount(sender);
-            payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
-            payment.setAmount(paymentDto.getAmount());
-            payment.setPaymentCode(paymentDto.getPaymentCode());
-            payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
-            payment.setReferenceNumber(paymentDto.getReferenceNumber());
-            payment.setDate(LocalDateTime.now());
-            payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
-            payment.setOutAmount(convertedAmount);
+        // Kreiranje Payment entiteta
+        Payment payment = new Payment();
+        payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
+        payment.setClientId(clientId);
+        payment.setSenderAccount(sender);
+        payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
+        payment.setAmount(paymentDto.getAmount());
+        payment.setPaymentCode(paymentDto.getPaymentCode());
+        payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
+        payment.setReferenceNumber(paymentDto.getReferenceNumber());
+        payment.setDate(LocalDateTime.now());
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setOutAmount(convertedAmount);
 
-            // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
-            payment.setReceiverClientId(receiver.getClientId());
+        // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
+        payment.setReceiverClientId(receiver.getClientId());
 
-            paymentRepository.save(payment);
+        paymentRepository.save(payment);
 
-            PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
-                    .fromAccountNumber(sender.getAccountNumber())
-                    .toAccountNumber(paymentDto.getReceiverAccountNumber())
-                    .amount(paymentDto.getAmount())
-                    .build();
+        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
+                .fromAccountNumber(sender.getAccountNumber())
+                .toAccountNumber(paymentDto.getReceiverAccountNumber())
+                .amount(paymentDto.getAmount())
+                .build();
 
-            CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
-            userClient.createVerificationRequest(createVerificationRequestDto);
+        CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
+        userClient.createVerificationRequest(createVerificationRequestDto);
 
-            return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
+        return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
     }
 
     public void handleTax(TaxDto taxDto) throws JsonProcessingException {
 
-            CreatePaymentDto createPaymentDto = new CreatePaymentDto();
-            createPaymentDto.setPurposeOfPayment("tax");
-            createPaymentDto.setSenderAccountNumber(taxDto.getSenderAccountNumber());
-            createPaymentDto.setAmount(taxDto.getAmount());
-            createPaymentDto.setReferenceNumber("N/A");
-            createPaymentDto.setPaymentCode("N/A");
-            createPaymentDto.setRecieverName("Republika Srbija");
-            Account account = companyAccountRepository.findByCompanyId(2L);
-            createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
-            PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
+        CreatePaymentDto createPaymentDto = new CreatePaymentDto();
+        createPaymentDto.setPurposeOfPayment("tax");
+        createPaymentDto.setSenderAccountNumber(taxDto.getSenderAccountNumber());
+        createPaymentDto.setAmount(taxDto.getAmount());
+        createPaymentDto.setReferenceNumber("N/A");
+        createPaymentDto.setPaymentCode("N/A");
+        createPaymentDto.setRecieverName("Republika Srbija");
+        Account account = companyAccountRepository.findByCompanyId(2L);
+        createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
+        PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
 
-            transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
+        transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
 
     }
 
