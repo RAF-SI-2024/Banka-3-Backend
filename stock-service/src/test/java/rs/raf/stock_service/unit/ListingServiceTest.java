@@ -16,7 +16,7 @@ import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -37,7 +37,7 @@ class ListingServiceTest {
     private ListingRepository listingRepository;
 
     @Mock
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository priceHistoryRepository;
 
     @Mock
     private ListingMapper listingMapper;
@@ -73,6 +73,7 @@ class ListingServiceTest {
         stock.setExchange(exchange);
 
         ListingPriceHistory dailyInfo = new ListingPriceHistory();
+        dailyInfo.setClose(new BigDecimal("150.00"));
         dailyInfo.setChange(new BigDecimal("2.50"));
         dailyInfo.setVolume(2000000L);
 
@@ -83,7 +84,7 @@ class ListingServiceTest {
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findAll(any(Specification.class))).thenReturn(Collections.singletonList(stock));
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock)).thenReturn(dailyInfo);
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock)).thenReturn(dailyInfo);
         when(listingMapper.toDto(stock, dailyInfo)).thenReturn(expectedDto);
 
         // Poziv metode
@@ -95,7 +96,7 @@ class ListingServiceTest {
 
         // Verifikacija poziva
         verify(listingRepository, times(1)).findAll(any(Specification.class));
-        verify(dailyPriceInfoRepository, times(1)).findTopByListingOrderByDateDesc(stock);
+        verify(priceHistoryRepository, times(1)).findTopByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDto(stock, dailyInfo);
     }
 
@@ -162,7 +163,7 @@ class ListingServiceTest {
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
-        when(dailyPriceInfoRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
+        when(priceHistoryRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
         when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
 
         // Poziv metode
@@ -177,7 +178,7 @@ class ListingServiceTest {
 
         // Verifikacija poziva
         verify(listingRepository, times(1)).findById(1L);
-        verify(dailyPriceInfoRepository, times(1)).findAllByListingOrderByDateDesc(stock);
+        verify(priceHistoryRepository, times(1)).findAllByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
     }
 
@@ -196,7 +197,7 @@ class ListingServiceTest {
 
         // Verifikacija da je repozitorijum pozvan samo jednom
         verify(listingRepository, times(1)).findById(2L);
-        verifyNoInteractions(dailyPriceInfoRepository);
+        verifyNoInteractions(priceHistoryRepository);
         verifyNoInteractions(listingMapper);
     }
 
@@ -228,7 +229,7 @@ class ListingServiceTest {
         when(jwtTokenUtil.getUserRoleFromAuthHeader(fakeToken)).thenReturn("SUPERVISOR");
 
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(dailyInfo);
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(dailyInfo);
         when(listingMapper.toDto(listing, dailyInfo)).thenReturn(expectedDto);
 
         ListingDto result = listingService.updateListing(listingId, updateDto, fakeToken);

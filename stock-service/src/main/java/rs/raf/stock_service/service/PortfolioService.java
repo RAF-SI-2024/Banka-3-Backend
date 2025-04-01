@@ -7,7 +7,7 @@ import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;

@@ -39,4 +39,9 @@ public interface AlphavantageClient {
                                 @RequestParam("interval") String interval,
                                 @RequestParam(value = "outputsize", required = false, defaultValue = "compact") String outputsize);
 
+    //Endpoint za bulk insert stockova
+    @GetMapping("/query?function=REALTIME_BULK_QUOTES")
+    String getRealtimeBulkQuotes(@RequestParam("symbol") String symbols);
+
+
 }

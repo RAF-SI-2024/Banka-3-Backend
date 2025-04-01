@@ -6,13 +6,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.PortfolioService;
 
@@ -40,7 +41,7 @@ public class PortfolioServiceTest {
     @Mock
     private PortfolioEntryRepository portfolioEntryRepository;
     @Mock
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository priceHistoryRepository;
     @Mock
     private PortfolioMapper portfolioEntryMapper;
 
@@ -201,11 +202,11 @@ public class PortfolioServiceTest {
 
         when(portfolioEntryRepository.findAllByUserId(userId)).thenReturn(entries);
 
-        // Simuliramo najnovije cene za listinge
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock))
-                .thenReturn(ListingDailyPriceInfo.builder().price(BigDecimal.valueOf(115)).build()); // 115 - 10 = 105 * 10 = 1050
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock2))
-                .thenReturn(ListingDailyPriceInfo.builder().price(BigDecimal.valueOf(2200)).build()); // 2200 - 2000 = 200 * 5 = 1000
+        // Simuliramo najnovije cene za listinge (koristimo close)
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock))
+                .thenReturn(ListingPriceHistory.builder().close(BigDecimal.valueOf(115)).build()); // (115 - 10) * 10 = 1050
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock2))
+                .thenReturn(ListingPriceHistory.builder().close(BigDecimal.valueOf(2200)).build()); // (2200 - 2000) * 5 = 1000
 
         List<PortfolioEntryDto> result = portfolioService.getPortfolioForUser(userId);
 
@@ -220,9 +221,10 @@ public class PortfolioServiceTest {
         assertEquals(BigDecimal.valueOf(1000), dto2.getProfit());
 
         verify(portfolioEntryRepository).findAllByUserId(userId);
-        verify(dailyPriceInfoRepository).findTopByListingOrderByDateDesc(stock);
-        verify(dailyPriceInfoRepository).findTopByListingOrderByDateDesc(stock2);
+        verify(priceHistoryRepository).findTopByListingOrderByDateDesc(stock);
+        verify(priceHistoryRepository).findTopByListingOrderByDateDesc(stock2);
     }
+
 
     @Test
     void testGetPortfolio_userHasNoHoldings_shouldReturnEmptyList() {

@@ -19,7 +19,7 @@ import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.repository.TransactionRepository;
@@ -39,7 +39,7 @@ public class OrderService {
     private final BankClient bankClient;
     private final PortfolioService portfolioService;
     private ListingRepository listingRepository;
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
 

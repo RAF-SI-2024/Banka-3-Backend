@@ -67,7 +67,13 @@ public class StocksService {
             long volume = globalQuote.path("06. volume").asLong();
 
             String overviewResponse = alphavantageClient.getCompanyOverview(symbol);
+
             JsonNode overviewRoot = objectMapper.readTree(overviewResponse);
+
+            if (overviewRoot.has("Error Message")){
+                return null;
+            }
+
             long outstandingShares = overviewRoot.path("SharesOutstanding").asLong();
             String dividendYieldStr = overviewRoot.path("DividendYield").asText();
             BigDecimal dividendYield = (dividendYieldStr.isEmpty() || dividendYieldStr.equalsIgnoreCase("none")) ? BigDecimal.ZERO : new BigDecimal(dividendYieldStr);
@@ -100,6 +106,70 @@ public class StocksService {
             return mapToDto(stock);
         } catch (Exception e) {
             throw new StockNotFoundException("Stock data not found for symbol '" + symbol + "': " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public List<StockDto> getRealtimeBulkStockData(List<String> symbols) {
+        try {
+            String symbolsJoined = String.join(",", symbols);
+            String response = alphavantageClient.getRealtimeBulkQuotes(symbolsJoined);
+            JsonNode root = objectMapper.readTree(response);
+
+            if (root.has("message") || root.has("Note") || root.has("Error Message")) {
+                throw new RuntimeException("API error or rate limit reached: " + root.path("message").asText(root.toString()));
+            }
+
+            JsonNode quotesArray = root.path("data");
+
+            List<StockDto> stockDtos = new ArrayList<>();
+
+            if (quotesArray.isArray()) {
+                for (JsonNode quoteNode : quotesArray) {
+                    String ticker = quoteNode.path("symbol").asText();
+                    BigDecimal price = new BigDecimal(quoteNode.path("close").asText());
+                    long volume = quoteNode.path("volume").asLong();
+                    BigDecimal change = new BigDecimal(quoteNode.path("change").asText());
+
+                    // Overview dodatni podaci
+                    String overviewResponse = alphavantageClient.getCompanyOverview(ticker);
+                    JsonNode overviewRoot = objectMapper.readTree(overviewResponse);
+
+                    String name = overviewRoot.path("Name").asText(ticker);
+                    long outstandingShares = overviewRoot.path("SharesOutstanding").asLong(0L);
+                    String dividendYieldStr = overviewRoot.path("DividendYield").asText("0");
+                    BigDecimal dividendYield = dividendYieldStr.equals("None") ? BigDecimal.ZERO : new BigDecimal(dividendYieldStr);
+                    String micCode = overviewRoot.path("Exchange").asText("");
+
+                    Exchange exchange = exchangeService.getAvailableExchanges()
+                            .stream()
+                            .filter(e -> e.getMic().equalsIgnoreCase(micCode))
+                            .findFirst()
+                            .orElse(null);
+
+                    BigDecimal marketCap = BigDecimal.valueOf(outstandingShares).multiply(price);
+                    BigDecimal maintenanceMargin = price.multiply(BigDecimal.valueOf(0.5));
+
+                    Stock stock = new Stock();
+                    stock.setTicker(ticker);
+                    stock.setPrice(price);
+                    stock.setVolume(volume);
+                    stock.setName(name);
+                    stock.setChange(change);
+                    stock.setOutstandingShares(outstandingShares);
+                    stock.setDividendYield(dividendYield);
+                    stock.setMarketCap(marketCap);
+                    stock.setMaintenanceMargin(maintenanceMargin);
+                    stock.setExchange(exchange);
+
+                    stockDtos.add(mapToDto(stock));
+                }
+            }
+
+            return stockDtos;
+
+        } catch (Exception e) {
+            throw new StockNotFoundException("Bulk quotes fetch failed: " + e.getMessage());
         }
     }
 

@@ -32,7 +32,7 @@ public class BootstrapData implements CommandLineRunner {
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
     private final ListingService listingService;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final ExchangeRepository exchangeRepository;
     private final StocksService stocksService;
     private final ForexService forexService;
@@ -130,10 +130,10 @@ public class BootstrapData implements CommandLineRunner {
     private void importStocks() {
         System.out.println("Importing selected stocks...");
         Map<String, List<String>> stockTickersByExchange = Map.of(
-                "BATS", List.of("AAPW", "BEGS", "CBOE", "EZBC", "FEBU", "GBXA", "HIMU", "IYRI", "JANU", "KDEC"),
+                "BATS", List.of("CGTL", "ZBZX", "CBOE", "ZTEST", "ZTST", "GBXA", "HIMU", "IYRI", "JANU", "KDEC"),
                 "NASDAQ", List.of("AACBU", "BACK", "CAAS", "DADA", "EA", "FA", "GABC", "HAFC", "IAC", "JACK"),
                 "NYSE", List.of("A", "BA", "C", "D", "E", "F", "G", "H", "IAG", "J"),
-                "NYSE ARCA", List.of("AFIX", "BCHI", "CARD", "ESBA", "FIRI", "GDXD", "HTAX", "IFED", "JETD", "KDEF"),
+                "NYSE ARCA", List.of("AGRW", "ASLV", "BENJ", "ESBA", "CPXR", "FISK", "IGZ", "LGDX", "OGCP", "PCFI"),
                 "NYSE MKT", List.of("ACCS", "BATL", "CANF", "DC", "EFSH", "FOXO", "GAU", "HCWC", "IAUX", "JOB")
         );
 
@@ -151,6 +151,9 @@ public class BootstrapData implements CommandLineRunner {
             for (String ticker : stockTickers) {
                 try {
                     StockDto stockData = stocksService.getStockData(ticker);
+                    if (stockData == null){
+                        continue;
+                    }
                     Stock stock = new Stock();
                     stock.setTicker(stockData.getTicker());
                     stock.setName(stockData.getName());
@@ -166,6 +169,47 @@ public class BootstrapData implements CommandLineRunner {
         listingRepository.saveAll(allStocks);
         System.out.println("Stocks imported successfully.");
     }
+
+    private void importStocksBulk() {
+        System.out.println("Importing stocks using Realtime Bulk Quotes...");
+
+        Map<String, List<String>> stockTickersByExchange = Map.of(
+                "BATS", List.of("CGTL", "ZBZX", "CBOE", "ZTEST", "ZTST", "GBXA", "HIMU", "IYRI", "JANU", "KDEC"),
+                "NASDAQ", List.of("AACBU", "BACK", "CAAS", "DADA", "EA", "FA", "GABC", "HAFC", "IAC", "JACK"),
+                "NYSE", List.of("A", "BA", "C", "D", "E", "F", "G", "H", "IAG", "J"),
+                "NYSE ARCA", List.of("AGRW", "ASLV", "BENJ", "ESBA", "CPXR", "FISK", "IGZ", "LGDX", "OGCP", "PCFI"),
+                "NYSE MKT", List.of("ACCS", "BATL", "CANF", "DC", "EFSH", "FOXO", "GAU", "HCWC", "IAUX", "JOB")
+        );
+
+        List<Stock> allStocks = new ArrayList<>();
+
+        for (Map.Entry<String, List<String>> entry : stockTickersByExchange.entrySet()) {
+            String exchangeName = entry.getKey();
+            List<String> tickers = entry.getValue();
+
+            Exchange exchange = exchangeRepository.findByMic(exchangeName);
+            if (exchange == null) {
+                System.err.println("Exchange not found: " + exchangeName);
+                continue;
+            }
+
+            List<StockDto> bulkStocksData = stocksService.getRealtimeBulkStockData(tickers);
+
+            for (StockDto stockDto : bulkStocksData) {
+                Stock stock = new Stock();
+                stock.setTicker(stockDto.getTicker());
+                stock.setPrice(stockDto.getPrice());
+                stock.setVolume(stockDto.getVolume());
+                stock.setExchange(exchange);
+                stock.setName(stockDto.getName());
+                allStocks.add(stock);
+            }
+        }
+
+        listingRepository.saveAll(allStocks);
+        System.out.println("Bulk stocks imported successfully.");
+    }
+
 
     private void importStockPriceHistory() {
         List<Stock> stocks = listingRepository.findAll().stream()

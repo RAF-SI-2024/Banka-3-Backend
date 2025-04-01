@@ -15,7 +15,7 @@ import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.specification.ListingSpecification;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -34,7 +34,7 @@ public class ListingService {
     @Autowired
     private ListingRepository listingRepository;
     @Autowired
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
 
     private TwelveDataClient twelveDataClient;
     private AlphavantageClient alphavantageClient;
