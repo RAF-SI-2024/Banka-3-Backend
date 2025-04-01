@@ -20,12 +20,6 @@ public interface BankClient {
     @GetMapping("/api/account/{accountNumber}/balance")
     BigDecimal getAccountBalance(@PathVariable("accountNumber") String accountNumber);
 
-    @PostMapping("/api/payment")
-    PaymentDto createPayment(@RequestBody CreatePaymentDto dto);
-
-    @PostMapping("/api/payment/confirm-payment/{paymentId}")
-    String confirmPayment(@PathVariable Long paymentId);
-
     @PostMapping("/api/payment/tax")
     void handleTax(@RequestBody TaxDto taxDto);
 }

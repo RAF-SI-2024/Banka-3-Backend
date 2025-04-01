@@ -185,7 +185,7 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
+        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(),clientId)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
