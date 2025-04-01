@@ -14,6 +14,7 @@ import rs.raf.stock_service.service.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -171,6 +172,88 @@ public class BootstrapData implements CommandLineRunner {
         info.setVolume(stock.getVolume());
 
         dailyPriceInfoRepository.save(info);
+    }
+
+    private void addFutures(Exchange exchange) {
+        FuturesContract futures = new FuturesContract();
+        futures.setTicker("FUT1");
+        futures.setName("Test Futures");
+        futures.setPrice(new BigDecimal("1500.00"));
+        futures.setAsk(new BigDecimal("1510.00"));
+        futures.setContractSize(10);
+        futures.setSettlementDate(LocalDate.now().plusMonths(1));
+        futures.setExchange(exchange);
+
+        listingRepository.save(futures);
+    }
+
+    private void addOption(Exchange exchange) {
+
+        Stock stock = (Stock) listingRepository.findByTicker("GOOGL").orElseThrow();
+
+        Option option = new Option();
+        option.setTicker("OPT1");
+        option.setName("Test Option");
+        option.setPrice(new BigDecimal("5.00"));
+        option.setAsk(new BigDecimal("5.50"));
+        option.setOptionType(option.getOptionType().CALL);
+        option.setStrikePrice(new BigDecimal("120.00"));
+        option.setSettlementDate(LocalDate.now().plusWeeks(2));
+        option.setImpliedVolatility(new BigDecimal("0.25"));
+        option.setExchange(exchange);
+
+        option.setUnderlyingStock(stock);
+
+        listingRepository.save(option);
+
+
+        Option option1 = new Option();
+        option1.setTicker("OPT2");
+        option1.setName("Call Option - 1 week");
+        option1.setPrice(new BigDecimal("6.00"));
+        option1.setAsk(new BigDecimal("6.50"));
+        option1.setOptionType(option1.getOptionType().CALL);
+        option1.setStrikePrice(new BigDecimal("125.00"));
+        option1.setSettlementDate(LocalDate.now().plusWeeks(1));
+        option1.setImpliedVolatility(new BigDecimal("0.22"));
+        option1.setExchange(exchange);
+
+        option1.setUnderlyingStock(stock);
+
+
+        listingRepository.save(option1);
+
+        Option option2 = new Option();
+        option2.setTicker("OPT3");
+        option2.setName("Call Option - 2 weeks");
+        option2.setPrice(new BigDecimal("6.20"));
+        option2.setAsk(new BigDecimal("6.70"));
+        option2.setOptionType(option2.getOptionType().CALL);
+        option2.setStrikePrice(new BigDecimal("125.00"));
+        option2.setSettlementDate(LocalDate.now().plusWeeks(3));
+        option2.setImpliedVolatility(new BigDecimal("0.23"));
+        option2.setExchange(exchange);
+
+        option2.setUnderlyingStock(stock);
+
+        listingRepository.save(option2);
+    }
+
+    private void addForex() {
+        ForexPair pair = new ForexPair();
+        pair.setTicker("USD/EUR");
+        pair.setName("USD to EUR");
+        pair.setPrice(new BigDecimal("0.92"));
+        pair.setAsk(new BigDecimal("0.93"));
+        pair.setBaseCurrency("USD");
+        pair.setQuoteCurrency("EUR");
+        pair.setExchangeRate(new BigDecimal("0.925"));
+        pair.setLiquidity("HIGH");
+        pair.setLastRefresh(LocalDateTime.now());
+        pair.setNominalValue(new BigDecimal("100000"));
+        pair.setMaintenanceMargin(new BigDecimal("10.00"));
+
+        listingRepository.save(pair);
     }
 
     private void importStocks(Exchange exchange) {

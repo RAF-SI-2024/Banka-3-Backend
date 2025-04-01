@@ -60,7 +60,8 @@ public class ListingMapper {
                         .map(info -> new PriceHistoryDto(info.getDate(), info.getPrice()))
                         .collect(Collectors.toList()),
                 contractSize,
-                contractUnit
+                contractUnit,
+                null
         );
     }
 }

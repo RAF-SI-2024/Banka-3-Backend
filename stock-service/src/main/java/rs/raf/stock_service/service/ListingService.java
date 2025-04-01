@@ -1,11 +1,12 @@
 package rs.raf.stock_service.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.TwelveDataClient;
+import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
@@ -14,9 +15,11 @@ import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.ListingRepository;
+import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.specification.ListingSpecification;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,11 @@ public class ListingService {
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
 
+    private final UserClient userClient;
+
+    @Autowired
+    private OptionRepository optionRepository;
+
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
         return listingRepository.findAll(spec).stream()
@@ -51,7 +59,18 @@ public class ListingService {
 
         List<ListingDailyPriceInfo> priceHistory = dailyPriceInfoRepository.findAllByListingOrderByDateDesc(listing);
 
-        return listingMapper.toDetailsDto(listing, priceHistory);
+        ListingDetailsDto dto = listingMapper.toDetailsDto(listing, priceHistory);
+
+        if (listing instanceof Stock) {
+            List<LocalDate> optionDates = optionRepository.findAllByStock(listing).stream()
+                    .map(Option::getSettlementDate)
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            dto.setOptionSettlementDates(optionDates);
+        }
+
+        return dto;
     }
 
     public ListingDto updateListing(Long id, ListingUpdateDto updateDto, String authHeader) {

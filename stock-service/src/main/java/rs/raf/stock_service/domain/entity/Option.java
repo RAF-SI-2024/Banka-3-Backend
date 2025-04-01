@@ -28,5 +28,7 @@ public class Option extends Listing {
     private BigDecimal maintenanceMargin;
 
     @ManyToOne
+    @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
+
 }
