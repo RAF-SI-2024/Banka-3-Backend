@@ -1,5 +1,6 @@
 package rs.raf.bank_service.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -12,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.bank_service.domain.dto.CreatePaymentDto;
-import rs.raf.bank_service.domain.dto.PaymentDetailsDto;
-import rs.raf.bank_service.domain.dto.PaymentOverviewDto;
-import rs.raf.bank_service.domain.dto.TransferDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.exceptions.*;
@@ -98,42 +96,42 @@ public class PaymentController {
     @Operation(summary = "Reject transfer", description = "Rejects transfer.")
     public ResponseEntity<?> rejectTransfer(@PathVariable Long paymentId) {
         try {
-                paymentService.rejectTransfer(paymentId);
+            paymentService.rejectTransfer(paymentId);
             return ResponseEntity.status(HttpStatus.OK).body("Transfer rejected successfully.");
         } catch (PaymentNotFoundException | RejectNonPendingRequestException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
     //Metoda za zapocinjanje placanja, al ne izvrsava je sve dok se ne odradi verifikacija pa se odradjuje druga metoda.
+    @PreAuthorize("hasRole('CLIENT')")
     @PostMapping()
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or insufficient funds"),
-            @ApiResponse(responseCode = "404", description = "Account not found"),
-            @ApiResponse(responseCode = "422", description = "Payment creation error"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
+            @ApiResponse(responseCode = "404", description = "Bad request."),
+
     })
-    public ResponseEntity<String> newPayment(
+    public ResponseEntity<?> newPayment(
             @Valid @RequestBody CreatePaymentDto dto,
             @RequestHeader("Authorization") String token) {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
-            boolean success = paymentService.createPaymentBeforeConfirmation(dto, clientId);
-            if (success) {
-                return ResponseEntity.status(HttpStatus.OK).body("Payment created successfully");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Payment failed: Insufficient funds or invalid data");
-            }
-        } catch (InsufficientFundsException | PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException |
-                 SenderAccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.OK).body( paymentService.createPaymentBeforeConfirmation(dto, clientId));
+        } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException |
+                 SenderAccountNotFoundException | ReceiverAccountNotFoundException | InsufficientFundsException |
+                 JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-            // @todo FIXATI ERROR HANDLING SVUDA ROKNUCU SE
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
         }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/tax")
+    public ResponseEntity<?> handleTax(
+            @Valid @RequestBody TaxDto taxDto,
+            @RequestHeader("Authorization") String token) throws JsonProcessingException {
+        paymentService.handeTax(taxDto);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     // Metoda za potvrdu plaćanja

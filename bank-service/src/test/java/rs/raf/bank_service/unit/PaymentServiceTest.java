@@ -27,6 +27,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -328,19 +329,28 @@ class PaymentServiceTest {
         clientDto.setFirstName("John");
         clientDto.setLastName("Doe");
 
-        when(accountRepository.findByAccountNumberAndClientId(anyString(), eq(clientId))).thenReturn(Optional.of(sender));
+        // Simuliraj naloge u repozitorijumu
+        when(accountRepository.findByAccountNumber(eq("111111"))).thenReturn(Optional.of(sender));
         when(accountRepository.findByAccountNumber(eq("222222"))).thenReturn(Optional.of(receiver));
         when(userClient.getClientById(clientId)).thenReturn(clientDto);
-        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        // Simulacija vraćanja Payment objekta sa postavljenim ID-om
+        doAnswer(invocation -> {
+            Payment payment = invocation.getArgument(0);
+            payment.setId(1L); // Simuliramo dodelu ID-a kao u bazi podataka
+            return payment;
+        }).when(paymentRepository).save(any(Payment.class));
 
         // Act
-        boolean result = paymentService.createPaymentBeforeConfirmation(paymentDto, clientId);
+        PaymentDto result = paymentService.createPaymentBeforeConfirmation(paymentDto, clientId);
 
         // Assert
-        assertTrue(result);
+        assertNotNull(result);
+        assertNotNull(result.getId()); // Provera da je ID postavljen
         verify(paymentRepository, times(1)).save(any(Payment.class));
         verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
     }
+
 
     @Test
     void confirmTransferAndExecute_SameCurrency_Success() {

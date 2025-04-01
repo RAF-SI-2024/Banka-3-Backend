@@ -1,4 +1,4 @@
-package rs.raf.bank_service.domain.dto;
+package rs.raf.stock_service.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

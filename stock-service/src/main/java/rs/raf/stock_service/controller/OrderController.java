@@ -93,4 +93,20 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PostMapping("/tax")
+    @Operation(summary = "Process taxes.", description = "Pays taxes where possible.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Order created successfully"),
+    })
+    public ResponseEntity<?> processTaxes() {
+        System.out.println("Evo me");
+        try {
+            orderService.processTaxes();
+            return ResponseEntity.status(HttpStatus.OK).body("Taxes processed successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }
