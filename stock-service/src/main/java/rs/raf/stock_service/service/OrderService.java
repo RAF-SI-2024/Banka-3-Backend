@@ -27,6 +27,8 @@ import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -117,7 +119,7 @@ public class OrderService {
             BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);
             if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
                 order.setTaxStatus(TaxStatus.PENDING);
-                order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.85")));
+                order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
             } else {
                 order.setTaxStatus(TaxStatus.TAXFREE);
                 order.setTaxAmount(BigDecimal.ZERO);
@@ -206,15 +208,33 @@ public class OrderService {
         for (Order order : orderRepository.findAll()) {
             if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING) &&
                     bankClient.getAccountBalance(order.getAccountNumber()).compareTo(order.getTaxAmount()) > 0) {
-
                 TaxDto taxDto = new TaxDto();
                 taxDto.setAmount(order.getTaxAmount());
                 taxDto.setClientId(order.getUserId());
                 taxDto.setSenderAccountNumber(order.getAccountNumber());
                 bankClient.handleTax(taxDto);
-
                 order.setTaxStatus(TaxStatus.PAID);
+                orderRepository.save(order);
             }
         }
+    }
+    public TaxGetResponseDto getTaxes(Long userId){
+
+        List<Order> orders = orderRepository.findAllByUserId(userId);
+        TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
+
+        for(Order currOrder : orders){
+            LocalDateTime currOrderDate = currOrder.getLastModification();
+            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+                taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
+            }
+            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+                taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
+            }
+        }
+        return taxGetResponseDto;
     }
 }

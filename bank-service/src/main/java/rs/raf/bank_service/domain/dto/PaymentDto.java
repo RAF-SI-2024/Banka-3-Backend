@@ -17,5 +17,8 @@ public class PaymentDto implements Serializable {
     private String paymentPurpose;
     private String fromAccountNumber;
     private String toAccountNumber;
+    private String recieverName;
+    private String paymentCode;
+    private String currencyCode;
 
 }

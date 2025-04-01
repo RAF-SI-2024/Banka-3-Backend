@@ -3,6 +3,7 @@ package rs.raf.bank_service.domain.mapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import rs.raf.bank_service.domain.dto.PaymentDetailsDto;
+import rs.raf.bank_service.domain.dto.PaymentDto;
 import rs.raf.bank_service.domain.dto.PaymentOverviewDto;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.Payment;
@@ -65,5 +66,17 @@ public class PaymentMapper {
         }
 
         return dto;
+    }
+    public PaymentDto toPaymentDto(Payment payment){
+        PaymentDto paymentDto = new PaymentDto();
+        paymentDto.setId(payment.getId());
+        paymentDto.setPaymentPurpose("Tax");
+        paymentDto.setPaymentCode("N/A");
+        paymentDto.setRecieverName("Republika Srbija");
+        paymentDto.setAmount(payment.getAmount());
+        paymentDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
+        paymentDto.setToAccountNumber(payment.getAccountNumberReceiver());
+        paymentDto.setCurrencyCode("RSD");
+        return paymentDto;
     }
 }

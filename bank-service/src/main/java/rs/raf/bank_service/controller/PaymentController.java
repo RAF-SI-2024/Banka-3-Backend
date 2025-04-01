@@ -130,7 +130,7 @@ public class PaymentController {
     public ResponseEntity<?> handleTax(
             @Valid @RequestBody TaxDto taxDto,
             @RequestHeader("Authorization") String token) throws JsonProcessingException {
-        paymentService.handeTax(taxDto);
+        paymentService.handleTax(taxDto);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
