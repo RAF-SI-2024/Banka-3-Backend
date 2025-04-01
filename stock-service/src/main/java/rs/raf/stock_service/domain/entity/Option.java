@@ -27,4 +27,8 @@ public class Option extends Listing {
 
     @ManyToOne
     private Stock underlyingStock;
+
+    @ManyToOne
+    @JoinColumn(name = "stock_id")
+    private Listing stock;
 }

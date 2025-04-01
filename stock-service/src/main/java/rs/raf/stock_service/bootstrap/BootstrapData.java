@@ -133,6 +133,9 @@ public class BootstrapData implements CommandLineRunner {
     }
 
     private void addOption(Exchange exchange) {
+
+        Stock stock = (Stock) listingRepository.findByTicker("GOOGL").orElseThrow();
+
         Option option = new Option();
         option.setTicker("OPT1");
         option.setName("Test Option");
@@ -144,7 +147,41 @@ public class BootstrapData implements CommandLineRunner {
         option.setImpliedVolatility(new BigDecimal("0.25"));
         option.setExchange(exchange);
 
+        option.setStock(stock);
+
         listingRepository.save(option);
+
+
+        Option option1 = new Option();
+        option1.setTicker("OPT2");
+        option1.setName("Call Option - 1 week");
+        option1.setPrice(new BigDecimal("6.00"));
+        option1.setAsk(new BigDecimal("6.50"));
+        option1.setOptionType(option1.getOptionType().CALL);
+        option1.setStrikePrice(new BigDecimal("125.00"));
+        option1.setSettlementDate(LocalDate.now().plusWeeks(1));
+        option1.setImpliedVolatility(new BigDecimal("0.22"));
+        option1.setExchange(exchange);
+
+        option1.setStock(stock);
+
+
+        listingRepository.save(option1);
+
+        Option option2 = new Option();
+        option2.setTicker("OPT3");
+        option2.setName("Call Option - 2 weeks");
+        option2.setPrice(new BigDecimal("6.20"));
+        option2.setAsk(new BigDecimal("6.70"));
+        option2.setOptionType(option2.getOptionType().CALL);
+        option2.setStrikePrice(new BigDecimal("125.00"));
+        option2.setSettlementDate(LocalDate.now().plusWeeks(3));
+        option2.setImpliedVolatility(new BigDecimal("0.23"));
+        option2.setExchange(exchange);
+
+        option2.setStock(stock);
+
+        listingRepository.save(option2);
     }
 
     private void addForex() {
