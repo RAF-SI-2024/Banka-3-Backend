@@ -4,12 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.domain.dto.PayeeDto;
 import rs.raf.bank_service.domain.entity.Payee;
+import rs.raf.bank_service.domain.mapper.PayeeMapper;
 import rs.raf.bank_service.exceptions.ClientNotFoundException;
 import rs.raf.bank_service.exceptions.DuplicatePayeeException;
 import rs.raf.bank_service.exceptions.PayeeNotFoundException;
-import rs.raf.bank_service.domain.mapper.PayeeMapper;
 import rs.raf.bank_service.repository.PayeeRepository;
-import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.util.List;
 import java.util.Optional;

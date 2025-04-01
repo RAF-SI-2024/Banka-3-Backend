@@ -2,12 +2,11 @@ package rs.raf.stock_service.domain.mapper;
 
 import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.ListingDetailsDto;
+import rs.raf.stock_service.domain.dto.ListingDto;
 import rs.raf.stock_service.domain.dto.PriceHistoryDto;
 import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.dto.ListingDto;
 import rs.raf.stock_service.domain.enums.ListingType;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 

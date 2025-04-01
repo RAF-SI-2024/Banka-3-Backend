@@ -22,7 +22,8 @@ public class LoanScheduler {
         this.loanRepository = loanRepository;
     }
 
-    @Scheduled(cron = "0 0 1 * * ?")  // Svakog meseca
+    @Scheduled(cron = "0 0 1 * * ?") //svakog meseca
+    //@Scheduled(fixedRate = 15000)// test
     public void updateVariableInterestRates() {
         List<Loan> loans = loanRepository.findByStatus(LoanStatus.APPROVED);
 
@@ -40,6 +41,7 @@ public class LoanScheduler {
 
 
                 loan.setEffectiveInterestRate(LoanInterestRateCalculator.calculateEffectiveRate(tempRequest));
+
 
                 loanRepository.save(loan);
             }

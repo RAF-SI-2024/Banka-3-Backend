@@ -2,12 +2,10 @@ package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
@@ -18,7 +16,6 @@ import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.domain.mapper.CardMapper;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.exceptions.UnauthorizedException;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.repository.CardRequestRepository;
@@ -151,47 +148,47 @@ public class CardService {
 
 
     public List<CardDto> getCardsByAccount(
-                    @Parameter(description = "Account number to search for", example = "222222222222222222") String accountNumber) {
-            List<Card> cards = cardRepository.findByAccount_AccountNumber(accountNumber);
-            return cards.stream().map(card -> {
-                    ClientDto client = userClient.getClientById(card.getAccount().getClientId());
-                    return CardMapper.toDto(card, client);
-            }).collect(Collectors.toList());
+            @Parameter(description = "Account number to search for", example = "222222222222222222") String accountNumber) {
+        List<Card> cards = cardRepository.findByAccount_AccountNumber(accountNumber);
+        return cards.stream().map(card -> {
+            ClientDto client = userClient.getClientById(card.getAccount().getClientId());
+            return CardMapper.toDto(card, client);
+        }).collect(Collectors.toList());
     }
 
     public void changeCardStatus(
-                    @Parameter(description = "Card number", example = "1234123412341234") String cardNumber,
-                    @Parameter(description = "New status for the card", example = "BLOCKED") CardStatus newStatus) {
-            Card card = cardRepository.findByCardNumber(cardNumber)
-                            .orElseThrow(() -> new EntityNotFoundException(
-                                            "Card not found with number: " + cardNumber));
+            @Parameter(description = "Card number", example = "1234123412341234") String cardNumber,
+            @Parameter(description = "New status for the card", example = "BLOCKED") CardStatus newStatus) {
+        Card card = cardRepository.findByCardNumber(cardNumber)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Card not found with number: " + cardNumber));
 
-            card.setStatus(newStatus);
-            cardRepository.save(card);
+        card.setStatus(newStatus);
+        cardRepository.save(card);
 
-            ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
+        ClientDto owner = userClient.getClientById(card.getAccount().getClientId());
 
-            EmailRequestDto emailRequestDto = new EmailRequestDto();
-            emailRequestDto.setCode(newStatus.toString());
-            emailRequestDto.setDestination(owner.getEmail());
+        EmailRequestDto emailRequestDto = new EmailRequestDto();
+        emailRequestDto.setCode(newStatus.toString());
+        emailRequestDto.setDestination(owner.getEmail());
 
-            rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
+        rabbitTemplate.convertAndSend("card-status-change", emailRequestDto);
     }
 
     public List<CardDto> getUserCards(String authHeader) {
 
-            Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-            List<Account> userAccounts = accountRepository.findByClientId(clientId);
+        List<Account> userAccounts = accountRepository.findByClientId(clientId);
 
-            List<Card> userCards = userAccounts.stream()
-                            .flatMap(account -> account.getCards().stream())
-                            .toList();
+        List<Card> userCards = userAccounts.stream()
+                .flatMap(account -> account.getCards().stream())
+                .toList();
 
-            ClientDto owner = userClient.getClientById(clientId);
-            return userCards.stream()
-                            .map(card -> CardMapper.toDto(card, owner))
-                            .collect(Collectors.toList());
+        ClientDto owner = userClient.getClientById(clientId);
+        return userCards.stream()
+                .map(card -> CardMapper.toDto(card, owner))
+                .collect(Collectors.toList());
     }
 
     public List<CardDto> getUserCardsForAccount(String accountNumber, String authHeader) {
@@ -213,11 +210,11 @@ public class CardService {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
         Card card = cardRepository.findByCardNumber(cardNumber)
-                        .orElseThrow(() -> new EntityNotFoundException(
-                                        "Card not found with number: " + cardNumber));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Card not found with number: " + cardNumber));
 
         if (!card.getAccount().getClientId().equals(clientId)) {
-                throw new UnauthorizedException("You can only block your own cards");
+            throw new UnauthorizedException("You can only block your own cards");
         }
 
         card.setStatus(CardStatus.BLOCKED);
@@ -316,5 +313,14 @@ public class CardService {
         log.info("Card created for request {} and client {}", id, cardRequest.getClientId());
     }
 
+    public void rejectCardRequest(Long id) {
+        CardRequest cardRequest = cardRequestRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(String.valueOf(id)));
+        if (!cardRequest.getStatus().equals(RequestStatus.PENDING))
+            throw new RejectNonPendingRequestException();
+
+        cardRequest.setStatus(RequestStatus.REJECTED);
+        cardRequestRepository.save(cardRequest);
+    }
 
 }

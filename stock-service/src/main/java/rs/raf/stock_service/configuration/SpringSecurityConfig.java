@@ -44,6 +44,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/forex/**").permitAll()
                 .antMatchers("/api/exchange/**").permitAll()
                 .antMatchers("/api/conversion/**").permitAll()
+                .antMatchers("/api/options/**").permitAll()
+                .antMatchers("/api/futures/**").permitAll()
+                .antMatchers("/api/listings/**").permitAll()
                 .anyRequest().authenticated()
                 .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().headers().frameOptions().disable()
@@ -66,7 +69,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public RoleHierarchy roleHierarchy(){
+    public RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl roleHierarchyImpl = new RoleHierarchyImpl();
         roleHierarchyImpl.setHierarchy("ROLE_ADMIN > ROLE_SUPERVISOR " +
                 "\n ROLE_SUPERVISOR > ROLE_AGENT " +

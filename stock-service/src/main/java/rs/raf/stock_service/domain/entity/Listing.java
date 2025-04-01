@@ -1,13 +1,16 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import rs.raf.stock_service.domain.enums.ListingType;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+
 
 @Entity
 @Data
@@ -32,4 +35,8 @@ public abstract class Listing {
 
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ListingDailyPriceInfo> listingDailyPriceInfos;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", insertable = false, updatable = false)
+    private ListingType type;
 }

@@ -70,7 +70,8 @@ public class LoanController {
             return ResponseEntity.ok(installments);
         } catch (LoanNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }    }
+        }
+    }
 
     // nema provere autorizacije sry mozda nekad fixati
     @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
@@ -87,6 +88,23 @@ public class LoanController {
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } catch (LoanNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+    //za testiranje
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Pay loan installment")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Installment paid successfully"),
+            @ApiResponse(responseCode = "400", description = "Insufficient funds or invalid loan"),
+            @ApiResponse(responseCode = "404", description = "Loan not found")
+    })
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<Void> payInstallment(@PathVariable Long id) {
+        try {
+            loanService.payInstallment(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
@@ -109,7 +127,7 @@ public class LoanController {
             Pageable pageable = PageRequest.of(page, size, Sort.by("account.accountNumber").ascending());
             Page<LoanDto> loans = loanService.getAllLoans(type, accountNumber, status, pageable);
             return ResponseEntity.ok(loans);
-    } catch (InvalidLoanTypeException | InvalidLoanStatusException e) {
+        } catch (InvalidLoanTypeException | InvalidLoanStatusException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -138,5 +156,10 @@ public class LoanController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<String> handleInsufficientFundsException(InsufficientFundsException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }

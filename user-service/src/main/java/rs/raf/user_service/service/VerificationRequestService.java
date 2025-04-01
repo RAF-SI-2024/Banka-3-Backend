@@ -10,6 +10,7 @@ import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
 import rs.raf.user_service.domain.entity.VerificationRequest;
 import rs.raf.user_service.domain.enums.VerificationStatus;
 import rs.raf.user_service.domain.enums.VerificationType;
+import rs.raf.user_service.exceptions.RejectNonPendingRequestException;
 import rs.raf.user_service.exceptions.VerificationNotFoundException;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.utils.JwtTokenUtil;
@@ -67,27 +68,34 @@ public class VerificationRequestService {
         verificationRequestRepository.save(request);
 
         switch (request.getVerificationType()) {
-            case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());
-            case PAYMENT -> bankClient.confirmPayment(request.getTargetId());
+            case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());//radi
+            case PAYMENT -> bankClient.confirmPayment(request.getTargetId());//radi
             case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
-            case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId());
+            case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId());//radi
         }
 
         return true;
     }
 
 
-    public boolean denyVerificationRequest(Long requestId, String authHeader) {
+    public void denyVerificationRequest(Long requestId, String authHeader) {
         Long clientIdFromToken = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
         VerificationRequest request = verificationRequestRepository.findActiveRequest(requestId, clientIdFromToken)
-                .orElseThrow(() -> new IllegalStateException("Verification request not found"));
+                .orElseThrow(() -> new VerificationNotFoundException(requestId));
+
+        if(!request.getStatus().equals(VerificationStatus.PENDING))
+            throw new RejectNonPendingRequestException();
+
+        request.setStatus(VerificationStatus.DENIED);
+        verificationRequestRepository.save(request);
 
         switch (request.getVerificationType()) {
-        // @todo cancel payment/transfer, cancel limit change
+            case CHANGE_LIMIT -> bankClient.rejectChangeAccountLimit(request.getTargetId());
+            case PAYMENT -> bankClient.rejectConfirmPayment(request.getTargetId());
+            case TRANSFER -> bankClient.rejectConfirmTransfer(request.getTargetId());
+            case CARD_REQUEST -> bankClient.rejectApproveCardRequest(request.getTargetId());
         }
-
-        return updateRequestStatus(requestId, VerificationStatus.DENIED);
     }
 
     public boolean calledFromMobile(String userAgent) {

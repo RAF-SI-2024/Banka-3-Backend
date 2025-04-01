@@ -13,6 +13,7 @@ public class PaymentDetailsDto {
     private Long id;
     private String senderName;
     private BigDecimal amount;
+    private BigDecimal receivedAmount;
     private String accountNumberReceiver;
     private String paymentCode;
     private String purposeOfPayment;
@@ -20,4 +21,6 @@ public class PaymentDetailsDto {
     private LocalDateTime date;
     private PaymentStatus status;
     private String cardNumber;
+    private String senderCurrencyCode;
+    private String receiverCurrencyCode;
 }

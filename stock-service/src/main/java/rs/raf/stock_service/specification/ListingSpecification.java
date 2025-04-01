@@ -36,6 +36,10 @@ public class ListingSpecification {
                 predicates.add(cb.or(isStock, isFutures));
             }
 
+            // Filtriranje: Izuzmi Option klase iz svih rezultata
+            Predicate isNotOption = cb.notEqual(root.type(), cb.literal(Option.class));
+            predicates.add(isNotOption);
+
             if (filter.getSearch() != null && !filter.getSearch().isEmpty()) {
                 String searchTerm = "%" + filter.getSearch().toLowerCase() + "%";
                 Predicate tickerPredicate = cb.like(cb.lower(root.get("ticker")), searchTerm);

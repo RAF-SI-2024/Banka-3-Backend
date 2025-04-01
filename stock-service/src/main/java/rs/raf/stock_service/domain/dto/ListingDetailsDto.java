@@ -7,6 +7,7 @@ import rs.raf.stock_service.domain.enums.ListingType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
 @Getter
 @Setter
 public class ListingDetailsDto {
@@ -19,11 +20,7 @@ public class ListingDetailsDto {
     private List<PriceHistoryDto> priceHistory;
     private Integer contractSize;
     private String contractUnit;
-
     private List<LocalDate> optionSettlementDates;
-
-
-
 
     public ListingDetailsDto() {}
 

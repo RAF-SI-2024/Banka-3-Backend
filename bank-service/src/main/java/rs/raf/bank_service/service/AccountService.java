@@ -1,6 +1,7 @@
 package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -18,10 +20,10 @@ import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.specification.AccountSearchSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,12 +38,17 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AccountService {
     private final CurrencyRepository currencyRepository;
+    private final CompanyAccountRepository companyAccountRepository;
     private final AccountRepository accountRepository;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
     private final JwtTokenUtil jwtTokenUtil;
     @Autowired
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
+
+    public Page<AccountDto> getBankAccounts(Pageable pageable) {
+        return companyAccountRepository.findByCompanyId(1L, pageable).map((account) -> AccountMapper.toDto(account, null));
+    }
 
     public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
 
@@ -293,6 +300,15 @@ public class AccountService {
 
         log.info("Account limit updated successfully for account {}", account.getAccountNumber());
     }
+    public void rejectAccountLimitChange(Long requestId){
+        ChangeLimitRequest changeLimitRequest = changeLimitRequestRepository
+                .findById(requestId)
+                .orElseThrow(() -> new ChangeLimitReqNotFoundException(requestId));
+        if (!changeLimitRequest.getStatus().equals(VerificationStatus.PENDING))
+            throw new RejectNonPendingRequestException();
+        changeLimitRequest.setStatus(VerificationStatus.DENIED);
+        changeLimitRequestRepository.save(changeLimitRequest);
+    }
 
     public void setAuthorizedPerson(Long accountId, Long authorizedPersonId, Long employeeId) {
 
@@ -327,5 +343,12 @@ public class AccountService {
 
         System.out.println("Uspešno postavljeno ovlašćeno lice " + authorizedPerson.getFirstName() + " za račun " + accountId);
 
+    }
+
+    public BigDecimal getAccountBalance(String accountNumber){
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccNotFoundException("Account not found"));
+
+        return account.getBalance(); //vidi da li treba balance ili availabe balance
     }
 }

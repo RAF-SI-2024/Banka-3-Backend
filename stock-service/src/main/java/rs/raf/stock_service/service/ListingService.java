@@ -1,15 +1,19 @@
 package rs.raf.stock_service.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.domain.entity.Listing;
+import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
+import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
@@ -28,19 +32,18 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class ListingService {
-
     @Autowired
     private ListingRepository listingRepository;
-
     @Autowired
     private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
 
+    private TwelveDataClient twelveDataClient;
+
     @Autowired
-    private OrderRepository orderRepository;
+    private TimeSeriesMapper timeSeriesMapper;
 
     @Autowired
     private ListingMapper listingMapper;
-
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
 
@@ -48,7 +51,6 @@ public class ListingService {
 
     @Autowired
     private OptionRepository optionRepository;
-
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
@@ -95,43 +97,17 @@ public class ListingService {
         return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
     }
 
-    public void placeBuyOrder(BuyListingDto buyListingDto, String authHeader) {
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
-        Listing listing = listingRepository.findById(Long.valueOf(buyListingDto.getListingId()))
-                .orElseThrow(() -> new ListingNotFoundException(Long.valueOf(buyListingDto.getListingId())));
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setAsset(listing.getId());
-        order.setOrderType(buyListingDto.getOrderType());
-        order.setAccountNumber(buyListingDto.getAccountNumber());
-        if (role.equals("CLIENT") || role.equals("SUPERVISOR") || role.equals("ADMIN")) {
-            order.setStatus(OrderStatus.APPROVED);
-            // dodati validaciju da zapravo ima pare za ovaj order i da moze da se approvuje
-        } else {
-            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
-            if (actuaryLimitDto.isNeedsApproval())
-                order.setStatus(OrderStatus.PENDING);
-            else {
-                BigDecimal userBalance = actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit());
-                BigDecimal contractSize = BigDecimal.valueOf(buyListingDto.getContractSize());
-                BigDecimal pricePerUnit = listing.getPrice();
-                BigDecimal quantity = BigDecimal.valueOf(buyListingDto.getQuantity());
-                BigDecimal approxPrice = contractSize.multiply(pricePerUnit.multiply(quantity));
-                if (userBalance.compareTo(approxPrice) >= 0)
-                    order.setStatus(OrderStatus.APPROVED);
-                else
-                    order.setStatus(OrderStatus.PENDING);
-            }
+    public TimeSeriesDto getPriceHistory(Long id, String interval) {
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new ListingNotFoundException(id));
 
+        if (interval == null || interval.isEmpty()) {
+            interval = "1day";
         }
-        order.setQuantity(buyListingDto.getQuantity());
-        order.setContractSize(buyListingDto.getContractSize());
-        order.setPricePerUnit(listing.getPrice());
-        order.setDirection(OrderDirection.BUY);
-        order.setIsDone(false);
-        order.setLastModification(LocalDateTime.now());
 
-        orderRepository.save(order);
+        String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30");
+
+        return timeSeriesMapper.mapJsonToCustomTimeSeries(response, listing);
     }
+
 }

@@ -22,8 +22,10 @@ public class Option extends Listing {
 
     private BigDecimal strikePrice;
     private BigDecimal impliedVolatility;
+    private BigDecimal contractSize;
     private Integer openInterest;
     private LocalDate settlementDate;
+    private BigDecimal maintenanceMargin;
 
     @ManyToOne
     @JoinColumn(name = "stock_id")

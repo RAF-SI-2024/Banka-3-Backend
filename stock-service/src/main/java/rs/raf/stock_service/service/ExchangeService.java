@@ -24,10 +24,10 @@ public class ExchangeService {
     private ExchangeRepository exchangeRepository;
     private CountryRepository countryRepository;
 
-    public void importExchanges(){
+    public void importExchanges() {
         BufferedReader bufferedReader;
         String line;
-        if (exchangeRepository.count()==0){
+        if (exchangeRepository.count() == 0) {
             try {
                 bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges.csv").getInputStream()));
                 line = bufferedReader.readLine();
@@ -39,9 +39,9 @@ public class ExchangeService {
                     exchange.setMic(attributes[2]);
                     exchange.setName(attributes[0]);
                     exchange.setAcronym(attributes[1]);
-                    if (attributes[3].equalsIgnoreCase("usa")){
+                    if (attributes[3].equalsIgnoreCase("usa")) {
                         exchange.setPolity(countryRepository.findByName("United States").get());
-                    }else {
+                    } else {
                         exchange.setPolity(countryRepository.findByName(attributes[3]).get());
                     }
                     exchange.setCurrencyCode(mapCurrencyToCode(attributes[4]));
@@ -56,15 +56,15 @@ public class ExchangeService {
     }
 
 
-    public List<Exchange> getAvailableExchanges(){
+    public List<Exchange> getAvailableExchanges() {
         List<Exchange> allExchanges = exchangeRepository.findAll();
-        if (allExchanges.isEmpty()){
+        if (allExchanges.isEmpty()) {
             throw new ExchangesNotLoadedException();
         }
         List<Exchange> availableExchanges = new ArrayList<>();
 
-        for (Exchange exchange: allExchanges){
-            if (exchange.isTestMode()){
+        for (Exchange exchange : allExchanges) {
+            if (exchange.isTestMode()) {
                 availableExchanges.add(exchange);
                 continue;
             }
@@ -76,11 +76,11 @@ public class ExchangeService {
             LocalDate today = nowUtc.toLocalDate();
             LocalTime currentTime = nowUtc.toLocalTime().plusHours(offset);
 
-            if (country.getHolidays().contains(today)){
+            if (country.getHolidays().contains(today)) {
                 continue;
             }
 
-            if (currentTime.isAfter(country.getOpenTime()) && currentTime.isBefore(country.getCloseTime())){
+            if (currentTime.isAfter(country.getOpenTime()) && currentTime.isBefore(country.getCloseTime())) {
                 availableExchanges.add(exchange);
             }
         }
@@ -88,17 +88,16 @@ public class ExchangeService {
     }
 
 
-    public void toggleTestMode(){
+    public void toggleTestMode() {
         List<Exchange> allExchanges = exchangeRepository.findAll();
-        if (allExchanges.isEmpty()){
+        if (allExchanges.isEmpty()) {
             throw new ExchangesNotLoadedException();
         }
-        for (Exchange exchange: allExchanges){
+        for (Exchange exchange : allExchanges) {
             exchange.setTestMode(!exchange.isTestMode());
             exchangeRepository.save(exchange);
         }
     }
-
 
 
     private long getUtcOffset(String timeZoneId) {
@@ -107,7 +106,7 @@ public class ExchangeService {
         return offset.getTotalSeconds() / 3600;
     }
 
-    private String mapCurrencyToCode(String name){
+    private String mapCurrencyToCode(String name) {
         return switch (name) {
             case "USD", "United States Dollar" -> "USD";
             case "Euro" -> "EUR";

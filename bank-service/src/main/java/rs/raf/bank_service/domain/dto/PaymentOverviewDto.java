@@ -14,7 +14,10 @@ public class PaymentOverviewDto {
     private Long id;
     private String senderName;
     private BigDecimal amount;
+    private BigDecimal receivedAmount;
     private LocalDateTime date;
     private PaymentStatus Status;
     private String cardNumber;
+    private String senderCurrencyCode;
+    private String receiverCurrencyCode;
 }

@@ -6,28 +6,22 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
-
-import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.ChangeLimitRequestRepository;
 import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
-import java.math.BigDecimal;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
@@ -35,10 +29,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class AccountController {
 
-    private AccountService accountService;
     private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
+    private AccountService accountService;
 
     /// Refaktorisano tako da getAccounts bude jedna GET metoda a ne dve jer tako kod ne radi
     /// Ovde proverava da li se request salje kao klijent ili admin/employee
@@ -73,6 +67,21 @@ public class AccountController {
         }
     }
 
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/bank")
+    public ResponseEntity<?> getBankAccounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+
+            Pageable pageable = PageRequest.of(page, size);
+            Page<AccountDto> accounts = accountService.getBankAccounts(pageable);
+            return ResponseEntity.ok(accounts);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto("Unexpected error occurred."));
+        }
+    }
+
     @Operation(summary = "Get client accounts with filtering and pagination")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Accounts retrieved successfully")})
     @PreAuthorize("hasRole('EMPLOYEE')")
@@ -91,7 +100,6 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
-
 
 
     @PreAuthorize("hasRole('EMPLOYEE')")
@@ -121,14 +129,14 @@ public class AccountController {
             @ApiResponse(responseCode = "500", description = "Account details retrieval failed")
     })
     public ResponseEntity<?> getAccountDetails(@RequestHeader("Authorization") String auth,
-                                               @PathVariable("accountNumber") String accountNumber){
+                                               @PathVariable("accountNumber") String accountNumber) {
         try {
             Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
             String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
             return ResponseEntity.ok(accountService.getAccountDetails(role, clientId, accountNumber));
-        }catch (ClientNotAccountOwnerException e) {
+        } catch (ClientNotAccountOwnerException e) {
             return ResponseEntity.badRequest().body(new ErrorMessageDto(e.getMessage()));
-        }catch (RuntimeException e){
+        } catch (RuntimeException e) {
             return ResponseEntity.internalServerError().body(new ErrorMessageDto(e.getMessage()));
         }
     }
@@ -167,6 +175,21 @@ public class AccountController {
     public ResponseEntity<?> changeAccountLimit(@PathVariable Long id) {
         accountService.changeAccountLimit(id);
         return ResponseEntity.ok("Account limit updated successfully");
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/change-limit/reject")
+    @Operation(summary = "Reject account limit change", description = "Allows user service to reject request.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account limit change request rejected successfully."),
+            @ApiResponse(responseCode = "404", description = "Request not found.")
+    })
+    public ResponseEntity<?> rejectAccountLimitChange(@PathVariable Long id) {
+        try {
+            accountService.rejectAccountLimitChange(id);
+            return ResponseEntity.ok("Request rejected successfully.");
+        }catch (ChangeLimitReqNotFoundException | RejectNonPendingRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('CLIENT')")
@@ -221,6 +244,21 @@ public class AccountController {
         }
     }
 
+    // interni endpoint
+    @Operation(summary = "Get client account balance")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Account balance retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Account balance retrieved successfully")
+    })
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/{accountNumber}/balance")
+    public ResponseEntity<?> getAccountBalance(@PathVariable String accountNumber) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountBalance(accountNumber));
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 
     // Globalni Exception Handleri
 
