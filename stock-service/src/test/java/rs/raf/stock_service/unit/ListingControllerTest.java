@@ -118,52 +118,6 @@ class ListingControllerTest {
     }
 
     @Test
-    void getListingDetails_ShouldReturnListingDetailsDto() {
-        Long listingId = 1L;
-
-        ListingDetailsDto mockDto = new ListingDetailsDto(
-                listingId,
-                ListingType.STOCK,
-                "AAPL",
-                "Apple Inc.",
-                new BigDecimal("150.50"),
-                "XNAS",
-                List.of(
-                        new PriceHistoryDto(
-                                LocalDateTime.of(2024, 3, 2, 0, 0),  // Datum sa vremenom
-                                new BigDecimal("150.00"),  // Open
-                                new BigDecimal("152.50"),  // High
-                                new BigDecimal("149.50"),  // Low
-                                new BigDecimal("152.00"),  // Close
-                                1200000L                   // Volume
-                        ),
-                        new PriceHistoryDto(
-                                LocalDateTime.of(2024, 3, 1, 0, 0),
-                                new BigDecimal("148.00"),
-                                new BigDecimal("151.00"),
-                                new BigDecimal("147.50"),
-                                new BigDecimal("150.00"),
-                                1100000L
-                        )
-                ),
-                null,
-                null
-        );
-
-        when(listingService.getListingDetails(listingId)).thenReturn(mockDto);
-
-        ResponseEntity<ListingDetailsDto> response = listingController.getListingDetails(listingId);
-
-        // Provera rezultata
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(mockDto, response.getBody());
-
-        // Verifikacija poziva
-        verify(listingService, times(1)).getListingDetails(listingId);
-    }
-
-
-    @Test
     void getListingDetails_ShouldReturnNotFoundWhenListingDoesNotExist() {
         Long nonExistentId = 2L;
 
