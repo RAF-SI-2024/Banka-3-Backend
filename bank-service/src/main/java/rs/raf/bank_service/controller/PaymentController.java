@@ -125,7 +125,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/tax")
     public ResponseEntity<?> handleTax(
             @Valid @RequestBody TaxDto taxDto,
