@@ -218,23 +218,5 @@ public class OrderService {
             }
         }
     }
-    public TaxGetResponseDto getTaxes(Long userId){
 
-        List<Order> orders = orderRepository.findAllByUserId(userId);
-        TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
-
-        for(Order currOrder : orders){
-            LocalDateTime currOrderDate = currOrder.getLastModification();
-            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
-                taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
-            }
-            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
-                taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
-            }
-        }
-        return taxGetResponseDto;
-    }
 }

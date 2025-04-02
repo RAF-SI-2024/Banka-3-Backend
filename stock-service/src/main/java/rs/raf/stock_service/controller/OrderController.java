@@ -111,13 +111,4 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-    @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
-    @GetMapping("/tax/{userId}")
-    @Operation(summary = "Get taxes", description = "Returns paid tax for current year, and unpaid for current month.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
-    })
-    public ResponseEntity<TaxGetResponseDto>getTaxes(@PathVariable Long userId){
-        return ResponseEntity.ok().body(orderService.getTaxes(userId));
-    }
 }
