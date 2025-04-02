@@ -86,7 +86,7 @@ public class PortfolioService {
                     BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null || entry.getAveragePrice() == null ) {
+                    if (latestPrice != null && entry.getAveragePrice() != null ) {
                         // Profit sada koristi `close` umesto `price`
                         profit = latestPrice
                                 .subtract(entry.getAveragePrice())
