@@ -169,10 +169,13 @@ public class PortfolioServiceTest {
     }
 
 
-    @Test
+   @Test
     void testGetPortfolio_userHasHoldings_shouldReturnMappedDtos() {
         initialiseStock();
         initialiseGOOGLStock();
+
+        stock.setPrice(BigDecimal.valueOf(115));
+        stock2.setPrice(BigDecimal.valueOf(2200));
 
         PortfolioEntry entry1 = PortfolioEntry.builder()
                 .userId(userId)
@@ -201,13 +204,6 @@ public class PortfolioServiceTest {
         List<PortfolioEntry> entries = List.of(entry1, entry2);
 
         when(portfolioEntryRepository.findAllByUserId(userId)).thenReturn(entries);
-
-        // Simuliramo najnovije cene za listinge (koristimo close)
-        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock))
-                .thenReturn(ListingPriceHistory.builder().close(BigDecimal.valueOf(115)).build()); // (115 - 10) * 10 = 1050
-        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock2))
-                .thenReturn(ListingPriceHistory.builder().close(BigDecimal.valueOf(2200)).build()); // (2200 - 2000) * 5 = 1000
-
         List<PortfolioEntryDto> result = portfolioService.getPortfolioForUser(userId);
 
         assertEquals(2, result.size());
@@ -221,9 +217,8 @@ public class PortfolioServiceTest {
         assertEquals(BigDecimal.valueOf(1000), dto2.getProfit());
 
         verify(portfolioEntryRepository).findAllByUserId(userId);
-        verify(priceHistoryRepository).findTopByListingOrderByDateDesc(stock);
-        verify(priceHistoryRepository).findTopByListingOrderByDateDesc(stock2);
     }
+
 
 
     @Test
