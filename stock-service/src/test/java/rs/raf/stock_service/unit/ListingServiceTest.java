@@ -103,8 +103,8 @@ class ListingServiceTest {
         verify(priceHistoryRepository, times(1)).findTopByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDto(stock, dailyInfo);
     }
-
-   @Test
+    
+    @Test
     void getListingDetails_ShouldReturnListingDetailsDto() {
         // Mock podaci za Stock
         Exchange exchange = new Exchange();
@@ -155,28 +155,6 @@ class ListingServiceTest {
         verify(dailyPriceInfoRepository, times(1)).findAllByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
     }
-
-        // Mock ponašanje repozitorijuma
-        when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
-        when(priceHistoryRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
-        when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
-
-        // Poziv metode
-        ListingDetailsDto result = listingService.getListingDetails(1L);
-
-        // Provera rezultata
-        assertEquals(expectedDto.getId(), result.getId());
-        assertEquals(expectedDto.getTicker(), result.getTicker());
-        assertEquals(expectedDto.getCurrentPrice(), result.getCurrentPrice());
-        assertEquals(expectedDto.getExchangeMic(), result.getExchangeMic());
-        assertEquals(expectedDto.getPriceHistory().size(), result.getPriceHistory().size());
-
-        // Verifikacija poziva
-        verify(listingRepository, times(1)).findById(1L);
-        verify(priceHistoryRepository, times(1)).findAllByListingOrderByDateDesc(stock);
-        verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
-    }
-
 
     @Test
     void getListingDetails_ShouldThrowListingNotFoundException() {
