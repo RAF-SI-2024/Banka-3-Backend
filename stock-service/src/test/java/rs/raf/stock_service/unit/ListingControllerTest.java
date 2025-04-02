@@ -117,7 +117,7 @@ class ListingControllerTest {
         verify(listingService, times(1)).getListings(any(ListingFilterDto.class), eq("CLIENT"));
     }
 
-    @Test
+   @Test
     void getListingDetails_ShouldReturnListingDetailsDto() {
         Long listingId = 1L;
 
@@ -161,7 +161,6 @@ class ListingControllerTest {
         // Verifikacija poziva
         verify(listingService, times(1)).getListingDetails(listingId);
     }
-
 
     @Test
     void getListingDetails_ShouldReturnNotFoundWhenListingDoesNotExist() {
