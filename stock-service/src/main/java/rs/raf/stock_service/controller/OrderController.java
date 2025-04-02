@@ -11,11 +11,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
+import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.service.OrderService;
+
+import javax.websocket.server.PathParam;
 
 
 @RestController
@@ -91,6 +94,21 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
         } catch (ListingNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PostMapping("/tax")
+    @Operation(summary = "Process taxes.", description = "Pays taxes where possible.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Order created successfully"),
+    })
+    public ResponseEntity<?> processTaxes() {
+        try {
+            orderService.processTaxes();
+            return ResponseEntity.status(HttpStatus.OK).body("Taxes processed successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 }

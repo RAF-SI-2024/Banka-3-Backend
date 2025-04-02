@@ -14,11 +14,13 @@ import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
+import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.domain.enums.VerificationType;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.exceptions.*;
 import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
 import rs.raf.bank_service.repository.PaymentRepository;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -36,8 +38,10 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private final TransactionQueueService transactionQueueService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
+    private CompanyAccountRepository companyAccountRepository;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver
@@ -97,7 +101,6 @@ public class PaymentService {
                 objectMapper.writeValueAsString(paymentVerificationDetailsDto)
         );
         userClient.createVerificationRequest(paymentVerificationRequestDto);
-
         return true;
     }
 
@@ -171,7 +174,8 @@ public class PaymentService {
     }
 
 
-    public boolean createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
+    public PaymentDto createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
+
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
         }
@@ -181,7 +185,7 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(), clientId)
+        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(),clientId)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
@@ -236,7 +240,24 @@ public class PaymentService {
         CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
         userClient.createVerificationRequest(createVerificationRequestDto);
 
-        return true;
+        return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
+    }
+
+    public void handleTax(TaxDto taxDto) throws JsonProcessingException {
+
+        CreatePaymentDto createPaymentDto = new CreatePaymentDto();
+        createPaymentDto.setPurposeOfPayment("tax");
+        createPaymentDto.setSenderAccountNumber(taxDto.getSenderAccountNumber());
+        createPaymentDto.setAmount(taxDto.getAmount());
+        createPaymentDto.setReferenceNumber("N/A");
+        createPaymentDto.setPaymentCode("N/A");
+        createPaymentDto.setRecieverName("Republika Srbija");
+        Account account = companyAccountRepository.findByCompanyId(2L);
+        createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
+        PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
+
+        transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
+
     }
 
     @Transactional

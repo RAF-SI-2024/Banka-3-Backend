@@ -3,15 +3,18 @@ package rs.raf.stock_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,6 +24,7 @@ public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final OrderRepository orderRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -86,5 +90,24 @@ public class PortfolioService {
                             entry.getListing().getTicker(),
                             profit);
                 }).collect(Collectors.toList());
+    }
+    public TaxGetResponseDto getTaxes(Long userId){
+        
+        List<Order> orders = orderRepository.findAllByUserId(userId);
+        TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
+
+        for(Order currOrder : orders){
+            LocalDateTime currOrderDate = currOrder.getLastModification();
+            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+                taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
+            }
+            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+                taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
+            }
+        }
+        return taxGetResponseDto;
     }
 }
