@@ -137,7 +137,7 @@ class ListingServiceTest {
         when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
         when(dailyPriceInfoRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
         when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
-        when(optionRepository.findAllByStock(stock)).thenReturn(List.of());
+        when(optionRepository.findAllByUnderlyingStock(stock)).thenReturn(List.of());
 
         // Poziv metode
         ListingDetailsDto result = listingService.getListingDetails(1L);

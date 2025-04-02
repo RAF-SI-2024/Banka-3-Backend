@@ -62,7 +62,7 @@ public class ListingService {
         ListingDetailsDto dto = listingMapper.toDetailsDto(listing, priceHistory);
 
         if (listing instanceof Stock) {
-            List<LocalDate> optionDates = optionRepository.findAllByStock(listing).stream()
+            List<LocalDate> optionDates = optionRepository.findAllByUnderlyingStock((Stock) listing).stream()
                     .map(Option::getSettlementDate)
                     .distinct()
                     .sorted()

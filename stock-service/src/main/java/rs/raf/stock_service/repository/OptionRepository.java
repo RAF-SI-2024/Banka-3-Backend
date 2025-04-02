@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Option;
+import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.OptionType;
 
 import java.time.LocalDate;
@@ -16,8 +17,11 @@ import java.util.Optional;
 public interface OptionRepository extends JpaRepository<Option, Long> {
     List<Option> findByUnderlyingStockIdAndSettlementDate(Long stockId, LocalDate settlementDate);
 
-    List<Option> findAllByStock(Listing stock);
-  
+  //  List<Option> findAllByStock(Listing stock);
+
+    List<Option>findAllByUnderlyingStock(Stock stock);
+
+
     @Query("SELECT o FROM Option o")
     List<Option> findAllOptions();
 

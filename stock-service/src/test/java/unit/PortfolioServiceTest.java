@@ -6,16 +6,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.dto.PublicStockDto;
+import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+import rs.raf.stock_service.exceptions.InvalidListingTypeException;
+import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.PortfolioService;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -236,5 +240,134 @@ public class PortfolioServiceTest {
         verifyNoInteractions(portfolioEntryMapper);
     }
 
+    @Test
+    void testSetPublicAmount_success() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(100)
+                .publicAmount(0)
+                .lastModified(LocalDateTime.now())
+                .build();
 
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndListingId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        portfolioService.setPublicAmount(userId, dto);
+
+        assertEquals(50, entry.getPublicAmount());
+        verify(portfolioEntryRepository).save(entry);
+    }
+
+    @Test
+    void testSetPublicAmount_portfolioEntryNotFound() {
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndListingId(userId, 1L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(PortfolioEntryNotFoundException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testSetPublicAmount_invalidListingType() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.FUTURES)
+                .amount(100)
+                .publicAmount(0)
+                .build();
+
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndListingId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        assertThrows(InvalidListingTypeException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testSetPublicAmount_exceedsOwnedAmount() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(40)
+                .publicAmount(0)
+                .build();
+
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50); // vise od amount
+
+        when(portfolioEntryRepository.findByUserIdAndListingId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        assertThrows(InvalidPublicAmountException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testGetAllPublicStocks_shouldReturnPublicStocksWithProfit() {
+        initialiseStock();
+
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(100)
+                .averagePrice(BigDecimal.valueOf(100))
+                .publicAmount(20)
+                .lastModified(LocalDateTime.now())
+                .build();
+
+        ListingDailyPriceInfo latestPrice = ListingDailyPriceInfo.builder()
+                .price(BigDecimal.valueOf(120)) // trenutna cena
+                .build();
+
+        when(portfolioEntryRepository.findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0))
+                .thenReturn(List.of(entry));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock))
+                .thenReturn(latestPrice);
+
+        List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+
+        assertEquals(1, result.size());
+        PublicStockDto dto = result.get(0);
+        assertEquals("AAPL", dto.getTicker());
+        assertEquals(ListingType.STOCK.name(), dto.getSecurity());
+        assertEquals(0, BigDecimal.valueOf(400).compareTo(dto.getProfit())); // (120 - 100) * 20 = 400
+    }
+
+    @Test
+    void testGetAllPublicStocks_noLatestPrice_shouldReturnZeroProfit() {
+        initialiseStock();
+
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(50)
+                .averagePrice(BigDecimal.valueOf(100))
+                .publicAmount(10)
+                .lastModified(LocalDateTime.now())
+                .build();
+
+        when(portfolioEntryRepository.findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0))
+                .thenReturn(List.of(entry));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock))
+                .thenReturn(null); // Nema najnovije cene
+
+        List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+
+        assertEquals(1, result.size());
+        assertEquals(BigDecimal.valueOf(-1000), result.get(0).getProfit());
+    }
 }
