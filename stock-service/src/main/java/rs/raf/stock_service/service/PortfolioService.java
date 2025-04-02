@@ -83,10 +83,10 @@ public class PortfolioService {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
                     // Dohvatanje poslednjeg zapisa sa podacima o cenama
-                    var latestPrice = entry.getListing().getPrice();
+                    BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null ) {
+                    if (latestPrice != null || entry.getAveragePrice() == null ) {
                         // Profit sada koristi `close` umesto `price`
                         profit = latestPrice
                                 .subtract(entry.getAveragePrice())
@@ -100,6 +100,7 @@ public class PortfolioService {
                             profit);
                 }).collect(Collectors.toList());
     }
+    
     public TaxGetResponseDto getTaxes(Long userId){
         
         List<Order> orders = orderRepository.findAllByUserId(userId);
