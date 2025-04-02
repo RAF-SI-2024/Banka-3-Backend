@@ -104,7 +104,7 @@ class ListingServiceTest {
         verify(listingMapper, times(1)).toDto(stock, dailyInfo);
     }
 
-    @Test
+   @Test
     void getListingDetails_ShouldReturnListingDetailsDto() {
         // Mock podaci za Stock
         Exchange exchange = new Exchange();
@@ -117,53 +117,44 @@ class ListingServiceTest {
         stock.setPrice(new BigDecimal("150.50"));
         stock.setExchange(exchange);
 
-        ListingPriceHistory dailyInfo1 = new ListingPriceHistory();
-        dailyInfo1.setDate(LocalDateTime.of(2024, 3, 1, 14, 30));
-        dailyInfo1.setOpen(new BigDecimal("149.00"));
-        dailyInfo1.setHigh(new BigDecimal("151.00"));
-        dailyInfo1.setLow(new BigDecimal("148.50"));
-        dailyInfo1.setClose(new BigDecimal("150.00"));
-        dailyInfo1.setVolume(1500L);
+        ListingDailyPriceInfo dailyInfo1 = new ListingDailyPriceInfo();
+        dailyInfo1.setDate(LocalDate.of(2024, 3, 1));
+        dailyInfo1.setPrice(new BigDecimal("150.00"));
 
-        ListingPriceHistory dailyInfo2 = new ListingPriceHistory();
-        dailyInfo2.setDate(LocalDateTime.of(2024, 3, 2, 14, 30));
-        dailyInfo2.setOpen(new BigDecimal("151.00"));
-        dailyInfo2.setHigh(new BigDecimal("153.00"));
-        dailyInfo2.setLow(new BigDecimal("150.50"));
-        dailyInfo2.setClose(new BigDecimal("152.00"));
-        dailyInfo2.setVolume(2000L);
+        ListingDailyPriceInfo dailyInfo2 = new ListingDailyPriceInfo();
+        dailyInfo2.setDate(LocalDate.of(2024, 3, 2));
+        dailyInfo2.setPrice(new BigDecimal("152.00"));
 
-        List<ListingPriceHistory> priceHistory = List.of(dailyInfo2, dailyInfo1);
+        List<ListingDailyPriceInfo> priceHistory = List.of(dailyInfo2, dailyInfo1);
 
-        // Očekivani DTO sa novim podacima
         ListingDetailsDto expectedDto = new ListingDetailsDto(
-                1L,
-                ListingType.STOCK,
-                "AAPL",
-                "Apple Inc.",
-                new BigDecimal("150.50"),
-                "XNAS",
-                List.of(
-                        new PriceHistoryDto(
-                                LocalDateTime.of(2024, 3, 2, 14, 30),
-                                new BigDecimal("151.00"),
-                                new BigDecimal("153.00"),
-                                new BigDecimal("150.50"),
-                                new BigDecimal("152.00"),
-                                2000L
-                        ),
-                        new PriceHistoryDto(
-                                LocalDateTime.of(2024, 3, 1, 14, 30),
-                                new BigDecimal("149.00"),
-                                new BigDecimal("151.00"),
-                                new BigDecimal("148.50"),
-                                new BigDecimal("150.00"),
-                                1500L
-                        )
-                ),
-                null,
-                null
+                1L, ListingType.STOCK, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
+                List.of(new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
+                        new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))),
+                100, "gas", null
         );
+
+        // Mock ponašanje repozitorijuma
+        when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
+        when(dailyPriceInfoRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
+        when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
+        when(optionRepository.findAllByStock(stock)).thenReturn(List.of());
+
+        // Poziv metode
+        ListingDetailsDto result = listingService.getListingDetails(1L);
+
+        // Provera rezultata
+        assertEquals(expectedDto.getId(), result.getId());
+        assertEquals(expectedDto.getTicker(), result.getTicker());
+        assertEquals(expectedDto.getCurrentPrice(), result.getCurrentPrice());
+        assertEquals(expectedDto.getExchangeMic(), result.getExchangeMic());
+        assertEquals(expectedDto.getPriceHistory().size(), result.getPriceHistory().size());
+
+        // Verifikacija poziva
+        verify(listingRepository, times(1)).findById(1L);
+        verify(dailyPriceInfoRepository, times(1)).findAllByListingOrderByDateDesc(stock);
+        verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
+    }
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
