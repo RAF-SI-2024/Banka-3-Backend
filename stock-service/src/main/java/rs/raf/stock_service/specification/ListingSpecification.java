@@ -23,7 +23,7 @@ public class ListingSpecification {
             subquery.where(cb.equal(subRoot.get("listing"), root));
 
             // Join sa ListingDailyPriceInfo
-            Join<Listing, ListingPriceHistory> dailyInfoJoin = root.join("listingDailyPriceInfos", JoinType.LEFT);
+            Join<Listing, ListingPriceHistory> dailyInfoJoin = root.join("listingPriceHistories", JoinType.LEFT);
             predicates.add(cb.or(
                     cb.isNull(dailyInfoJoin.get("date")),
                     cb.equal(dailyInfoJoin.get("date"), subquery)

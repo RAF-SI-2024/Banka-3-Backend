@@ -74,12 +74,12 @@ public class PortfolioService {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
                     // Dohvatanje poslednjeg zapisa sa podacima o cenama
-                    var latestPrice = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(entry.getListing());
+                    var latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null && latestPrice.getClose() != null) {
+                    if (latestPrice != null ) {
                         // Profit sada koristi `close` umesto `price`
-                        profit = latestPrice.getClose()
+                        profit = latestPrice
                                 .subtract(entry.getAveragePrice())
                                 .multiply(BigDecimal.valueOf(entry.getAmount()));
                     }
