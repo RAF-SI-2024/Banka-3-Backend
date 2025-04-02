@@ -4,6 +4,7 @@ import lombok.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -69,6 +70,10 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
+
+    @Enumerated(EnumType.STRING)
+    private TaxStatus taxStatus;
+    private BigDecimal taxAmount;
 
     public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber) {
         this.userId = userId;
