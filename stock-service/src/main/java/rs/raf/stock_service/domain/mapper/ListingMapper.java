@@ -72,7 +72,8 @@ public class ListingMapper {
                 listing.getExchange().getMic(),
                 priceHistoryDtos,
                 contractSize,
-                contractUnit
+                contractUnit,
+                null
         );
     }
 }
