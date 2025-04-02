@@ -158,7 +158,14 @@ public class BootstrapData implements CommandLineRunner {
                     stock.setTicker(stockData.getTicker());
                     stock.setName(stockData.getName());
                     stock.setPrice(stockData.getPrice());
+                    stock.setChange(stockData.getChange());
+                    stock.setMaintenanceMargin(stockData.getMaintenanceMargin());
+                    stock.setMarketCap(stockData.getMarketCap());
+                    stock.setDividendYield(stockData.getDividendYield());
+                    stock.setVolume(stockData.getVolume());
+                    stock.setOutstandingShares(stockData.getOutstandingShares());
                     stock.setExchange(exchange);
+
                     allStocks.add(stock);
                 } catch (StockNotFoundException e) {
                     System.err.println("Stock not found for: " + ticker);
@@ -259,6 +266,12 @@ public class BootstrapData implements CommandLineRunner {
                 forexPair.setQuoteCurrency(forexData.getQuoteCurrency());
                 forexPair.setExchangeRate(forexData.getExchangeRate());
                 forexPair.setMaintenanceMargin(forexData.getMaintenanceMargin());
+                forexPair.setLiquidity(forexData.getLiquidity());
+                forexPair.setLastRefresh(forexData.getLastRefresh());
+                forexPair.setNominalValue(forexData.getNominalValue());
+                forexPair.setAsk(forexData.getAsk());
+                forexPair.setPrice(forexData.getPrice());
+
                 allForexPairs.add(forexPair);
             } catch (Exception e) {
                 System.err.println("Error importing forex pair: " + pair[0] + "/" + pair[1]);
