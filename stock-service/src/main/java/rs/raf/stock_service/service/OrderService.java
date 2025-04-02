@@ -43,7 +43,6 @@ public class OrderService {
     private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
     private final BankClient bankClient;
-    private final PortfolioService portfolioService;
     private ListingRepository listingRepository;
     private ListingPriceHistoryRepository dailyPriceInfoRepository;
     private ListingMapper listingMapper;
