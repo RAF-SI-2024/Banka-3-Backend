@@ -22,7 +22,7 @@ public class CountryService {
         String line;
         if (countryRepository.count() == 0) {
             try {
-                bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges.csv").getInputStream()));
+                bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges2.csv").getInputStream()));
                 line = bufferedReader.readLine();
 
                 while ((line = bufferedReader.readLine()) != null) {

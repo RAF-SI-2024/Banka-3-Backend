@@ -3,6 +3,9 @@ package rs.raf.stock_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
+import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
@@ -10,10 +13,13 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
+import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,7 +29,7 @@ import java.util.stream.Collectors;
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
@@ -76,21 +82,25 @@ public class PortfolioService {
     public List<PortfolioEntryDto> getPortfolioForUser(Long userId) {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
-                    var latestPrice = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(entry.getListing());
+                    // Dohvatanje poslednjeg zapisa sa podacima o cenama
+                    BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null) {
-                        profit = latestPrice.getPrice()
+                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                        // Profit sada koristi `close` umesto `price`
+                        profit = latestPrice
                                 .subtract(entry.getAveragePrice())
                                 .multiply(BigDecimal.valueOf(entry.getAmount()));
                     }
 
+                    // Mapiranje PortfolioEntry u PortfolioEntryDto
                     return PortfolioMapper.toDto(entry,
                             entry.getListing().getName(),
                             entry.getListing().getTicker(),
                             profit);
                 }).collect(Collectors.toList());
     }
+    
     public TaxGetResponseDto getTaxes(Long userId){
         
         List<Order> orders = orderRepository.findAllByUserId(userId);

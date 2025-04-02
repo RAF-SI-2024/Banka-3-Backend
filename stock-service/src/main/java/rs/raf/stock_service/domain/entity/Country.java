@@ -4,6 +4,7 @@ package rs.raf.stock_service.domain.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import javax.persistence.*;
 import java.time.LocalTime;
@@ -14,6 +15,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = "holidays")
 public class Country {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

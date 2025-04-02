@@ -1,11 +1,10 @@
 package rs.raf.stock_service.domain.entity;
+
 import lombok.*;
 import rs.raf.stock_service.domain.enums.ListingType;
-import rs.raf.stock_service.domain.enums.OptionType;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity

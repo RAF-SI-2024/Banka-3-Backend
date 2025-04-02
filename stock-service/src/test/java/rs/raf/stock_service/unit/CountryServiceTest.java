@@ -44,7 +44,7 @@ class CountryServiceTest {
 
         countryService.importCountries();
 
-        verify(countryRepository, times(93)).save(any(Country.class));
+        verify(countryRepository, times(5)).save(any(Country.class));
     }
 
     @Test
@@ -77,27 +77,29 @@ class CountryServiceTest {
 
         countryService.importCountries();
 
-        verify(countryRepository, times(93)).save(any(Country.class));
+        verify(countryRepository, times(5)).save(any(Country.class));
     }
 
-    @Test
-    void testImportCountries_shouldHandleIndonesia() throws IOException {
+    //Trenutno imamo samo USA tako da ovo nema potrebe da postoji trenutno
 
-        when(countryRepository.count()).thenReturn(0L);
-
-        when(countryRepository.countByName("Indonesia")).thenReturn(0L);
-
-        BufferedReader mockReader = mock(BufferedReader.class);
-        when(mockReader.readLine()).thenReturn("Exchange Name,Exchange Acronym,Exchange Mic Code,Country,Currency,Time Zone,Open Time,Close Time") // header line
-                .thenReturn("Jakarta Futures Exchange (bursa Berjangka Jakarta),BBJ,XBBJ,Indonesia,Indonesian Rupiah,Asia/Jakarta, 09:00, 17:30") // Indonesia entry
-                .thenReturn(null);
-
-        Resource resource = mock(ClassPathResource.class);
-        InputStream mockInputStream = mock(InputStream.class);
-        when(resource.getInputStream()).thenReturn(mockInputStream);
-
-        countryService.importCountries();
-
-        verify(countryRepository, times(93)).save(any(Country.class));
-    }
+//    @Test
+//    void testImportCountries_shouldHandleIndonesia() throws IOException {
+//
+//        when(countryRepository.count()).thenReturn(0L);
+//
+//        when(countryRepository.countByName("Indonesia")).thenReturn(0L);
+//
+//        BufferedReader mockReader = mock(BufferedReader.class);
+//        when(mockReader.readLine()).thenReturn("Exchange Name,Exchange Acronym,Exchange Mic Code,Country,Currency,Time Zone,Open Time,Close Time") // header line
+//                .thenReturn("Jakarta Futures Exchange (bursa Berjangka Jakarta),BBJ,XBBJ,Indonesia,Indonesian Rupiah,Asia/Jakarta, 09:00, 17:30") // Indonesia entry
+//                .thenReturn(null);
+//
+//        Resource resource = mock(ClassPathResource.class);
+//        InputStream mockInputStream = mock(InputStream.class);
+//        when(resource.getInputStream()).thenReturn(mockInputStream);
+//
+//        countryService.importCountries();
+//
+//        verify(countryRepository, times(93)).save(any(Country.class));
+//    }
 }
