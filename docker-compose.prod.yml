@@ -81,6 +81,7 @@ services:
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_USER-SERVICE_URL: http://user-service:8080
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_BANK-SERVICE_URL: http://bank-service:8080
       SPRING_RABBITMQ_HOST: rabbitmq
+      ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY}
     depends_on:
       - stock_db
       - rabbitmq
