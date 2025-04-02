@@ -30,7 +30,6 @@ public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
