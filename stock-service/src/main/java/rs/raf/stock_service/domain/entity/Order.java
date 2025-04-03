@@ -66,25 +66,27 @@ public class Order {
     private Boolean afterHours;
 
     private String accountNumber;
+    private BigDecimal stopPrice;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 
-    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber) {
+    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, BigDecimal pricePerUnit,
+                 OrderDirection direction, boolean afterHours, String accountNumber, BigDecimal stopPrice) {
         this.userId = userId;
         this.listing = listing;
         this.orderType = orderType;
         this.quantity = quantity;
         this.contractSize = contractSize;
+        this.pricePerUnit = pricePerUnit;
         this.direction = direction;
-        //valjda je price ustvari BID price, jer promenljiva bid ne postoji
-        this.pricePerUnit = direction == OrderDirection.BUY ? listing.getAsk() == null ? BigDecimal.ONE : listing.getAsk() : listing.getPrice();
+        this.afterHours = afterHours;
+        this.accountNumber = accountNumber;
+        this.remainingPortions = quantity;
+        this.stopPrice = stopPrice;
         this.status = OrderStatus.PENDING;
         this.isDone = false;
         this.lastModification = LocalDateTime.now();
-        this.remainingPortions = quantity;
-        this.afterHours = afterHours;
-        this.accountNumber = accountNumber;
         this.transactions = new ArrayList<>();
     }
 }

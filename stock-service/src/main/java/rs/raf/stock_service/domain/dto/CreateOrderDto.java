@@ -7,6 +7,7 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderType;
 
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 @Data
 @AllArgsConstructor
@@ -30,4 +31,7 @@ public class CreateOrderDto {
 
     @NotNull(message = "Account number cannot be null")
     private String accountNumber;
+
+    private BigDecimal limitPrice;
+    private BigDecimal stopPrice;
 }
