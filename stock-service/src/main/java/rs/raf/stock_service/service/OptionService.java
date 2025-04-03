@@ -2,6 +2,7 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.domain.dto.OptionDto;
 import rs.raf.stock_service.domain.entity.Option;
 import rs.raf.stock_service.domain.enums.OptionType;
@@ -33,6 +34,7 @@ public class OptionService {
      * @param currentPrice trenutna cena deonice
      * @return Lista generisanih opcija kao OptionDto
      */
+    @Transactional
     public List<OptionDto> generateOptions(String stockListing, BigDecimal currentPrice) {
         List<OptionDto> options = new ArrayList<>();
         int roundedPrice = currentPrice.setScale(0, RoundingMode.HALF_UP).intValue();

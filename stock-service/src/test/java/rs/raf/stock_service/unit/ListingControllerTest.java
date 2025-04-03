@@ -16,6 +16,7 @@ import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -115,8 +116,6 @@ class ListingControllerTest {
         // Verifikacija poziva
         verify(listingService, times(1)).getListings(any(ListingFilterDto.class), eq("CLIENT"));
     }
-
-
 
     @Test
     void getListingDetails_ShouldReturnNotFoundWhenListingDoesNotExist() {

@@ -1,4 +1,4 @@
-package rs.raf.bank_service.domain.dto;
+package rs.raf.stock_service.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,8 +17,5 @@ public class PaymentDto implements Serializable {
     private String paymentPurpose;
     private String fromAccountNumber;
     private String toAccountNumber;
-    private String recieverName;
-    private String paymentCode;
-    private String currencyCode;
 
 }

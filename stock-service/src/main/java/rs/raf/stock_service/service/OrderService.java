@@ -109,7 +109,26 @@ public class OrderService {
             if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
                     getUsedLimit()).compareTo(approxPrice) >= 0)
                     order.setStatus(OrderStatus.APPROVED);
+            }
         }
+        if (order.getDirection().equals(OrderDirection.SELL)) {
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
+                    orElseThrow(() -> new PortfolioEntryNotFoundException(userId, listing.getId()));
+            BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
+            BigDecimal sellPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getQuantity()));
+            BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);
+            if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
+                order.setTaxStatus(TaxStatus.PENDING);
+                order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
+            } else {
+                order.setTaxStatus(TaxStatus.TAXFREE);
+                order.setTaxAmount(BigDecimal.ZERO);
+            }
+        }else{
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+        }
+
 
         orderRepository.save(order);
 
@@ -219,4 +238,21 @@ public class OrderService {
             }
         }
     }
+
+    //@Scheduled(cron = "0 0 0 * * *")
+    public void processTaxes() {
+        for (Order order : orderRepository.findAll()) {
+            if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING) &&
+                    bankClient.getAccountBalance(order.getAccountNumber()).compareTo(order.getTaxAmount()) > 0) {
+                TaxDto taxDto = new TaxDto();
+                taxDto.setAmount(order.getTaxAmount());
+                taxDto.setClientId(order.getUserId());
+                taxDto.setSenderAccountNumber(order.getAccountNumber());
+                bankClient.handleTax(taxDto);
+                order.setTaxStatus(TaxStatus.PAID);
+                orderRepository.save(order);
+            }
+        }
+    }
+
 }

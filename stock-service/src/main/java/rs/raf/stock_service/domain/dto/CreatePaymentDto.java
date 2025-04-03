@@ -1,4 +1,4 @@
-package rs.raf.bank_service.domain.dto;
+package rs.raf.stock_service.domain.dto;
 
 import lombok.Data;
 
@@ -28,5 +28,4 @@ public class CreatePaymentDto {
     private String purposeOfPayment;
 
     private String referenceNumber;
-    private String recieverName;
 }

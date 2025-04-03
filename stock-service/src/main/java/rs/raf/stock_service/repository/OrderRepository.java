@@ -12,5 +12,6 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByStatus(OrderStatus status, Pageable pageable);
     List<Order> findByIsDoneAndStatusAndOrderType(boolean isDone, OrderStatus orderStatus, OrderType orderType);
+    List<Order> findAllByUserId(Long userId);
 }
 

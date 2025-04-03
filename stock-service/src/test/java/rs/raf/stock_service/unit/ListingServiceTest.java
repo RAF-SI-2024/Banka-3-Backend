@@ -9,21 +9,21 @@ import org.springframework.data.jpa.domain.Specification;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
-import rs.raf.stock_service.domain.entity.ListingDailyPriceInfo;
+import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
-import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +38,7 @@ class ListingServiceTest {
     private ListingRepository listingRepository;
 
     @Mock
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository priceHistoryRepository;
 
     @Mock
     private ListingMapper listingMapper;
@@ -54,9 +54,6 @@ class ListingServiceTest {
 
     @Mock
     private TimeSeriesMapper timeSeriesMapper;
-
-    @Mock
-    private OptionRepository optionRepository;
 
 
     @BeforeEach
@@ -76,7 +73,8 @@ class ListingServiceTest {
         stock.setPrice(new BigDecimal("150.50"));
         stock.setExchange(exchange);
 
-        ListingDailyPriceInfo dailyInfo = new ListingDailyPriceInfo();
+        ListingPriceHistory dailyInfo = new ListingPriceHistory();
+        dailyInfo.setClose(new BigDecimal("150.00"));
         dailyInfo.setChange(new BigDecimal("2.50"));
         dailyInfo.setVolume(2000000L);
 
@@ -87,7 +85,7 @@ class ListingServiceTest {
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findAll(any(Specification.class))).thenReturn(Collections.singletonList(stock));
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock)).thenReturn(dailyInfo);
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock)).thenReturn(dailyInfo);
         when(listingMapper.toDto(stock, dailyInfo)).thenReturn(expectedDto);
 
         // Poziv metode
@@ -99,7 +97,7 @@ class ListingServiceTest {
 
         // Verifikacija poziva
         verify(listingRepository, times(1)).findAll(any(Specification.class));
-        verify(dailyPriceInfoRepository, times(1)).findTopByListingOrderByDateDesc(stock);
+        verify(priceHistoryRepository, times(1)).findTopByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDto(stock, dailyInfo);
     }
 
@@ -116,28 +114,59 @@ class ListingServiceTest {
         stock.setPrice(new BigDecimal("150.50"));
         stock.setExchange(exchange);
 
-        ListingDailyPriceInfo dailyInfo1 = new ListingDailyPriceInfo();
-        dailyInfo1.setDate(LocalDate.of(2024, 3, 1));
-        dailyInfo1.setPrice(new BigDecimal("150.00"));
+        ListingPriceHistory dailyInfo1 = new ListingPriceHistory();
+        dailyInfo1.setDate(LocalDateTime.of(2024, 3, 1, 14, 30));
+        dailyInfo1.setOpen(new BigDecimal("149.00"));
+        dailyInfo1.setHigh(new BigDecimal("151.00"));
+        dailyInfo1.setLow(new BigDecimal("148.50"));
+        dailyInfo1.setClose(new BigDecimal("150.00"));
+        dailyInfo1.setVolume(1500L);
 
-        ListingDailyPriceInfo dailyInfo2 = new ListingDailyPriceInfo();
-        dailyInfo2.setDate(LocalDate.of(2024, 3, 2));
-        dailyInfo2.setPrice(new BigDecimal("152.00"));
+        ListingPriceHistory dailyInfo2 = new ListingPriceHistory();
+        dailyInfo2.setDate(LocalDateTime.of(2024, 3, 2, 14, 30));
+        dailyInfo2.setOpen(new BigDecimal("151.00"));
+        dailyInfo2.setHigh(new BigDecimal("153.00"));
+        dailyInfo2.setLow(new BigDecimal("150.50"));
+        dailyInfo2.setClose(new BigDecimal("152.00"));
+        dailyInfo2.setVolume(2000L);
 
-        List<ListingDailyPriceInfo> priceHistory = List.of(dailyInfo2, dailyInfo1);
+        List<ListingPriceHistory> priceHistory = List.of(dailyInfo2, dailyInfo1);
 
+        // Očekivani DTO sa novim podacima
         ListingDetailsDto expectedDto = new ListingDetailsDto(
-                1L, ListingType.STOCK, "AAPL", "Apple Inc.", new BigDecimal("150.50"), "XNAS",
-                List.of(new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
-                        new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))),
-                100, "gas", null
+                1L,
+                ListingType.STOCK,
+                "AAPL",
+                "Apple Inc.",
+                new BigDecimal("150.50"),
+                "XNAS",
+                List.of(
+                        new PriceHistoryDto(
+                                LocalDateTime.of(2024, 3, 2, 14, 30),
+                                new BigDecimal("151.00"),
+                                new BigDecimal("153.00"),
+                                new BigDecimal("150.50"),
+                                new BigDecimal("152.00"),
+                                2000L
+                        ),
+                        new PriceHistoryDto(
+                                LocalDateTime.of(2024, 3, 1, 14, 30),
+                                new BigDecimal("149.00"),
+                                new BigDecimal("151.00"),
+                                new BigDecimal("148.50"),
+                                new BigDecimal("150.00"),
+                                1500L
+                        )
+                ),
+                null,
+                null,
+                List.of(LocalDate.of(2024, 3, 2))
         );
 
         // Mock ponašanje repozitorijuma
         when(listingRepository.findById(1L)).thenReturn(Optional.of(stock));
-        when(dailyPriceInfoRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
+        when(priceHistoryRepository.findAllByListingOrderByDateDesc(stock)).thenReturn(priceHistory);
         when(listingMapper.toDetailsDto(stock, priceHistory)).thenReturn(expectedDto);
-        when(optionRepository.findAllByStock(stock)).thenReturn(List.of());
 
         // Poziv metode
         ListingDetailsDto result = listingService.getListingDetails(1L);
@@ -151,9 +180,10 @@ class ListingServiceTest {
 
         // Verifikacija poziva
         verify(listingRepository, times(1)).findById(1L);
-        verify(dailyPriceInfoRepository, times(1)).findAllByListingOrderByDateDesc(stock);
+        verify(priceHistoryRepository, times(1)).findAllByListingOrderByDateDesc(stock);
         verify(listingMapper, times(1)).toDetailsDto(stock, priceHistory);
     }
+
 
     @Test
     void getListingDetails_ShouldThrowListingNotFoundException() {
@@ -169,7 +199,7 @@ class ListingServiceTest {
 
         // Verifikacija da je repozitorijum pozvan samo jednom
         verify(listingRepository, times(1)).findById(2L);
-        verifyNoInteractions(dailyPriceInfoRepository);
+        verifyNoInteractions(priceHistoryRepository);
         verifyNoInteractions(listingMapper);
     }
 
@@ -188,7 +218,7 @@ class ListingServiceTest {
         listing.setPrice(new BigDecimal("150.00"));
         listing.setAsk(new BigDecimal("151.00"));
 
-        ListingDailyPriceInfo dailyInfo = new ListingDailyPriceInfo();
+        ListingPriceHistory dailyInfo = new ListingPriceHistory();
         dailyInfo.setChange(new BigDecimal("2.50"));
         dailyInfo.setVolume(2000000L);
 
@@ -201,7 +231,7 @@ class ListingServiceTest {
         when(jwtTokenUtil.getUserRoleFromAuthHeader(fakeToken)).thenReturn("SUPERVISOR");
 
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(dailyInfo);
+        when(priceHistoryRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(dailyInfo);
         when(listingMapper.toDto(listing, dailyInfo)).thenReturn(expectedDto);
 
         ListingDto result = listingService.updateListing(listingId, updateDto, fakeToken);
