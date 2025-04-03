@@ -11,21 +11,22 @@ import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
 import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
+import rs.raf.stock_service.domain.dto.TaxDto;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.entity.Transaction;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
-import rs.raf.stock_service.repository.ListingRepository;
-import rs.raf.stock_service.repository.OrderRepository;
-import rs.raf.stock_service.repository.TransactionRepository;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
+import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -42,10 +43,11 @@ public class OrderService {
     private final UserClient userClient;
     private final BankClient bankClient;
     private ListingRepository listingRepository;
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository listingPriceHistoryRepository;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
     private final PortfolioService portfolioService;
+    private PortfolioEntryRepository portfolioEntryRepository;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         Page<Order> ordersPage;
@@ -57,7 +59,7 @@ public class OrderService {
         }
 
         return ordersPage.map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
-                dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))));
+                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()))));
     }
 
 
@@ -109,8 +111,8 @@ public class OrderService {
             if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
                     getUsedLimit()).compareTo(approxPrice) >= 0)
                     order.setStatus(OrderStatus.APPROVED);
-            }
         }
+
         if (order.getDirection().equals(OrderDirection.SELL)) {
             PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
                     orElseThrow(() -> new PortfolioEntryNotFoundException(userId, listing.getId()));
@@ -136,7 +138,7 @@ public class OrderService {
             executeOrder(order);
 
         return OrderMapper.toDto(order, listingMapper.toDto(listing,
-                dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)));
+                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(listing)));
     }
 
     private boolean verifyBalance(Order order) {

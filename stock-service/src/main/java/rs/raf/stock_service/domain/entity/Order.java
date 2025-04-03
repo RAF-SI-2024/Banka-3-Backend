@@ -88,6 +88,7 @@ public class Order {
         this.afterHours = afterHours;
         this.accountNumber = accountNumber;
         this.remainingPortions = quantity;
+        this.pricePerUnit = pricePerUnit;
         this.stopPrice = stopPrice;
         this.status = OrderStatus.PENDING;
         this.isDone = false;
