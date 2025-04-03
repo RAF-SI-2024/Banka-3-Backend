@@ -87,11 +87,6 @@ public class PortfolioController {
     public ResponseEntity<?> getAllPublicStocks() {
         try {
             List<PublicStockDto> result = portfolioService.getAllPublicStocks();
-
-            if (result.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {

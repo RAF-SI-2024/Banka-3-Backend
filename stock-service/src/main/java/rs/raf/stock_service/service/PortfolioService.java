@@ -1,9 +1,12 @@
 package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
 import rs.raf.stock_service.domain.dto.PublicStockDto;
 import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
@@ -21,13 +24,17 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final UserClient userClient;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -96,7 +103,7 @@ public class PortfolioService {
     }
 
     public void setPublicAmount(Long userId, SetPublicAmountDto dto) {
-        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndListingId(userId, dto.getListingId())
+        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
                 .orElseThrow(() -> new PortfolioEntryNotFoundException("Portfolio entry not found"));
 
         // samo stock moze
@@ -117,29 +124,31 @@ public class PortfolioService {
 
 
     public List<PublicStockDto> getAllPublicStocks() {
-        List<PortfolioEntry> publicEntries = portfolioEntryRepository.findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
+        List<PortfolioEntry> publicEntries = portfolioEntryRepository
+                .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
+
 
         return publicEntries.stream().map(entry -> {
             Listing listing = entry.getListing();
 
+            String ownerName;
+            try {
+                ClientDto client = userClient.getClientById(entry.getUserId());
+                ownerName = client.getFirstName() + " " + client.getLastName();
+            } catch (Exception e) {
+                log.warn("Could not fetch client info for userId: {}", entry.getUserId());
+                ownerName = "user-" + entry.getUserId(); // fallback
+            }
 
-            ListingDailyPriceInfo latestPriceInfo = dailyPriceInfoRepository
-                    .findTopByListingOrderByDateDesc(listing);
-
-            BigDecimal currentPrice = latestPriceInfo != null ? latestPriceInfo.getPrice() : BigDecimal.ZERO;
-            BigDecimal avgPrice = entry.getAveragePrice() != null ? entry.getAveragePrice() : BigDecimal.ZERO;
-
-            BigDecimal profit = currentPrice.subtract(avgPrice)
-                    .multiply(BigDecimal.valueOf(entry.getPublicAmount()));
+            BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
 
             return PublicStockDto.builder()
                     .security(ListingType.STOCK.name())
                     .ticker(listing.getTicker())
                     .amount(entry.getPublicAmount())
                     .price(currentPrice)
-                    .profit(profit)
                     .lastModified(entry.getLastModified())
-                    .owner("user-" + entry.getUserId())               // privremeni owner
+                    .owner(ownerName)
                     .build();
 
         }).collect(Collectors.toList());

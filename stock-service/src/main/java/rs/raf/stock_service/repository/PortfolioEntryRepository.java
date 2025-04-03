@@ -21,4 +21,6 @@ public interface PortfolioEntryRepository extends JpaRepository<PortfolioEntry, 
     Optional<PortfolioEntry> findByUserIdAndListingId(Long userId, Long listingId);
 
     List<PortfolioEntry> findAllByTypeAndPublicAmountGreaterThan(ListingType type, Integer minAmount);
+
+    Optional<PortfolioEntry> findByUserIdAndId(Long userId, Long entryId);
 }

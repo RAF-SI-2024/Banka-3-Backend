@@ -16,7 +16,6 @@ public class PublicStockDto {
         private String ticker;
         private Integer amount;
         private BigDecimal price;
-        private BigDecimal profit;
         private LocalDateTime lastModified;
         private String owner;
 }

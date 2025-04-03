@@ -9,7 +9,6 @@ import lombok.*;
 @AllArgsConstructor
 public class SetPublicAmountDto {
 
-    private Long listingId;
+    private Long portfolioEntryId;
     private Integer publicAmount;
-
 }
