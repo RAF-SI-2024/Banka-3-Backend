@@ -8,19 +8,19 @@ import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.domain.entity.ForexPair;
-import rs.raf.stock_service.domain.entity.Listing;
-import rs.raf.stock_service.domain.entity.ListingPriceHistory;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.TimeSeriesMapper;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
+import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.specification.ListingSpecification;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -46,6 +46,9 @@ public class ListingService {
     private ListingMapper listingMapper;
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
+
+    @Autowired
+    private OptionRepository optionRepository;
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);

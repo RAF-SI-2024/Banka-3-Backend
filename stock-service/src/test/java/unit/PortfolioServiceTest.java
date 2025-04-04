@@ -53,10 +53,6 @@ public class PortfolioServiceTest {
     @Mock
     private UserClient userClient;
 
-    Stock stock = new Stock();
-    Stock stock2 = new Stock();
-
-    private final Long userId = 123L;
 
     private void initialiseStock() {
         stock.setId(1L);

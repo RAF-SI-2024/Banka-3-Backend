@@ -18,6 +18,7 @@ import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
+import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -54,6 +55,9 @@ class ListingServiceTest {
 
     @Mock
     private TimeSeriesMapper timeSeriesMapper;
+
+    @Mock
+    private OptionRepository optionRepository;
 
 
     @BeforeEach

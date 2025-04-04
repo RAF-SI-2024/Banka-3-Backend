@@ -116,7 +116,7 @@ public class PortfolioService {
 
     public void setPublicAmount(Long userId, SetPublicAmountDto dto) {
         PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
-                .orElseThrow(() -> new PortfolioEntryNotFoundException("Portfolio entry not found"));
+                .orElseThrow(PortfolioEntryNotFoundException::new);
 
         // samo stock moze
         if (entry.getType() != ListingType.STOCK) {
@@ -164,6 +164,7 @@ public class PortfolioService {
                     .build();
 
         }).collect(Collectors.toList());
+    }
     
     public TaxGetResponseDto getTaxes(Long userId){
         

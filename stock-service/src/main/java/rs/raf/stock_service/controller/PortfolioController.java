@@ -93,6 +93,7 @@ public class PortfolioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
+    }
 
     @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
     @GetMapping("/tax/{userId}")
