@@ -17,10 +17,7 @@ import java.util.Optional;
 public interface OptionRepository extends JpaRepository<Option, Long> {
     List<Option> findByUnderlyingStockIdAndSettlementDate(Long stockId, LocalDate settlementDate);
 
-  //  List<Option> findAllByStock(Listing stock);
-
     List<Option>findAllByUnderlyingStock(Stock stock);
-
 
     @Query("SELECT o FROM Option o")
     List<Option> findAllOptions();

@@ -1,0 +1,6 @@
+Exchange Name,Exchange Acronym,Exchange Mic Code,Country,Currency,Time Zone,Open Time,Close Time
+NASDAQ,NAS,NASDAQ,USA,USD,America/New_York,09:30,16:00
+New York Stock Exchange,NYSE,NYSE,USA,USD,America/New_York,09:30,16:00
+NYSE Arca,ARCA,NYSE ARCA,USA,USD,America/New_York,09:30,16:00
+BATS Global Markets,BATS,BATS,USA,USD,America/Chicago,08:00,17:00
+NYSE MKT,MKT,NYSE MKT,USA,USD,America/New_York,09:30,16:00

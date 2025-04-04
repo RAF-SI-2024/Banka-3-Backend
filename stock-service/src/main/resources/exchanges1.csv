@@ -1,0 +1,16 @@
+Exchange Name,Exchange Acronym,Exchange Mic Code,Country,Currency,Time Zone,Open Time,Close Time
+Frankfurt Stock Exchange,FSE,XFRA,Germany,EUR,Europe/Berlin,08:00,20:00
+OTC Markets (Pink Sheets),PINX,PINX,USA,USD,America/New_York,09:30,16:00
+Stuttgart Stock Exchange,SSE,XSTU,Germany,EUR,Europe/Berlin,08:00,22:00
+Munich Stock Exchange,MSE,XMUN,Germany,EUR,Europe/Berlin,08:00,20:00
+Vienna Stock Exchange,VSE,XWBO,Austria,EUR,Europe/Berlin,08:55,17:30
+Düsseldorf Stock Exchange,DSE,XDUS,Germany,EUR,Europe/Berlin,08:00,20:00
+Berlin Stock Exchange,BSE,XBER,Germany,EUR,Europe/Berlin,08:00,20:00
+Hong Kong Stock Exchange,HKEX,XHKG,Hong Kong,HKD,Asia/Hong_Kong,09:30,16:00
+London Stock Exchange,LSE,XLON,UK,GBP,Europe/London,08:00,16:30
+Bombay Stock Exchange,BSE,XBOM,India,INR,Asia/Kolkata,09:15,15:30
+Taiwan Stock Exchange,TWSE,XTAI,Taiwan,TWD,Asia/Taipei,09:00,13:30
+Japan Exchange Group,JPX,XJPX,Japan,JPY,Asia/Tokyo,09:00,15:00
+Shenzhen Stock Exchange,SZSE,XSHE,China,CNY,Asia/Taipei,09:30,15:00
+National Stock Exchange of India,NSE,XNSE,India,INR,Asia/Kolkata,09:15,15:30
+Shanghai Stock Exchange,SSE,XSHG,China,CNY,Asia/Taipei,09:30,15:00

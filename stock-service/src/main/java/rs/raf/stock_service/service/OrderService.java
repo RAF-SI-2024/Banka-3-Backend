@@ -4,29 +4,35 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
-import rs.raf.stock_service.domain.dto.CreateOrderDto;
-import rs.raf.stock_service.domain.dto.OrderDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.entity.Transaction;
+import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
 import rs.raf.stock_service.exceptions.ListingNotFoundException;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.repository.TransactionRepository;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
+import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -38,10 +44,11 @@ public class OrderService {
     private final UserClient userClient;
     private final BankClient bankClient;
     private ListingRepository listingRepository;
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
     private ListingMapper listingMapper;
     private TransactionRepository transactionRepository;
     private final PortfolioService portfolioService;
+    private final PortfolioEntryRepository portfolioEntryRepository;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
         Page<Order> ordersPage;
@@ -108,6 +115,24 @@ public class OrderService {
                     order.setStatus(OrderStatus.APPROVED);
             }
         }
+        if (order.getDirection().equals(OrderDirection.SELL)) {
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
+                    orElseThrow(() -> new PortfolioEntryNotFoundException(userId, listing.getId()));
+            BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
+            BigDecimal sellPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getQuantity()));
+            BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);
+            if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
+                order.setTaxStatus(TaxStatus.PENDING);
+                order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
+            } else {
+                order.setTaxStatus(TaxStatus.TAXFREE);
+                order.setTaxAmount(BigDecimal.ZERO);
+            }
+        }else{
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+        }
+
 
         orderRepository.save(order);
 
@@ -181,4 +206,21 @@ public class OrderService {
     //Pomoc za ovo pliz
     private void transferCommissionToBankAccount() {
     }
+
+    //@Scheduled(cron = "0 0 0 * * *")
+    public void processTaxes() {
+        for (Order order : orderRepository.findAll()) {
+            if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING) &&
+                    bankClient.getAccountBalance(order.getAccountNumber()).compareTo(order.getTaxAmount()) > 0) {
+                TaxDto taxDto = new TaxDto();
+                taxDto.setAmount(order.getTaxAmount());
+                taxDto.setClientId(order.getUserId());
+                taxDto.setSenderAccountNumber(order.getAccountNumber());
+                bankClient.handleTax(taxDto);
+                order.setTaxStatus(TaxStatus.PAID);
+                orderRepository.save(order);
+            }
+        }
+    }
+
 }

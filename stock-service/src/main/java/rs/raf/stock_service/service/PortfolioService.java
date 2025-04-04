@@ -16,12 +16,20 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
+import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
+import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -33,8 +41,9 @@ import org.slf4j.LoggerFactory;
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
     private final UserClient userClient;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
+    private final OrderRepository orderRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -86,15 +95,18 @@ public class PortfolioService {
     public List<PortfolioEntryDto> getPortfolioForUser(Long userId) {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
-                    var latestPrice = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(entry.getListing());
+                    // Dohvatanje poslednjeg zapisa sa podacima o cenama
+                    BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null) {
-                        profit = latestPrice.getPrice()
+                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                        // Profit sada koristi `close` umesto `price`
+                        profit = latestPrice
                                 .subtract(entry.getAveragePrice())
                                 .multiply(BigDecimal.valueOf(entry.getAmount()));
                     }
 
+                    // Mapiranje PortfolioEntry u PortfolioEntryDto
                     return PortfolioMapper.toDto(entry,
                             entry.getListing().getName(),
                             entry.getListing().getTicker(),
@@ -152,5 +164,24 @@ public class PortfolioService {
                     .build();
 
         }).collect(Collectors.toList());
+    
+    public TaxGetResponseDto getTaxes(Long userId){
+        
+        List<Order> orders = orderRepository.findAllByUserId(userId);
+        TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
+
+        for(Order currOrder : orders){
+            LocalDateTime currOrderDate = currOrder.getLastModification();
+            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+                taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
+            }
+            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+                taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
+            }
+        }
+        return taxGetResponseDto;
     }
 }

@@ -29,7 +29,7 @@ public class ExchangeService {
         String line;
         if (exchangeRepository.count() == 0) {
             try {
-                bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges.csv").getInputStream()));
+                bufferedReader = new BufferedReader(new InputStreamReader(new ClassPathResource("exchanges2.csv").getInputStream()));
                 line = bufferedReader.readLine();
 
                 while ((line = bufferedReader.readLine()) != null) {
@@ -44,7 +44,7 @@ public class ExchangeService {
                     } else {
                         exchange.setPolity(countryRepository.findByName(attributes[3]).get());
                     }
-                    exchange.setCurrencyCode(mapCurrencyToCode(attributes[4]));
+                    exchange.setCurrencyCode(attributes[4]);
                     exchange.setTimeZone(getUtcOffset(attributes[5]));
 
                     exchangeRepository.save(exchange);

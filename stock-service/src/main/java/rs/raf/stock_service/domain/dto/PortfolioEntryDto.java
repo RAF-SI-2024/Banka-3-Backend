@@ -31,6 +31,4 @@ public class PortfolioEntryDto {
     private Boolean used;            // samo za opcije
 
 
-
-
 }

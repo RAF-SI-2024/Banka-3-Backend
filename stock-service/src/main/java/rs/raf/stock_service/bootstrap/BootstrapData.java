@@ -2,25 +2,27 @@ package rs.raf.stock_service.bootstrap;
 
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import rs.raf.stock_service.domain.dto.FuturesContractDto;
-import rs.raf.stock_service.domain.dto.OptionDto;
-import rs.raf.stock_service.domain.dto.StockDto;
+import rs.raf.stock_service.client.AlphavantageClient;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
 
+import javax.transaction.Transactional;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 @Component
+@AllArgsConstructor
 public class BootstrapData implements CommandLineRunner {
 
     private final CountryService countryService;
@@ -29,7 +31,8 @@ public class BootstrapData implements CommandLineRunner {
     private final HolidayService holidayService;
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final ListingService listingService;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final ExchangeRepository exchangeRepository;
     private final StocksService stocksService;
     private final ForexService forexService;
@@ -37,50 +40,62 @@ public class BootstrapData implements CommandLineRunner {
     private final OptionService optionService;
     private final FuturesRepository futuresContractRepository;
     private final OptionRepository optionRepository;
+    private final AlphavantageClient alphavantageClient;
+    private final ApplicationContext applicationContext;
 
     @Override
     public void run(String... args) {
-        // Import core data
+        // Pozivanje self-proxy metoda kako bi se osigurale transakcije
+        getSelfProxy().importCoreData();
+        getSelfProxy().importStocksAndPriceHistory();
+        getSelfProxy().importForexPairsAndPriceHistory();
+        getSelfProxy().addFutures();
+        getSelfProxy().addOptionsForStocks();
+    }
+
+    @Transactional
+    public void importCoreData() {
         countryService.importCountries();
         holidayService.importHolidays();
         exchangeService.importExchanges();
+        System.out.println("Core data successfully imported.");
+    }
 
-        // Create an Exchange for stock listings
-        Exchange nasdaq = new Exchange("XNAS", "NASDAQ", "NAS", countryRepository.findByName("United States").get(), "USD", -5L, false);
-        exchangeRepository.save(nasdaq);
+    @Transactional
+    public void importStocksAndPriceHistory() {
+        importStocks();
+        importStockPriceHistory();
+    }
 
-        // Import stocks and forex pairs using postojeće metode
-        importStocks(nasdaq);
+    @Transactional
+    public void importForexPairsAndPriceHistory() {
         importForexPairs();
-        addStock(nasdaq);
-        addStockWithDailyInfo(nasdaq);
-//        loadOrders();
-
-        // Futures and Options data
-        addFutures();
-        addOptionsForStocks();
+        importForexPriceHistory();
     }
 
-    private void addFutures() {
-        // Učitaj futures kontrakte iz CSV fajla preko FuturesService
+    @Transactional
+    public void addFutures() {
         List<FuturesContractDto> futuresDtos = futuresService.getFuturesContracts();
-        for (FuturesContractDto dto : futuresDtos) {
-            FuturesContract fc = new FuturesContract();
-            fc.setTicker(dto.getTicker());
-            fc.setContractSize(dto.getContractSize());
-            fc.setContractUnit(dto.getContractUnit());
-            fc.setSettlementDate(dto.getSettlementDate());
-            fc.setMaintenanceMargin(dto.getMaintenanceMargin());
-            fc.setPrice(dto.getPrice());
-            futuresContractRepository.save(fc);
-            System.out.println("Imported futures contract: " + fc.getTicker());
-        }
+        List<FuturesContract> futuresContracts = futuresDtos.stream()
+                .map(dto -> {
+                    FuturesContract fc = new FuturesContract();
+                    fc.setTicker(dto.getTicker());
+                    fc.setContractSize(dto.getContractSize());
+                    fc.setContractUnit(dto.getContractUnit());
+                    fc.setSettlementDate(dto.getSettlementDate());
+                    fc.setMaintenanceMargin(dto.getMaintenanceMargin());
+                    fc.setPrice(dto.getPrice());
+                    return fc;
+                }).collect(Collectors.toList());
+
+        futuresContractRepository.saveAll(futuresContracts);
+        System.out.println("Futures contracts imported successfully.");
     }
 
-    private void addOptionsForStocks() {
-        // 💡 Rešenje protiv beskonačne petlje:
+    @Transactional
+    public void addOptionsForStocks() {
         if (optionRepository.count() > 0) {
-            System.out.println("Options already exist in the database. Skipping generation.");
+            System.out.println("Options already exist. Skipping generation.");
             return;
         }
 
@@ -89,208 +104,141 @@ public class BootstrapData implements CommandLineRunner {
                 .map(listing -> (Stock) listing)
                 .collect(Collectors.toList());
 
-        int index = 0;
+        List<Option> optionsToSave = new ArrayList<>();
         for (Stock stock : stocks) {
-            if (index == 3) break;
-            BigDecimal currentPrice = stock.getPrice();
-            List<OptionDto> optionDtos = optionService.generateOptions(stock.getTicker(), currentPrice);
-
+            List<OptionDto> optionDtos = optionService.generateOptions(stock.getTicker(), stock.getPrice());
             for (OptionDto dto : optionDtos) {
                 Option opt = new Option();
                 opt.setUnderlyingStock(stock);
-                opt.setOptionType(index++ % 2 == 0 ? OptionType.CALL : OptionType.PUT);
+                opt.setOptionType(dto.getOptionType());
                 opt.setStrikePrice(dto.getStrikePrice());
                 opt.setContractSize(dto.getContractSize());
                 opt.setSettlementDate(dto.getSettlementDate());
                 opt.setMaintenanceMargin(dto.getMaintenanceMargin());
-                opt.setUnderlyingStock(stock);
                 opt.setImpliedVolatility(BigDecimal.valueOf(1));
                 opt.setOpenInterest(new Random().nextInt(500) + 100);
                 opt.setPrice(dto.getPrice());
                 opt.setTicker(dto.getTicker());
-                optionRepository.save(opt);
+                optionsToSave.add(opt);
             }
-
-            System.out.println("Generated and imported options for stock: " + stock.getTicker());
         }
+
+        optionRepository.saveAll(optionsToSave);
+        System.out.println("Options successfully imported.");
     }
 
-
-    private void addStockWithDailyInfo(Exchange exchange) {
-        Stock stock = new Stock();
-        stock.setTicker("FILTERTEST");
-        stock.setName("Filter Test Stock");
-        stock.setPrice(new BigDecimal("123.45"));
-        stock.setAsk(new BigDecimal("125.00"));
-        stock.setDividendYield(new BigDecimal("1.23"));
-        stock.setMarketCap(new BigDecimal("100000000"));
-        stock.setOutstandingShares(1_000_000L);
-        stock.setVolume(50000L);
-        stock.setChange(new BigDecimal("2.15"));
-        stock.setExchange(exchange);
-        stock.setMaintenanceMargin(new BigDecimal("12.34"));
-
-        listingRepository.save(stock); // mora prvo da se sačuva da bi imao ID
-
-        // Dodaj ListingDailyPriceInfo (da bi testirao low, volume itd.)
-        ListingDailyPriceInfo info = new ListingDailyPriceInfo();
-        info.setListing(stock); // povezivanje
-        info.setDate(LocalDate.now());
-        info.setPrice(stock.getPrice());
-        info.setLow(new BigDecimal("120.00")); // <-- FILTERI ĆE OVO TESTIRATI
-        info.setHigh(new BigDecimal("130.00"));
-        info.setChange(stock.getChange());
-        info.setVolume(stock.getVolume());
-
-        dailyPriceInfoRepository.save(info);
-    }
-
-    private void addStock(Exchange exchange) {
-        Stock stock = new Stock();
-        stock.setTicker("TEST1");
-        stock.setName("Test Stock");
-        stock.setPrice(new BigDecimal("100.00"));
-        stock.setAsk(new BigDecimal("101.00"));
-        stock.setDividendYield(new BigDecimal("2.5"));
-        stock.setMarketCap(new BigDecimal("500000000"));
-        stock.setOutstandingShares(1000000L);
-        stock.setVolume(60000L);
-        stock.setChange(new BigDecimal("1.5"));
-        stock.setExchange(exchange);
-        stock.setMaintenanceMargin(new BigDecimal("10.00"));
-
-        listingRepository.save(stock);
-
-        // Dodaj ListingDailyPriceInfo (da bi testirao low, volume itd.)
-        ListingDailyPriceInfo info = new ListingDailyPriceInfo();
-        info.setListing(stock); // povezivanje
-        info.setDate(LocalDate.now());
-        info.setPrice(stock.getPrice());
-        info.setLow(new BigDecimal("123.00")); // <-- FILTERI ĆE OVO TESTIRATI
-        info.setHigh(new BigDecimal("130.00"));
-        info.setChange(stock.getChange());
-        info.setVolume(stock.getVolume());
-
-        dailyPriceInfoRepository.save(info);
-    }
-
-    private void addFutures(Exchange exchange) {
-        FuturesContract futures = new FuturesContract();
-        futures.setTicker("FUT1");
-        futures.setName("Test Futures");
-        futures.setPrice(new BigDecimal("1500.00"));
-        futures.setAsk(new BigDecimal("1510.00"));
-        futures.setContractSize(10);
-        futures.setSettlementDate(LocalDate.now().plusMonths(1));
-        futures.setExchange(exchange);
-
-        listingRepository.save(futures);
-    }
-
-    private void addOption(Exchange exchange) {
-
-        Stock stock = (Stock) listingRepository.findByTicker("GOOGL").orElseThrow();
-
-        Option option = new Option();
-        option.setTicker("OPT1");
-        option.setName("Test Option");
-        option.setPrice(new BigDecimal("5.00"));
-        option.setAsk(new BigDecimal("5.50"));
-        option.setOptionType(option.getOptionType().CALL);
-        option.setStrikePrice(new BigDecimal("120.00"));
-        option.setSettlementDate(LocalDate.now().plusWeeks(2));
-        option.setImpliedVolatility(new BigDecimal("0.25"));
-        option.setExchange(exchange);
-
-        option.setUnderlyingStock(stock);
-
-        listingRepository.save(option);
-
-
-        Option option1 = new Option();
-        option1.setTicker("OPT2");
-        option1.setName("Call Option - 1 week");
-        option1.setPrice(new BigDecimal("6.00"));
-        option1.setAsk(new BigDecimal("6.50"));
-        option1.setOptionType(option1.getOptionType().CALL);
-        option1.setStrikePrice(new BigDecimal("125.00"));
-        option1.setSettlementDate(LocalDate.now().plusWeeks(1));
-        option1.setImpliedVolatility(new BigDecimal("0.22"));
-        option1.setExchange(exchange);
-
-        option1.setUnderlyingStock(stock);
-
-
-        listingRepository.save(option1);
-
-        Option option2 = new Option();
-        option2.setTicker("OPT3");
-        option2.setName("Call Option - 2 weeks");
-        option2.setPrice(new BigDecimal("6.20"));
-        option2.setAsk(new BigDecimal("6.70"));
-        option2.setOptionType(option2.getOptionType().CALL);
-        option2.setStrikePrice(new BigDecimal("125.00"));
-        option2.setSettlementDate(LocalDate.now().plusWeeks(3));
-        option2.setImpliedVolatility(new BigDecimal("0.23"));
-        option2.setExchange(exchange);
-
-        option2.setUnderlyingStock(stock);
-
-        listingRepository.save(option2);
-    }
-
-    private void addForex() {
-        ForexPair pair = new ForexPair();
-        pair.setTicker("USD/EUR");
-        pair.setName("USD to EUR");
-        pair.setPrice(new BigDecimal("0.92"));
-        pair.setAsk(new BigDecimal("0.93"));
-        pair.setBaseCurrency("USD");
-        pair.setQuoteCurrency("EUR");
-        pair.setExchangeRate(new BigDecimal("0.925"));
-        pair.setLiquidity("HIGH");
-        pair.setLastRefresh(LocalDateTime.now());
-        pair.setNominalValue(new BigDecimal("100000"));
-        pair.setMaintenanceMargin(new BigDecimal("10.00"));
-
-        listingRepository.save(pair);
-    }
-
-    private void importStocks(Exchange exchange) {
+    private void importStocks() {
         System.out.println("Importing selected stocks...");
+        Map<String, List<String>> stockTickersByExchange = Map.of(
+                "BATS", List.of("CGTL", "ZBZX", "CBOE", "ZTEST", "ZTST", "GBXA", "HIMU", "IYRI", "JANU", "KDEC"),
+                "NASDAQ", List.of("AACBU", "BACK", "CAAS", "DADA", "EA", "FA", "GABC", "HAFC", "IAC", "JACK"),
+                "NYSE", List.of("A", "BA", "C", "D", "E", "F", "G", "H", "IAG", "J"),
+                "NYSE ARCA", List.of("AGRW", "ASLV", "BENJ", "ESBA", "CPXR", "FISK", "IGZ", "LGDX", "OGCP", "PCFI"),
+                "NYSE MKT", List.of("ACCS", "BATL", "CANF", "DC", "EFSH", "FOXO", "GAU", "HCWC", "IAUX", "JOB")
+        );
 
-        List<String> stockTickers = List.of("AAPL", "MSFT", "GOOGL", "IBM", "TSM", "MA", "NVDA", "META", "DIS", "BABA");
+        List<Stock> allStocks = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : stockTickersByExchange.entrySet()) {
+            String exchangeName = entry.getKey();
+            List<String> stockTickers = entry.getValue();
 
-        for (String ticker : stockTickers) {
-            try {
-                // Fetch full details for selected stocks
-                StockDto stockData = stocksService.getStockData(ticker);
+            Exchange exchange = exchangeRepository.findByMic(exchangeName);
+            if (exchange == null) {
+                System.err.println("Exchange not found: " + exchangeName);
+                continue;
+            }
 
-                Stock stock = new Stock();
-                stock.setTicker(stockData.getTicker());
-                stock.setName(stockData.getName());
-                stock.setPrice(stockData.getPrice());
-                stock.setChange(stockData.getChange());
-                stock.setVolume(stockData.getVolume());
-                stock.setOutstandingShares(stockData.getOutstandingShares());
-                stock.setDividendYield(stockData.getDividendYield());
-                stock.setMarketCap(stockData.getMarketCap());
-                stock.setMaintenanceMargin(stockData.getMaintenanceMargin());
-                stock.setExchange(exchange); // Assign NASDAQ exchange
+            for (String ticker : stockTickers) {
+                try {
+                    StockDto stockData = stocksService.getStockData(ticker);
+                    if (stockData == null){
+                        continue;
+                    }
+                    Stock stock = new Stock();
+                    stock.setTicker(stockData.getTicker());
+                    stock.setName(stockData.getName());
+                    stock.setPrice(stockData.getPrice());
+                    stock.setChange(stockData.getChange());
+                    stock.setMaintenanceMargin(stockData.getMaintenanceMargin());
+                    stock.setMarketCap(stockData.getMarketCap());
+                    stock.setDividendYield(stockData.getDividendYield());
+                    stock.setVolume(stockData.getVolume());
+                    stock.setOutstandingShares(stockData.getOutstandingShares());
+                    stock.setExchange(exchange);
 
-                listingRepository.save(stock);
-                System.out.println("Imported stock: " + stock.getTicker());
-            } catch (StockNotFoundException e) {
-                System.err.println("Stock data not found for: " + ticker + " - " + e.getMessage());
+                    allStocks.add(stock);
+                } catch (StockNotFoundException e) {
+                    System.err.println("Stock not found for: " + ticker);
+                }
             }
         }
 
-        System.out.println("Finished importing selected stocks.");
+        listingRepository.saveAll(allStocks);
+        System.out.println("Stocks imported successfully.");
+    }
+
+    private void importStocksBulk() {
+        System.out.println("Importing stocks using Realtime Bulk Quotes...");
+
+        Map<String, List<String>> stockTickersByExchange = Map.of(
+                "BATS", List.of("CGTL", "ZBZX", "CBOE", "ZTEST", "ZTST", "GBXA", "HIMU", "IYRI", "JANU", "KDEC"),
+                "NASDAQ", List.of("AACBU", "BACK", "CAAS", "DADA", "EA", "FA", "GABC", "HAFC", "IAC", "JACK"),
+                "NYSE", List.of("A", "BA", "C", "D", "E", "F", "G", "H", "IAG", "J"),
+                "NYSE ARCA", List.of("AGRW", "ASLV", "BENJ", "ESBA", "CPXR", "FISK", "IGZ", "LGDX", "OGCP", "PCFI"),
+                "NYSE MKT", List.of("ACCS", "BATL", "CANF", "DC", "EFSH", "FOXO", "GAU", "HCWC", "IAUX", "JOB")
+        );
+
+        List<Stock> allStocks = new ArrayList<>();
+
+        for (Map.Entry<String, List<String>> entry : stockTickersByExchange.entrySet()) {
+            String exchangeName = entry.getKey();
+            List<String> tickers = entry.getValue();
+
+            Exchange exchange = exchangeRepository.findByMic(exchangeName);
+            if (exchange == null) {
+                System.err.println("Exchange not found: " + exchangeName);
+                continue;
+            }
+
+            List<StockDto> bulkStocksData = stocksService.getRealtimeBulkStockData(tickers);
+
+            for (StockDto stockDto : bulkStocksData) {
+                Stock stock = new Stock();
+                stock.setTicker(stockDto.getTicker());
+                stock.setPrice(stockDto.getPrice());
+                stock.setVolume(stockDto.getVolume());
+                stock.setExchange(exchange);
+                stock.setName(stockDto.getName());
+                allStocks.add(stock);
+            }
+        }
+
+        listingRepository.saveAll(allStocks);
+        System.out.println("Bulk stocks imported successfully.");
+    }
+
+
+    private void importStockPriceHistory() {
+        List<Stock> stocks = listingRepository.findAll().stream()
+                .filter(listing -> listing instanceof Stock)
+                .map(listing -> (Stock) listing)
+                .collect(Collectors.toList());
+
+        List<ListingPriceHistory> priceHistoryEntities = new ArrayList<>();
+        for (Stock stock : stocks) {
+            try {
+                TimeSeriesDto priceHistory = listingService.getPriceHistoryFromAlphaVantage(stock.getTicker(), "5min", "compact");
+                priceHistoryEntities.addAll(createPriceHistoryEntities(stock, priceHistory));
+            } catch (Exception e) {
+                System.err.println("Error fetching price history for stock: " + stock.getTicker());
+            }
+        }
+
+        dailyPriceInfoRepository.saveAll(priceHistoryEntities);
+        System.out.println("Stock price history imported successfully.");
     }
 
     private void importForexPairs() {
-        System.out.println("Importing selected forex pairs...");
-
         List<String[]> forexPairs = List.of(
                 new String[]{"USD", "EUR"},
                 new String[]{"USD", "GBP"},
@@ -304,14 +252,12 @@ public class BootstrapData implements CommandLineRunner {
                 new String[]{"AUD", "NZD"}
         );
 
+        List<ForexPair> allForexPairs = new ArrayList<>();
         for (String[] pair : forexPairs) {
             try {
                 String baseCurrency = pair[0];
                 String quoteCurrency = pair[1];
-
-                // Fetch full details for selected forex pairs
-                // Pretpostavljamo da forexService.getForexPair vraća DTO, ali u bootstrap-u koristimo podaci iz DTO-ja
-                var forexData = forexService.getForexPair(baseCurrency, quoteCurrency);
+                ForexPairDto forexData = forexService.getForexPair(baseCurrency, quoteCurrency);
 
                 ForexPair forexPair = new ForexPair();
                 forexPair.setName(forexData.getName());
@@ -319,61 +265,63 @@ public class BootstrapData implements CommandLineRunner {
                 forexPair.setBaseCurrency(forexData.getBaseCurrency());
                 forexPair.setQuoteCurrency(forexData.getQuoteCurrency());
                 forexPair.setExchangeRate(forexData.getExchangeRate());
+                forexPair.setMaintenanceMargin(forexData.getMaintenanceMargin());
                 forexPair.setLiquidity(forexData.getLiquidity());
                 forexPair.setLastRefresh(forexData.getLastRefresh());
-                forexPair.setMaintenanceMargin(forexData.getMaintenanceMargin());
                 forexPair.setNominalValue(forexData.getNominalValue());
                 forexPair.setAsk(forexData.getAsk());
                 forexPair.setPrice(forexData.getPrice());
 
-                listingRepository.save(forexPair);
-                System.out.println("Imported forex pair: " + forexPair.getTicker());
+                allForexPairs.add(forexPair);
             } catch (Exception e) {
-                System.err.println("Error importing forex pair: " + pair[0] + "/" + pair[1] + " - " + e.getMessage());
+                System.err.println("Error importing forex pair: " + pair[0] + "/" + pair[1]);
             }
         }
 
-        System.out.println("Finished importing selected forex pairs.");
+        listingRepository.saveAll(allForexPairs);
+        System.out.println("Forex pairs imported successfully.");
     }
 
-    //Smatram da order ne treba da se kreira, jer onda ne mozemo da pokrenemo execution, barem meni nema logike
-//    private void loadOrders() {
-//        if (orderRepository.count() == 0) {
-//            Order order1 = Order.builder()
-//                    .userId(1L)
-//                    .listing(100L)
-//                    .orderType(OrderType.LIMIT)
-//                    .quantity(10)
-//                    .contractSize(1)
-//                    .pricePerUnit(new BigDecimal("150.50"))
-//                    .direction(OrderDirection.BUY)
-//                    .status(OrderStatus.PENDING)
-//                    .approvedBy(null)
-//                    .isDone(false)
-//                    .lastModification(LocalDateTime.now())
-//                    .remainingPortions(10)
-//                    .afterHours(false)
-//                    .build();
-//
-//            Order order2 = Order.builder()
-//                    .userId(2L)
-//                    .listing(200L)
-//                    .orderType(OrderType.MARKET)
-//                    .quantity(5)
-//                    .contractSize(2)
-//                    .pricePerUnit(new BigDecimal("200.00"))
-//                    .direction(OrderDirection.SELL)
-//                    .status(OrderStatus.APPROVED)
-//                    .approvedBy(1L)
-//                    .isDone(true)
-//                    .lastModification(LocalDateTime.now().minusDays(1))
-//                    .remainingPortions(0)
-//                    .afterHours(true)
-//                    .build();
-//
-//            orderRepository.saveAll(List.of(order1, order2));
-//
-//            System.out.println("Loaded initial test orders into database.");
-//        }
-//    }
+    private void importForexPriceHistory() {
+        List<ForexPair> forexPairs = listingRepository.findAll().stream()
+                .filter(listing -> listing instanceof ForexPair)
+                .map(listing -> (ForexPair) listing)
+                .collect(Collectors.toList());
+
+        List<ListingPriceHistory> priceHistoryEntities = new ArrayList<>();
+        for (ForexPair forex : forexPairs) {
+            try {
+                TimeSeriesDto priceHistory = listingService.getForexPriceHistory(forex.getId(), "5min");
+                priceHistoryEntities.addAll(createPriceHistoryEntities(forex, priceHistory));
+            } catch (Exception e) {
+                System.err.println("Error fetching price history for forex pair: " + forex.getTicker());
+            }
+        }
+
+        dailyPriceInfoRepository.saveAll(priceHistoryEntities);
+        System.out.println("Forex price history imported successfully.");
+    }
+
+    private List<ListingPriceHistory> createPriceHistoryEntities(Listing listing, TimeSeriesDto priceHistory) {
+        List<ListingPriceHistory> priceHistoryEntities = new ArrayList<>();
+        for (TimeSeriesDto.TimeSeriesValueDto value : priceHistory.getValues()) {
+            ListingPriceHistory priceHistoryEntity = ListingPriceHistory.builder()
+                    .listing(listing)
+                    .date(LocalDateTime.parse(value.getDatetime(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                    .open(value.getOpen())
+                    .high(value.getHigh())
+                    .low(value.getLow())
+                    .close(value.getClose())
+                    .volume(value.getVolume())
+                    .change(value.getClose().subtract(value.getOpen()))
+                    .build();
+            priceHistoryEntities.add(priceHistoryEntity);
+        }
+        return priceHistoryEntities;
+    }
+
+
+    private BootstrapData getSelfProxy() {
+        return applicationContext.getBean(BootstrapData.class);
+    }
 }
