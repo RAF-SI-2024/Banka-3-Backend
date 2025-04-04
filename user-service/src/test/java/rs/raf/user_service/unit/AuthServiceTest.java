@@ -3,16 +3,13 @@ package rs.raf.user_service.unit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
-import rs.raf.user_service.domain.entity.AuthToken;
-import rs.raf.user_service.domain.entity.Client;
-import rs.raf.user_service.domain.entity.Employee;
-import rs.raf.user_service.domain.entity.Role;
+import rs.raf.user_service.domain.entity.*;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
@@ -21,37 +18,47 @@ import rs.raf.user_service.service.AuthService;
 import rs.raf.user_service.utils.JwtTokenUtil;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
 
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
     private JwtTokenUtil jwtTokenUtil;
+
+    @Mock
     private ClientRepository clientRepository;
+
+    @Mock
     private EmployeeRepository employeeRepository;
-    private UserRepository userRepository;
+
+    @Mock
     private AuthTokenRepository authTokenRepository;
+
+    @Mock
     private RabbitTemplate rabbitTemplate;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
     private AuthService authService;
 
     @BeforeEach
     public void setup() {
-        passwordEncoder = mock(PasswordEncoder.class);
-        jwtTokenUtil = mock(JwtTokenUtil.class);
-        clientRepository = mock(ClientRepository.class);
-        employeeRepository = mock(EmployeeRepository.class);
-        authTokenRepository = mock(AuthTokenRepository.class);
-        userRepository = mock(UserRepository.class);
-        rabbitTemplate = mock(RabbitTemplate.class);
-        authService = new AuthService(passwordEncoder, jwtTokenUtil, clientRepository, employeeRepository, authTokenRepository, rabbitTemplate, userRepository);
+        // MockitoExtension + @InjectMocks će se pobrinuti za mock-injekciju.
+        // Ova metoda ostaje radi konzistentnosti, ali nije obavezna.
     }
+
+    // --------------------------------------------------------------------------------
+    // authenticateClient(...)
+    // --------------------------------------------------------------------------------
 
     @Test
     public void testAuthenticateClient_Success() {
@@ -64,7 +71,6 @@ public class AuthServiceTest {
         client.setId(1L);
         client.setEmail(email);
         client.setPassword(encodedPassword);
-        // Umesto dodele permisija, dodeljujemo ulogu:
         Role clientRole = new Role();
         clientRole.setName("CLIENT");
         client.setRole(clientRole);
@@ -107,6 +113,10 @@ public class AuthServiceTest {
         String returnedToken = authService.authenticateClient(email, rawPassword);
         assertNull(returnedToken, "Expected null when user is not found");
     }
+
+    // --------------------------------------------------------------------------------
+    // authenticateEmployee(...)
+    // --------------------------------------------------------------------------------
 
     @Test
     public void testAuthenticateEmployee_Success() {
@@ -162,6 +172,10 @@ public class AuthServiceTest {
         assertNull(returnedToken, "Expected null when user is not found");
     }
 
+    // --------------------------------------------------------------------------------
+    // requestPasswordReset(...)
+    // --------------------------------------------------------------------------------
+
     @Test
     public void testRequestPasswordReset_Success() {
         String email = "test@example.com";
@@ -169,6 +183,7 @@ public class AuthServiceTest {
         Client user = new Client();
         user.setId(1L);
         user.setEmail(email);
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         authService.requestPasswordReset(email);
@@ -188,12 +203,18 @@ public class AuthServiceTest {
         assertEquals("User not found", exception.getMessage());
     }
 
+    // --------------------------------------------------------------------------------
+    // resetPassword(...)
+    // --------------------------------------------------------------------------------
+
     @Test
-    public void testResetPassword_Success() {
+    public void testResetPassword_Success_Client() {
         String token = "valid-token";
         String newPassword = "newPassword123";
         AuthToken authToken = new AuthToken();
+        authToken.setUserId(1L);
         authToken.setExpiresAt(Instant.now().toEpochMilli() + 100000);
+
         // Koristimo Client kao BaseUser
         Client client = new Client();
         client.setId(1L);
@@ -206,9 +227,37 @@ public class AuthServiceTest {
         when(passwordEncoder.encode(newPassword)).thenReturn("encodedPassword");
 
         authService.resetPassword(token, newPassword);
-        // Verifikujemo da je client sačuvan (ovo zavisi od toga koju logiku koristite – ovde proveravamo klijentski slučaj)
+
+        // Verifikujemo da je client sačuvan
         verify(clientRepository).save(any(Client.class));
-        // Token expiration treba da se ažurira
+        // Token expiration treba da se ažurira (setExpiresAt = now)
+        assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
+    }
+
+    @Test
+    public void testResetPassword_Success_Employee() {
+        String token = "valid-token";
+        String newPassword = "newEmployeePass";
+        AuthToken authToken = new AuthToken();
+        authToken.setUserId(2L);
+        authToken.setExpiresAt(Instant.now().toEpochMilli() + 100000);
+
+        // Koristimo Employee kao BaseUser
+        Employee employee = new Employee();
+        employee.setId(2L);
+        Role employeeRole = new Role();
+        employeeRole.setName("EMPLOYEE");
+        employee.setRole(employeeRole);
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+        when(userRepository.findById(authToken.getUserId())).thenReturn(Optional.of(employee));
+        when(passwordEncoder.encode(newPassword)).thenReturn("encodedEmployeePass");
+
+        authService.resetPassword(token, newPassword);
+
+        // Verifikujemo da je employee sačuvan
+        verify(employeeRepository).save(any(Employee.class));
+        // Provera update-ovanog tokena
         assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
     }
 
@@ -238,8 +287,53 @@ public class AuthServiceTest {
         assertEquals("Expired token.", exception.getMessage());
     }
 
+    // --------------------------------------------------------------------------------
+    // checkToken(...)
+    // --------------------------------------------------------------------------------
+
     @Test
-    public void testSetPassword_Success() {
+    public void testCheckToken_Success() {
+        String token = "check-token-valid";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(Instant.now().toEpochMilli() + 100000); // nije isteklo
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+
+        // Ako token nije istekao, metoda ne baca izuzetak
+        assertDoesNotThrow(() -> authService.checkToken(token));
+    }
+
+    @Test
+    public void testCheckToken_InvalidToken() {
+        String token = "check-token-invalid";
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                authService.checkToken(token)
+        );
+        assertEquals("Invalid token.", exception.getMessage());
+    }
+
+    @Test
+    public void testCheckToken_ExpiredToken() {
+        String token = "check-token-expired";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(Instant.now().toEpochMilli() - 1); // već isteklo
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                authService.checkToken(token)
+        );
+        assertEquals("Expired token.", exception.getMessage());
+    }
+
+    // --------------------------------------------------------------------------------
+    // setPassword(...)
+    // --------------------------------------------------------------------------------
+
+    @Test
+    public void testSetPassword_Success_Client() {
         String token = "valid-token";
         String password = "newPassword123";
         AuthToken authToken = new AuthToken();
@@ -260,6 +354,32 @@ public class AuthServiceTest {
 
         verify(userRepository, times(1)).save(client);
         assertEquals("encodedPassword", client.getPassword());
+        assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
+    }
+
+    @Test
+    public void testSetPassword_Success_Employee() {
+        String token = "valid-token-emp";
+        String password = "employeePass";
+        AuthToken authToken = new AuthToken();
+        authToken.setExpiresAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        authToken.setUserId(2L);
+
+        Employee employee = new Employee();
+        employee.setId(2L);
+        Role employeeRole = new Role();
+        employeeRole.setName("EMPLOYEE");
+        employee.setRole(employeeRole);
+
+        when(authTokenRepository.findByToken(token)).thenReturn(Optional.of(authToken));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(employee));
+        when(passwordEncoder.encode(password)).thenReturn("encodedEmpPass");
+
+        authService.setPassword(token, password);
+
+        // Ovde se poziva userRepository.save(), jer je employee takođe BaseUser
+        verify(userRepository, times(1)).save(employee);
+        assertEquals("encodedEmpPass", employee.getPassword());
         assertTrue(authToken.getExpiresAt() <= Instant.now().toEpochMilli());
     }
 

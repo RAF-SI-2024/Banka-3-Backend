@@ -1,26 +1,26 @@
 package rs.raf.user_service.unit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.mockito.*;
+import org.springframework.data.domain.*;
 import rs.raf.user_service.domain.dto.RoleRequestDto;
+import rs.raf.user_service.domain.dto.UserDto;
+import rs.raf.user_service.domain.entity.BaseUser;
 import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.domain.entity.Role;
-import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.PermissionRepository;
 import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.UserService;
 
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
@@ -32,17 +32,25 @@ class UserServiceTest {
     @Mock
     private RoleRepository roleRepository;
 
-    @Mock
-    private AuthTokenRepository authTokenRepository;
-
-    @Mock
-    private RabbitTemplate rabbitTemplate;
-
     @InjectMocks
     private UserService userService;
 
-    // Uklonjena je metoda setUp() koja je ručno otvarala mokove.
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
 
+        // Dodajemo podrazumevani mock za roleId = 2 ("EMPLOYEE"), tako da
+        // se testovi koji očekuju normalan tok ne sruše odmah na "Role not found".
+        // Ako neki test treba "Role not found", on će posebno override-ovati ovo.
+        Role defaultRole = new Role();
+        defaultRole.setId(2L);
+        defaultRole.setName("EMPLOYEE");
+        when(roleRepository.findById(2L)).thenReturn(Optional.of(defaultRole));
+    }
+
+    // ------------------------------------------------------------------------------
+    // getUserRole(...)
+    // ------------------------------------------------------------------------------
     @Test
     void getUserRole_UserExists_ReturnsRoleName() {
         Long userId = 1L;
@@ -73,6 +81,9 @@ class UserServiceTest {
         verify(userRepository, times(1)).findById(userId);
     }
 
+    // ------------------------------------------------------------------------------
+    // addRoleToUser(...)
+    // ------------------------------------------------------------------------------
     @Test
     void addRoleToUser_UserAndRoleExist_AddsRole() {
         Long userId = 1L;
@@ -89,6 +100,7 @@ class UserServiceTest {
         newRole.setName("EMPLOYEE");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        // Ovde već postoji default stub za (2L), ali pokazujemo kako može i eksplicitno:
         when(roleRepository.findById(roleId)).thenReturn(Optional.of(newRole));
 
         RoleRequestDto roleRequestDto = new RoleRequestDto(roleId);
@@ -118,6 +130,41 @@ class UserServiceTest {
         verify(userRepository, never()).save(user);
     }
 
+    @Test
+    void addRoleToUser_UserNotFound_ThrowsException() {
+        Long userId = 999L;
+        Long roleId = 2L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                userService.addRoleToUser(userId, new RoleRequestDto(roleId))
+        );
+        assertEquals("User not found", ex.getMessage());
+        verify(roleRepository, never()).findById(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void addRoleToUser_RoleNotFound_ThrowsException() {
+        Long userId = 1L;
+        Long roleId = 999L;
+        Employee user = new Employee();
+        user.setRole(null);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(roleId)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                userService.addRoleToUser(userId, new RoleRequestDto(roleId))
+        );
+        assertEquals("Role not found", ex.getMessage());
+        verify(userRepository, never()).save(any());
+    }
+
+    // ------------------------------------------------------------------------------
+    // removeRoleFromUser(...)
+    // ------------------------------------------------------------------------------
     @Test
     void removeRoleFromUser_UserHasRole_RemovesRole() {
         Long userId = 1L;
@@ -160,5 +207,76 @@ class UserServiceTest {
         });
         assertEquals("User does not have this role", exception.getMessage());
         verify(userRepository, never()).save(user);
+    }
+
+    @Test
+    void removeRoleFromUser_UserNotFound_ThrowsException() {
+        Long userId = 999L;
+        Long roleId = 2L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                userService.removeRoleFromUser(userId, roleId)
+        );
+        assertEquals("User not found", ex.getMessage());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void removeRoleFromUser_RoleNotFound_ThrowsException() {
+        Long userId = 1L;
+        Long roleId = 999L;
+
+        Employee user = new Employee();
+        user.setRole(null);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(roleId)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                userService.removeRoleFromUser(userId, roleId)
+        );
+        assertEquals("Role not found", ex.getMessage());
+        verify(userRepository, never()).save(any());
+    }
+
+    // ------------------------------------------------------------------------------
+    // listUsers(...)
+    // ------------------------------------------------------------------------------
+    @Test
+    void testListUsers_Success() {
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        BaseUser user1 = new Employee();
+        user1.setId(1L);
+
+        BaseUser user2 = new Employee();
+        user2.setId(2L);
+
+        Page<BaseUser> page = new PageImpl<>(List.of(user1, user2));
+        when(userRepository.findAll(pageRequest)).thenReturn(page);
+
+        Page<?> result = userService.listUsers(pageRequest);
+
+        assertNotNull(result);
+        assertEquals(2, result.getTotalElements());
+        assertEquals(1L, ((UserDto) result.getContent().get(0)).getId());
+        assertEquals(2L, ((UserDto) result.getContent().get(1)).getId());
+        verify(userRepository, times(1)).findAll(pageRequest);
+    }
+
+    @Test
+    void testListUsers_EmptyPage() {
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        Page<BaseUser> emptyPage = new PageImpl<>(Collections.emptyList());
+
+        when(userRepository.findAll(pageRequest)).thenReturn(emptyPage);
+
+        Page<?> result = userService.listUsers(pageRequest);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        verify(userRepository, times(1)).findAll(pageRequest);
     }
 }
