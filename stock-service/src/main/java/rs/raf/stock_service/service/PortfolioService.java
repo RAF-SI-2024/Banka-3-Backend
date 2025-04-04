@@ -1,15 +1,24 @@
 package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
-import rs.raf.stock_service.domain.entity.Order;
-import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
+import rs.raf.stock_service.domain.dto.PublicStockDto;
+import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
+import rs.raf.stock_service.exceptions.InvalidListingTypeException;
+import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
+import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
@@ -23,12 +32,16 @@ import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
+    private final UserClient userClient;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
 
@@ -99,6 +112,58 @@ public class PortfolioService {
                             entry.getListing().getTicker(),
                             profit);
                 }).collect(Collectors.toList());
+    }
+
+    public void setPublicAmount(Long userId, SetPublicAmountDto dto) {
+        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
+                .orElseThrow(PortfolioEntryNotFoundException::new);
+
+        // samo stock moze
+        if (entry.getType() != ListingType.STOCK) {
+            throw new InvalidListingTypeException("Only STOCK type can be made public.");
+        }
+
+
+        if (dto.getPublicAmount() > entry.getAmount()) {
+            throw new InvalidPublicAmountException("Public amount cannot exceed owned amount.");
+        }
+
+        entry.setPublicAmount(dto.getPublicAmount());
+        entry.setLastModified(LocalDateTime.now());
+
+        portfolioEntryRepository.save(entry);
+    }
+
+
+    public List<PublicStockDto> getAllPublicStocks() {
+        List<PortfolioEntry> publicEntries = portfolioEntryRepository
+                .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
+
+
+        return publicEntries.stream().map(entry -> {
+            Listing listing = entry.getListing();
+
+            String ownerName;
+            try {
+                ClientDto client = userClient.getClientById(entry.getUserId());
+                ownerName = client.getFirstName() + " " + client.getLastName();
+            } catch (Exception e) {
+                log.warn("Could not fetch client info for userId: {}", entry.getUserId());
+                ownerName = "user-" + entry.getUserId(); // fallback
+            }
+
+            BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
+
+            return PublicStockDto.builder()
+                    .security(ListingType.STOCK.name())
+                    .ticker(listing.getTicker())
+                    .amount(entry.getPublicAmount())
+                    .price(currentPrice)
+                    .lastModified(entry.getLastModified())
+                    .owner(ownerName)
+                    .build();
+
+        }).collect(Collectors.toList());
     }
     
     public TaxGetResponseDto getTaxes(Long userId){
