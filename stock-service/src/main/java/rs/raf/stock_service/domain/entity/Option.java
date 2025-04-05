@@ -29,7 +29,7 @@ public class Option extends Listing {
     @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "otc_offer_id", nullable = true)
     private OtcOffer offer;
 }
