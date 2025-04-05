@@ -32,6 +32,9 @@ public class CreateOrderDto {
     @NotNull(message = "Account number cannot be null")
     private String accountNumber;
 
+    @NotNull(message = "All or None cannot be null")
+    private boolean allOrNone;
+
     private BigDecimal limitPrice;
     private BigDecimal stopPrice;
 }

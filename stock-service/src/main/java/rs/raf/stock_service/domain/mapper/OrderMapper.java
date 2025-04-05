@@ -44,7 +44,7 @@ public class OrderMapper {
         switch(createOrderDto.getOrderType()){
             case MARKET:
                 if (createOrderDto.getOrderDirection() == OrderDirection.BUY)
-                    pricePerUnit =  listing.getAsk() == null ? BigDecimal.ONE : listing.getAsk();
+                    pricePerUnit =  listing.getAsk() == null ? listing.getPrice() : listing.getAsk();
                 else
                     pricePerUnit = listing.getPrice();
                 break;
@@ -70,7 +70,8 @@ public class OrderMapper {
                 createOrderDto.getOrderDirection(),
                 afterHours(listing.getExchange()),
                 createOrderDto.getAccountNumber(),
-                stopPrice
+                stopPrice,
+                createOrderDto.isAllOrNone()
         );
     }
 

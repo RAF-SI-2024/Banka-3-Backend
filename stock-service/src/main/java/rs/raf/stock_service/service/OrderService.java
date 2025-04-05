@@ -142,6 +142,8 @@ public class OrderService {
     }
 
     private boolean verifyBalance(Order order) {
+        if(order.getDirection() == OrderDirection.SELL) return true;
+
         BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
 
@@ -163,37 +165,46 @@ public class OrderService {
     @Async
     public void executeOrder(Order order) {
         if (order.getIsDone() || order.getStatus() != OrderStatus.APPROVED) return; //better safe than sorry
+        order.setStatus(OrderStatus.PROCESSING);
 
-        Random random = new Random();
-        int extraTime = order.getAfterHours() ? 300000 : 0;
+        if (order.isAllOrNone()){
+            executeTransaction(order, order.getRemainingPortions());
+        } else {
+            Random random = new Random();
 
-        while (order.getRemainingPortions() > 0) {
-            Integer remainingPortions = order.getRemainingPortions();
-            Integer batchSize = random.nextInt(1, remainingPortions + 1);
-
-            BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
-                    .multiply(BigDecimal.valueOf(order.getContractSize()));
-
-            Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
-            transactionRepository.save(transaction);
-
-            order.getTransactions().add(transaction);
-            order.setLastModification(LocalDateTime.now());
-            order.setRemainingPortions(remainingPortions - batchSize);
-
-            if(order.getRemainingPortions() == 0)
-                order.setIsDone(true);
-
-            orderRepository.save(order);
-
-            try {
-                Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() / remainingPortions)) + extraTime);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while (order.getRemainingPortions() > 0) {
+                executeTransaction(order, random.nextInt(1, order.getRemainingPortions() + 1));
+                orderRepository.save(order);
             }
         }
 
+        order.setIsDone(true);
+        order.setStatus(OrderStatus.DONE);
+        orderRepository.save(order);
+
         portfolioService.updateHoldingsOnOrderExecution(order);
+    }
+
+    private void executeTransaction(Order order, Integer batchSize){
+        int extraTime = order.getAfterHours() ? 300000 : 0;
+        Random random = new Random();
+
+        try {
+            Thread.sleep(random.nextInt(0, 24 * 60 / (order.getQuantity() /
+                    order.getRemainingPortions())) + extraTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
+                .multiply(BigDecimal.valueOf(order.getContractSize()));
+
+        Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
+        transactionRepository.save(transaction);
+
+        order.getTransactions().add(transaction);
+        order.setLastModification(LocalDateTime.now());
+        order.setRemainingPortions(order.getRemainingPortions() - batchSize);
     }
 
     @Scheduled(fixedRate = 15000)
@@ -203,43 +214,70 @@ public class OrderService {
         checkLimitOrders();
     }
 
-    public void checkStopOrders(){
+    private void checkStopOrders(){
         List<Order> orders = orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP);
 
         for (Order order : orders) {
-            if (order.getDirection() == OrderDirection.BUY &&  order.getListing().getAsk().compareTo(order.getStopPrice()) > 0) {
-                order.setPricePerUnit(order.getListing().getAsk() == null ? BigDecimal.ONE : order.getListing().getAsk());
-                executeOrder(order);
-            } else if (order.getDirection() == OrderDirection.SELL &&  order.getListing().getPrice().compareTo(order.getStopPrice()) < 0) {
+            checkStopOrder(order);
+        }
+    }
+
+    private void checkStopLimitOrders(){
+        List<Order> orders = orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP_LIMIT);
+
+        for (Order order : orders) {
+            if (!order.isStopFulfilled()){
+               checkStopOrder(order);
+            } else {
+               checkLimitOrder(order);
+            }
+        }
+    }
+
+    private void checkLimitOrders(){
+        List<Order> orders = orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.LIMIT);
+
+        for (Order order : orders) {
+           checkLimitOrder(order);
+        }
+    }
+
+    private void checkStopOrder(Order order){
+        if (order.getDirection() == OrderDirection.BUY){
+            BigDecimal askPrice = order.getListing().getAsk() == null ? order.getListing().getPrice() : order.getListing().getAsk();
+
+            if (askPrice.compareTo(order.getStopPrice()) > 0){
+                order.setStopFulfilled(true);
+
+                if (order.getOrderType() == OrderType.STOP){
+                    order.setPricePerUnit(askPrice);
+                    executeOrder(order);
+                }
+            }
+        } else if (order.getListing().getPrice().compareTo(order.getStopPrice()) < 0) {
+            order.setStopFulfilled(true);
+
+            if (order.getOrderType() == OrderType.STOP){
                 order.setPricePerUnit(order.getListing().getPrice());
                 executeOrder(order);
             }
         }
     }
 
-    public void checkStopLimitOrders(){
-        List<Order> orders = orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP_LIMIT);
+    private void checkLimitOrder(Order order){
+        if (order.getDirection() == OrderDirection.BUY){
+            BigDecimal askPrice = order.getListing().getAsk() == null ? order.getListing().getPrice() : order.getListing().getAsk();
 
-        for (Order order : orders) {
-            if (order.getDirection() == OrderDirection.BUY &&  order.getListing().getAsk().compareTo(order.getStopPrice()) > 0) {
-                order.setOrderType(OrderType.LIMIT);
-            } else if (order.getDirection() == OrderDirection.SELL &&  order.getListing().getPrice().compareTo(order.getStopPrice()) < 0) {
-                order.setOrderType(OrderType.LIMIT);
+            if(askPrice.compareTo(order.getPricePerUnit()) <= 0) {
+                order.setPricePerUnit(order.getPricePerUnit().min(askPrice));
+                executeOrder(order);
             }
+        } else if (order.getListing().getPrice().compareTo(order.getPricePerUnit()) >= 0) {
+            order.setPricePerUnit(order.getPricePerUnit().max(order.getListing().getPrice()));
+            executeOrder(order);
         }
     }
 
-    public void checkLimitOrders(){
-        List<Order> orders = orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.LIMIT);
-
-        for (Order order : orders) {
-            if (order.getDirection() == OrderDirection.BUY &&  order.getListing().getAsk().compareTo(order.getPricePerUnit()) <= 0) {
-                executeOrder(order);
-            } else if (order.getDirection() == OrderDirection.SELL &&  order.getListing().getPrice().compareTo(order.getPricePerUnit()) >= 0) {
-                executeOrder(order);
-            }
-        }
-    }
 
     //@Scheduled(cron = "0 0 0 * * *")
     public void processTaxes() {
@@ -256,5 +294,4 @@ public class OrderService {
             }
         }
     }
-
 }
