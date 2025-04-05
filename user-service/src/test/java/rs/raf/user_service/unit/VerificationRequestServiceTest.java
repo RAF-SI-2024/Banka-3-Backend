@@ -119,20 +119,20 @@ public class VerificationRequestServiceTest {
     @Test
     @DisplayName("denyVerificationRequest - should throw VerificationNotFoundException if request not found")
     void testDenyVerificationRequest_NotFound() {
-        when(verificationRequestRepository.findById(404L)).thenReturn(Optional.empty());
+        lenient().when(verificationRequestRepository.findById(404L)).thenReturn(Optional.empty());
         assertThrows(VerificationNotFoundException.class,
                 () -> verificationRequestService.denyVerificationRequest(404L, "Bearer xyz"));
     }
 
     @Test
-    @DisplayName("denyVerificationRequest - should throw VerificationNotFoundException if not pending")
+    @DisplayName("denyVerificationRequest - should throw RejectNonPendingRequestException if not pending")
     void testDenyVerificationRequest_NotPending() {
         VerificationRequest request = new VerificationRequest();
         request.setId(300L);
         request.setStatus(VerificationStatus.APPROVED);
-        when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
+        lenient().when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
 
-        assertThrows(VerificationNotFoundException.class,
+        assertThrows(RejectNonPendingRequestException.class,
                 () -> verificationRequestService.denyVerificationRequest(300L, "Bearer xyz"));
     }
 
@@ -140,7 +140,7 @@ public class VerificationRequestServiceTest {
     @Test
     @DisplayName("processApproval - should throw IllegalStateException if request not found")
     void testProcessApproval_NotFound() {
-        when(verificationRequestRepository.findById(1L)).thenReturn(Optional.empty());
+        lenient().when(verificationRequestRepository.findById(1L)).thenReturn(Optional.empty());
         assertThrows(IllegalStateException.class, () ->
                 verificationRequestService.processApproval(1L, "Bearer abc"));
     }
@@ -151,7 +151,7 @@ public class VerificationRequestServiceTest {
         VerificationRequest request = new VerificationRequest();
         request.setId(2L);
         request.setStatus(VerificationStatus.APPROVED);
-        when(verificationRequestRepository.findById(2L)).thenReturn(Optional.of(request));
+        lenient().when(verificationRequestRepository.findById(2L)).thenReturn(Optional.of(request));
 
         assertThrows(IllegalStateException.class, () ->
                 verificationRequestService.processApproval(2L, "Bearer abc"));
