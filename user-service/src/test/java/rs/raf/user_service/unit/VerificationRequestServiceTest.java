@@ -130,7 +130,9 @@ public class VerificationRequestServiceTest {
         VerificationRequest request = new VerificationRequest();
         request.setId(300L);
         request.setStatus(VerificationStatus.APPROVED);
-        lenient().when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
+        request.setUserId(1L);
+        when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
+        when(jwtTokenUtil.getUserIdFromAuthHeader("Bearer xyz")).thenReturn(1L);
 
         assertThrows(RejectNonPendingRequestException.class,
                 () -> verificationRequestService.denyVerificationRequest(300L, "Bearer xyz"));
