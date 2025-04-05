@@ -404,4 +404,44 @@ class EmployeeServiceTest {
 
         assertThrows(EntityNotFoundException.class, () -> employeeService.findByEmail("nope@raf.rs"));
     }
+
+
+    @Test
+    void testCreateEmployee_SuccessfulEmailAndAuthToken() throws Exception {
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setFirstName("Alice");
+        dto.setLastName("Wonderland");
+        Date birthDate = new Date();
+        dto.setBirthDate(birthDate);
+        dto.setGender("F");
+        dto.setEmail("alice@raf.rs");
+        dto.setActive(true);
+        dto.setPhone("1234567890");
+        dto.setAddress("Some Address");
+        dto.setUsername("alice123");
+        dto.setPosition("Developer");
+        dto.setDepartment("IT");
+        dto.setJmbg("1234567890123");
+        dto.setRole("EMPLOYEE");
+
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
+        when(userRepository.findByJmbg(dto.getJmbg())).thenReturn(Optional.empty());
+
+        Role role = new Role(1L, "EMPLOYEE", new HashSet<>());
+        when(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.of(role));
+        when(employeeRepository.save(any(Employee.class))).thenAnswer(invocation -> {
+            Employee emp = invocation.getArgument(0);
+            emp.setId(100L);
+            return emp;
+        });
+        when(authTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EmployeeDto result = employeeService.createEmployee(dto);
+
+        assertNotNull(result);
+        verify(rabbitTemplate, times(1)).convertAndSend(Optional.ofNullable(eq("set-password")), any());
+        verify(authTokenRepository, times(1)).save(any());
+    }
+
 }
