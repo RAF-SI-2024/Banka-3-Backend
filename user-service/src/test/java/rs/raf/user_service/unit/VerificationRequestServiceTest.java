@@ -114,8 +114,6 @@ public class VerificationRequestServiceTest {
     }
 
 
-
-
     @Test
     @DisplayName("denyVerificationRequest - should throw VerificationNotFoundException if request not found")
     void testDenyVerificationRequest_NotFound() {
@@ -148,5 +146,132 @@ public class VerificationRequestServiceTest {
         verify(bankClient, never()).confirmTransfer(anyLong());
         verify(verificationRequestRepository, never()).save(any());
     }
+
+    @Test
+    void testUpdateRequestStatus_Found() {
+        Long requestId = 1L;
+        VerificationRequest request = new VerificationRequest();
+        request.setId(requestId);
+        request.setStatus(VerificationStatus.PENDING);
+
+        when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(verificationRequestRepository.save(request)).thenReturn(request);
+
+        boolean result = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
+
+        assertTrue(result);
+        assertEquals(VerificationStatus.APPROVED, request.getStatus());
+        verify(verificationRequestRepository, times(1)).save(request);
+    }
+
+    @Test
+    void testUpdateRequestStatus_NotFound() {
+        Long requestId = 1L;
+        when(verificationRequestRepository.findById(requestId)).thenReturn(Optional.empty());
+
+        boolean result = verificationRequestService.updateRequestStatus(requestId, VerificationStatus.APPROVED);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void testGetActiveRequests() {
+        Long userId = 1L;
+        VerificationRequest req1 = new VerificationRequest();
+        req1.setId(1L);
+        VerificationRequest req2 = new VerificationRequest();
+        req2.setId(2L);
+        List<VerificationRequest> activeRequests = List.of(req1, req2);
+
+        when(verificationRequestRepository.findActiveRequests(userId)).thenReturn(activeRequests);
+
+        List<VerificationRequest> result = verificationRequestService.getActiveRequests(userId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(2L, result.get(1).getId());
+    }
+
+    @Test
+    void testGetRequestHistory() {
+        Long userId = 1L;
+        VerificationRequest req = new VerificationRequest();
+        req.setId(3L);
+        List<VerificationRequest> history = List.of(req);
+
+        when(verificationRequestRepository.findInactiveRequests(userId)).thenReturn(history);
+
+        List<VerificationRequest> result = verificationRequestService.getRequestHistory(userId);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(3L, result.get(0).getId());
+    }
+
+    @Test
+    void testDenyVerificationRequest_Success_ChangeLimit() {
+        Long requestId = 1L;
+        Long clientId = 100L;
+        String authHeader = "Bearer token";
+
+        VerificationRequest request = new VerificationRequest();
+        request.setId(requestId);
+        request.setUserId(clientId);
+        request.setTargetId(10L);
+        request.setStatus(VerificationStatus.PENDING);
+        request.setVerificationType(VerificationType.CHANGE_LIMIT);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+        when(verificationRequestRepository.findActiveRequest(requestId, clientId)).thenReturn(Optional.of(request));
+
+        verificationRequestService.denyVerificationRequest(requestId, authHeader);
+
+        assertEquals(VerificationStatus.DENIED, request.getStatus());
+        verify(verificationRequestRepository, times(1)).save(request);
+        verify(bankClient, times(1)).rejectChangeAccountLimit(request.getTargetId());
+    }
+
+    @Test
+    void testDenyVerificationRequest_NonPending_ThrowsException() {
+        Long requestId = 2L;
+        Long clientId = 100L;
+        String authHeader = "Bearer token";
+
+        VerificationRequest request = new VerificationRequest();
+        request.setId(requestId);
+        request.setUserId(clientId);
+        request.setTargetId(20L);
+        request.setStatus(VerificationStatus.APPROVED); // Nije PENDING
+        request.setVerificationType(VerificationType.PAYMENT);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(clientId);
+        when(verificationRequestRepository.findActiveRequest(requestId, clientId)).thenReturn(Optional.of(request));
+
+        assertThrows(RejectNonPendingRequestException.class,
+                () -> verificationRequestService.denyVerificationRequest(requestId, authHeader));
+
+        verify(verificationRequestRepository, never()).save(request);
+        verify(bankClient, never()).rejectConfirmPayment(anyLong());
+    }
+
+    @Test
+    void testCalledFromMobile_ReturnsTrue() {
+        boolean result = verificationRequestService.calledFromMobile("MobileApp/1.0");
+        assertTrue(result);
+    }
+
+    @Test
+    void testCalledFromMobile_ReturnsFalse_Null() {
+        boolean result = verificationRequestService.calledFromMobile(null);
+        assertFalse(result);
+    }
+
+    @Test
+    void testCalledFromMobile_ReturnsFalse_Other() {
+        boolean result = verificationRequestService.calledFromMobile("DesktopApp/1.0");
+        assertFalse(result);
+    }
+
 
 }
