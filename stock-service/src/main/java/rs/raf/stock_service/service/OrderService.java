@@ -115,7 +115,7 @@ public class OrderService {
 
         if (order.getDirection().equals(OrderDirection.SELL)) {
             PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
-                    orElseThrow(() -> new PortfolioEntryNotFoundException(userId, listing.getId()));
+                    orElseThrow(PortfolioEntryNotFoundException::new);
             BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
             BigDecimal sellPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getQuantity()));
             BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);

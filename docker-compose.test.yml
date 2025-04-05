@@ -4,6 +4,8 @@ services:
   main_db:
     image: postgres:17.3-alpine
     restart: always
+    ports:
+      - "5432:5432"
     volumes:
       - main_db_data:/var/lib/postgresql/data
     environment:
@@ -13,6 +15,8 @@ services:
   bank_db:
     image: postgres:17.3-alpine
     restart: always
+    ports:
+      - "5433:5432"
     volumes:
       - bank_db_data:/var/lib/postgresql/data
     environment:
@@ -22,6 +26,8 @@ services:
   stock_db:
     image: postgres:17.3-alpine
     restart: always
+    ports:
+      - "5434:5432"
     volumes:
       - stock_db_data:/var/lib/postgresql/data
     environment:
@@ -32,24 +38,30 @@ services:
     image: rabbitmq:3-management
     restart: always
     ports:
+      - "5672:5672"  # RabbitMQ port
       - "15672:15672"  # RabbitMQ management console port
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
   user-service:
-    image: harbor.k8s.elab.rs/banka-3/user-service:latest
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    image: user-service
     ports:
       - "8080:8080"
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://main_db/main_db
       SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_BANK-SERVICE_URL: http://bank-service:8080
     depends_on:
       - main_db
       - rabbitmq
   email-service:
-    image: harbor.k8s.elab.rs/banka-3/email-service:latest
+    build:
+      context: .
+      dockerfile: email-service/Dockerfile
+    image: email-service
     ports:
       - "8081:8080"
     environment:
@@ -60,7 +72,10 @@ services:
       - main_db
       - rabbitmq
   bank-service:
-    image: harbor.k8s.elab.rs/banka-3/bank-service:latest
+    build:
+      context: .
+      dockerfile: bank-service/Dockerfile
+    image: bank-service
     ports:
       - "8082:8080"
     environment:
@@ -72,14 +87,15 @@ services:
       - bank_db
       - rabbitmq
   stock-service:
-    image: harbor.k8s.elab.rs/banka-3/stock-service:latest
+    build:
+      context: .
+      dockerfile: stock-service/Dockerfile
+    image: stock-service
     ports:
       - "8083:8080"
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://stock_db/stock_db
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_USER-SERVICE_URL: http://user-service:8080
-      SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_BANK-SERVICE_URL: http://bank-service:8080
       SPRING_RABBITMQ_HOST: rabbitmq
       ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY}
     depends_on:

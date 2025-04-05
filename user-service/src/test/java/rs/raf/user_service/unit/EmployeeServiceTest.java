@@ -1,5 +1,6 @@
 package rs.raf.user_service.unit;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,8 +15,13 @@ import org.springframework.data.jpa.domain.Specification;
 import rs.raf.user_service.domain.dto.CreateEmployeeDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.UpdateEmployeeDto;
+import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.domain.entity.Role;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.RoleNotFoundException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
 import rs.raf.user_service.repository.RoleRepository;
@@ -300,5 +306,145 @@ class EmployeeServiceTest {
         verify(employeeRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("createEmployee - should throw EmailAlreadyExistsException if email already exists")
+    void testCreateEmployee_EmailAlreadyExists() {
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setEmail("existing@raf.rs");
+        dto.setUsername("new_user");
+        dto.setJmbg("9999999999999");
+        dto.setRole("EMPLOYEE");
+
+        when(userRepository.existsByEmail("existing@raf.rs")).thenReturn(true);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> employeeService.createEmployee(dto));
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createEmployee - should throw UserAlreadyExistsException if username already exists")
+    void testCreateEmployee_UserAlreadyExists() {
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setEmail("new@raf.rs");
+        dto.setUsername("existing_user");
+        dto.setJmbg("9999999999999");
+        dto.setRole("EMPLOYEE");
+
+        when(userRepository.existsByUsername("existing_user")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> employeeService.createEmployee(dto));
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createEmployee - should throw JmbgAlreadyExistsException if jmbg already exists")
+    void testCreateEmployee_JmbgAlreadyExists() {
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setEmail("new@raf.rs");
+        dto.setUsername("new_user");
+        dto.setJmbg("1111111111111");
+        dto.setRole("EMPLOYEE");
+
+        when(userRepository.findByJmbg("1111111111111")).thenReturn(Optional.of(new Employee()));
+
+        assertThrows(JmbgAlreadyExistsException.class, () -> employeeService.createEmployee(dto));
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createEmployee - should throw RoleNotFoundException if role is not found")
+    void testCreateEmployee_RoleNotFound() {
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setEmail("new@raf.rs");
+        dto.setUsername("new_user");
+        dto.setJmbg("1234567890123");
+        dto.setRole("NON_EXISTENT_ROLE");
+
+        when(roleRepository.findByName("NON_EXISTENT_ROLE")).thenReturn(Optional.empty());
+
+        assertThrows(RoleNotFoundException.class, () -> employeeService.createEmployee(dto));
+        verify(employeeRepository, never()).save(any());
+    }
+
+
+    @Test
+    @DisplayName("updateEmployee - should throw RoleNotFoundException if role is not found")
+    void testUpdateEmployee_RoleNotFound() {
+        Employee existingEmployee = new Employee();
+        when(employeeRepository.findById(1L)).thenReturn(Optional.of(existingEmployee));
+
+        when(roleRepository.findByName("SOME_RANDOM_ROLE")).thenReturn(Optional.empty());
+
+        UpdateEmployeeDto dto = new UpdateEmployeeDto("last", "F", "phone", "address", "pos", "dep", "SOME_RANDOM_ROLE");
+
+        assertThrows(RoleNotFoundException.class, () -> employeeService.updateEmployee(1L, dto));
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("findByEmail - should return EmployeeDto when employee with email exists")
+    void testFindByEmail_Success() {
+        Employee employee = new Employee();
+        employee.setEmail("someone@raf.rs");
+        employee.setUsername("user123");
+        employee.setActive(true);
+
+        when(employeeRepository.findByEmail("someone@raf.rs")).thenReturn(Optional.of(employee));
+
+        EmployeeDto dto = employeeService.findByEmail("someone@raf.rs");
+        assertNotNull(dto);
+        assertEquals("someone@raf.rs", dto.getEmail());
+        assertTrue(dto.isActive());
+    }
+
+    @Test
+    @DisplayName("findByEmail - should throw EntityNotFoundException if employee does not exist")
+    void testFindByEmail_NotFound() {
+        when(employeeRepository.findByEmail("nope@raf.rs")).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> employeeService.findByEmail("nope@raf.rs"));
+    }
+
+
+    @Test
+    void testCreateEmployee_SuccessfulEmailAndAuthToken() throws Exception {
+        // Priprema DTO objekta
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setFirstName("Alice");
+        dto.setLastName("Wonderland");
+        Date birthDate = new Date();
+        dto.setBirthDate(birthDate);
+        dto.setGender("F");
+        dto.setEmail("alice@raf.rs");
+        dto.setActive(true);
+        dto.setPhone("1234567890");
+        dto.setAddress("Some Address");
+        dto.setUsername("alice123");
+        dto.setPosition("Developer");
+        dto.setDepartment("IT");
+        dto.setJmbg("1234567890123");
+        dto.setRole("EMPLOYEE");
+
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
+        when(userRepository.findByJmbg(dto.getJmbg())).thenReturn(Optional.empty());
+
+        Role role = new Role(1L, "EMPLOYEE", new HashSet<>());
+        when(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.of(role));
+        when(employeeRepository.save(any(Employee.class))).thenAnswer(invocation -> {
+            Employee emp = invocation.getArgument(0);
+            emp.setId(100L);
+            return emp;
+        });
+        when(authTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        doNothing().when(rabbitTemplate).convertAndSend(eq("set-password"), any(Object.class));
+
+        EmployeeDto result = employeeService.createEmployee(dto);
+
+        assertNotNull(result);
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("set-password"), any(Object.class));
+        verify(authTokenRepository, times(1)).save(any());
+    }
 
 }

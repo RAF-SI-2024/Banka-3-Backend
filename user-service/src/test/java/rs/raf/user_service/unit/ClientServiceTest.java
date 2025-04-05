@@ -1,14 +1,15 @@
 package rs.raf.user_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import rs.raf.user_service.domain.dto.ClientDto;
 import rs.raf.user_service.domain.dto.CreateClientDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
@@ -16,12 +17,16 @@ import rs.raf.user_service.domain.dto.UpdateClientDto;
 import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.domain.mapper.ClientMapper;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.ClientService;
 
+import javax.persistence.EntityNotFoundException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -153,7 +158,7 @@ public class ClientServiceTest {
 
         Client existingClient = new Client();
         existingClient.setId(1L);
-        existingClient.setEmail("stari@example.com"); // Email se NE MENJA
+        existingClient.setEmail("stari@example.com");
         existingClient.setJmbg("1234567890123");
 
         Client updatedClient = new Client();
@@ -162,7 +167,7 @@ public class ClientServiceTest {
         updatedClient.setAddress(updateClientDTO.getAddress());
         updatedClient.setPhone(updateClientDTO.getPhone());
         updatedClient.setGender(updateClientDTO.getGender());
-        updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
+        updatedClient.setEmail(existingClient.getEmail());
         updatedClient.setJmbg(existingClient.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
@@ -209,4 +214,173 @@ public class ClientServiceTest {
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }
+
+    @Test
+    @DisplayName("addClient - should throw EmailAlreadyExistsException if email exists")
+    void testAddClient_EmailExists() {
+        CreateClientDto dto = new CreateClientDto();
+        dto.setEmail("existing@example.com");
+        dto.setUsername("newUser");
+        dto.setJmbg("0123456789012");
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+        when(userRepository.existsByUsername("newUser")).thenReturn(false);
+        when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
+
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
+
+        assertThrows(EmailAlreadyExistsException.class, () -> clientService.addClient(dto));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("addClient - should throw UserAlreadyExistsException if username exists")
+    void testAddClient_UsernameExists() {
+        CreateClientDto dto = new CreateClientDto();
+        dto.setEmail("new@example.com");
+        dto.setUsername("existingUsername");
+        dto.setJmbg("0123456789012");
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(userRepository.existsByUsername("existingUsername")).thenReturn(true);
+        when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
+
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
+
+        assertThrows(UserAlreadyExistsException.class, () -> clientService.addClient(dto));
+        verify(clientRepository, never()).save(any());
+    }
+
+
+    @Test
+    @DisplayName("getClientById - should return client if found")
+    void testGetClientById_Found() {
+        Client client = new Client();
+        client.setId(5L);
+        client.setEmail("client@example.com");
+
+        when(clientRepository.findById(5L)).thenReturn(Optional.of(client));
+        ClientDto dto = new ClientDto();
+        dto.setId(5L);
+        dto.setEmail("client@example.com");
+        when(clientMapper.toDto(client)).thenReturn(dto);
+
+        ClientDto result = clientService.getClientById(5L);
+
+        assertNotNull(result);
+        assertEquals("client@example.com", result.getEmail());
+    }
+
+
+    @Test
+    @DisplayName("updateClient - should throw EntityNotFoundException if client not found")
+    void testUpdateClient_NotFound() {
+        when(clientRepository.findById(123L)).thenReturn(Optional.empty());
+        UpdateClientDto dto = new UpdateClientDto();
+
+        assertThrows(EntityNotFoundException.class, () -> clientService.updateClient(123L, dto));
+        verify(clientRepository, never()).save(any(Client.class));
+    }
+
+    @Test
+    void testListClientsWithFilters() {
+        Client client = new Client();
+        client.setId(10L);
+        client.setFirstName("Marko");
+        client.setLastName("Markovic");
+        client.setEmail("marko@example.com");
+
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(10L);
+        clientDto.setEmail("marko@example.com");
+
+        Page<Client> page = new PageImpl<>(List.of(client));
+        when(clientRepository.findAll((Specification<Client>) any(), any(Pageable.class))).thenReturn(page);
+        when(clientMapper.toDto(client)).thenReturn(clientDto);
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Page<ClientDto> result = clientService.listClientsWithFilters("Marko", "Markovic", "marko@example.com", pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("marko@example.com", result.getContent().get(0).getEmail());
+    }
+
+    @Test
+    void testGetCurrentClient_Success() {
+        String email = "currentclient@example.com";
+        var authentication = mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn(email);
+        var securityContext = mock(org.springframework.security.core.context.SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        Client client = new Client();
+        client.setId(30L);
+        client.setEmail(email);
+
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(30L);
+        clientDto.setEmail(email);
+
+        when(clientRepository.findByEmail(email)).thenReturn(Optional.of(client));
+        when(clientMapper.toDto(client)).thenReturn(clientDto);
+
+        ClientDto result = clientService.getCurrentClient();
+        assertNotNull(result);
+        assertEquals(email, result.getEmail());
+    }
+
+
+    @Test
+    void testAddClient_ConstraintViolation() {
+        // Priprema: kreiramo DTO za dodavanje klijenta
+        CreateClientDto dto = new CreateClientDto();
+        dto.setFirstName("Test");
+        dto.setLastName("User");
+        dto.setEmail("testuser@example.com");
+        dto.setUsername("testuser");
+        dto.setJmbg("9999999999999");
+
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
+        when(userRepository.findByJmbg(dto.getJmbg())).thenReturn(Optional.empty());
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        client.setPassword("");
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
+        client.setRole(role);
+
+        when(clientRepository.save(client))
+                .thenThrow(new javax.validation.ConstraintViolationException("error", Collections.emptySet()));
+
+        assertThrows(EmailAlreadyExistsException.class, () -> clientService.addClient(dto));
+    }
+
 }

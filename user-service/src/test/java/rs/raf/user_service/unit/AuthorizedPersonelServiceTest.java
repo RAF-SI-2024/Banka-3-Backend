@@ -8,7 +8,6 @@ import org.mockito.MockitoAnnotations;
 import rs.raf.user_service.domain.dto.AuthorizedPersonelDto;
 import rs.raf.user_service.domain.dto.CreateAuthorizedPersonelDto;
 import rs.raf.user_service.domain.entity.AuthorizedPersonel;
-import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.domain.entity.Company;
 import rs.raf.user_service.domain.mapper.AuthorizedPersonelMapper;
 import rs.raf.user_service.repository.AuthorizedPersonelRepository;
@@ -43,13 +42,15 @@ class AuthorizedPersonelServiceTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    // ---------------------------------------------------------------
+    //  createAuthorizedPersonel(...)
+    // ---------------------------------------------------------------
     @Test
     void createAuthorizedPersonel_Success() {
         // Arrange
         CreateAuthorizedPersonelDto createDto = new CreateAuthorizedPersonelDto();
         createDto.setFirstName("John");
         createDto.setLastName("Doe");
-//         createDto.setDateOfBirth(LocalDate.of(2000, 1, 1).toEpochDay());
         createDto.setDateOfBirth(LocalDate.of(2000,1,1)); // 2000-01-01
         createDto.setGender("Male");
         createDto.setEmail("john.doe@example.com");
@@ -107,6 +108,9 @@ class AuthorizedPersonelServiceTest {
         verify(authorizedPersonelRepository, never()).save(any());
     }
 
+    // ---------------------------------------------------------------
+    //  getAuthorizedPersonelByCompany(...)
+    // ---------------------------------------------------------------
     @Test
     void getAuthorizedPersonelByCompany_Success() {
         // Arrange
@@ -152,6 +156,21 @@ class AuthorizedPersonelServiceTest {
     }
 
     @Test
+    void getAuthorizedPersonelByCompany_CompanyNotFound() {
+        // Arrange
+        when(companyRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> authorizedPersonelService.getAuthorizedPersonelByCompany(999L));
+        verify(companyRepository).findById(999L);
+        verify(authorizedPersonelRepository, never()).findByCompany(any());
+        verify(authorizedPersonelMapper, never()).toDto(any());
+    }
+
+    // ---------------------------------------------------------------
+    //  getAuthorizedPersonelById(...)
+    // ---------------------------------------------------------------
+    @Test
     void getAuthorizedPersonelById_Success() {
         // Arrange
         AuthorizedPersonel person = new AuthorizedPersonel();
@@ -187,12 +206,19 @@ class AuthorizedPersonelServiceTest {
         verify(authorizedPersonelMapper, never()).toDto(any());
     }
 
+    // ---------------------------------------------------------------
+    //  updateAuthorizedPersonel(...)
+    // ---------------------------------------------------------------
     @Test
     void updateAuthorizedPersonel_Success() {
         // Arrange
         CreateAuthorizedPersonelDto updateDto = new CreateAuthorizedPersonelDto();
         updateDto.setFirstName("Updated John");
         updateDto.setLastName("Doe");
+        updateDto.setGender("Male");
+        updateDto.setEmail("new_email@test.com");
+        updateDto.setPhoneNumber("9876543210");
+        updateDto.setAddress("New Address");
         updateDto.setCompanyId(1L);
 
         AuthorizedPersonel existingPerson = new AuthorizedPersonel();
@@ -226,6 +252,46 @@ class AuthorizedPersonelServiceTest {
     }
 
     @Test
+    void updateAuthorizedPersonel_PersonnelNotFound() {
+        // Arrange
+        CreateAuthorizedPersonelDto updateDto = new CreateAuthorizedPersonelDto();
+        updateDto.setCompanyId(1L);
+
+        when(authorizedPersonelRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () ->
+                authorizedPersonelService.updateAuthorizedPersonel(999L, updateDto)
+        );
+
+        verify(companyRepository, never()).findById(anyLong());
+        verify(authorizedPersonelRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAuthorizedPersonel_CompanyNotFound() {
+        // Arrange
+        CreateAuthorizedPersonelDto updateDto = new CreateAuthorizedPersonelDto();
+        updateDto.setCompanyId(999L);
+
+        AuthorizedPersonel existingPerson = new AuthorizedPersonel();
+        existingPerson.setId(1L);
+
+        when(authorizedPersonelRepository.findById(1L)).thenReturn(Optional.of(existingPerson));
+        when(companyRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () ->
+                authorizedPersonelService.updateAuthorizedPersonel(1L, updateDto)
+        );
+
+        verify(authorizedPersonelRepository, never()).save(any());
+    }
+
+    // ---------------------------------------------------------------
+    //  deleteAuthorizedPersonel(...)
+    // ---------------------------------------------------------------
+    @Test
     void deleteAuthorizedPersonel_Success() {
         // Arrange
         when(authorizedPersonelRepository.existsById(1L)).thenReturn(true);
@@ -249,4 +315,3 @@ class AuthorizedPersonelServiceTest {
         verify(authorizedPersonelRepository, never()).deleteById(any());
     }
 }
-
