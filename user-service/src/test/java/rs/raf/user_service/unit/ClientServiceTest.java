@@ -158,7 +158,7 @@ public class ClientServiceTest {
 
         Client existingClient = new Client();
         existingClient.setId(1L);
-        existingClient.setEmail("stari@example.com"); // Email se NE MENJA
+        existingClient.setEmail("stari@example.com");
         existingClient.setJmbg("1234567890123");
 
         Client updatedClient = new Client();
@@ -167,7 +167,7 @@ public class ClientServiceTest {
         updatedClient.setAddress(updateClientDTO.getAddress());
         updatedClient.setPhone(updateClientDTO.getPhone());
         updatedClient.setGender(updateClientDTO.getGender());
-        updatedClient.setEmail(existingClient.getEmail()); // Email ostaje isti
+        updatedClient.setEmail(existingClient.getEmail());
         updatedClient.setJmbg(existingClient.getJmbg());
 
         ClientDto expectedDTO = new ClientDto(
@@ -302,7 +302,6 @@ public class ClientServiceTest {
 
     @Test
     void testListClientsWithFilters() {
-        // Priprema: kreiramo klijenta sa određenim vrednostima
         Client client = new Client();
         client.setId(10L);
         client.setFirstName("Marko");
@@ -313,7 +312,6 @@ public class ClientServiceTest {
         clientDto.setId(10L);
         clientDto.setEmail("marko@example.com");
 
-        // Stub-ovanje: repository vraća stranicu sa jednim klijentom
         Page<Client> page = new PageImpl<>(List.of(client));
         when(clientRepository.findAll((Specification<Client>) any(), any(Pageable.class))).thenReturn(page);
         when(clientMapper.toDto(client)).thenReturn(clientDto);
