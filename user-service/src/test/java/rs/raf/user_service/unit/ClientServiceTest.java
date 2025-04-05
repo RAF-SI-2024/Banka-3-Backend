@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import rs.raf.user_service.domain.dto.ClientDto;
 import rs.raf.user_service.domain.dto.CreateClientDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
@@ -298,5 +300,89 @@ public class ClientServiceTest {
         verify(clientRepository, never()).save(any(Client.class));
     }
 
+    @Test
+    void testListClientsWithFilters() {
+        // Priprema: kreiramo klijenta sa određenim vrednostima
+        Client client = new Client();
+        client.setId(10L);
+        client.setFirstName("Marko");
+        client.setLastName("Markovic");
+        client.setEmail("marko@example.com");
+
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(10L);
+        clientDto.setEmail("marko@example.com");
+
+        // Stub-ovanje: repository vraća stranicu sa jednim klijentom
+        Page<Client> page = new PageImpl<>(List.of(client));
+        when(clientRepository.findAll((Specification<Client>) any(), any(Pageable.class))).thenReturn(page);
+        when(clientMapper.toDto(client)).thenReturn(clientDto);
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Page<ClientDto> result = clientService.listClientsWithFilters("Marko", "Markovic", "marko@example.com", pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("marko@example.com", result.getContent().get(0).getEmail());
+    }
+
+    @Test
+    void testGetCurrentClient_Success() {
+        String email = "currentclient@example.com";
+        var authentication = mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn(email);
+        var securityContext = mock(org.springframework.security.core.context.SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        Client client = new Client();
+        client.setId(30L);
+        client.setEmail(email);
+
+        ClientDto clientDto = new ClientDto();
+        clientDto.setId(30L);
+        clientDto.setEmail(email);
+
+        when(clientRepository.findByEmail(email)).thenReturn(Optional.of(client));
+        when(clientMapper.toDto(client)).thenReturn(clientDto);
+
+        ClientDto result = clientService.getCurrentClient();
+        assertNotNull(result);
+        assertEquals(email, result.getEmail());
+    }
+
+
+    @Test
+    void testAddClient_ConstraintViolation() {
+        // Priprema: kreiramo DTO za dodavanje klijenta
+        CreateClientDto dto = new CreateClientDto();
+        dto.setFirstName("Test");
+        dto.setLastName("User");
+        dto.setEmail("testuser@example.com");
+        dto.setUsername("testuser");
+        dto.setJmbg("9999999999999");
+
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
+        when(userRepository.findByJmbg(dto.getJmbg())).thenReturn(Optional.empty());
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        client.setPassword("");
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
+        client.setRole(role);
+
+        when(clientRepository.save(client))
+                .thenThrow(new javax.validation.ConstraintViolationException("error", Collections.emptySet()));
+
+        assertThrows(EmailAlreadyExistsException.class, () -> clientService.addClient(dto));
+    }
 
 }
