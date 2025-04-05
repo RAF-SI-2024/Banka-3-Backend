@@ -1,14 +1,13 @@
 package rs.raf.user_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
 import rs.raf.user_service.domain.dto.ClientDto;
 import rs.raf.user_service.domain.dto.CreateClientDto;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
@@ -16,12 +15,16 @@ import rs.raf.user_service.domain.dto.UpdateClientDto;
 import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.domain.entity.Role;
 import rs.raf.user_service.domain.mapper.ClientMapper;
+import rs.raf.user_service.exceptions.EmailAlreadyExistsException;
+import rs.raf.user_service.exceptions.JmbgAlreadyExistsException;
+import rs.raf.user_service.exceptions.UserAlreadyExistsException;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.RoleRepository;
 import rs.raf.user_service.repository.UserRepository;
 import rs.raf.user_service.service.ClientService;
 
+import javax.persistence.EntityNotFoundException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -209,4 +212,74 @@ public class ClientServiceTest {
         assertNotNull(clients);
         assertTrue(clients.isEmpty());
     }
+
+    @Test
+    @DisplayName("addClient - should throw EmailAlreadyExistsException if email exists")
+    void testAddClient_EmailExists() {
+        CreateClientDto dto = new CreateClientDto();
+        dto.setEmail("existing@example.com");
+        dto.setUsername("newUser");
+        dto.setJmbg("0123456789012");
+
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> clientService.addClient(dto));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("addClient - should throw UserAlreadyExistsException if username exists")
+    void testAddClient_UsernameExists() {
+        CreateClientDto dto = new CreateClientDto();
+        dto.setEmail("new@example.com");
+        dto.setUsername("existingUsername");
+        dto.setJmbg("0123456789012");
+
+        when(userRepository.existsByUsername("existingUsername")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> clientService.addClient(dto));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("addClient - should throw JmbgAlreadyExistsException if jmbg exists")
+    void testAddClient_JmbgExists() {
+        CreateClientDto dto = new CreateClientDto();
+        dto.setEmail("user@example.com");
+        dto.setUsername("someUser");
+        dto.setJmbg("1234567890123");
+
+        Client existingClient = new Client();
+        when(clientRepository.findByJmbg("1234567890123")).thenReturn(Optional.of(existingClient));
+
+        assertThrows(JmbgAlreadyExistsException.class, () -> clientService.addClient(dto));
+        verify(clientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("getClientById - should return client if found")
+    void testGetClientById_Found() {
+        Client client = new Client();
+        client.setId(5L);
+        client.setEmail("client@example.com");
+
+        when(clientRepository.findById(5L)).thenReturn(Optional.of(client));
+
+        ClientDto result = clientService.getClientById(5L);
+
+        assertNotNull(result);
+        assertEquals("client@example.com", result.getEmail());
+    }
+
+
+    @Test
+    @DisplayName("updateClient - should throw EntityNotFoundException if client not found")
+    void testUpdateClient_NotFound() {
+        when(clientRepository.findById(123L)).thenReturn(Optional.empty());
+        UpdateClientDto dto = new UpdateClientDto();
+
+        assertThrows(EntityNotFoundException.class, () -> clientService.updateClient(123L, dto));
+        verify(clientRepository, never()).save(any(Client.class));
+    }
+
 }

@@ -1,6 +1,8 @@
 package rs.raf.user_service.unit;
 
 
+import feign.FeignException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,10 +13,13 @@ import rs.raf.user_service.domain.dto.CreateVerificationRequestDto;
 import rs.raf.user_service.domain.entity.VerificationRequest;
 import rs.raf.user_service.domain.enums.VerificationStatus;
 import rs.raf.user_service.domain.enums.VerificationType;
+import rs.raf.user_service.exceptions.RejectNonPendingRequestException;
+import rs.raf.user_service.exceptions.VerificationNotFoundException;
 import rs.raf.user_service.repository.VerificationRequestRepository;
 import rs.raf.user_service.service.VerificationRequestService;
 import rs.raf.user_service.utils.JwtTokenUtil;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -107,4 +112,53 @@ public class VerificationRequestServiceTest {
 
         verify(verificationRequestRepository, times(1)).save(any(VerificationRequest.class));
     }
+
+
+
+
+    @Test
+    @DisplayName("denyVerificationRequest - should throw VerificationNotFoundException if request not found")
+    void testDenyVerificationRequest_NotFound() {
+        when(verificationRequestRepository.findById(404L)).thenReturn(Optional.empty());
+        assertThrows(VerificationNotFoundException.class,
+                () -> verificationRequestService.denyVerificationRequest(404L, "Bearer xyz"));
+    }
+
+    @Test
+    @DisplayName("denyVerificationRequest - should throw RejectNonPendingRequestException if not pending")
+    void testDenyVerificationRequest_NotPending() {
+        VerificationRequest request = new VerificationRequest();
+        request.setId(300L);
+        request.setStatus(VerificationStatus.APPROVED);
+        when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
+
+        assertThrows(RejectNonPendingRequestException.class,
+                () -> verificationRequestService.denyVerificationRequest(300L, "Bearer xyz"));
+    }
+
+
+    @Test
+    @DisplayName("processApproval - should return false if request not found")
+    void testProcessApproval_NotFound() {
+        when(verificationRequestRepository.findById(1L)).thenReturn(Optional.empty());
+        boolean result = verificationRequestService.processApproval(1L, "Bearer abc");
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("processApproval - should do nothing if already approved or denied")
+    void testProcessApproval_AlreadyProcessed() {
+        VerificationRequest request = new VerificationRequest();
+        request.setId(2L);
+        request.setStatus(VerificationStatus.APPROVED);
+        when(verificationRequestRepository.findById(2L)).thenReturn(Optional.of(request));
+
+        boolean result = verificationRequestService.processApproval(2L, "Bearer abc");
+        assertFalse(result);
+
+        verify(bankClient, never()).confirmPayment(anyLong());
+        verify(bankClient, never()).confirmTransfer(anyLong());
+        verify(verificationRequestRepository, never()).save(any());
+    }
+
 }

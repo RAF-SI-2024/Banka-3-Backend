@@ -161,4 +161,7 @@ class UserServiceTest {
         assertEquals("User does not have this role", exception.getMessage());
         verify(userRepository, never()).save(user);
     }
+
+
+
 }
