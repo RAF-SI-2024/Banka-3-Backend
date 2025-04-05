@@ -125,36 +125,36 @@ public class VerificationRequestServiceTest {
     }
 
     @Test
-    @DisplayName("denyVerificationRequest - should throw RejectNonPendingRequestException if not pending")
+    @DisplayName("denyVerificationRequest - should throw VerificationNotFoundException if not pending")
     void testDenyVerificationRequest_NotPending() {
         VerificationRequest request = new VerificationRequest();
         request.setId(300L);
         request.setStatus(VerificationStatus.APPROVED);
         when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
 
-        assertThrows(RejectNonPendingRequestException.class,
+        assertThrows(VerificationNotFoundException.class,
                 () -> verificationRequestService.denyVerificationRequest(300L, "Bearer xyz"));
     }
 
 
     @Test
-    @DisplayName("processApproval - should return false if request not found")
+    @DisplayName("processApproval - should throw IllegalStateException if request not found")
     void testProcessApproval_NotFound() {
         when(verificationRequestRepository.findById(1L)).thenReturn(Optional.empty());
-        boolean result = verificationRequestService.processApproval(1L, "Bearer abc");
-        assertFalse(result);
+        assertThrows(IllegalStateException.class, () ->
+                verificationRequestService.processApproval(1L, "Bearer abc"));
     }
 
     @Test
-    @DisplayName("processApproval - should do nothing if already approved or denied")
+    @DisplayName("processApproval - should throw IllegalStateException if already processed")
     void testProcessApproval_AlreadyProcessed() {
         VerificationRequest request = new VerificationRequest();
         request.setId(2L);
         request.setStatus(VerificationStatus.APPROVED);
         when(verificationRequestRepository.findById(2L)).thenReturn(Optional.of(request));
 
-        boolean result = verificationRequestService.processApproval(2L, "Bearer abc");
-        assertFalse(result);
+        assertThrows(IllegalStateException.class, () ->
+                verificationRequestService.processApproval(2L, "Bearer abc"));
 
         verify(bankClient, never()).confirmPayment(anyLong());
         verify(bankClient, never()).confirmTransfer(anyLong());

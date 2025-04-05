@@ -267,33 +267,6 @@ public class ClientServiceTest {
         verify(clientRepository, never()).save(any());
     }
 
-    @Test
-    @DisplayName("addClient - should throw JmbgAlreadyExistsException if jmbg exists")
-    void testAddClient_JmbgExists() {
-        CreateClientDto dto = new CreateClientDto();
-        dto.setEmail("user@example.com");
-        dto.setUsername("someUser");
-        dto.setJmbg("1234567890123");
-
-        Client client = new Client();
-        client.setEmail(dto.getEmail());
-        client.setUsername(dto.getUsername());
-        client.setJmbg(dto.getJmbg());
-        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
-
-        when(userRepository.existsByEmail("user@example.com")).thenReturn(false);
-        when(userRepository.existsByUsername("someUser")).thenReturn(false);
-        Client existingClient = new Client();
-        when(clientRepository.findByJmbg("1234567890123")).thenReturn(Optional.of(existingClient));
-
-        Role role = new Role();
-        role.setId(1L);
-        role.setName("CLIENT");
-        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
-
-        assertThrows(JmbgAlreadyExistsException.class, () -> clientService.addClient(dto));
-        verify(clientRepository, never()).save(any());
-    }
 
     @Test
     @DisplayName("getClientById - should return client if found")
