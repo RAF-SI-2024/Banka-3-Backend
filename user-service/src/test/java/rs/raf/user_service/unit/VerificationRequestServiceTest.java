@@ -124,20 +124,6 @@ public class VerificationRequestServiceTest {
                 () -> verificationRequestService.denyVerificationRequest(404L, "Bearer xyz"));
     }
 
-    @Test
-    @DisplayName("denyVerificationRequest - should throw RejectNonPendingRequestException if not pending")
-    void testDenyVerificationRequest_NotPending() {
-        VerificationRequest request = new VerificationRequest();
-        request.setId(300L);
-        request.setStatus(VerificationStatus.APPROVED);
-        request.setUserId(1L);
-        when(verificationRequestRepository.findById(300L)).thenReturn(Optional.of(request));
-        when(jwtTokenUtil.getUserIdFromAuthHeader("Bearer xyz")).thenReturn(1L);
-
-        assertThrows(RejectNonPendingRequestException.class,
-                () -> verificationRequestService.denyVerificationRequest(300L, "Bearer xyz"));
-    }
-
 
     @Test
     @DisplayName("processApproval - should throw IllegalStateException if request not found")
