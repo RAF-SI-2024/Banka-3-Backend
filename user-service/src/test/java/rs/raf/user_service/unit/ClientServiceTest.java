@@ -220,8 +220,13 @@ public class ClientServiceTest {
         dto.setEmail("existing@example.com");
         dto.setUsername("newUser");
         dto.setJmbg("0123456789012");
-
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+        when(userRepository.existsByUsername("newUser")).thenReturn(false);
+        when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
 
         assertThrows(EmailAlreadyExistsException.class, () -> clientService.addClient(dto));
         verify(clientRepository, never()).save(any());
@@ -234,8 +239,15 @@ public class ClientServiceTest {
         dto.setEmail("new@example.com");
         dto.setUsername("existingUsername");
         dto.setJmbg("0123456789012");
-
+        // Stubujemo da username postoji, dok email i jmbg ne postoje
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(userRepository.existsByUsername("existingUsername")).thenReturn(true);
+        when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
+        // Stubujemo pronalazak uloge
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
 
         assertThrows(UserAlreadyExistsException.class, () -> clientService.addClient(dto));
         verify(clientRepository, never()).save(any());
@@ -248,9 +260,14 @@ public class ClientServiceTest {
         dto.setEmail("user@example.com");
         dto.setUsername("someUser");
         dto.setJmbg("1234567890123");
-
+        when(userRepository.existsByEmail("user@example.com")).thenReturn(false);
+        when(userRepository.existsByUsername("someUser")).thenReturn(false);
         Client existingClient = new Client();
         when(clientRepository.findByJmbg("1234567890123")).thenReturn(Optional.of(existingClient));
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("CLIENT");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(role));
 
         assertThrows(JmbgAlreadyExistsException.class, () -> clientService.addClient(dto));
         verify(clientRepository, never()).save(any());
@@ -264,6 +281,10 @@ public class ClientServiceTest {
         client.setEmail("client@example.com");
 
         when(clientRepository.findById(5L)).thenReturn(Optional.of(client));
+        ClientDto dto = new ClientDto();
+        dto.setId(5L);
+        dto.setEmail("client@example.com");
+        when(clientMapper.toDto(client)).thenReturn(dto);
 
         ClientDto result = clientService.getClientById(5L);
 
@@ -281,5 +302,6 @@ public class ClientServiceTest {
         assertThrows(EntityNotFoundException.class, () -> clientService.updateClient(123L, dto));
         verify(clientRepository, never()).save(any(Client.class));
     }
+
 
 }
