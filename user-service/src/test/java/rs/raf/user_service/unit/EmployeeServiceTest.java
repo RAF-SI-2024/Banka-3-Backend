@@ -408,6 +408,7 @@ class EmployeeServiceTest {
 
     @Test
     void testCreateEmployee_SuccessfulEmailAndAuthToken() throws Exception {
+        // Priprema DTO objekta
         CreateEmployeeDto dto = new CreateEmployeeDto();
         dto.setFirstName("Alice");
         dto.setLastName("Wonderland");
@@ -424,10 +425,12 @@ class EmployeeServiceTest {
         dto.setJmbg("1234567890123");
         dto.setRole("EMPLOYEE");
 
+        // Stub-ovanje za provere postojanja
         when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
         when(userRepository.findByJmbg(dto.getJmbg())).thenReturn(Optional.empty());
 
+        // Stub-ovanje pronalaska role i čuvanja zaposlenog
         Role role = new Role(1L, "EMPLOYEE", new HashSet<>());
         when(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.of(role));
         when(employeeRepository.save(any(Employee.class))).thenAnswer(invocation -> {
@@ -437,10 +440,15 @@ class EmployeeServiceTest {
         });
         when(authTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
+        // Stub-ovanje za RabbitTemplate convertAndSend
+        doNothing().when(rabbitTemplate).convertAndSend(eq("set-password"), any(Object.class));
+
+        // Poziv metode
         EmployeeDto result = employeeService.createEmployee(dto);
 
+        // Assercije i verifikacije
         assertNotNull(result);
-        verify(rabbitTemplate, times(1)).convertAndSend(Optional.ofNullable(eq("set-password")), any());
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("set-password"), any(Object.class));
         verify(authTokenRepository, times(1)).save(any());
     }
 
