@@ -7,12 +7,14 @@ import org.springframework.stereotype.Component;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ public class BootstrapData implements CommandLineRunner {
     private final OptionRepository optionRepository;
     private final AlphavantageClient alphavantageClient;
     private final ApplicationContext applicationContext;
+    private final OtcOfferRepository otcOfferRepository;
 
     @Override
     public void run(String... args) {
@@ -51,6 +54,7 @@ public class BootstrapData implements CommandLineRunner {
         getSelfProxy().importForexPairsAndPriceHistory();
         getSelfProxy().addFutures();
         getSelfProxy().addOptionsForStocks();
+        getSelfProxy().insertOtcOfferExample();
     }
 
     @Transactional
@@ -126,6 +130,35 @@ public class BootstrapData implements CommandLineRunner {
         optionRepository.saveAll(optionsToSave);
         System.out.println("Options successfully imported.");
     }
+
+    @Transactional
+    public void insertOtcOfferExample() {
+        Option option = optionRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("No options found"));
+
+        Stock stock = option.getUnderlyingStock();
+
+        OtcOffer offer = OtcOffer.builder()
+                .stock(stock)
+                .option(option)
+                .buyerId(1L)
+                .sellerId(2L)
+                .amount(50)
+                .pricePerStock(new BigDecimal("100.00"))
+                .premium(new BigDecimal("10.00"))
+                .settlementDate(LocalDate.now().plusDays(3))
+                .lastModified(LocalDate.now().atStartOfDay())
+                .lastModifiedById(2L)
+                .status(OtcOfferStatus.PENDING)
+                .build();
+
+        otcOfferRepository.save(offer);
+        option.setOffer(offer);
+        optionRepository.save(option);
+    }
+
+
+
 
     private void importStocks() {
         System.out.println("Importing selected stocks...");

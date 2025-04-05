@@ -22,4 +22,16 @@ public interface BankClient {
 
     @PostMapping("/api/payment/tax")
     void handleTax(@RequestBody TaxDto taxDto);
+
+    @PostMapping("/api/payment")
+    ResponseEntity<PaymentDto> createPayment(@RequestBody CreatePaymentDto dto);
+
+    @GetMapping("/api/account/client/{clientId}/account-number")
+    ResponseEntity<String> getAccountNumberByClientId(@PathVariable("clientId") Long clientId);
+
+    @PostMapping("/api/payment/reject-payment/{paymentId}")
+    void rejectPayment(@PathVariable("paymentId") Long paymentId);
+
+
+
 }

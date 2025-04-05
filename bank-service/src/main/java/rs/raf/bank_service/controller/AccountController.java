@@ -22,6 +22,7 @@ import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
@@ -258,6 +259,19 @@ public class AccountController {
         } catch (AccountNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
+
+
+    //Za Cto
+    @GetMapping("/client/{clientId}/account-number")
+    public ResponseEntity<String> getAccountNumberByClientId(@PathVariable Long clientId) {
+        List<AccountDto> accounts = accountService.getAccountsForClient(clientId);
+
+        if (accounts.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(accounts.get(0).getAccountNumber());
     }
 
     // Globalni Exception Handleri

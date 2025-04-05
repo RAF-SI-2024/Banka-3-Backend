@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
@@ -185,4 +186,51 @@ public class PortfolioService {
         }
         return taxGetResponseDto;
     }
+
+
+
+    @Transactional
+    public void transferStockOwnership(Long fromUserId, Long toUserId, Stock stock, int quantity) {
+
+        PortfolioEntry sellerEntry = portfolioEntryRepository
+                .findByUserIdAndListing(fromUserId, stock)
+                .orElseThrow(() -> new RuntimeException("Seller does not own the stock"));
+
+        if (sellerEntry.getAmount() < quantity) {
+            throw new RuntimeException("Seller does not have enough stocks");
+        }
+
+        sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
+        sellerEntry.setLastModified(LocalDateTime.now());
+
+        if (sellerEntry.getAmount() == 0) {
+            portfolioEntryRepository.delete(sellerEntry);
+        } else {
+            portfolioEntryRepository.save(sellerEntry);
+        }
+
+        PortfolioEntry buyerEntry = portfolioEntryRepository
+                .findByUserIdAndListing(toUserId, stock)
+                .orElse(null);
+
+        if (buyerEntry == null) {
+            buyerEntry = PortfolioEntry.builder()
+                    .userId(toUserId)
+                    .listing(stock)
+                    .type(ListingType.STOCK)
+                    .amount(quantity)
+                    .averagePrice(stock.getPrice())
+                    .publicAmount(0)
+                    .inTheMoney(false)
+                    .used(false)
+                    .lastModified(LocalDateTime.now())
+                    .build();
+        } else {
+            buyerEntry.setAmount(buyerEntry.getAmount() + quantity);
+            buyerEntry.setLastModified(LocalDateTime.now());
+        }
+
+        portfolioEntryRepository.save(buyerEntry);
+    }
+
 }
