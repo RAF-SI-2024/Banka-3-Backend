@@ -220,9 +220,17 @@ public class ClientServiceTest {
         dto.setEmail("existing@example.com");
         dto.setUsername("newUser");
         dto.setJmbg("0123456789012");
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
         when(userRepository.existsByUsername("newUser")).thenReturn(false);
         when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
+
         Role role = new Role();
         role.setId(1L);
         role.setName("CLIENT");
@@ -239,11 +247,17 @@ public class ClientServiceTest {
         dto.setEmail("new@example.com");
         dto.setUsername("existingUsername");
         dto.setJmbg("0123456789012");
-        // Stubujemo da username postoji, dok email i jmbg ne postoje
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(userRepository.existsByUsername("existingUsername")).thenReturn(true);
         when(clientRepository.findByJmbg("0123456789012")).thenReturn(Optional.empty());
-        // Stubujemo pronalazak uloge
+
         Role role = new Role();
         role.setId(1L);
         role.setName("CLIENT");
@@ -260,10 +274,18 @@ public class ClientServiceTest {
         dto.setEmail("user@example.com");
         dto.setUsername("someUser");
         dto.setJmbg("1234567890123");
+
+        Client client = new Client();
+        client.setEmail(dto.getEmail());
+        client.setUsername(dto.getUsername());
+        client.setJmbg(dto.getJmbg());
+        when(clientMapper.fromCreateDto(dto)).thenReturn(client);
+
         when(userRepository.existsByEmail("user@example.com")).thenReturn(false);
         when(userRepository.existsByUsername("someUser")).thenReturn(false);
         Client existingClient = new Client();
         when(clientRepository.findByJmbg("1234567890123")).thenReturn(Optional.of(existingClient));
+
         Role role = new Role();
         role.setId(1L);
         role.setName("CLIENT");
