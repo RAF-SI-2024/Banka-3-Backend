@@ -39,6 +39,7 @@ public class OtcOffer {
     private OtcOfferStatus status;
 
     @OneToOne
-    private Option option;
+    @JoinColumn(name = "otc_option_id")
+    private OtcOption otcOption;
 
 }
