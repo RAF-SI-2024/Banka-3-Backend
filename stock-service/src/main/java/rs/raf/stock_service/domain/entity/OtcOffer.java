@@ -39,6 +39,6 @@ public class OtcOffer {
     private OtcOfferStatus status;
 
     @OneToOne
-    private Option option;
+    private OtcOption otcOption;
 
 }
