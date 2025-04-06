@@ -20,5 +20,5 @@ import java.util.List;
 @RequiredArgsConstructor
 public class Client extends BaseUser {
     @OneToMany(mappedBy = "majorityOwner", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Company> companies;
+    private List<Company> companies = new ArrayList<>();
 }
