@@ -52,13 +52,17 @@ public class OrderController {
             description = "Returns a list of orders made by a specific user."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved orders")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved orders"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized attempt at getting user's orders.")
     })
     @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT') or hasRole('CLIENT')")
     @GetMapping("/{id}")
-    public ResponseEntity<List<OrderDto>> getOrdersByUser(@PathVariable Long id) {
-
-        return ResponseEntity.ok(orderService.getOrdersByUser(id));
+    public ResponseEntity<?> getOrdersByUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(orderService.getOrdersByUser(id, authHeader));
+        } catch (UnauthorizedException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT') or hasRole('CLIENT')")

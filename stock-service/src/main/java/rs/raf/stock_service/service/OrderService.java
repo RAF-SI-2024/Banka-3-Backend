@@ -27,6 +27,7 @@ import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -58,8 +59,15 @@ public class OrderService {
                 dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))));
     }
 
-    public List<OrderDto> getOrdersByUser(Long userId){
-        List<Order> ordersList = orderRepository.findAllByUserId(userId);
+    public List<OrderDto> getOrdersByUser(Long userId, String authHeader){
+        Long userIdFromAuth = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+        List<Order> ordersList;
+        if (userId.equals(userIdFromAuth) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")){
+            ordersList = orderRepository.findAllByUserId(userId);
+        }else{
+            throw new UnauthorizedException("Unauthorized attempt at getting user's orders.");
+        }
 
         return ordersList.stream().map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
                 dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing())))).toList();
