@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PublicStockDto {
-
+        private Long portfolioEntryId;
         private String security;
         private String ticker;
         private Integer amount;
