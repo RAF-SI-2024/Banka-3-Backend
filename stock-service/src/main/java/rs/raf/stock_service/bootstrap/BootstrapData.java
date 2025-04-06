@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
@@ -42,6 +43,7 @@ public class BootstrapData implements CommandLineRunner {
     private final OptionRepository optionRepository;
     private final AlphavantageClient alphavantageClient;
     private final ApplicationContext applicationContext;
+    private final PortfolioEntryRepository portfolioEntryRepository;
 
     @Override
     public void run(String... args) {
@@ -51,6 +53,40 @@ public class BootstrapData implements CommandLineRunner {
         getSelfProxy().importForexPairsAndPriceHistory();
         getSelfProxy().addFutures();
         getSelfProxy().addOptionsForStocks();
+
+        getSelfProxy().addPortfolioAndOtcTestData();
+    }
+
+    @Transactional
+    public void addPortfolioAndOtcTestData() {
+        PortfolioEntry portfolioEntry1 = PortfolioEntry.builder()
+                .id(1L)
+                .amount(100)
+                .type(ListingType.STOCK)
+                .used(false)
+                .averagePrice(new BigDecimal("154"))
+                .userId(1L)
+                .inTheMoney(false)
+                .listing(listingRepository.findByTicker("DADA").get())
+                .publicAmount(50)
+                .lastModified(LocalDateTime.now())
+                .build();
+
+        PortfolioEntry portfolioEntry2 = PortfolioEntry.builder()
+                .id(2L)
+                .amount(59)
+                .type(ListingType.STOCK)
+                .used(false)
+                .averagePrice(new BigDecimal("442"))
+                .userId(2L)
+                .inTheMoney(false)
+                .listing(listingRepository.findByTicker("BACK").get())
+                .publicAmount(30)
+                .lastModified(LocalDateTime.now())
+                .build();
+
+        portfolioEntryRepository.save(portfolioEntry1);
+        portfolioEntryRepository.save(portfolioEntry2);
     }
 
     @Transactional
