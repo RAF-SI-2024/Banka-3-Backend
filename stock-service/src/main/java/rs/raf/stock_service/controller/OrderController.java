@@ -56,8 +56,7 @@ public class OrderController {
     })
     @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT') or hasRole('CLIENT')")
     @GetMapping("/{id}")
-    public ResponseEntity<List<OrderDto>> getOrdersByUser(
-            @PathVariable Long id) {
+    public ResponseEntity<List<OrderDto>> getOrdersByUser(@PathVariable Long id) {
 
         return ResponseEntity.ok(orderService.getOrdersByUser(id));
     }
