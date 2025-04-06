@@ -64,6 +64,7 @@ public class OtcService {
 
 
 
+
     ///	Prodavac vidi sve aktivne ponude
     public List<OtcOfferDto> getAllActiveOffersForSeller(Long sellerId) {
         return otcOfferRepository.findAllBySellerIdAndStatus(sellerId, OtcOfferStatus.PENDING)
@@ -75,17 +76,13 @@ public class OtcService {
 
     /// Prodavac prihvata ponudu
     @Transactional
-    public void acceptOffer(Long offerId, Long sellerId) {
+    public void acceptOffer(Long offerId, Long userId) {
         OtcOffer offer = otcOfferRepository.findById(offerId)
                 .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
 
-        if (!offer.getSellerId().equals(sellerId)) {
-            throw new UnauthorizedActionException("Not the seller of this offer");
-        }
-
         offer.setStatus(OtcOfferStatus.ACCEPTED);
         offer.setLastModified(LocalDateTime.now());
-        offer.setLastModifiedById(sellerId);
+        offer.setLastModifiedById(userId);
         otcOfferRepository.save(offer);
     }
 
@@ -93,17 +90,13 @@ public class OtcService {
 
     ///	Prodavac odbija ponudu
     @Transactional
-    public void rejectOffer(Long offerId, Long sellerId) {
+    public void rejectOffer(Long offerId, Long userId) {
         OtcOffer offer = otcOfferRepository.findById(offerId)
                 .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
 
-        if (!offer.getSellerId().equals(sellerId)) {
-            throw new UnauthorizedActionException("Not the seller of this offer");
-        }
-
         offer.setStatus(OtcOfferStatus.REJECTED);
         offer.setLastModified(LocalDateTime.now());
-        offer.setLastModifiedById(sellerId);
+        offer.setLastModifiedById(userId);
         otcOfferRepository.save(offer);
     }
 
@@ -111,20 +104,16 @@ public class OtcService {
 
     /// Prodavac šalje kontra ponudu
     @Transactional
-    public void updateOffer(Long offerId, Long sellerId, CreateOtcOfferDto dto) {
+    public void updateOffer(Long offerId, Long userId, CreateOtcOfferDto dto) {
         OtcOffer offer = otcOfferRepository.findById(offerId)
                 .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
-
-        if (!offer.getSellerId().equals(sellerId)) {
-            throw new UnauthorizedActionException("Not the seller of this offer");
-        }
 
         offer.setAmount(dto.getAmount().intValue());
         offer.setPricePerStock(dto.getPricePerStock());
         offer.setPremium(dto.getPremium());
         offer.setSettlementDate(dto.getSettlementDate());
         offer.setLastModified(LocalDateTime.now());
-        offer.setLastModifiedById(sellerId);
+        offer.setLastModifiedById(userId);
         offer.setStatus(OtcOfferStatus.PENDING);
         otcOfferRepository.save(offer);
     }

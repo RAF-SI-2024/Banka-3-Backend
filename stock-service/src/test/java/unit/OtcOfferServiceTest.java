@@ -120,20 +120,6 @@ public class OtcOfferServiceTest {
     }
 
     @Test
-    void testRejectOffer_unauthorized() {
-        OtcOffer offer = OtcOffer.builder()
-                .id(1L)
-                .sellerId(123L)
-                .status(OtcOfferStatus.PENDING)
-                .build();
-
-        when(otcOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
-
-        assertThrows(UnauthorizedActionException.class, () -> otcService.rejectOffer(1L, 999L));
-        verify(otcOfferRepository, never()).save(any());
-    }
-
-    @Test
     void testUpdateOffer_success() {
         Long offerId = 1L;
         Long sellerId = 100L;

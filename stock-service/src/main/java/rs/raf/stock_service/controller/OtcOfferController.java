@@ -16,6 +16,7 @@ import rs.raf.stock_service.service.OtcService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -38,7 +39,7 @@ public class OtcOfferController {
     @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
     @PostMapping
     public ResponseEntity<?> createOtcOffer(@RequestHeader("Authorization") String authHeader,
-                                            @RequestBody CreateOtcOfferDto dto) {
+                                            @Valid @RequestBody CreateOtcOfferDto dto) {
         try {
             Long buyerId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
             OtcOfferDto created = otcService.createOffer(dto, buyerId);
@@ -105,7 +106,7 @@ public class OtcOfferController {
     @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
     public ResponseEntity<?> counterOffer(@RequestHeader("Authorization") String authHeader,
                                           @PathVariable Long id,
-                                          @RequestBody CreateOtcOfferDto dto) {
+                                          @Valid @RequestBody CreateOtcOfferDto dto) {
         try {
             Long sellerId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
             otcService.updateOffer(id, sellerId, dto);
