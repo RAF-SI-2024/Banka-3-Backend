@@ -21,7 +21,7 @@ data class CreateCompanyDto(
     @NotBlank
     val address: String? = null,
     @NotNull(message = "majorityOwner must not be null")
-    val majorityOwner:
+    val majorityOwnerId:
         @Min(1L)
         Long? = null,
 )

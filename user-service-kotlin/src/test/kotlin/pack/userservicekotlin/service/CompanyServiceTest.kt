@@ -38,7 +38,7 @@ class CompanyServiceTest {
                 taxId = "TAX456",
                 activityCode = 100L.toString(),
                 address = "New Street",
-                majorityOwner = 1L,
+                majorityOwnerId = 1L,
             )
 
         `when`(clientRepository.findById(1L)).thenReturn(Optional.of(client))
@@ -61,7 +61,7 @@ class CompanyServiceTest {
                 taxId = "T1",
                 activityCode = 200L.toString(),
                 address = "Nowhere",
-                majorityOwner = 99L,
+                majorityOwnerId = 99L,
             )
 
         `when`(clientRepository.findById(99L)).thenReturn(Optional.empty())
@@ -69,7 +69,7 @@ class CompanyServiceTest {
         val result = companyService.createCompany(dto)
 
         assertTrue(result.isLeft())
-        assertEquals(CompanyServiceError.OwnerNotFound(99L), result.swap().orNull())
+        assertEquals(CompanyServiceError.OwnerNotFound(99L), result.swap().getOrNull())
     }
 
     @Test
@@ -82,7 +82,7 @@ class CompanyServiceTest {
                 taxId = "T2",
                 activityCode = 404L.toString(),
                 address = "Ghost Town",
-                majorityOwner = 1L,
+                majorityOwnerId = 1L,
             )
 
         `when`(clientRepository.findById(1L)).thenReturn(Optional.of(client))
@@ -91,7 +91,7 @@ class CompanyServiceTest {
         val result = companyService.createCompany(dto)
 
         assertTrue(result.isLeft())
-        assertEquals(CompanyServiceError.ActivityCodeNotFound(404L.toString()), result.swap().orNull())
+        assertEquals(CompanyServiceError.ActivityCodeNotFound(404L.toString()), result.swap().getOrNull())
     }
 
     @Test
@@ -112,7 +112,7 @@ class CompanyServiceTest {
         val result = companyService.getCompanyById(999L)
 
         assertTrue(result.isLeft())
-        assertEquals(CompanyServiceError.CompanyNotFound(999L), result.swap().orNull())
+        assertEquals(CompanyServiceError.CompanyNotFound(999L), result.swap().getOrNull())
     }
 
     @Test
