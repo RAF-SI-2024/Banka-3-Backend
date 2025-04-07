@@ -67,6 +67,7 @@ public class ListingService {
 
         if (listing instanceof Stock) {
             List<LocalDate> optionDates = optionRepository.findAllByUnderlyingStock((Stock) listing).stream()
+                    .filter(Option::isOnSale)
                     .map(Option::getSettlementDate)
                     .distinct()
                     .sorted()

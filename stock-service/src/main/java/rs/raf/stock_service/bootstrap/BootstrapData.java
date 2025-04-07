@@ -243,6 +243,7 @@ public class BootstrapData implements CommandLineRunner {
                     o.setTicker(dto.getTicker());
                     o.setImpliedVolatility(BigDecimal.ONE);
                     o.setOpenInterest(new Random().nextInt(500) + 100);
+                    o.setOnSale(true);
                     return o;
                 }).toList();
             } catch (Exception e) {

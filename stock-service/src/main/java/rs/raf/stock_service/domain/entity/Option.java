@@ -32,4 +32,6 @@ public class Option extends Listing {
     @OneToOne
     @JoinColumn(name = "otc_offer_id", nullable = true)
     private OtcOffer offer;
+    
+    private boolean onSale;
 }

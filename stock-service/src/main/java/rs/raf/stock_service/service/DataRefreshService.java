@@ -125,6 +125,12 @@ public class DataRefreshService {
                     .map(e -> e.getListing().getTicker())
                     .collect(Collectors.toSet());
 
+            List<Option> usedOptions = optionRepository.findAll().stream()
+                    .filter(opt -> usedOptionTickers.contains(opt.getTicker()))
+                    .toList();
+            usedOptions.forEach(option -> option.setOnSale(false));
+            optionRepository.saveAllAndFlush(usedOptions);
+
             List<Option> allOptions = optionRepository.findAll();
             List<Option> toDelete = allOptions.stream()
                     .filter(opt -> !usedOptionTickers.contains(opt.getTicker()))
@@ -161,6 +167,7 @@ public class DataRefreshService {
                                 o.setTicker(dto.getTicker());
                                 o.setImpliedVolatility(BigDecimal.ONE);
                                 o.setOpenInterest(new Random().nextInt(500) + 100);
+                                o.setOnSale(true);
                                 return o;
                             }).toList();
                 } catch (Exception e) {
