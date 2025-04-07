@@ -156,6 +156,7 @@ public class PortfolioService {
             BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
 
             return PublicStockDto.builder()
+                    .portfolioEntryId(entry.getId())
                     .security(ListingType.STOCK.name())
                     .ticker(listing.getTicker())
                     .amount(entry.getPublicAmount())

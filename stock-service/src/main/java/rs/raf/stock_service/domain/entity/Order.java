@@ -51,7 +51,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status; // pending, approved, declined, done
+    private OrderStatus status; // pending, approved, declined, done, cancelled
 
     private Long approvedBy;
 

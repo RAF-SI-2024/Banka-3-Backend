@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
@@ -18,20 +17,17 @@ import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
-import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
-import rs.raf.stock_service.exceptions.OrderNotFoundException;
+import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.repository.TransactionRepository;
-import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -63,6 +59,39 @@ public class OrderService {
                 dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))));
     }
 
+    public List<OrderDto> getOrdersByUser(Long userId, String authHeader){
+        Long userIdFromAuth = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+        List<Order> ordersList;
+        if (userId.equals(userIdFromAuth) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")){
+            ordersList = orderRepository.findAllByUserId(userId);
+        }else{
+            throw new UnauthorizedException("Unauthorized attempt at getting user's orders.");
+        }
+
+        return ordersList.stream().map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
+                dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing())))).toList();
+    }
+
+    public void cancelOrder(Long id, String authHeader) {
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+
+        if (order.getUserId().equals(userId) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")){
+            if (!order.getIsDone() && (order.getStatus().equals(OrderStatus.PENDING) || order.getStatus().equals(OrderStatus.APPROVED))){
+                order.setStatus(OrderStatus.CANCELLED);
+                order.setLastModification(LocalDateTime.now());
+
+                orderRepository.save(order);
+            }else{
+                throw new CantCancelOrderInCurrentOrderState(id);
+            }
+        }else {
+            throw new UnauthorizedException("Unauthorized attempt at cancelling an order.");
+        }
+    }
 
     public void approveOrder(Long id, String authHeader) {
         Order order = orderRepository.findById(id)
