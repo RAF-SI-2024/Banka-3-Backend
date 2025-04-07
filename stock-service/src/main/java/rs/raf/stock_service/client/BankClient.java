@@ -2,11 +2,9 @@ package rs.raf.stock_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.CreatePaymentDto;
+import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
 import rs.raf.stock_service.domain.dto.PaymentDto;
 import rs.raf.stock_service.domain.dto.TaxDto;
 
@@ -31,6 +29,13 @@ public interface BankClient {
 
     @PostMapping("/api/payment/reject-payment/{paymentId}")
     void rejectPayment(@PathVariable("paymentId") Long paymentId);
+
+    @PutMapping("/api/payment/confirm/{paymentId}")
+    void confirmPayment(@PathVariable("paymentId") Long paymentId);
+
+    @PostMapping("/api/payment/execute-system-payment")
+    ResponseEntity<PaymentDto> executeSystemPayment(@RequestBody ExecutePaymentDto dto);
+
 
 
 

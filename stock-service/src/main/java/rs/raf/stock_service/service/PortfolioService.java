@@ -190,7 +190,7 @@ public class PortfolioService {
 
 
     @Transactional
-    public void transferStockOwnership(Long fromUserId, Long toUserId, Stock stock, int quantity) {
+    public void transferStockOwnership(Long fromUserId, Long toUserId, Stock stock, int quantity, BigDecimal pricePerStock) {
 
         PortfolioEntry sellerEntry = portfolioEntryRepository
                 .findByUserIdAndListing(fromUserId, stock)
@@ -219,18 +219,29 @@ public class PortfolioService {
                     .listing(stock)
                     .type(ListingType.STOCK)
                     .amount(quantity)
-                    .averagePrice(stock.getPrice())
+                    .averagePrice(pricePerStock)
                     .publicAmount(0)
                     .inTheMoney(false)
                     .used(false)
                     .lastModified(LocalDateTime.now())
                     .build();
         } else {
-            buyerEntry.setAmount(buyerEntry.getAmount() + quantity);
+            int currentAmount = buyerEntry.getAmount();
+            BigDecimal currentAvgPrice = buyerEntry.getAveragePrice();
+
+
+            BigDecimal totalCost = currentAvgPrice.multiply(BigDecimal.valueOf(currentAmount))
+                    .add(pricePerStock.multiply(BigDecimal.valueOf(quantity)));
+            int newTotalAmount = currentAmount + quantity;
+            BigDecimal newAvgPrice = totalCost.divide(BigDecimal.valueOf(newTotalAmount), RoundingMode.HALF_UP);
+
+            buyerEntry.setAmount(newTotalAmount);
+            buyerEntry.setAveragePrice(newAvgPrice);
             buyerEntry.setLastModified(LocalDateTime.now());
         }
 
         portfolioEntryRepository.save(buyerEntry);
     }
+
 
 }

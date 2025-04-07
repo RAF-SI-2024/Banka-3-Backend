@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.service.OtcService;
 
 @RestController
-@RequestMapping("/api/otc-options")
+@RequestMapping("/api/otc")
 @RequiredArgsConstructor
 public class OtcController {
 

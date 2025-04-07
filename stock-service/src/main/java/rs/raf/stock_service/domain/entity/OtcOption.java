@@ -14,13 +14,11 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class OtcOption {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private BigDecimal strikePrice;
-    private BigDecimal contractSize;
     private LocalDate settlementDate;
     private Integer amount;
 
@@ -30,6 +28,8 @@ public class OtcOption {
     @ManyToOne
     @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
+
+    private boolean used;
 
     @OneToOne(mappedBy = "otcOption", cascade = CascadeType.ALL)
     private OtcOffer otcOffer;

@@ -45,6 +45,7 @@ public class BootstrapData implements CommandLineRunner {
     private final AlphavantageClient alphavantageClient;
     private final ApplicationContext applicationContext;
     private final OtcOfferRepository otcOfferRepository;
+    private final OtcOptionRepository otcOptionRepository;
 
     @Override
     public void run(String... args) {
@@ -133,18 +134,29 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void insertOtcOfferExample() {
-        Option option = optionRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("No options found"));
+        Stock stock = listingRepository.findAll().stream()
+                .filter(listing -> listing instanceof Stock)
+                .map(listing -> (Stock) listing)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No stocks found"));
 
-        Stock stock = option.getUnderlyingStock();
+        OtcOption otcOption = OtcOption.builder()
+                .strikePrice(new BigDecimal("100.00"))
+                .settlementDate(LocalDate.now().plusDays(3))
+                .amount(50)
+                .buyerId(1L)
+                .sellerId(2L)
+                .underlyingStock(stock)
+                .used(false)
+                .build();
 
         OtcOffer offer = OtcOffer.builder()
                 .stock(stock)
-                .option(option)
+                .otcOption(otcOption)
                 .buyerId(1L)
                 .sellerId(2L)
                 .amount(50)
-                .pricePerStock(new BigDecimal("100.00"))
+                .pricePerStock(new BigDecimal("20.00"))
                 .premium(new BigDecimal("10.00"))
                 .settlementDate(LocalDate.now().plusDays(3))
                 .lastModified(LocalDate.now().atStartOfDay())
@@ -152,9 +164,8 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OtcOfferStatus.PENDING)
                 .build();
 
-        otcOfferRepository.save(offer);
-        option.setOffer(offer);
-        optionRepository.save(option);
+        otcOption.setOtcOffer(offer);
+        otcOptionRepository.save(otcOption);
     }
 
 

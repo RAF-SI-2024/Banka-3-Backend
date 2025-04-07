@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
@@ -24,7 +26,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
+@Slf4j
 @RestController
 @RequestMapping("/api/payment")
 @AllArgsConstructor
@@ -115,6 +117,8 @@ public class PaymentController {
     public ResponseEntity<?> newPayment(
             @Valid @RequestBody CreatePaymentDto dto,
             @RequestHeader("Authorization") String token) {
+        System.out.println("AUTH: " + SecurityContextHolder.getContext().getAuthentication());
+
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
             return ResponseEntity.status(HttpStatus.OK).body( paymentService.createPaymentBeforeConfirmation(dto, clientId));
@@ -212,6 +216,20 @@ public class PaymentController {
         }
     }
 
+
+    //cto
+    @PostMapping("/execute-system-payment")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> executeSystemPayment(@RequestBody ExecutePaymentDto dto) {
+        try {
+            paymentService.executeSystemPayment(dto);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+
     /// ExceptionHandlers
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<String> handlePaymentNotFoundException(PaymentNotFoundException e) {
@@ -225,6 +243,7 @@ public class PaymentController {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
+        log.error("Greška u PaymentController-u:", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
     }
 }

@@ -8,12 +8,15 @@ import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.CreatePaymentDto;
+import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
 import rs.raf.stock_service.domain.dto.PaymentDto;
 import rs.raf.stock_service.domain.entity.Option;
 import rs.raf.stock_service.domain.entity.OtcOffer;
+import rs.raf.stock_service.domain.entity.OtcOption;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.repository.OptionRepository;
+import rs.raf.stock_service.repository.OtcOptionRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,26 +29,34 @@ public class OtcService {
     private final PortfolioService portfolioService;
     private final BankClient bankClient;
     private final UserClient userClient;
+    private final OtcOptionRepository otcOptionRepository;
 
     @Transactional
-    public void exerciseOption(Long optionId, Long userId) {
-        Option option = optionRepository.findById(optionId)
-                .orElseThrow(() -> new RuntimeException("Option not found"));
+    public void exerciseOption(Long otcOptionId, Long userId) {
+        OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
+                .orElseThrow(() -> new RuntimeException("OTC Option not found"));
 
-        OtcOffer offer = option.getOffer();
+        OtcOffer offer = otcOption.getOtcOffer();
         if (offer == null) throw new RuntimeException("This is not an OTC option");
-        if (!offer.getBuyerId().equals(userId)) throw new RuntimeException("Only buyer can exercise this option");
-        if (offer.getStatus() == OtcOfferStatus.ACCEPTED) throw new RuntimeException("Already exercised");
-        if (offer.getSettlementDate().isBefore(LocalDate.now())) throw new RuntimeException("Settlement expired");
+        if (!otcOption.getBuyerId().equals(userId)) throw new RuntimeException("Only buyer can exercise this option");
+        if (offer.getStatus() == OtcOfferStatus.EXERCISED) throw new RuntimeException("Option already exercised");
+        if (otcOption.getSettlementDate().isBefore(LocalDate.now())) throw new RuntimeException("Settlement expired");
 
-        BigDecimal totalAmount = offer.getPricePerStock().multiply(BigDecimal.valueOf(offer.getAmount()));
-        Stock stock = offer.getStock();
+        BigDecimal totalAmount = offer.getPricePerStock().multiply(BigDecimal.valueOf(otcOption.getAmount()));
+        Stock stock = otcOption.getUnderlyingStock();
 
         Long paymentId = null;
 
         try {
-            paymentId = transferMoney(offer.getBuyerId(), offer.getSellerId(), totalAmount);
-            portfolioService.transferStockOwnership(offer.getSellerId(), offer.getBuyerId(), stock, offer.getAmount());
+            transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
+
+            portfolioService.transferStockOwnership(
+                    otcOption.getSellerId(),
+                    otcOption.getBuyerId(),
+                    stock,
+                    otcOption.getAmount(),
+                    offer.getPricePerStock()
+            );
         } catch (Exception ex) {
             if (paymentId != null) {
                 try {
@@ -57,36 +68,24 @@ public class OtcService {
             throw new RuntimeException("OTC execution failed: " + ex.getMessage());
         }
 
-        offer.setStatus(OtcOfferStatus.ACCEPTED);
-        optionRepository.save(option);
+        offer.setStatus(OtcOfferStatus.EXERCISED);
+        otcOption.setUsed(true);
+        otcOptionRepository.save(otcOption);
     }
 
-
-    private Long transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
+    private void transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
         String senderAccount = bankClient.getAccountNumberByClientId(fromUserId).getBody();
         String receiverAccount = bankClient.getAccountNumberByClientId(toUserId).getBody();
 
-        ClientDto toClient = userClient.getClientById(toUserId);
-
-        CreatePaymentDto dto = new CreatePaymentDto();
+        ExecutePaymentDto dto = new ExecutePaymentDto();
         dto.setSenderAccountNumber(senderAccount);
         dto.setReceiverAccountNumber(receiverAccount);
         dto.setAmount(amount);
-        dto.setPurposeOfPayment("OTC Option Purchase");
         dto.setPaymentCode("289");
+        dto.setPurposeOfPayment("OTC Option Purchase");
         dto.setReferenceNumber("OTC-" + System.currentTimeMillis());
+        dto.setClientId(fromUserId);
 
-        System.out.println("CREATE PAYMENT: " + dto);
-        ResponseEntity<PaymentDto> response = bankClient.createPayment(dto);
-        //500?
-
-
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new RuntimeException("Payment failed: " + response.getStatusCode());
-        }
-
-        return response.getBody().getId(); // Vrati payment ID za eventualni rollback
+        bankClient.executeSystemPayment(dto);
     }
-
 }
