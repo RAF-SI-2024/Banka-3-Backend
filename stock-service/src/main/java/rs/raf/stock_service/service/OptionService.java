@@ -21,19 +21,6 @@ public class OptionService {
 
     private OptionRepository optionRepository;
 
-    /**
-     * Generiše opcije za dati stock koristeći ručni model.
-     * - Za trenutnu cenu se zaokružuje na najbliži ceo broj.
-     * - Definišu se strike cene: 5 ispod i 5 iznad zaokružene cene (ukupno 11 strike vrednosti).
-     * - Prvi datum isteka je 6 dana od danas, zatim se generišu opcije svakih 6 dana dok razlika ne dostigne 30 dana,
-     * a potom se dodaje još 6 datuma sa razmakom od 30 dana.
-     * - Za svaku kombinaciju datuma i strike cene kreira se CALL i PUT opcija.
-     * - Derived maintenance margin za opcije = 100 * 0.5 * currentPrice = 50 * currentPrice.
-     *
-     * @param stockListing simbol stocka, npr. "AAPL"
-     * @param currentPrice trenutna cena deonice
-     * @return Lista generisanih opcija kao OptionDto
-     */
     @Transactional
     public List<OptionDto> generateOptions(String stockListing, BigDecimal currentPrice) {
         List<OptionDto> options = new ArrayList<>();
@@ -54,7 +41,6 @@ public class OptionService {
             expiryDates.add(expiry.plusDays((long) (i - 1) * 30));
         }
 
-        // margin = 50 * currentPrice
         BigDecimal margin = currentPrice.multiply(new BigDecimal("50"));
 
         for (LocalDate exp : expiryDates) {
@@ -97,16 +83,24 @@ public class OptionService {
         BigDecimal timeValue = currentPrice.multiply(BigDecimal.valueOf(0.05))
                 .multiply(BigDecimal.valueOf(Math.sqrt((double) daysUntilExpiry / 365)));
 
+        BigDecimal optionPrice;
         if (type == OptionType.CALL) {
             BigDecimal intrinsicValue = currentPrice.subtract(strikePrice).max(BigDecimal.ZERO);
-            return intrinsicValue.add(timeValue).setScale(2, RoundingMode.HALF_UP);
+            optionPrice = intrinsicValue.add(timeValue);
         } else if (type == OptionType.PUT) {
             BigDecimal intrinsicValue = strikePrice.subtract(currentPrice).max(BigDecimal.ZERO);
-            return intrinsicValue.add(timeValue).setScale(2, RoundingMode.HALF_UP);
+            optionPrice = intrinsicValue.add(timeValue);
+        } else {
+            return BigDecimal.ZERO;
         }
-        return BigDecimal.ZERO;
-    }
 
+        // Ovo je fallback da ne bi imali 0.00 za svaki slucaj zbog ovih kalkulacija
+        if (optionPrice.compareTo(BigDecimal.valueOf(0.01)) < 0) {
+            return BigDecimal.valueOf(0.01);
+        }
+
+        return optionPrice.setScale(2, RoundingMode.HALF_UP);
+    }
 
     public OptionDto getOptionByTicker(String ticker) {
         Option option = optionRepository.findByTicker(ticker.toUpperCase())
@@ -119,6 +113,7 @@ public class OptionService {
         dto.setContractSize(option.getContractSize());
         dto.setSettlementDate(option.getSettlementDate());
         dto.setMaintenanceMargin(option.getMaintenanceMargin());
+        dto.setPrice(option.getPrice());
 
         return dto;
     }
@@ -143,6 +138,7 @@ public class OptionService {
         dto.setContractSize(option.getContractSize());
         dto.setSettlementDate(option.getSettlementDate());
         dto.setMaintenanceMargin(option.getMaintenanceMargin());
+        dto.setPrice(option.getPrice());
         return dto;
     }
 }

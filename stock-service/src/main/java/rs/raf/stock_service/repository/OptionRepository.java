@@ -26,4 +26,6 @@ public interface OptionRepository extends JpaRepository<Option, Long> {
     List<Option> findByOptionType(@Param("optionType") OptionType optionType);
 
     Optional<Option> findByTicker(String ticker);
+
+    boolean existsByTicker(String ticker);
 }
