@@ -5,19 +5,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.dto.PublicStockDto;
+import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.mapper.PortfolioMapper;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
-import rs.raf.stock_service.repository.PortfolioEntryRepository;
+import rs.raf.stock_service.exceptions.InvalidListingTypeException;
+import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.service.PortfolioService;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import rs.raf.stock_service.domain.enums.OrderDirection;
+import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
+import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,35 +30,39 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 public class PortfolioServiceTest {
-
-
+    private final Long userId = 123L;
+    Stock stock = new Stock();
+    Stock stock2 = new Stock();
     @InjectMocks
     private PortfolioService portfolioService;
-
     @Mock
     private PortfolioEntryRepository portfolioEntryRepository;
-
     @Mock
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
-
+    private ListingPriceHistoryRepository priceHistoryRepository;
     @Mock
     private PortfolioMapper portfolioEntryMapper;
 
-    Stock stock = new Stock();
-    Stock stock2 = new Stock();
+    @Mock
+    private UserClient userClient;
 
-    private final Long userId = 123L;
 
-    private void initialiseStock(){
+    private void initialiseStock() {
         stock.setId(1L);
         stock.setTicker("AAPL");
         stock.setName("Apple Inc.");
         stock.setContractSize(1);
         stock.setMaintenanceMargin(BigDecimal.ZERO);
     }
-    private void initialiseGOOGLStock(){
+
+    private void initialiseGOOGLStock() {
         stock2.setId(2L);
         stock2.setTicker("GOOGL");
         stock2.setName("Alphabet Inc.");
@@ -169,10 +178,13 @@ public class PortfolioServiceTest {
     }
 
 
-    @Test
+   @Test
     void testGetPortfolio_userHasHoldings_shouldReturnMappedDtos() {
         initialiseStock();
         initialiseGOOGLStock();
+
+        stock.setPrice(BigDecimal.valueOf(115));
+        stock2.setPrice(BigDecimal.valueOf(2200));
 
         PortfolioEntry entry1 = PortfolioEntry.builder()
                 .userId(userId)
@@ -201,13 +213,6 @@ public class PortfolioServiceTest {
         List<PortfolioEntry> entries = List.of(entry1, entry2);
 
         when(portfolioEntryRepository.findAllByUserId(userId)).thenReturn(entries);
-
-        // Simuliramo najnovije cene za listinge
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock))
-                .thenReturn(ListingDailyPriceInfo.builder().price(BigDecimal.valueOf(115)).build()); // 115 - 10 = 105 * 10 = 1050
-        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(stock2))
-                .thenReturn(ListingDailyPriceInfo.builder().price(BigDecimal.valueOf(2200)).build()); // 2200 - 2000 = 200 * 5 = 1000
-
         List<PortfolioEntryDto> result = portfolioService.getPortfolioForUser(userId);
 
         assertEquals(2, result.size());
@@ -221,9 +226,9 @@ public class PortfolioServiceTest {
         assertEquals(BigDecimal.valueOf(1000), dto2.getProfit());
 
         verify(portfolioEntryRepository).findAllByUserId(userId);
-        verify(dailyPriceInfoRepository).findTopByListingOrderByDateDesc(stock);
-        verify(dailyPriceInfoRepository).findTopByListingOrderByDateDesc(stock2);
     }
+
+
 
     @Test
     void testGetPortfolio_userHasNoHoldings_shouldReturnEmptyList() {
@@ -236,5 +241,111 @@ public class PortfolioServiceTest {
         verifyNoInteractions(portfolioEntryMapper);
     }
 
+    @Test
+    void testSetPublicAmount_success() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .id(1L) // Dodato jer se sad pretraga radi po ID-u
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(100)
+                .publicAmount(0)
+                .lastModified(LocalDateTime.now())
+                .build();
 
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        portfolioService.setPublicAmount(userId, dto);
+
+        assertEquals(50, entry.getPublicAmount());
+        verify(portfolioEntryRepository).save(entry);
+    }
+
+    @Test
+    void testSetPublicAmount_portfolioEntryNotFound() {
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, 1L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(PortfolioEntryNotFoundException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testSetPublicAmount_invalidListingType() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.FUTURES)
+                .amount(100)
+                .publicAmount(0)
+                .build();
+
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50);
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        assertThrows(InvalidListingTypeException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testSetPublicAmount_exceedsOwnedAmount() {
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(40)
+                .publicAmount(0)
+                .build();
+
+        SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50); // vise od amount
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, 1L))
+                .thenReturn(Optional.of(entry));
+
+        assertThrows(InvalidPublicAmountException.class, () -> {
+            portfolioService.setPublicAmount(userId, dto);
+        });
+    }
+
+    @Test
+    void testGetAllPublicStocks_shouldReturnBasicFields() {
+        initialiseStock();
+
+        PortfolioEntry entry = PortfolioEntry.builder()
+                .userId(userId)
+                .listing(stock)
+                .type(ListingType.STOCK)
+                .amount(100)
+                .publicAmount(20)
+                .lastModified(LocalDateTime.now())
+                .build();
+
+        when(portfolioEntryRepository.findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0))
+                .thenReturn(List.of(entry));
+
+        ClientDto clientDto = ClientDto.builder()
+                .firstName("Marko")
+                .lastName("Markovic")
+                .build();
+
+        when(userClient.getClientById(userId)).thenReturn(clientDto);
+
+        List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+
+        assertEquals(1, result.size());
+        PublicStockDto dto = result.get(0);
+        assertEquals("AAPL", dto.getTicker());
+        assertEquals(ListingType.STOCK.name(), dto.getSecurity());
+        assertEquals(20, dto.getAmount());
+        assertEquals("Marko Markovic", dto.getOwner());
+    }
 }

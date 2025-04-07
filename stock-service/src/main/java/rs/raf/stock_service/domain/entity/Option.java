@@ -1,9 +1,6 @@
 package rs.raf.stock_service.domain.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import rs.raf.stock_service.domain.enums.OptionType;
 
 import javax.persistence.*;
@@ -16,6 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @DiscriminatorValue("OPTION")
+@Builder
 public class Option extends Listing {
     @Enumerated(EnumType.STRING)
     private OptionType optionType;
@@ -28,5 +26,10 @@ public class Option extends Listing {
     private BigDecimal maintenanceMargin;
 
     @ManyToOne
+    @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
+
+    @OneToOne
+    @JoinColumn(name = "otc_offer_id", nullable = true)
+    private OtcOffer offer;
 }

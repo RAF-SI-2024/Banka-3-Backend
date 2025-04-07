@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class PortfolioEntryDto {
 
+    private Long id;
 
     private String securityName;     // listing.name
     private String ticker;           // listing.ticker
@@ -28,8 +29,6 @@ public class PortfolioEntryDto {
     private Integer publicAmount;
     private Boolean inTheMoney;      // samo za opcije
     private Boolean used;            // samo za opcije
-
-
 
 
 }

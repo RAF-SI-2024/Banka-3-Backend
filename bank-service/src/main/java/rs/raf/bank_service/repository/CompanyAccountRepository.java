@@ -7,4 +7,7 @@ import rs.raf.bank_service.domain.entity.CompanyAccount;
 
 public interface CompanyAccountRepository extends JpaRepository<CompanyAccount, Long> {
     Page<CompanyAccount> findByCompanyId(Long companyId, Pageable pageable);
+
+    CompanyAccount findByCompanyId(Long companyId);
 }
+

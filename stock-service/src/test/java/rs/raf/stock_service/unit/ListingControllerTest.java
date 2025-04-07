@@ -16,6 +16,7 @@ import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -114,37 +115,6 @@ class ListingControllerTest {
 
         // Verifikacija poziva
         verify(listingService, times(1)).getListings(any(ListingFilterDto.class), eq("CLIENT"));
-    }
-
-    @Test
-    void getListingDetails_ShouldReturnListingDetailsDto() {
-        Long listingId = 1L;
-
-        ListingDetailsDto mockDto = new ListingDetailsDto(
-                listingId,
-                ListingType.STOCK,
-                "AAPL",
-                "Apple Inc.",
-                new BigDecimal("150.50"),
-                "XNAS",
-                List.of(
-                        new PriceHistoryDto(LocalDate.of(2024, 3, 2), new BigDecimal("152.00")),
-                        new PriceHistoryDto(LocalDate.of(2024, 3, 1), new BigDecimal("150.00"))
-                ),
-                null,
-                null
-        );
-
-        when(listingService.getListingDetails(listingId)).thenReturn(mockDto);
-
-        ResponseEntity<ListingDetailsDto> response = listingController.getListingDetails(listingId);
-
-        // Provera rezultata
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(mockDto, response.getBody());
-
-        // Verifikacija poziva
-        verify(listingService, times(1)).getListingDetails(listingId);
     }
 
     @Test

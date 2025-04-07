@@ -7,6 +7,7 @@ public class PortfolioMapper {
 
     public static PortfolioEntryDto toDto(PortfolioEntry entry, String listingName, String ticker, java.math.BigDecimal profit) {
         return PortfolioEntryDto.builder()
+                .id(entry.getId())
                 .securityName(listingName)
                 .ticker(ticker)
                 .type(entry.getType())

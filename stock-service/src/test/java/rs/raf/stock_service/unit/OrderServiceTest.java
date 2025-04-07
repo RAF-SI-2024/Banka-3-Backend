@@ -1,16 +1,39 @@
 package rs.raf.stock_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.Test;
+import org.mockito.*;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.repository.ListingDailyPriceInfoRepository;
+import rs.raf.stock_service.domain.dto.ListingDto;
+import rs.raf.stock_service.domain.dto.OrderDto;
+import rs.raf.stock_service.domain.entity.Listing;
+import rs.raf.stock_service.domain.entity.ListingPriceHistory;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.Stock;
+import rs.raf.stock_service.domain.enums.ListingType;
+import rs.raf.stock_service.domain.enums.OrderStatus;
+import rs.raf.stock_service.domain.enums.OrderType;
+import rs.raf.stock_service.domain.mapper.ListingMapper;
+import rs.raf.stock_service.domain.mapper.OrderMapper;
+import rs.raf.stock_service.exceptions.CantCancelOrderInCurrentOrderState;
+import rs.raf.stock_service.exceptions.OrderNotFoundException;
+import rs.raf.stock_service.exceptions.UnauthorizedException;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class OrderServiceTest {
 
@@ -33,11 +56,337 @@ public class OrderServiceTest {
     private BankClient bankClient;
 
     @Mock
-    private ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
+
+    @Mock
+    private ListingMapper listingMapper;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+    }
+
+
+    @Test
+    void shouldReturnOrderDtosWhenUserIsAuthorized() {
+        Long userId = 1L;
+        String authHeader = "Bearer valid-token";
+
+        Listing listing = new Stock();
+        listing.setId(10L);
+        listing.setTicker("AAPL");
+
+        ListingPriceHistory listingPriceHistory = new ListingPriceHistory();
+        listingPriceHistory.setDate(LocalDateTime.now());
+
+        Order order = new Order();
+        order.setId(101L);
+        order.setUserId(userId);
+        order.setListing(listing);
+        order.setQuantity(10);
+        order.setOrderType(OrderType.MARKET);
+
+        ListingDto listingDto = new ListingDto(
+                10L,
+                ListingType.STOCK,
+                "AAPL",
+                new BigDecimal("150.25"),
+                new BigDecimal("2.75"),
+                5000000L,
+                new BigDecimal("1000.00"),
+                "XNAS",
+                new BigDecimal("150.50")
+        );
+
+        OrderDto orderDto = new OrderDto();
+        orderDto.setId(101L);
+        orderDto.setUserId(userId);
+        orderDto.setListing(listingDto);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
+        when(orderRepository.findAllByUserId(userId)).thenReturn(List.of(order));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(listingPriceHistory);
+        when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
+
+        try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
+            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+
+            List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(listingDto, result.get(0).getListing());
+            assertEquals(userId, result.get(0).getUserId());
+        }
+    }
+
+    @Test
+    void shouldReturnOrderDtosWhenUserIsSupervisor() {
+        Long userId = 1L;
+        Long supervisorId = 2L;
+        String authHeader = "Bearer supervisor-token";
+
+        Listing listing = new Stock();
+        listing.setId(10L);
+        listing.setTicker("AAPL");
+
+        ListingPriceHistory listingPriceHistory = new ListingPriceHistory();
+        listingPriceHistory.setDate(LocalDateTime.now());
+
+        Order order = new Order();
+        order.setId(101L);
+        order.setUserId(userId);
+        order.setListing(listing);
+        order.setQuantity(10);
+        order.setOrderType(OrderType.MARKET);
+
+        ListingDto listingDto = new ListingDto(
+                10L,
+                ListingType.STOCK,
+                "AAPL",
+                new BigDecimal("150.25"),
+                new BigDecimal("2.75"),
+                5000000L,
+                new BigDecimal("1000.00"),
+                "XNAS",
+                new BigDecimal("150.50")
+        );
+
+        OrderDto orderDto = new OrderDto();
+        orderDto.setId(101L);
+        orderDto.setUserId(userId);
+        orderDto.setListing(listingDto);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(supervisorId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("SUPERVISOR");
+        when(orderRepository.findAllByUserId(userId)).thenReturn(List.of(order));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(listingPriceHistory);
+        when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
+
+        try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
+            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+
+            List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(listingDto, result.get(0).getListing());
+            assertEquals(userId, result.get(0).getUserId());
+        }
+    }
+
+    @Test
+    void shouldReturnOrderDtosWhenUserIsAdmin() {
+        Long userId = 1L;
+        Long adminId = 3L;
+        String authHeader = "Bearer admin-token";
+
+        Listing listing = new Stock();
+        listing.setId(10L);
+        listing.setTicker("AAPL");
+
+        ListingPriceHistory listingPriceHistory = new ListingPriceHistory();
+        listingPriceHistory.setDate(LocalDateTime.now());
+
+        Order order = new Order();
+        order.setId(101L);
+        order.setUserId(userId);
+        order.setListing(listing);
+        order.setQuantity(10);
+        order.setOrderType(OrderType.MARKET);
+
+        ListingDto listingDto = new ListingDto(
+                10L,
+                ListingType.STOCK,
+                "AAPL",
+                new BigDecimal("150.25"),
+                new BigDecimal("2.75"),
+                5000000L,
+                new BigDecimal("1000.00"),
+                "XNAS",
+                new BigDecimal("150.50")
+        );
+
+        OrderDto orderDto = new OrderDto();
+        orderDto.setId(101L);
+        orderDto.setUserId(userId);
+        orderDto.setListing(listingDto);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(adminId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
+        when(orderRepository.findAllByUserId(userId)).thenReturn(List.of(order));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(listingPriceHistory);
+        when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
+
+        try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
+            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+
+            List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals(listingDto, result.get(0).getListing());
+            assertEquals(userId, result.get(0).getUserId());
+        }
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenUserHasNoOrders() {
+        Long userId = 1L;
+        String authHeader = "Bearer valid-token";
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
+        when(orderRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
+
+        List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldHandleNullListingGracefully() {
+        Long userId = 1L;
+        String authHeader = "Bearer valid-token";
+
+        Order order = new Order();
+        order.setId(1L);
+        order.setUserId(userId);
+        order.setListing(null);
+        order.setTransactions(new ArrayList<>());
+
+        OrderDto expectedOrderDto = new OrderDto();
+        expectedOrderDto.setId(1L);
+        expectedOrderDto.setUserId(userId);
+        expectedOrderDto.setListing(null);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
+        when(orderRepository.findAllByUserId(userId)).thenReturn(List.of(order));
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(null)).thenReturn(null);
+        when(listingMapper.toDto(null, null)).thenReturn(null);
+
+        try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
+            mocked.when(() -> OrderMapper.toDto(order, null)).thenReturn(expectedOrderDto);
+
+            List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
+
+            assertEquals(1, result.size());
+            assertNull(result.get(0).getListing());
+        }
+    }
+
+    @Test
+    void shouldThrowUnauthorizedExceptionWhenUserIsNotAuthorized() {
+        Long userId = 1L;
+        Long differentUserId = 2L;
+        String authHeader = "Bearer different-user-token";
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(differentUserId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
+
+        assertThrows(UnauthorizedException.class, () -> orderService.getOrdersByUser(userId, authHeader));
+    }
+
+    @Test
+    void shouldCancelOrder_WhenUserIsOwnerAndStatusIsPending() {
+        Long orderId = 1L;
+        Long userId = 100L;
+        String authHeader = "Bearer token";
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setStatus(OrderStatus.PENDING);
+        order.setIsDone(false);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        orderService.cancelOrder(orderId, authHeader);
+
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void shouldCancelOrder_WhenUserIsAdminCancellingOthersOrder() {
+        Long orderId = 2L;
+        String authHeader = "Bearer token";
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(123L);
+        order.setStatus(OrderStatus.APPROVED);
+        order.setIsDone(false);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(999L); // different user
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        orderService.cancelOrder(orderId, authHeader);
+
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void shouldThrowCantCancelOrderInCurrentState_WhenOrderIsDone() {
+        Long orderId = 3L;
+        String authHeader = "Bearer token";
+        Long userId = 123L;
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setStatus(OrderStatus.APPROVED);
+        order.setIsDone(true);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThrows(CantCancelOrderInCurrentOrderState.class,
+                () -> orderService.cancelOrder(orderId, authHeader));
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowUnauthorizedException_WhenUserTriesToCancelOthersOrder() {
+        Long orderId = 4L;
+        String authHeader = "Bearer token";
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(100L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setIsDone(false);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(200L);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThrows(UnauthorizedException.class,
+                () -> orderService.cancelOrder(orderId, authHeader));
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowOrderNotFoundException_WhenOrderDoesNotExist() {
+        Long orderId = 99L;
+        String authHeader = "Bearer token";
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class,
+                () -> orderService.cancelOrder(orderId, authHeader));
+
+        verify(orderRepository, never()).save(any());
     }
 
 //    @Test

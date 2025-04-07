@@ -27,6 +27,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -307,6 +308,7 @@ class PaymentServiceTest {
     void createPaymentBeforeConfirmation_SuccessTest() throws Exception {
         // Arrange
         Long clientId = 1L;
+
         CreatePaymentDto paymentDto = new CreatePaymentDto();
         paymentDto.setSenderAccountNumber("111111");
         paymentDto.setReceiverAccountNumber("222222");
@@ -314,10 +316,12 @@ class PaymentServiceTest {
         paymentDto.setPaymentCode("289");
         paymentDto.setPurposeOfPayment("Invoice");
         paymentDto.setReferenceNumber("12345");
+        paymentDto.setRecieverName("Jane Doe");
 
         Account sender = new PersonalAccount();
         sender.setBalance(BigDecimal.valueOf(1000));
         sender.setCurrency(new Currency("USD"));
+        sender.setClientId(clientId);
 
         Account receiver = new PersonalAccount();
         receiver.setBalance(BigDecimal.valueOf(500));
@@ -328,19 +332,45 @@ class PaymentServiceTest {
         clientDto.setFirstName("John");
         clientDto.setLastName("Doe");
 
-        when(accountRepository.findByAccountNumberAndClientId(anyString(), eq(clientId))).thenReturn(Optional.of(sender));
-        when(accountRepository.findByAccountNumber(eq("222222"))).thenReturn(Optional.of(receiver));
+        // Simuliramo da accountRepository vraća sender i receiver
+        when(accountRepository.findByAccountNumberAndClientId(eq("111111"), eq(clientId)))
+                .thenReturn(Optional.of(sender));
+        when(accountRepository.findByAccountNumber(eq("222222")))
+                .thenReturn(Optional.of(receiver));
+
+        // Simuliramo da userClient vraća klijenta
         when(userClient.getClientById(clientId)).thenReturn(clientDto);
-        when(objectMapper.writeValueAsString(any())).thenReturn("mocked-json");
+
+        // Simulacija dodeljivanja ID-a Payment objektu
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
+            Payment savedPayment = invocation.getArgument(0);
+            savedPayment.setId(1L); // Simuliramo da baza postavlja ID
+            return savedPayment;
+        });
+
+        // Simulacija mapper-a koji konvertuje u DTO
+        when(paymentMapper.toPaymentDto(any(Payment.class), anyString())).thenAnswer(invocation -> {
+            Payment payment = invocation.getArgument(0);
+            return new PaymentDto(payment.getId(), payment.getAmount(), payment.getPurposeOfPayment(),
+                    payment.getSenderAccount().getAccountNumber(), payment.getAccountNumberReceiver(),
+                    "", payment.getPaymentCode(), payment.getPaymentCode());
+        });
+
+        doNothing().when(userClient).createVerificationRequest(any(CreateVerificationRequestDto.class));
 
         // Act
-        boolean result = paymentService.createPaymentBeforeConfirmation(paymentDto, clientId);
+        PaymentDto result = paymentService.createPaymentBeforeConfirmation(paymentDto, clientId);
 
         // Assert
-        assertTrue(result);
+        assertNotNull(result, "PaymentDto should not be null");
+        assertNotNull(result.getId(), "PaymentDto ID should not be null");
+        assertEquals(BigDecimal.valueOf(100), result.getAmount(), "Amount should match input");
+
         verify(paymentRepository, times(1)).save(any(Payment.class));
         verify(userClient, times(1)).createVerificationRequest(any(CreateVerificationRequestDto.class));
     }
+
+
 
     @Test
     void confirmTransferAndExecute_SameCurrency_Success() {

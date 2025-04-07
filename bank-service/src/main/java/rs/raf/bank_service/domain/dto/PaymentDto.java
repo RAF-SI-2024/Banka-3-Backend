@@ -12,12 +12,13 @@ import java.math.BigDecimal;
 @Data
 public class PaymentDto implements Serializable {
 
+    private Long id;
     private BigDecimal amount;
-    private String receiverName;
     private String paymentPurpose;
-    private String paymentCode;
-    private String currencyCode;
     private String fromAccountNumber;
     private String toAccountNumber;
+    private String recieverName;
+    private String paymentCode;
+    private String currencyCode;
 
 }

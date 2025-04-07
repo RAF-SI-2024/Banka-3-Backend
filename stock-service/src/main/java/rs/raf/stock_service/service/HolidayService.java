@@ -28,7 +28,7 @@ public class HolidayService {
 
     public void importHolidays() {
         CountryHolidaysDto countryHolidaysDto;
-        ClassPathResource resource = new ClassPathResource("holidays.json");
+        ClassPathResource resource = new ClassPathResource("holidaysUSA.json");
 
         try {
             countryHolidaysDto = objectMapper.readValue(resource.getInputStream(), CountryHolidaysDto.class);

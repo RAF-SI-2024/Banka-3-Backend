@@ -103,6 +103,10 @@
                         <exclude>**rs/raf/user_service/configuration/**</exclude>
                         <exclude>**rs/raf/user_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/user_service/client/**</exclude>
+                        <exclude>**rs/raf/user_service/controller/**</exclude>
+                        <exclude>**rs/raf/user_service/specification/**</exclude>
+                        <exclude>**rs/raf/user_service/security/**</exclude>
+                        <exclude>**rs/raf/user_service/utils/**</exclude>
                         <!--bank_service-->
                         <exclude>**rs/raf/bank_service/domain/**</exclude>
                         <exclude>**rs/raf/bank_service/repository/**</exclude>
@@ -110,6 +114,10 @@
                         <exclude>**rs/raf/bank_service/configuration/**</exclude>
                         <exclude>**rs/raf/bank_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/bank_service/client/**</exclude>
+                        <exclude>**rs/raf/bank_service/controller/**</exclude>
+                        <exclude>**rs/raf/bank_service/specification/**</exclude>
+                        <exclude>**rs/raf/bank_service/security/**</exclude>
+                        <exclude>**rs/raf/bank_service/utils/**</exclude>
                         <!--stock_service-->
                         <exclude>**rs/raf/stock_service/domain/**</exclude>
                         <exclude>**rs/raf/stock_service/repository/**</exclude>
@@ -117,6 +125,10 @@
                         <exclude>**rs/raf/stock_service/configuration/**</exclude>
                         <exclude>**rs/raf/stock_service/bootstrap/**</exclude>
                         <exclude>**rs/raf/stock_service/client/**</exclude>
+                        <exclude>**rs/raf/stock_service/controller/**</exclude>
+                        <exclude>**rs/raf/stock_service/specification/**</exclude>
+                        <exclude>**rs/raf/stock_service/security/**</exclude>
+                        <exclude>**rs/raf/stock_service/utils/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>

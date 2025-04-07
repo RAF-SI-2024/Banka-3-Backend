@@ -1,26 +1,49 @@
 package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
+import rs.raf.stock_service.domain.dto.PublicStockDto;
+import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
+import rs.raf.stock_service.exceptions.InvalidListingTypeException;
+import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
+import rs.raf.stock_service.domain.entity.Order;
+import rs.raf.stock_service.domain.entity.PortfolioEntry;
+import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
+import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
+import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class PortfolioService {
 
     private final PortfolioEntryRepository portfolioEntryRepository;
-    private final ListingDailyPriceInfoRepository dailyPriceInfoRepository;
+    private final UserClient userClient;
+    private final ListingPriceHistoryRepository dailyPriceInfoRepository;
+    private final OrderRepository orderRepository;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -72,19 +95,95 @@ public class PortfolioService {
     public List<PortfolioEntryDto> getPortfolioForUser(Long userId) {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
-                    var latestPrice = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(entry.getListing());
+                    // Dohvatanje poslednjeg zapisa sa podacima o cenama
+                    BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null) {
-                        profit = latestPrice.getPrice()
+                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                        // Profit sada koristi `close` umesto `price`
+                        profit = latestPrice
                                 .subtract(entry.getAveragePrice())
                                 .multiply(BigDecimal.valueOf(entry.getAmount()));
                     }
 
+                    // Mapiranje PortfolioEntry u PortfolioEntryDto
                     return PortfolioMapper.toDto(entry,
                             entry.getListing().getName(),
                             entry.getListing().getTicker(),
                             profit);
                 }).collect(Collectors.toList());
+    }
+
+    public void setPublicAmount(Long userId, SetPublicAmountDto dto) {
+        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
+                .orElseThrow(PortfolioEntryNotFoundException::new);
+
+        // samo stock moze
+        if (entry.getType() != ListingType.STOCK) {
+            throw new InvalidListingTypeException("Only STOCK type can be made public.");
+        }
+
+
+        if (dto.getPublicAmount() > entry.getAmount()) {
+            throw new InvalidPublicAmountException("Public amount cannot exceed owned amount.");
+        }
+
+        entry.setPublicAmount(dto.getPublicAmount());
+        entry.setLastModified(LocalDateTime.now());
+
+        portfolioEntryRepository.save(entry);
+    }
+
+
+    public List<PublicStockDto> getAllPublicStocks() {
+        List<PortfolioEntry> publicEntries = portfolioEntryRepository
+                .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
+
+
+        return publicEntries.stream().map(entry -> {
+            Listing listing = entry.getListing();
+
+            String ownerName;
+            try {
+                ClientDto client = userClient.getClientById(entry.getUserId());
+                ownerName = client.getFirstName() + " " + client.getLastName();
+            } catch (Exception e) {
+                log.warn("Could not fetch client info for userId: {}", entry.getUserId());
+                ownerName = "user-" + entry.getUserId(); // fallback
+            }
+
+            BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
+
+            return PublicStockDto.builder()
+                    .portfolioEntryId(entry.getId())
+                    .security(ListingType.STOCK.name())
+                    .ticker(listing.getTicker())
+                    .amount(entry.getPublicAmount())
+                    .price(currentPrice)
+                    .lastModified(entry.getLastModified())
+                    .owner(ownerName)
+                    .build();
+
+        }).collect(Collectors.toList());
+    }
+    
+    public TaxGetResponseDto getTaxes(Long userId){
+        
+        List<Order> orders = orderRepository.findAllByUserId(userId);
+        TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
+
+        for(Order currOrder : orders){
+            LocalDateTime currOrderDate = currOrder.getLastModification();
+            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+                taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
+            }
+            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+                taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
+            }
+        }
+        return taxGetResponseDto;
     }
 }
