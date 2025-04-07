@@ -5,4 +5,4 @@ import org.springframework.stereotype.Repository
 import pack.userservicekotlin.domain.entities.ActivityCode
 
 @Repository
-interface ActivityCodeRepository : JpaRepository<ActivityCode?, String>
+interface ActivityCodeRepository : JpaRepository<ActivityCode, String>
