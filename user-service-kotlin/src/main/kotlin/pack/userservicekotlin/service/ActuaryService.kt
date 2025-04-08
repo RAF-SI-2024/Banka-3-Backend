@@ -53,7 +53,7 @@ class ActuaryService(
         }
 
         val actuaryLimit =
-            actuaryLimitRepository.findByEmployeeId(employeeId)?.orElse(null)
+            actuaryLimitRepository.findByEmployeeId(employeeId).orElse(null)
                 ?: return ActuaryServiceError.ActuaryLimitNotFound(employeeId).left()
 
         actuaryLimit.limitAmount = newLimit
@@ -71,7 +71,7 @@ class ActuaryService(
         }
 
         val actuaryLimit =
-            actuaryLimitRepository.findByEmployeeId(employeeId)?.orElse(null)
+            actuaryLimitRepository.findByEmployeeId(employeeId).orElse(null)
                 ?: return ActuaryServiceError.ActuaryLimitNotFound(employeeId).left()
 
         actuaryLimit.usedLimit = BigDecimal.ZERO
@@ -92,7 +92,7 @@ class ActuaryService(
         }
 
         val actuaryLimit =
-            actuaryLimitRepository.findByEmployeeId(employeeId)?.orElse(null)
+            actuaryLimitRepository.findByEmployeeId(employeeId).orElse(null)
                 ?: return ActuaryServiceError.ActuaryLimitNotFound(employeeId).left()
 
         actuaryLimit.needsApproval = value
@@ -102,7 +102,7 @@ class ActuaryService(
 
     fun getAgentLimit(id: Long): Either<ActuaryServiceError, ActuaryLimitResponseDto> {
         val actuaryLimit =
-            actuaryLimitRepository.findByEmployeeId(id)?.orElse(null)
+            actuaryLimitRepository.findByEmployeeId(id).orElse(null)
                 ?: return ActuaryServiceError.ActuaryLimitNotFound(id).left()
 
         return ActuaryLimitResponseDto(

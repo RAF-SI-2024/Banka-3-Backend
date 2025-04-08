@@ -78,7 +78,6 @@ class AuthorizedPersonnelController(
                         ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Company not found with id: ${it.companyId}")
                     is AuthorizedPersonnelServiceError.AuthorizedPersonnelNotFound ->
                         ResponseEntity.status(HttpStatus.NOT_FOUND).body("Authorized personnel not found with id: ${it.id}")
-                    else -> ResponseEntity.internalServerError().build()
                 }
             },
             ifRight = { ResponseEntity.ok(it) },

@@ -19,6 +19,7 @@ import pack.userservicekotlin.swagger.UserApiDoc
 class UserController(
     private val userService: UserService,
 ) : UserApiDoc {
+    @GetMapping
     override fun getAllUsers(
         page: Int,
         size: Int,
@@ -27,6 +28,7 @@ class UserController(
         return ResponseEntity.ok(userService.listUsers(pageable))
     }
 
+    @GetMapping("/{userId}/role")
     override fun getUserRole(userId: Long): ResponseEntity<String> =
         userService.getUserRole(userId).fold(
             ifLeft = { error ->
@@ -39,6 +41,7 @@ class UserController(
             ifRight = { role -> ResponseEntity.ok(role) },
         )
 
+    @PostMapping("/{userId}/role")
     override fun addRoleToUser(
         userId: Long,
         roleRequestDto: RoleRequestDto,
@@ -56,6 +59,7 @@ class UserController(
             ifRight = { ResponseEntity.ok().build() },
         )
 
+    @DeleteMapping("/{userId}/role/{roleId}")
     override fun removeRoleFromUser(
         userId: Long,
         roleId: Long,

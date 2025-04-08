@@ -9,6 +9,8 @@ sealed class EmployeeServiceError {
 
     data object LimitNotFound : EmployeeServiceError()
 
+    data object EmailAlreadyExists : EmployeeServiceError()
+
     data class Unknown(
         val cause: Throwable,
     ) : EmployeeServiceError()
