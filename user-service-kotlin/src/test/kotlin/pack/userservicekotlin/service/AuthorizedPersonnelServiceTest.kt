@@ -69,7 +69,7 @@ class AuthorizedPersonnelServiceTest {
         val result = service.createAuthorizedPersonnel(dto)
 
         assertTrue(result.isLeft())
-        assertEquals(AuthorizedPersonnelServiceError.CompanyNotFound(99L), result.swap().orNull())
+        assertEquals(AuthorizedPersonnelServiceError.CompanyNotFound(99L), result.swap().getOrNull())
     }
 
     @Test
@@ -93,7 +93,7 @@ class AuthorizedPersonnelServiceTest {
         val result = service.getAuthorizedPersonnelByCompany(3L)
 
         assertTrue(result.isLeft())
-        assertEquals(AuthorizedPersonnelServiceError.CompanyNotFound(3L), result.swap().orNull())
+        assertEquals(AuthorizedPersonnelServiceError.CompanyNotFound(3L), result.swap().getOrNull())
     }
 
     @Test
@@ -114,7 +114,7 @@ class AuthorizedPersonnelServiceTest {
         val result = service.getAuthorizedPersonnelById(99L)
 
         assertTrue(result.isLeft())
-        assertEquals(AuthorizedPersonnelServiceError.AuthorizedPersonnelNotFound(99L), result.swap().orNull())
+        assertEquals(AuthorizedPersonnelServiceError.AuthorizedPersonnelNotFound(99L), result.swap().getOrNull())
     }
 
     @Test
@@ -161,6 +161,6 @@ class AuthorizedPersonnelServiceTest {
         val result = service.deleteAuthorizedPersonnel(8L)
 
         assertTrue(result.isLeft())
-        assertEquals(AuthorizedPersonnelServiceError.AuthorizedPersonnelNotFound(8L), result.swap().orNull())
+        assertEquals(AuthorizedPersonnelServiceError.AuthorizedPersonnelNotFound(8L), result.swap().getOrNull())
     }
 }

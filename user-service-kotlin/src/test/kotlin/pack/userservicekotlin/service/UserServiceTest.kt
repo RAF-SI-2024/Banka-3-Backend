@@ -55,7 +55,7 @@ class UserServiceTest {
         val result = userService.getUserRole(2L)
 
         assertTrue(result.isLeft())
-        assertEquals(UserServiceError.RoleNotAssigned, result.swap().orNull())
+        assertEquals(UserServiceError.RoleNotAssigned, result.swap().getOrNull())
     }
 
     @Test
@@ -65,7 +65,7 @@ class UserServiceTest {
         val result = userService.getUserRole(3L)
 
         assertTrue(result.isLeft())
-        assertEquals(UserServiceError.UserNotFound, result.swap().orNull())
+        assertEquals(UserServiceError.UserNotFound, result.swap().getOrNull())
     }
 
     @Test
@@ -100,7 +100,7 @@ class UserServiceTest {
         val result = userService.addRoleToUser(5L, dto)
 
         assertTrue(result.isLeft())
-        assertEquals(UserServiceError.RoleAlreadyAssigned, result.swap().orNull())
+        assertEquals(UserServiceError.RoleAlreadyAssigned, result.swap().getOrNull())
     }
 
     @Test
@@ -132,7 +132,7 @@ class UserServiceTest {
         val result = userService.removeRoleFromUser(7L, 7L)
 
         assertTrue(result.isLeft())
-        assertEquals(UserServiceError.RoleNotAssigned, result.swap().orNull())
+        assertEquals(UserServiceError.RoleNotAssigned, result.swap().getOrNull())
     }
 
     @Test

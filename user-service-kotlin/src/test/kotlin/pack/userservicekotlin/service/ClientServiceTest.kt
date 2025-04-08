@@ -68,7 +68,7 @@ class ClientServiceTest {
         val result = clientService.getClientById(99L)
 
         assertTrue(result.isLeft())
-        assertEquals(ClientServiceError.NotFound(99L), result.swap().orNull())
+        assertEquals(ClientServiceError.NotFound(99L), result.swap().getOrNull())
     }
 
     @Test
@@ -144,7 +144,7 @@ class ClientServiceTest {
         val result = clientService.deleteClient(6L)
 
         assertTrue(result.isLeft())
-        assertEquals(ClientServiceError.NotFound(6L), result.swap().orNull())
+        assertEquals(ClientServiceError.NotFound(6L), result.swap().getOrNull())
     }
 
     @Test
@@ -166,7 +166,7 @@ class ClientServiceTest {
         val result = clientService.findByEmail(email)
 
         assertTrue(result.isLeft())
-        assertEquals(ClientServiceError.EmailNotFound(email), result.swap().orNull())
+        assertEquals(ClientServiceError.EmailNotFound(email), result.swap().getOrNull())
     }
 
     @Test
