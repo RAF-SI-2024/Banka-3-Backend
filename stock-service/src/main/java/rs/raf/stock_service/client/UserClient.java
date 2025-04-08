@@ -3,6 +3,7 @@ package rs.raf.stock_service.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import rs.raf.stock_service.domain.dto.ActuaryDto;
 import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
 import rs.raf.stock_service.domain.dto.ClientDto;
 
@@ -16,6 +17,9 @@ public interface UserClient {
 
     @GetMapping("/api/admin/clients/{id}")
     ClientDto getClientById(@PathVariable("id") Long id);
+
+    @GetMapping("/api/admin/employees/{id}")
+    ActuaryDto getEmployeeById(@PathVariable("id") Long id);
 
 
 }
