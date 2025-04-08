@@ -190,11 +190,11 @@ public class PaymentService {
                 .orElseThrow(() -> new AccNotFoundException(paymentDto.getSenderAccountNumber()));
         //ovo ce da se menja 90%
         String senderNameSurname;
-        if (sender instanceof PersonalAccount) {
+        if (sender instanceof CompanyAccount && ((CompanyAccount) sender).getCompanyId() == 1) {
+            senderNameSurname = "Banka 2";
+        }else {
             ClientDto clientDto = userClient.getClientById(clientId);
             senderNameSurname = clientDto.getFirstName() + " " + clientDto.getLastName();
-        }else {
-            senderNameSurname = "Banka 2";
         }
 
         Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
