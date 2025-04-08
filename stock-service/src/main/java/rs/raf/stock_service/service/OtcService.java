@@ -15,6 +15,7 @@ import rs.raf.stock_service.domain.entity.OtcOffer;
 import rs.raf.stock_service.domain.entity.OtcOption;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.OptionRepository;
 import rs.raf.stock_service.repository.OtcOptionRepository;
 
@@ -34,13 +35,19 @@ public class OtcService {
     @Transactional
     public void exerciseOption(Long otcOptionId, Long userId) {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
-                .orElseThrow(() -> new RuntimeException("OTC Option not found"));
+                .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
         OtcOffer offer = otcOption.getOtcOffer();
-        if (offer == null) throw new RuntimeException("This is not an OTC option");
-        if (!otcOption.getBuyerId().equals(userId)) throw new RuntimeException("Only buyer can exercise this option");
-        if (offer.getStatus() == OtcOfferStatus.EXERCISED) throw new RuntimeException("Option already exercised");
-        if (otcOption.getSettlementDate().isBefore(LocalDate.now())) throw new RuntimeException("Settlement expired");
+        if (offer == null) throw new InvalidOtcOptionException("This is not an OTC option");
+
+        if (!otcOption.getBuyerId().equals(userId))
+            throw new UnauthorizedOtcAccessException();
+
+        if (offer.getStatus() == OtcOfferStatus.EXERCISED)
+            throw new OtcOptionAlreadyExercisedException();
+
+        if (otcOption.getSettlementDate().isBefore(LocalDate.now()))
+            throw new OtcOptionSettlementExpiredException();
 
         BigDecimal totalAmount = offer.getPricePerStock().multiply(BigDecimal.valueOf(otcOption.getAmount()));
         Stock stock = otcOption.getUnderlyingStock();
@@ -48,7 +55,7 @@ public class OtcService {
         Long paymentId = null;
 
         try {
-            transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
+            paymentId = transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
 
             portfolioService.transferStockOwnership(
                     otcOption.getSellerId(),
@@ -62,10 +69,10 @@ public class OtcService {
                 try {
                     bankClient.rejectPayment(paymentId);
                 } catch (Exception rollbackEx) {
-                    throw new RuntimeException("Rollback failed after OTC execution error: " + rollbackEx.getMessage());
+                    throw new OtcRollbackFailedException("Rollback failed after OTC execution error: " + rollbackEx.getMessage());
                 }
             }
-            throw new RuntimeException("OTC execution failed: " + ex.getMessage());
+            throw new OtcExecutionFailedException("OTC execution failed: " + ex.getMessage());
         }
 
         offer.setStatus(OtcOfferStatus.EXERCISED);
@@ -73,7 +80,7 @@ public class OtcService {
         otcOptionRepository.save(otcOption);
     }
 
-    private void transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
+    private Long transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
         String senderAccount = bankClient.getAccountNumberByClientId(fromUserId).getBody();
         String receiverAccount = bankClient.getAccountNumberByClientId(toUserId).getBody();
 
@@ -86,6 +93,12 @@ public class OtcService {
         dto.setReferenceNumber("OTC-" + System.currentTimeMillis());
         dto.setClientId(fromUserId);
 
-        bankClient.executeSystemPayment(dto);
+        ResponseEntity<PaymentDto> response = bankClient.executeSystemPayment(dto);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new SystemPaymentFailedException("Payment failed: " + response.getStatusCode());
+        }
+
+        return response.getBody().getId();
     }
 }

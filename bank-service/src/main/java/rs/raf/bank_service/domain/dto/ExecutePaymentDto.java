@@ -14,9 +14,6 @@ public class ExecutePaymentDto {
     private Long receiverAccountNumber;
     private BigDecimal amount;
     private Integer paymentCode;
-    private String purposeOfPayment;
-    private String referenceNumber;
 
-    private CreatePaymentDto createPaymentDto;
 }
 

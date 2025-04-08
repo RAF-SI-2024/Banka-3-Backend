@@ -4,8 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.stock_service.exceptions.OtcException;
 import rs.raf.stock_service.service.OtcService;
 
 @RestController
@@ -28,6 +30,12 @@ public class OtcController {
     public ResponseEntity<Void> exerciseOtcOption(@PathVariable Long optionId, @RequestHeader("userId") Long userId) {
         otcService.exerciseOption(optionId, userId);
         return ResponseEntity.ok().build();
+    }
+
+    @ExceptionHandler(OtcException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<String> handleOtcException(OtcException ex) {
+        return ResponseEntity.badRequest().body("OTC Error: " + ex.getMessage());
     }
 }
 

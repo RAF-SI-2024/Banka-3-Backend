@@ -196,7 +196,7 @@ public class BootstrapData implements CommandLineRunner {
                 .settlementDate(LocalDate.now().plusDays(3))
                 .lastModified(LocalDate.now().atStartOfDay())
                 .lastModifiedById(2L)
-                .status(OtcOfferStatus.PENDING)
+                .status(OtcOfferStatus.ACCEPTED)
                 .build();
 
         otcOption.setOtcOffer(offer);
