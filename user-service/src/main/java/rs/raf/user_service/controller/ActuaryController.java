@@ -13,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.domain.dto.ChangeAgentLimitDto;
-import rs.raf.user_service.domain.dto.ClientDto;
-import rs.raf.user_service.domain.dto.EmployeeDto;
-import rs.raf.user_service.domain.dto.SetApprovalDto;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.exceptions.ActuaryLimitNotFoundException;
 import rs.raf.user_service.exceptions.EmployeeNotFoundException;
 import rs.raf.user_service.exceptions.UserNotAgentException;
@@ -87,7 +84,7 @@ public class ActuaryController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agents retrieved successfully")
     })
-    public ResponseEntity<Page<EmployeeDto>> getAllAgents(
+    public ResponseEntity<Page<ActuaryDto>> getAllAgents(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,

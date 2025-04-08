@@ -33,4 +33,5 @@ public class OrderDto {
     private Integer remainingPortions;
     private Boolean afterHours;
     private List<TransactionDto> transactions;
+    private BigDecimal profit;
 }

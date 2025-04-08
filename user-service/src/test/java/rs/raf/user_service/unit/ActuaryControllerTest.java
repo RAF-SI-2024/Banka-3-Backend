@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rs.raf.user_service.controller.ActuaryController;
 import rs.raf.user_service.controller.EmployeeController;
+import rs.raf.user_service.domain.dto.ActuaryDto;
 import rs.raf.user_service.domain.dto.ChangeAgentLimitDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.dto.SetApprovalDto;
@@ -95,11 +96,11 @@ public class ActuaryControllerTest {
     @Test
     void getAllAgents_Success() {
         PageRequest pageable = PageRequest.of(0, 10);
-        Page<EmployeeDto> page = new PageImpl<>(Collections.emptyList());
+        Page<ActuaryDto> page = new PageImpl<>(Collections.emptyList());
 
         when(actuaryService.findAll(null, null, null, null, pageable)).thenReturn(page);
 
-        ResponseEntity<Page<EmployeeDto>> response = actuaryController.getAllAgents(null, null, null, null, 0, 10);
+        ResponseEntity<Page<ActuaryDto>> response = actuaryController.getAllAgents(null, null, null, null, 0, 10);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());

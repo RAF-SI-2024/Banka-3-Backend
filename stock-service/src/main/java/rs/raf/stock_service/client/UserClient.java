@@ -17,7 +17,6 @@ public interface UserClient {
     @GetMapping("/api/admin/clients/{id}")
     ClientDto getClientById(@PathVariable("id") Long id);
 
-
 }
 
 

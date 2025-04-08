@@ -74,6 +74,7 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private TaxStatus taxStatus;
     private BigDecimal taxAmount;
+    private BigDecimal profit;
 
     public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber) {
         this.userId = userId;

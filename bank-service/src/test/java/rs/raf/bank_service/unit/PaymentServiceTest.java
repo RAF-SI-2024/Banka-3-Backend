@@ -333,7 +333,7 @@ class PaymentServiceTest {
         clientDto.setLastName("Doe");
 
         // Simuliramo da accountRepository vraća sender i receiver
-        when(accountRepository.findByAccountNumberAndClientId(eq("111111"), eq(clientId)))
+        when(accountRepository.findByAccountNumber(eq("111111")))
                 .thenReturn(Optional.of(sender));
         when(accountRepository.findByAccountNumber(eq("222222")))
                 .thenReturn(Optional.of(receiver));
