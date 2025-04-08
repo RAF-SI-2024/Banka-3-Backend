@@ -2,10 +2,12 @@ package unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOfferDto;
 import rs.raf.stock_service.domain.entity.OtcOffer;
@@ -23,12 +25,15 @@ import rs.raf.stock_service.service.OtcService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 
+@ExtendWith(MockitoExtension.class)
 public class OtcOfferServiceTest {
 
     @Mock
@@ -52,8 +57,6 @@ public class OtcOfferServiceTest {
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.openMocks(this);
-
         stock = new Stock();
         stock.setId(1L);
 
@@ -75,13 +78,15 @@ public class OtcOfferServiceTest {
     public void testCreateOffer_success() {
         when(portfolioEntryRepository.findById(1L)).thenReturn(Optional.of(entry));
         when(otcOfferRepository.save(any(OtcOffer.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(otcOfferMapper.toDto(any(OtcOffer.class))).thenReturn(new OtcOfferDto());
+
+        when(otcOfferMapper.toDto(any(OtcOffer.class), eq(buyerId)))
+                .thenReturn(new OtcOfferDto());
 
         OtcOfferDto result = otcService.createOffer(dto, buyerId);
 
         assertNotNull(result);
-        verify(otcOfferRepository, times(1)).save(any(OtcOffer.class));
-        verify(otcOfferMapper).toDto(any(OtcOffer.class));
+        verify(otcOfferRepository).save(any(OtcOffer.class));
+        verify(otcOfferMapper).toDto(any(OtcOffer.class), eq(buyerId));
     }
 
     @Test
@@ -94,7 +99,7 @@ public class OtcOfferServiceTest {
 
     @Test
     public void testCreateOffer_invalidPublicAmount() {
-        entry.setPublicAmount(10); // manje od onoga što traži dto
+        entry.setPublicAmount(10);
         when(portfolioEntryRepository.findById(1L)).thenReturn(Optional.of(entry));
 
         assertThrows(InvalidPublicAmountException.class,
@@ -102,33 +107,70 @@ public class OtcOfferServiceTest {
     }
 
     @Test
-    void testAcceptOffer_success() {
+    public void testAcceptOffer_authorized() {
         OtcOffer offer = OtcOffer.builder()
                 .id(1L)
-                .sellerId(123L)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .lastModifiedById(sellerId)
                 .status(OtcOfferStatus.PENDING)
                 .build();
 
         when(otcOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
 
-        otcService.acceptOffer(1L, 123L);
+        otcService.acceptOffer(1L, buyerId);
 
         assertEquals(OtcOfferStatus.ACCEPTED, offer.getStatus());
-        assertEquals(123L, offer.getLastModifiedById());
+        assertEquals(buyerId, offer.getLastModifiedById());
         assertNotNull(offer.getLastModified());
         verify(otcOfferRepository).save(offer);
     }
 
     @Test
-    void testUpdateOffer_success() {
-        Long offerId = 1L;
-        Long sellerId = 100L;
-
-        OtcOffer existingOffer = OtcOffer.builder()
-                .id(offerId)
+    public void testAcceptOffer_unauthorized_sameLastModifier() {
+        OtcOffer offer = OtcOffer.builder()
+                .id(1L)
+                .buyerId(buyerId)
                 .sellerId(sellerId)
+                .lastModifiedById(buyerId)
                 .status(OtcOfferStatus.PENDING)
-                .lastModified(LocalDateTime.now().minusDays(1))
+                .build();
+
+        when(otcOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
+
+        assertThrows(UnauthorizedActionException.class, () -> otcService.acceptOffer(1L, buyerId));
+        verify(otcOfferRepository, never()).save(any());
+    }
+
+    @Test
+    public void testRejectOffer_authorized() {
+        OtcOffer offer = OtcOffer.builder()
+                .id(1L)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .lastModifiedById(buyerId)
+                .status(OtcOfferStatus.PENDING)
+                .build();
+
+        when(otcOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
+
+        otcService.rejectOffer(1L, sellerId);
+
+        assertEquals(OtcOfferStatus.REJECTED, offer.getStatus());
+        assertEquals(sellerId, offer.getLastModifiedById());
+        verify(otcOfferRepository).save(offer);
+    }
+
+    @Test
+    public void testUpdateOffer_authorized() {
+        Long offerId = 1L;
+
+        OtcOffer offer = OtcOffer.builder()
+                .id(offerId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .lastModifiedById(sellerId)
+                .status(OtcOfferStatus.PENDING)
                 .build();
 
         CreateOtcOfferDto dto = new CreateOtcOfferDto();
@@ -137,17 +179,98 @@ public class OtcOfferServiceTest {
         dto.setPremium(new BigDecimal("5"));
         dto.setSettlementDate(LocalDate.now().plusDays(7));
 
-        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(existingOffer));
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
 
-        otcService.updateOffer(offerId, sellerId, dto);
+        otcService.updateOffer(offerId, buyerId, dto);
 
-        verify(otcOfferRepository).save(argThat(updatedOffer ->
-                updatedOffer.getAmount() == 10 &&
-                        updatedOffer.getPricePerStock().equals(new BigDecimal("100")) &&
-                        updatedOffer.getPremium().equals(new BigDecimal("5")) &&
-                        updatedOffer.getSettlementDate().equals(dto.getSettlementDate()) &&
-                        updatedOffer.getStatus() == OtcOfferStatus.PENDING &&
-                        updatedOffer.getLastModifiedById().equals(sellerId)
+        verify(otcOfferRepository).save(argThat(updated ->
+                updated.getAmount() == 10 &&
+                        updated.getPricePerStock().equals(dto.getPricePerStock()) &&
+                        updated.getPremium().equals(dto.getPremium()) &&
+                        updated.getSettlementDate().equals(dto.getSettlementDate()) &&
+                        updated.getLastModifiedById().equals(buyerId) &&
+                        updated.getStatus() == OtcOfferStatus.PENDING
         ));
+    }
+
+    @Test
+    public void testUpdateOffer_unauthorized_sameModifier() {
+        Long offerId = 1L;
+
+        OtcOffer offer = OtcOffer.builder()
+                .id(offerId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .lastModifiedById(buyerId)
+                .status(OtcOfferStatus.PENDING)
+                .build();
+
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+
+        assertThrows(UnauthorizedActionException.class, () -> otcService.updateOffer(offerId, buyerId, dto));
+        verify(otcOfferRepository, never()).save(any());
+    }
+
+    @Test
+    public void testGetAllActiveOffersForUser_returnsOffersSortedAndFiltered() {
+        Long userId = 100L;
+
+        OtcOffer offer1 = OtcOffer.builder()
+                .id(1L)
+                .buyerId(userId)
+                .sellerId(200L)
+                .lastModifiedById(200L)
+                .status(OtcOfferStatus.PENDING)
+                .lastModified(LocalDateTime.now().minusMinutes(10))
+                .build();
+
+        OtcOffer offer2 = OtcOffer.builder()
+                .id(2L)
+                .buyerId(300L)
+                .sellerId(userId)
+                .lastModifiedById(300L)
+                .status(OtcOfferStatus.PENDING)
+                .lastModified(LocalDateTime.now().minusMinutes(5))
+                .build();
+
+        OtcOffer offer3 = OtcOffer.builder()
+                .id(3L)
+                .buyerId(userId)
+                .sellerId(400L)
+                .lastModifiedById(userId)
+                .status(OtcOfferStatus.PENDING)
+                .lastModified(LocalDateTime.now().minusMinutes(1))
+                .build();
+
+        List<OtcOffer> offers = Arrays.asList(offer1, offer2, offer3);
+
+        when(otcOfferRepository.findAllByStatus(OtcOfferStatus.PENDING)).thenReturn(offers);
+
+
+        when(otcOfferMapper.toDto(any(OtcOffer.class), eq(userId)))
+                .thenAnswer(invocation -> {
+                    OtcOffer o = invocation.getArgument(0);
+                    return OtcOfferDto.builder()
+                            .id(o.getId())
+                            .amount(o.getAmount())
+                            .pricePerStock(o.getPricePerStock())
+                            .premium(o.getPremium())
+                            .settlementDate(o.getSettlementDate())
+                            .status(o.getStatus())
+                            .canInteract(!o.getLastModifiedById().equals(userId))
+                            .name("Mock User")
+                            .build();
+                });
+
+        List<OtcOfferDto> result = otcService.getAllActiveOffersForUser(userId);
+
+        assertEquals(3, result.size());
+        assertEquals(3L, result.get(0).getId()); // najskorije
+        assertEquals(2L, result.get(1).getId());
+        assertEquals(1L, result.get(2).getId());
+
+        assertFalse(result.get(0).getCanInteract()); // user je poslednji menjao
+        assertTrue(result.get(1).getCanInteract());
+        assertTrue(result.get(2).getCanInteract());
     }
 }

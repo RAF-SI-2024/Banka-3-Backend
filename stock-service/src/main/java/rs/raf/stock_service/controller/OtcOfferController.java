@@ -65,7 +65,7 @@ public class OtcOfferController {
     public ResponseEntity<?> getReceivedOffers(@RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            List<OtcOfferDto> offers = otcService.getAllActiveOffersForSeller(userId);
+            List<OtcOfferDto> offers = otcService.getAllActiveOffersForUser(userId);
             return ResponseEntity.ok(offers);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
@@ -112,6 +112,27 @@ public class OtcOfferController {
             otcService.updateOffer(id, sellerId, dto);
             return ResponseEntity.ok("Counter-offer sent.");
         } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Offer not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
+    @Operation(summary = "Cancel OTC offer")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Offer successfully cancelled"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized to cancel"),
+            @ApiResponse(responseCode = "404", description = "Offer not found")
+    })
+    public ResponseEntity<?> cancelOffer(@PathVariable("id") Long offerId,
+                                         @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            otcService.cancelOffer(offerId, userId);
+            return ResponseEntity.ok("Offer successfully cancelled.");
+        }  catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Offer not found");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());

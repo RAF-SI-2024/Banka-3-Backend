@@ -6,10 +6,7 @@ import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
-import rs.raf.stock_service.domain.dto.PublicStockDto;
-import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
@@ -18,7 +15,6 @@ import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
@@ -147,9 +143,10 @@ public class PortfolioService {
             try {
                 ClientDto client = userClient.getClientById(entry.getUserId());
                 ownerName = client.getFirstName() + " " + client.getLastName();
+
             } catch (Exception e) {
-                log.warn("Could not fetch client info for userId: {}", entry.getUserId());
-                ownerName = "user-" + entry.getUserId(); // fallback
+                ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
+                ownerName = actuary.getFirstName() + " " + actuary.getLastName();
             }
 
             BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
@@ -165,9 +162,9 @@ public class PortfolioService {
 
         }).collect(Collectors.toList());
     }
-    
+
     public TaxGetResponseDto getTaxes(Long userId){
-        
+
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
 

@@ -12,12 +12,18 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OtcOfferDto {
+
     private Long id;
     private StockDto stock;
+
     private Integer amount;
     private BigDecimal pricePerStock;
     private BigDecimal premium;
     private LocalDate settlementDate;
+
     private OtcOfferStatus status;
+
+    private Boolean canInteract; // true ako je lastModifiedById različit od userId pozivaoca
+    private String name;
 
 }
