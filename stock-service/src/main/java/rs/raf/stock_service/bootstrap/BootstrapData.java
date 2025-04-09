@@ -11,6 +11,8 @@ import rs.raf.stock_service.domain.enums.*;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
+import org.springframework.context.ApplicationContext;
+import rs.raf.stock_service.client.AlphavantageClient;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
