@@ -53,6 +53,7 @@ class AuthController(
             },
         )
 
+    @PostMapping("/api/auth/request-password-reset")
     override fun requestPasswordReset(
         @RequestBody requestPasswordResetDTO: RequestPasswordResetDto,
     ): ResponseEntity<Void> =
@@ -66,6 +67,7 @@ class AuthController(
             ifRight = { ResponseEntity.ok().build() },
         )
 
+    @PostMapping("/api/auth/check-token")
     override fun checkToken(
         @RequestBody checkTokenDTO: CheckTokenDto,
     ): ResponseEntity<Void> =
@@ -79,6 +81,7 @@ class AuthController(
             ifRight = { ResponseEntity.ok().build() },
         )
 
+    @PostMapping("/api/auth/set-password")
     override fun activateUser(
         @RequestBody activationRequestDto: ActivationRequestDto,
     ): ResponseEntity<Void> =

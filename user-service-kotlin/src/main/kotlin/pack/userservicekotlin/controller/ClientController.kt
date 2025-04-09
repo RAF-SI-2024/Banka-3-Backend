@@ -20,6 +20,7 @@ class ClientController(
     private val clientService: ClientService,
 ) : ClientApiDoc {
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping
     override fun getAllClients(
         firstName: String?,
         lastName: String?,
@@ -32,6 +33,7 @@ class ClientController(
     }
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/{id}")
     override fun getClientById(id: Long): ResponseEntity<Any> =
         clientService.getClientById(id).fold(
             ifLeft = {
@@ -45,6 +47,7 @@ class ClientController(
         )
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @PostMapping
     override fun addClient(createClientDto: CreateClientDto): ResponseEntity<Any> =
         clientService.addClient(createClientDto).fold(
             ifLeft = {
@@ -58,6 +61,7 @@ class ClientController(
         )
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @PutMapping("/{id}")
     override fun updateClient(
         id: Long,
         updateClientDto: UpdateClientDto,
@@ -73,6 +77,7 @@ class ClientController(
         )
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @DeleteMapping("/{id}")
     override fun deleteClient(id: Long): ResponseEntity<Void> =
         clientService.deleteClient(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
@@ -80,6 +85,7 @@ class ClientController(
         )
 
     @PreAuthorize("hasRole('CLIENT')")
+    @GetMapping("/me")
     override fun getCurrentClient(): ResponseEntity<Any> =
         clientService.getCurrentClient().fold(
             ifLeft = {

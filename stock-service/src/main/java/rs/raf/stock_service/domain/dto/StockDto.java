@@ -1,9 +1,14 @@
 package rs.raf.stock_service.domain.dto;
 
-import lombok.Data;
+import lombok.*;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Data
 public class StockDto {
     private String name;

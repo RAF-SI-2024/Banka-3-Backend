@@ -21,8 +21,9 @@ class ActuaryController(
     private val actuaryService: ActuaryService,
 ) : ActuaryApiDoc {
     @PreAuthorize("hasRole('SUPERVISOR')")
+    @PutMapping("change-limit/{id}")
     override fun changeAgentLimit(
-        id: Long,
+        @PathVariable id: Long,
         @Valid @RequestBody changeActuaryLimitDto: UpdateActuaryLimitDto,
     ): ResponseEntity<Any> =
         actuaryService.changeAgentLimit(id, changeActuaryLimitDto.newLimit!!).fold(
@@ -40,7 +41,10 @@ class ActuaryController(
         )
 
     @PreAuthorize("hasRole('SUPERVISOR')")
-    override fun resetDailyLimit(id: Long): ResponseEntity<Any> =
+    @PutMapping("reset-limit/{id}")
+    override fun resetDailyLimit(
+        @PathVariable id: Long,
+    ): ResponseEntity<Any> =
         actuaryService.resetDailyLimit(id).fold(
             ifLeft = {
                 when (it) {
@@ -56,8 +60,9 @@ class ActuaryController(
         )
 
     @PreAuthorize("hasRole('SUPERVISOR')")
+    @PutMapping("set-approval/{id}")
     override fun setApprovalValue(
-        id: Long,
+        @PathVariable id: Long,
         @Valid @RequestBody setApprovalDto: SetApprovalDto,
     ): ResponseEntity<Any> =
         actuaryService.setApproval(id, setApprovalDto.needApproval!!).fold(
@@ -75,6 +80,7 @@ class ActuaryController(
         )
 
     @PreAuthorize("hasRole('SUPERVISOR')")
+    @GetMapping
     override fun getAllAgents(
         email: String?,
         firstName: String?,

@@ -21,6 +21,7 @@ class EmployeeController(
     private val employeeService: EmployeeService,
 ) : EmployeeApiDoc {
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/{id}")
     override fun getEmployeeById(id: Long): ResponseEntity<Any> =
         employeeService.findById(id).fold(
             ifLeft = {
@@ -33,6 +34,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping
     override fun getAllEmployees(
         firstName: String?,
         lastName: String?,
@@ -46,6 +48,7 @@ class EmployeeController(
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
     override fun createEmployee(createEmployeeDTO: CreateEmployeeDto): ResponseEntity<Any> =
         employeeService.createEmployee(createEmployeeDTO).fold(
             ifLeft = {
@@ -58,6 +61,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
     override fun updateEmployee(
         id: Long,
         updateEmployeeDTO: UpdateEmployeeDto,
@@ -75,6 +79,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
     override fun deleteEmployee(id: Long): ResponseEntity<Void> =
         employeeService.deleteEmployee(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
@@ -82,6 +87,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/deactivate")
     override fun deactivateEmployee(id: Long): ResponseEntity<Void> =
         employeeService.deactivateEmployee(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
@@ -89,6 +95,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/activate")
     override fun activateEmployee(
         @Parameter(description = "Employee ID", required = true, example = "1")
         @PathVariable id: Long,
@@ -99,6 +106,7 @@ class EmployeeController(
         )
 
     @PreAuthorize("hasRole('EMPLOYEE')")
+    @GetMapping("/me")
     override fun getCurrentEmployee(): ResponseEntity<Any> {
         val email = SecurityContextHolder.getContext().authentication.name
         return employeeService.findByEmail(email).fold(
