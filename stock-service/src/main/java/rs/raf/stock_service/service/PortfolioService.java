@@ -30,6 +30,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rs.raf.stock_service.utils.JwtTokenUtil;
 
 @Slf4j
 @Service
@@ -40,6 +41,7 @@ public class PortfolioService {
     private final UserClient userClient;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
+    private final JwtTokenUtil jwtTokenUtil;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -164,7 +166,8 @@ public class PortfolioService {
         }).collect(Collectors.toList());
     }
 
-    public TaxGetResponseDto getTaxes(Long userId){
+    public TaxGetResponseDto getTaxes(String authHeader){
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();

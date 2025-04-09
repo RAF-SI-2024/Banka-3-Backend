@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.ListingType;
+import rs.raf.stock_service.domain.enums.*;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
@@ -55,6 +55,163 @@ public class BootstrapData implements CommandLineRunner {
         getSelfProxy().addOptionsForStocks();
 
         getSelfProxy().addPortfolioAndOtcTestData();
+
+        getSelfProxy().addOrderTestData();
+    }
+
+    @Transactional
+    public void addOrderTestData() {
+        Listing stock = listingRepository.findByTicker("DADA").orElse(null);
+
+        Order user2Pending = Order.builder()
+                .id(2L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("111111111111111111")
+                .afterHours(false)
+                .isDone(false)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("140"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(2L)
+                .quantity(20)
+                .approvedBy(null)
+                .status(OrderStatus.PENDING)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user1DoneBuy = Order.builder()
+                .id(1L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("211111111111111111")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("50"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(1L)
+                .quantity(10)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user1DoneSell = Order.builder()
+                .id(3L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("211111111111111111")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.SELL)
+                .pricePerUnit(new BigDecimal("60"))
+                .remainingPortions(0)
+                .taxAmount(new BigDecimal("15"))
+                .taxStatus(TaxStatus.PENDING)
+                .userId(1L)
+                .quantity(10)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user1DoneBuy2 = Order.builder()
+                .id(4L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("211111111111111111")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("50"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(1L)
+                .quantity(10)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user1DoneSell2 = Order.builder()
+                .id(5L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("211111111111111111")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.SELL)
+                .pricePerUnit(new BigDecimal("55"))
+                .remainingPortions(0)
+                .taxAmount(new BigDecimal("7.5"))
+                .taxStatus(TaxStatus.PAID)
+                .userId(1L)
+                .quantity(10)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user3DoneBuy = Order.builder()
+                .id(6L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("333000157555885522")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("10"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(3L)
+                .quantity(100)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user3DoneSell = Order.builder()
+                .id(7L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("333000157555885522")
+                .afterHours(false)
+                .isDone(true)
+                .direction(OrderDirection.SELL)
+                .pricePerUnit(new BigDecimal("12"))
+                .remainingPortions(0)
+                .taxAmount(new BigDecimal("30"))
+                .taxStatus(TaxStatus.PAID)
+                .userId(3L)
+                .quantity(100)
+                .approvedBy(null)
+                .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+
+        orderRepository.save(user1DoneBuy);
+        orderRepository.save(user1DoneSell);
+        orderRepository.save(user3DoneBuy);
+        orderRepository.save(user3DoneSell);
+        orderRepository.save(user1DoneBuy2);
+        orderRepository.save(user1DoneSell2);
+        orderRepository.save(user3DoneBuy);
+        orderRepository.save(user3DoneSell);
     }
 
     @Transactional

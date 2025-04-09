@@ -96,13 +96,13 @@ public class PortfolioController {
     }
 
     @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
-    @GetMapping("/tax/{userId}")
+    @GetMapping("/tax")
     @Operation(summary = "Get taxes", description = "Returns paid tax for current year, and unpaid for current month.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
     })
-    public ResponseEntity<TaxGetResponseDto>getTaxes(@PathVariable Long userId){
-        return ResponseEntity.ok().body(portfolioService.getTaxes(userId));
+    public ResponseEntity<TaxGetResponseDto>getTaxes(@RequestHeader("Authorization") String authHeader){
+        return ResponseEntity.ok().body(portfolioService.getTaxes(authHeader));
 
     }
 }
