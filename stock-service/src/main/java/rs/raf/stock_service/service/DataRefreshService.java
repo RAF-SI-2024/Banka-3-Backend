@@ -36,14 +36,13 @@ public class DataRefreshService {
     @Autowired private ListingService listingService;
     @Autowired private EntityManager entityManager;
 
-    @Value("${refresh.thread.pool.size:10}")
+    @Value("${refresh.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final List<String> problematicTickers = List.of("ZTST", "IGZ");
 
     @Scheduled(initialDelay = 150000, fixedRate = 300000) // 2.5min delay zbog bootstrap data, 5min interval
-    @Async
     @Transactional
     public void refreshListings() {
         log.info("---- Starting scheduled listing refresh ----");
@@ -92,6 +91,7 @@ public class DataRefreshService {
             }
 
             String[] parts = forex.getTicker().split("/");
+            System.out.println(Arrays.toString(parts));
             if (parts.length != 2) {
                 log.warn("Skipping malformed forex ticker: {}", forex.getTicker());
                 return;
@@ -120,41 +120,46 @@ public class DataRefreshService {
         log.info("Refreshing options...");
 
         try {
-            Set<String> usedOptionTickers = portfolioEntryRepository.findAll().stream()
-                    .filter(e -> e.getType() == ListingType.OPTION)
-                    .map(e -> e.getListing().getTicker())
-                    .collect(Collectors.toSet());
+            Set<String> usedOptionTickers = portfolioEntryRepository.findAllOptionTickersInUse();
 
-            List<Option> usedOptions = optionRepository.findAll().stream()
+            List<Option> allOptions = optionRepository.findAll();
+
+            List<Option> usedOptions = allOptions.stream()
                     .filter(opt -> usedOptionTickers.contains(opt.getTicker()))
                     .toList();
+
             usedOptions.forEach(option -> option.setOnSale(false));
             optionRepository.saveAllAndFlush(usedOptions);
 
-            List<Option> allOptions = optionRepository.findAll();
             List<Option> toDelete = allOptions.stream()
                     .filter(opt -> !usedOptionTickers.contains(opt.getTicker()))
-                    .peek(opt -> opt.setOffer(null))
                     .toList();
 
-            optionRepository.saveAllAndFlush(toDelete);
-            optionRepository.deleteAll(toDelete);
-
-            log.info("Deleted {} unused options.", toDelete.size());
+            if (!toDelete.isEmpty()) {
+                optionRepository.deleteByIdInBatch(toDelete.stream().map(Option::getId).toList());
+                log.info("Deleted {} unused options (by IDs).", toDelete.size());
+            }
 
             Set<String> tickersToRegenerate = toDelete.stream()
                     .map(opt -> opt.getUnderlyingStock().getTicker())
                     .collect(Collectors.toSet());
 
+            log.info("Tickers needing regeneration: {}", tickersToRegenerate);
+
             List<Stock> stocksToRegenerate = stocks.stream()
                     .filter(s -> tickersToRegenerate.contains(s.getTicker()))
                     .toList();
 
+            log.info("Found {} stocks to regenerate options for.", stocksToRegenerate.size());
+
+            Set<String> existingTickers = optionRepository.findAllTickers();
+
             List<Option> newOptions = refreshInParallel(stocksToRegenerate, stock -> {
                 try {
                     List<OptionDto> dtos = optionService.generateOptions(stock.getTicker(), stock.getPrice());
+
                     return dtos.stream()
-                            .filter(dto -> !optionRepository.existsByTicker(dto.getTicker()))
+                            .filter(dto -> !existingTickers.contains(dto.getTicker()))
                             .map(dto -> {
                                 Option o = new Option();
                                 o.setUnderlyingStock(stock);
@@ -170,6 +175,7 @@ public class DataRefreshService {
                                 o.setOnSale(true);
                                 return o;
                             }).toList();
+
                 } catch (Exception e) {
                     log.error("Failed to generate options for stock {}", stock.getTicker(), e);
                     return List.of();
@@ -183,6 +189,7 @@ public class DataRefreshService {
             log.error("Failed refreshing options", e);
         }
     }
+
 
     private List<ListingPriceHistory> createNewHistory(Listing listing, TimeSeriesDto dto, Set<LocalDateTime> existingDates) {
         return dto.getValues().stream()

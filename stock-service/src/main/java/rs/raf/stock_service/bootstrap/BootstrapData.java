@@ -43,7 +43,7 @@ public class BootstrapData implements CommandLineRunner {
     @Autowired private EntityManager entityManager;
     @Autowired private ListingService listingService;
 
-    @Value("${bootstrap.thread.pool.size:50}")
+    @Value("${bootstrap.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
