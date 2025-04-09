@@ -20,6 +20,7 @@ public class OtcOption {
     private BigDecimal strikePrice;
     private LocalDate settlementDate;
     private Integer amount;
+    private BigDecimal premium;
 
     private Long buyerId;
     private Long sellerId;
