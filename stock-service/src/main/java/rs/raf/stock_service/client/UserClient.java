@@ -20,8 +20,6 @@ public interface UserClient {
 
     @GetMapping("/api/admin/employees/{id}")
     ActuaryDto getEmployeeById(@PathVariable("id") Long id);
-
-
 }
 
 

@@ -13,6 +13,7 @@ import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.domain.enums.VerificationType;
@@ -175,7 +176,6 @@ public class PaymentService {
 
 
     public PaymentDto createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
-
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
         }
@@ -185,9 +185,17 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(),clientId)
+        Account sender = accountRepository.findByAccountNumber(paymentDto.getSenderAccountNumber())
                 .stream().findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
+                .orElseThrow(() -> new AccNotFoundException(paymentDto.getSenderAccountNumber()));
+        //ovo ce da se menja 90%
+        String senderNameSurname;
+        if (sender instanceof CompanyAccount && ((CompanyAccount) sender).getCompanyId() == 1) {
+            senderNameSurname = "Banka 2";
+        }else {
+            ClientDto clientDto = userClient.getClientById(clientId);
+            senderNameSurname = clientDto.getFirstName() + " " + clientDto.getLastName();
+        }
 
         Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
                 .stream().findFirst()
@@ -199,12 +207,10 @@ public class PaymentService {
             throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
         }
 
-        ClientDto clientDto = userClient.getClientById(clientId);
 
         BigDecimal amount = paymentDto.getAmount();
         BigDecimal convertedAmount = amount;
         BigDecimal exchangeRateValue = BigDecimal.ONE;
-
         // Provera da li su valute različite
         if (!sender.getCurrency().equals(receiver.getCurrency())) {
             ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
@@ -214,7 +220,7 @@ public class PaymentService {
 
         // Kreiranje Payment entiteta
         Payment payment = new Payment();
-        payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
+        payment.setSenderName(senderNameSurname);
         payment.setClientId(clientId);
         payment.setSenderAccount(sender);
         payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
@@ -244,20 +250,17 @@ public class PaymentService {
     }
 
     public void handleTax(TaxDto taxDto) throws JsonProcessingException {
-
         CreatePaymentDto createPaymentDto = new CreatePaymentDto();
         createPaymentDto.setPurposeOfPayment("tax");
         createPaymentDto.setSenderAccountNumber(taxDto.getSenderAccountNumber());
-        createPaymentDto.setAmount(taxDto.getAmount());
         createPaymentDto.setReferenceNumber("N/A");
         createPaymentDto.setPaymentCode("N/A");
         createPaymentDto.setRecieverName("Republika Srbija");
+        createPaymentDto.setAmount(taxDto.getAmount());
         Account account = companyAccountRepository.findByCompanyId(2L);
         createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
         PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
-
         transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
-
     }
 
     @Transactional

@@ -7,6 +7,9 @@ import org.mockito.*;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.client.StockClient;
+import rs.raf.user_service.domain.dto.ActuaryDto;
 import rs.raf.user_service.domain.dto.ActuaryLimitDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.entity.ActuaryLimit;
@@ -35,6 +38,9 @@ public class ActuaryServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private StockClient stockClient;
 
     @InjectMocks
     private ActuaryService actuaryService;
@@ -80,7 +86,7 @@ public class ActuaryServiceTest {
                 .thenReturn(employeesPage);
 
         // Poziv servisa
-        Page<EmployeeDto> result = actuaryService.findAll("John", "Doe", "agent@example.com", "AGENT", pageable);
+        Page<EmployeeDto> result = actuaryService.findAgents("John", "Doe", "agent@example.com", "AGENT", pageable);
 
         // Provera rezultata
         assertNotNull(result);

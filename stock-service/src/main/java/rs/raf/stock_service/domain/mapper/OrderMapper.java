@@ -27,7 +27,8 @@ public class OrderMapper {
                 order.getLastModification(),
                 order.getRemainingPortions(),
                 order.getAfterHours(),
-                order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
+                order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList()),
+                order.getProfit()
         );
     }
 
