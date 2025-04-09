@@ -59,17 +59,6 @@ public class AccountServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        accountService = new AccountService(
-                currencyRepository,
-                companyAccountRepository,
-                accountRepository,
-                changeLimitRequestRepository,
-                jwtTokenUtil,
-                userClient,
-                objectMapper
-        );
-
-
     }
 
 

@@ -13,11 +13,10 @@ import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
-import rs.raf.stock_service.exceptions.OrderNotFoundException;
+import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.service.OrderService;
 
+import javax.validation.Valid;
 import javax.websocket.server.PathParam;
 
 
@@ -89,11 +88,15 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Listing not found")
     })
-    public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
+    public ResponseEntity<?> createOrder(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        } catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException | AccountNotFoundException | ActuaryLimitNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (StopPriceMissingException | LimitPriceMissingException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

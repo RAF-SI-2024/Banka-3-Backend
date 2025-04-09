@@ -78,6 +78,8 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private boolean allOrNone;
 
+    private BigDecimal reservedAmount;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions;
 

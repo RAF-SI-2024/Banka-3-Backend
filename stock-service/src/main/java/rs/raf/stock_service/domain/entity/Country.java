@@ -1,10 +1,7 @@
 package rs.raf.stock_service.domain.entity;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalTime;
@@ -15,6 +12,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @ToString(exclude = "holidays")
 public class Country {
     @Id
