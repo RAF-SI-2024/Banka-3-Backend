@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOfferDto;
+import rs.raf.stock_service.domain.dto.OtcOptionDto;
 import rs.raf.stock_service.domain.entity.OtcOffer;
 import rs.raf.stock_service.service.OtcService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -137,5 +138,20 @@ public class OtcOfferController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/options")
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
+    public ResponseEntity<?> getOtcOptions(
+            @RequestParam(name = "valid", required = false) Boolean valid,
+            @RequestHeader("Authorization") String authHeader)
+    {
+        Long currentBuyerId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+
+        List<OtcOptionDto> options = otcService.getOtcOptionsForUser(
+                valid, currentBuyerId
+        );
+
+        return ResponseEntity.ok(options);
     }
 }
