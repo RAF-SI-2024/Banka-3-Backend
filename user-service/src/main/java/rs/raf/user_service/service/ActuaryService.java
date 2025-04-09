@@ -47,7 +47,8 @@ public class ActuaryService {
 
     public Page<ActuaryDto> findActuaries(Pageable pageable) {
         Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.hasRole("AGENT")
-                .or(EmployeeSearchSpecification.hasRole("SUPERVISOR")));
+                .or(EmployeeSearchSpecification.hasRole("SUPERVISOR"))
+                .or(EmployeeSearchSpecification.hasRole("ADMIN")));
 
         Page<ActuaryDto> actuaryDtoPage = employeeRepository.findAll(spec, pageable).map(ActuaryMapper::toActuaryDto);
 

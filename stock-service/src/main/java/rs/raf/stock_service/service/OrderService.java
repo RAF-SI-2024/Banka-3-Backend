@@ -135,7 +135,8 @@ public class OrderService {
         BigDecimal approxPrice = BigDecimal.valueOf(order.getContractSize()).multiply(order.getPricePerUnit().
                 multiply(BigDecimal.valueOf(order.getQuantity())));
 
-        if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT") || jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("SUPERVISOR")) {
+        if (jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("CLIENT") || jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("SUPERVISOR")
+                || jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("ADMIN")) {
             order.setStatus(verifyBalance(order) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
         } else {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId); // throw agentNotFound

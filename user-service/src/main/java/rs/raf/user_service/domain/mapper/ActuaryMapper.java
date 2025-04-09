@@ -15,7 +15,7 @@ public class ActuaryMapper {
         dto.setId(employee.getId());
         dto.setFirstName(employee.getFirstName());
         dto.setLastName(employee.getLastName());
-        dto.setPosition(employee.getPosition());
+        dto.setRole(employee.getRole().getName());
         dto.setProfit(BigDecimal.ZERO);
         return dto;
     }

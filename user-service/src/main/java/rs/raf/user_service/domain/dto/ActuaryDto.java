@@ -15,6 +15,6 @@ public class ActuaryDto {
     private Long id;
     private String firstName;
     private String lastName;
-    private String position;
+    private String role;
     private BigDecimal profit;
 }
