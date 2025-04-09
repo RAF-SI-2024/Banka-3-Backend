@@ -20,6 +20,7 @@ import rs.raf.bank_service.repository.AccountRepository;
 import rs.raf.bank_service.repository.CardRepository;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.ExchangeRateService;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -62,6 +63,9 @@ class PaymentServiceTest {
 
     @Mock
     private ExchangeRateService exchangeRateService;
+
+    @Mock
+    private AccountService accountService;
 
     @BeforeEach
     void setUp() {
@@ -332,6 +336,8 @@ class PaymentServiceTest {
         clientDto.setFirstName("John");
         clientDto.setLastName("Doe");
 
+
+        when(accountService.getBankCode(eq("222222"))).thenReturn("111");
         // Simuliramo da accountRepository vraća sender i receiver
         when(accountRepository.findByAccountNumberAndClientId(eq("111111"), eq(clientId)))
                 .thenReturn(Optional.of(sender));

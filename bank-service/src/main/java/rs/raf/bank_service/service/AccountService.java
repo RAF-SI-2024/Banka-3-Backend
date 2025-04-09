@@ -11,7 +11,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -350,5 +349,11 @@ public class AccountService {
                 .orElseThrow(() -> new AccNotFoundException("Account not found"));
 
         return account.getBalance(); //vidi da li treba balance ili availabe balance
+    }
+
+
+
+    public String getBankCode(String accountNumber){
+        return accountNumber.substring(0, 3);
     }
 }

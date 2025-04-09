@@ -8,25 +8,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.client.Banka2UserClient;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
 import rs.raf.bank_service.domain.entity.Payment;
-import rs.raf.bank_service.domain.enums.PaymentStatus;
-import rs.raf.bank_service.domain.enums.TransactionType;
-import rs.raf.bank_service.domain.enums.VerificationType;
+import rs.raf.bank_service.domain.entity.PersonalAccount;
+import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.repository.CardRepository;
-import rs.raf.bank_service.repository.CompanyAccountRepository;
-import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -35,6 +37,7 @@ public class PaymentService {
     private final AccountRepository accountRepository;
     private final JwtTokenUtil jwtTokenUtil;
     private final UserClient userClient;
+    private final Banka2UserClient banka2UserClient;
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
@@ -42,6 +45,8 @@ public class PaymentService {
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
     private CompanyAccountRepository companyAccountRepository;
+    private AccountService accountService;
+    private CurrencyRepository currencyRepository;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver
@@ -175,7 +180,6 @@ public class PaymentService {
 
 
     public PaymentDto createPaymentBeforeConfirmation(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
-
         if (paymentDto.getPaymentCode() == null || paymentDto.getPaymentCode().isEmpty()) {
             throw new PaymentCodeNotProvidedException();
         }
@@ -185,62 +189,102 @@ public class PaymentService {
         }
 
         // Preuzimanje sender računa
-        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(),clientId)
+        Account sender = accountRepository.findByAccountNumberAndClientId(paymentDto.getSenderAccountNumber(), clientId)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(paymentDto.getSenderAccountNumber()));
 
-        Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
-                .stream().findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
+        if (!accountService.getBankCode(paymentDto.getReceiverAccountNumber()).equals("222")) {
+
+            Account receiver = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber())
+                    .stream().findFirst()
+                    .orElseThrow(() -> new ReceiverAccountNotFoundException(paymentDto.getReceiverAccountNumber()));
 
 
-        // Provera balansa sender računa
-        if (sender.getBalance().compareTo(paymentDto.getAmount()) < 0) {
-            throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
+            // Provera balansa sender računa
+            if (sender.getBalance().compareTo(paymentDto.getAmount()) < 0) {
+                throw new InsufficientFundsException(sender.getBalance(), paymentDto.getAmount());
+            }
+
+            ClientDto clientDto = userClient.getClientById(clientId);
+
+            BigDecimal amount = paymentDto.getAmount();
+            BigDecimal convertedAmount = amount;
+            BigDecimal exchangeRateValue = BigDecimal.ONE;
+
+            // Provera da li su valute različite
+            if (!sender.getCurrency().equals(receiver.getCurrency())) {
+                ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+                exchangeRateValue = exchangeRateDto.getSellRate();
+                convertedAmount = amount.multiply(exchangeRateValue);
+            }
+
+            // Kreiranje Payment entiteta
+            Payment payment = new Payment();
+            payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
+            payment.setClientId(clientId);
+            payment.setSenderAccount(sender);
+            payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
+            payment.setAmount(paymentDto.getAmount());
+            payment.setPaymentCode(paymentDto.getPaymentCode());
+            payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
+            payment.setReferenceNumber(paymentDto.getReferenceNumber());
+            payment.setDate(LocalDateTime.now());
+            payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+            payment.setOutAmount(convertedAmount);
+
+            // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
+            payment.setReceiverClientId(receiver.getClientId());
+
+            paymentRepository.save(payment);
+
+            PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
+                    .fromAccountNumber(sender.getAccountNumber())
+                    .toAccountNumber(paymentDto.getReceiverAccountNumber())
+                    .amount(paymentDto.getAmount())
+                    .build();
+
+            CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
+            userClient.createVerificationRequest(createVerificationRequestDto);
+
+            return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
+        } else {
+            Optional<Account> reciever = accountRepository.findByAccountNumber(paymentDto.getReceiverAccountNumber());
+            if (reciever.isEmpty()){
+                Optional<Banka2AccountResponseDto> banka2AccountResponseDtoOptional = banka2UserClient.getAccountByAccountNumber(paymentDto.getReceiverAccountNumber());
+
+                if (banka2AccountResponseDtoOptional.isEmpty()){
+                    throw new ExternalAccountNotFoundException(paymentDto.getReceiverAccountNumber());
+                }
+                Banka2AccountResponseDto banka2AccountResponseDto = banka2AccountResponseDtoOptional.get();
+
+
+                Account account = new PersonalAccount();
+                account.setAccountNumber(banka2AccountResponseDto.getItems().get(0).getAccountNumber());
+                account.setName(banka2AccountResponseDto.getItems().get(0).getName());
+                account.setClientId(null);
+                account.setCreatedByEmployeeId(null);
+                String creationDateStr = banka2AccountResponseDto.getItems().get(0).getCreationDate();
+                LocalDate creationDate = LocalDate.parse(creationDateStr);
+                account.setCreationDate(creationDate);
+                String expirationDateStr =  banka2AccountResponseDto.getItems().get(0).getExpirationDate();
+                LocalDate expirationDate = LocalDate.parse(expirationDateStr);
+                account.setExpirationDate(expirationDate);
+                account.setCurrency(currencyRepository.findByCode(banka2AccountResponseDto.getItems().get(0).getCurrency().getCode()).get());
+                account.setStatus(AccountStatus.ACTIVE);
+                account.setType(AccountType.FOREIGN);
+                account.setAccountOwnerType(AccountOwnerType.PERSONAL);
+                account.setBalance(BigDecimal.valueOf(banka2AccountResponseDto.getItems().get(0).getBalance()));
+                account.setAvailableBalance(BigDecimal.valueOf(banka2AccountResponseDto.getItems().get(0).getAvailableBalance()));
+                account.setDailyLimit(BigDecimal.valueOf(banka2AccountResponseDto.getItems().get(0).getDailyLimit()));
+                account.setMonthlyLimit(BigDecimal.valueOf(banka2AccountResponseDto.getItems().get(0).getMonthlyLimit()));
+                account.setDailySpending(BigDecimal.ZERO);
+                account.setMonthlySpending(BigDecimal.ZERO);
+                // samo ne znam da li treba personal i ako ne kako ga iz njihovog json-a izvuci
+
+                accountRepository.save(account);
+            }
+            return new PaymentDto();
         }
-
-        ClientDto clientDto = userClient.getClientById(clientId);
-
-        BigDecimal amount = paymentDto.getAmount();
-        BigDecimal convertedAmount = amount;
-        BigDecimal exchangeRateValue = BigDecimal.ONE;
-
-        // Provera da li su valute različite
-        if (!sender.getCurrency().equals(receiver.getCurrency())) {
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
-            exchangeRateValue = exchangeRateDto.getSellRate();
-            convertedAmount = amount.multiply(exchangeRateValue);
-        }
-
-        // Kreiranje Payment entiteta
-        Payment payment = new Payment();
-        payment.setSenderName(clientDto.getFirstName() + " " + clientDto.getLastName());
-        payment.setClientId(clientId);
-        payment.setSenderAccount(sender);
-        payment.setAccountNumberReceiver(paymentDto.getReceiverAccountNumber());
-        payment.setAmount(paymentDto.getAmount());
-        payment.setPaymentCode(paymentDto.getPaymentCode());
-        payment.setPurposeOfPayment(paymentDto.getPurposeOfPayment());
-        payment.setReferenceNumber(paymentDto.getReferenceNumber());
-        payment.setDate(LocalDateTime.now());
-        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
-        payment.setOutAmount(convertedAmount);
-
-        // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
-        payment.setReceiverClientId(receiver.getClientId());
-
-        paymentRepository.save(payment);
-
-        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
-                .fromAccountNumber(sender.getAccountNumber())
-                .toAccountNumber(paymentDto.getReceiverAccountNumber())
-                .amount(paymentDto.getAmount())
-                .build();
-
-        CreateVerificationRequestDto createVerificationRequestDto = new CreateVerificationRequestDto(clientId, payment.getId(), VerificationType.PAYMENT, objectMapper.writeValueAsString(paymentVerificationDetailsDto));
-        userClient.createVerificationRequest(createVerificationRequestDto);
-
-        return paymentMapper.toPaymentDto(payment, paymentDto.getRecieverName());
     }
 
     public void handleTax(TaxDto taxDto) throws JsonProcessingException {
