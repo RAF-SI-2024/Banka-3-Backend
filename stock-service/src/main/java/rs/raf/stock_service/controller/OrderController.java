@@ -11,14 +11,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
-import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.exceptions.CantApproveNonPendingOrder;
-import rs.raf.stock_service.exceptions.ListingNotFoundException;
-import rs.raf.stock_service.exceptions.OrderNotFoundException;
+import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.service.OrderService;
 
+import javax.validation.Valid;
 import javax.websocket.server.PathParam;
+
+import java.util.List;
 
 
 @RestController
@@ -47,6 +47,46 @@ public class OrderController {
             Pageable pageable) {
 
         return ResponseEntity.ok(orderService.getOrdersByStatus(status, pageable));
+    }
+
+    @Operation(
+            summary = "Get orders made by user.",
+            description = "Returns a list of orders made by a specific user."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved orders"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized attempt at getting user's orders.")
+    })
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT') or hasRole('CLIENT')")
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getOrdersByUser(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(orderService.getOrdersByUser(id, authHeader));
+        } catch (UnauthorizedException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR') or hasRole('ADMIN') or hasRole('AGENT') or hasRole('CLIENT')")
+    @PostMapping("/cancel/{id}")
+    @Operation(summary = "Cancel pending order.", description = "Cancels pending order.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order cancelled successfully."),
+            @ApiResponse(responseCode = "404", description = "Order not found."),
+            @ApiResponse(responseCode = "400", description = "This order can't be cancelled."),
+            @ApiResponse(responseCode = "401", description = "Unauthorized attempt at cancelling order.")
+    })
+    public ResponseEntity<?> cancelOrder(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
+        try {
+            orderService.cancelOrder(id, authHeader);
+            return ResponseEntity.ok().build();
+        } catch (OrderNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (CantCancelOrderInCurrentOrderState e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (UnauthorizedException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @PreAuthorize("hasAnyRole('SUPERVISOR','ADMIN')")
@@ -89,11 +129,15 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Listing not found")
     })
-    public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
+    public ResponseEntity<?> createOrder(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        } catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException | AccountNotFoundException | ActuaryLimitNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (StopPriceMissingException | LimitPriceMissingException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
