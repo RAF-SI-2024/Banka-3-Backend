@@ -86,7 +86,7 @@ public class ActuaryServiceTest {
                 .thenReturn(employeesPage);
 
         // Poziv servisa
-        Page<ActuaryDto> result = actuaryService.findAll("John", "Doe", "agent@example.com", "AGENT", pageable);
+        Page<EmployeeDto> result = actuaryService.findAgents("John", "Doe", "agent@example.com", "AGENT", pageable);
 
         // Provera rezultata
         assertNotNull(result);

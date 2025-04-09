@@ -96,11 +96,11 @@ public class ActuaryControllerTest {
     @Test
     void getAllAgents_Success() {
         PageRequest pageable = PageRequest.of(0, 10);
-        Page<ActuaryDto> page = new PageImpl<>(Collections.emptyList());
+        Page<EmployeeDto> page = new PageImpl<>(Collections.emptyList());
 
-        when(actuaryService.findAll(null, null, null, null, pageable)).thenReturn(page);
+        when(actuaryService.findAgents(null, null, null, null, pageable)).thenReturn(page);
 
-        ResponseEntity<Page<ActuaryDto>> response = actuaryController.getAllAgents(null, null, null, null, 0, 10);
+        ResponseEntity<Page<EmployeeDto>> response = actuaryController.getAllAgents(null, null, null, null, 0, 10);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());

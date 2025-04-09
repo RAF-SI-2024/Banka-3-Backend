@@ -79,12 +79,12 @@ public class ActuaryController {
     }
 
     @PreAuthorize("hasRole('SUPERVISOR')")
-    @GetMapping
+    @GetMapping("/agents")
     @Operation(summary = "Get all agents with filtering.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agents retrieved successfully")
     })
-    public ResponseEntity<Page<ActuaryDto>> getAllAgents(
+    public ResponseEntity<Page<EmployeeDto>> getAllAgents(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -92,7 +92,20 @@ public class ActuaryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(actuaryService.findAll(firstName, lastName, email, position, pageable));
+        return ResponseEntity.ok(actuaryService.findAgents(firstName, lastName, email, position, pageable));
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @GetMapping
+    @Operation(summary = "Get all actuaries.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Actuaries retrieved successfully")
+    })
+    public ResponseEntity<Page<ActuaryDto>> getAllActuaries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(actuaryService.findActuaries(pageable));
     }
 
     @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")

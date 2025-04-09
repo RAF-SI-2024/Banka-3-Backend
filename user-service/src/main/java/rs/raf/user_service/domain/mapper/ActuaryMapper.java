@@ -1,13 +1,12 @@
 package rs.raf.user_service.domain.mapper;
 
 import rs.raf.user_service.domain.dto.ActuaryDto;
-import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.entity.Employee;
 
 import java.math.BigDecimal;
 
 public class ActuaryMapper {
-    public static ActuaryDto toDto(Employee employee) {
+    public static ActuaryDto toActuaryDto(Employee employee) {
         if (employee == null) {
             return null;
         }
@@ -20,4 +19,5 @@ public class ActuaryMapper {
         dto.setProfit(BigDecimal.ZERO);
         return dto;
     }
+
 }

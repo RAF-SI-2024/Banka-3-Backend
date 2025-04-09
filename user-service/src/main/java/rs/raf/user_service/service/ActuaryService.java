@@ -8,10 +8,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.client.StockClient;
-import rs.raf.user_service.domain.dto.ActuaryDto;
-import rs.raf.user_service.domain.dto.ActuaryLimitDto;
-import rs.raf.user_service.domain.dto.EmployeeDto;
-import rs.raf.user_service.domain.dto.OrderDto;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.domain.mapper.ActuaryMapper;
@@ -35,18 +32,27 @@ public class ActuaryService {
     private final EmployeeRepository employeeRepository;
     private final StockClient stockClient;
 
-    public Page<ActuaryDto> findAll(String firstName, String lastName, String email, String position, Pageable pageable) {
+    public Page<EmployeeDto> findAgents(String firstName, String lastName, String email, String position, Pageable pageable) {
         Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.startsWithFirstName(firstName))
                 .and(EmployeeSearchSpecification.startsWithLastName(lastName))
                 .and(EmployeeSearchSpecification.startsWithEmail(email))
                 .and(EmployeeSearchSpecification.startsWithPosition(position))
-                .and(EmployeeSearchSpecification.hasRole("AGENT")
-                        .or(EmployeeSearchSpecification.hasRole("SUPERVISOR")));
+                .and(EmployeeSearchSpecification.hasRole("AGENT"));
 
-        Page<ActuaryDto> actuaryDtoPage = employeeRepository.findAll(spec, pageable)
-                .map(ActuaryMapper::toDto);
+        return employeeRepository.findAll(spec, pageable)
+                .map(EmployeeMapper::toDto);
+
+
+    }
+
+    public Page<ActuaryDto> findActuaries(Pageable pageable) {
+        Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.hasRole("AGENT")
+                .or(EmployeeSearchSpecification.hasRole("SUPERVISOR")));
+
+        Page<ActuaryDto> actuaryDtoPage = employeeRepository.findAll(spec, pageable).map(ActuaryMapper::toActuaryDto);
 
         List<OrderDto> orderDtos = stockClient.getAll();
+
         for (OrderDto orderDto : orderDtos) {
             ActuaryDto actuaryDto = actuaryDtoPage.getContent().stream()
                     .filter(actuary -> actuary.getId().equals(orderDto.getUserId()))
@@ -59,7 +65,6 @@ public class ActuaryService {
             actuaryDto.setProfit(actuaryDto.getProfit().add(orderDto.getProfit()));
         }
         return actuaryDtoPage;
-
     }
 
     public void changeAgentLimit(Long employeeId, BigDecimal newLimit) {
