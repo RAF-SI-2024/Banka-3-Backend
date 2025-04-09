@@ -39,7 +39,6 @@ class BootstrapData(
             val clients =
                 listOf(
                     Client().apply {
-                        id = 1
                         firstName = "Marko"
                         lastName = "Markovic"
                         email = "marko.m@example.com"
@@ -53,7 +52,6 @@ class BootstrapData(
                         role = clientRole
                     },
                     Client().apply {
-                        id = 2
                         firstName = "Jovan"
                         lastName = "Jovanovic"
                         email = "jovan.v@example.com"
@@ -78,7 +76,6 @@ class BootstrapData(
             val employees =
                 listOf(
                     Employee().apply {
-                        id = 3
                         firstName = "Petar"
                         lastName = "Petrovic"
                         email = "petar.p@example.com"
@@ -95,7 +92,6 @@ class BootstrapData(
                         role = adminRole
                     },
                     Employee().apply {
-                        id = 4
                         firstName = "Jana"
                         lastName = "Ivanovic"
                         email = "jana.i@example.com"
@@ -112,7 +108,6 @@ class BootstrapData(
                         role = employeeRole
                     },
                     Employee().apply {
-                        id = 5
                         firstName = "Zika"
                         lastName = "Petrović"
                         email = "zika.p@example.com"

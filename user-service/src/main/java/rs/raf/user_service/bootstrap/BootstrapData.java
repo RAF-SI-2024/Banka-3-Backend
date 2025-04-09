@@ -67,7 +67,6 @@ public class BootstrapData implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Role CLIENT not found"));
 
             Client client = Client.builder()
-                    .id(1L)
                     .firstName("Marko")
                     .lastName("Markovic")
                     .email("marko.m@example.com")
@@ -82,7 +81,6 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client2 = Client.builder()
-                    .id(2L)
                     .firstName("Jovan")
                     .lastName("Jovanovic")
                     .email("jovan.v@example.com")
@@ -109,7 +107,6 @@ public class BootstrapData implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
 
             Employee employee = Employee.builder()
-                    .id(3L)
                     .firstName("Petar")
                     .lastName("Petrovic")
                     .email("petar.p@example.com")
@@ -127,7 +124,6 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Employee employee2 = Employee.builder()
-                    .id(4L)
                     .firstName("Jana")
                     .lastName("Ivanovic")
                     .email("jana.i@example.com")
@@ -145,7 +141,6 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Employee employee3 = Employee.builder()
-                    .id(5L)
                     .firstName("Zika")
                     .lastName("Petrović")
                     .email("zika.p@example.com")
