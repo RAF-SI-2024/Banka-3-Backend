@@ -6,19 +6,23 @@ import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.OtcOffer;
+import rs.raf.stock_service.domain.entity.OtcOption;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
+import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedActionException;
 import rs.raf.stock_service.repository.OtcOfferRepository;
+import rs.raf.stock_service.repository.OtcOptionRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -33,6 +37,9 @@ public class OtcService {
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final OtcOfferMapper otcOfferMapper;
     private final UserClient userClient;
+    private final OtcOptionRepository optionRepository;
+    private final OtcOptionRepository otcOptionRepository;
+    private final OtcOptionMapper otcOptionMapper;
 
     public OtcOfferDto createOffer(CreateOtcOfferDto dto, Long buyerId) {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findById(dto.getPortfolioEntryId())
@@ -150,6 +157,23 @@ public class OtcService {
         offer.setLastModified(LocalDateTime.now());
         offer.setLastModifiedById(userId);
         otcOfferRepository.save(offer);
+    }
+
+    public List<OtcOptionDto> getOtcOptionsForUser(Boolean valid, Long userId) {
+        LocalDate today = LocalDate.now();
+        List<OtcOption> options;
+
+        if(valid == null) {
+            options = otcOptionRepository.findAllByBuyerId(userId);
+        } else if (valid) {
+            options = otcOptionRepository.findAllValid(userId, today);
+        } else {
+            options = otcOptionRepository.findAllInvalid(userId, today);
+        }
+
+        return options.stream()
+                .map(otcOptionMapper::toDto)
+                .collect(Collectors.toList());
     }
 
 

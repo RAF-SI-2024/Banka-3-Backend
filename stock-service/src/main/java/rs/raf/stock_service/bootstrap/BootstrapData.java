@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class BootstrapData implements CommandLineRunner {
 
     @Autowired private CountryService countryService;
+    @Autowired private CountryRepository countryRepository;
     @Autowired private ExchangeService exchangeService;
     @Autowired private HolidayService holidayService;
     @Autowired private ListingRepository listingRepository;
@@ -43,6 +44,9 @@ public class BootstrapData implements CommandLineRunner {
     @Autowired private EntityManager entityManager;
     @Autowired private ListingService listingService;
     @Autowired private OrderRepository orderRepository;
+    @Autowired private ApplicationContext applicationContext;
+    @Autowired private AlphavantageClient alphavantageClient;
+    @Autowired private OtcOptionRepository otcOptionRepository;
 
     @Value("${bootstrap.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -253,6 +257,101 @@ public class BootstrapData implements CommandLineRunner {
 
     }
 
+     @Transactional
+    public void addOtcOptionTestData() {
+        Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
+
+        // Validni neiskorišćeni ugovor
+        OtcOption option1 = OtcOption.builder()
+                .strikePrice(new BigDecimal("2.00"))
+                .settlementDate(LocalDate.now().plusMonths(3))
+                .amount(100)
+                .buyerId(1L)
+                .sellerId(2L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Istekao iskorišćen ugovor
+        OtcOption option2 = OtcOption.builder()
+                .strikePrice(new BigDecimal("2.00"))
+                .settlementDate(LocalDate.now().minusDays(15))
+                .amount(50)
+                .buyerId(1L)
+                .sellerId(2L)
+                .underlyingStock(stock)
+                .used(true)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Validni ugovor
+        OtcOption option3 = OtcOption.builder()
+                .strikePrice(new BigDecimal("2.00"))
+                .settlementDate(LocalDate.now().plusWeeks(2))
+                .amount(200)
+                .buyerId(2L)
+                .sellerId(1L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Istekao neiskorišćen ugovor
+        OtcOption option4 = OtcOption.builder()
+                .strikePrice(new BigDecimal("2.00"))
+                .settlementDate(LocalDate.now().minusMonths(1))
+                .amount(75)
+                .buyerId(1L)
+                .sellerId(2L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        OtcOption option5 = OtcOption.builder()
+                .strikePrice(new BigDecimal("2.00"))
+                .settlementDate(LocalDate.now().plusMonths(3))
+                .amount(100)
+                .buyerId(1L)
+                .sellerId(2L)
+                .underlyingStock(stock)
+                .used(true)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        List<OtcOption> options = List.of(option1, option2, option3, option4, option5);
+
+        // Postavi bidirectional vezu za otcOffer
+        options.forEach(option -> {
+            if(option.getOtcOffer() != null) {
+                option.getOtcOffer().setOtcOption(option);
+            }
+        });
+
+        otcOptionRepository.saveAll(options);
+    }
+
     @Transactional
     public void addPortfolioTestData() {
         PortfolioEntry p1 = PortfolioEntry.builder()
@@ -270,6 +369,10 @@ public class BootstrapData implements CommandLineRunner {
                 .publicAmount(30).lastModified(LocalDateTime.now()).build();
 
         portfolioEntryRepository.saveAllAndFlush(List.of(p1, p2));
+        
+        getSelfProxy().addOrderTestData();
+
+        getSelfProxy().addOtcOptionTestData();
     }
 
     @Transactional
