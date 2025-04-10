@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.BankClient;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
@@ -31,7 +32,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-        import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -45,6 +46,7 @@ public class PortfolioService {
     private final UserClient userClient;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
+    private final BankClient bankClient;
     private final JwtTokenUtil jwtTokenUtil;
 
     public void updateHoldingsOnOrderExecution(Order order) {
@@ -101,7 +103,7 @@ public class PortfolioService {
                     BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                    if (latestPrice != null && entry.getAveragePrice() != null) {
                         // Profit sada koristi `close` umesto `price`
                         profit = latestPrice
                                 .subtract(entry.getAveragePrice())
@@ -150,7 +152,6 @@ public class PortfolioService {
             try {
                 ClientDto client = userClient.getClientById(entry.getUserId());
                 ownerName = client.getFirstName() + " " + client.getLastName();
-
             } catch (Exception e) {
                 ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
                 ownerName = actuary.getFirstName() + " " + actuary.getLastName();
@@ -171,8 +172,7 @@ public class PortfolioService {
         }).collect(Collectors.toList());
     }
 
-    public TaxGetResponseDto getTaxes(String authHeader){
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+    public TaxGetResponseDto getUserTaxes(Long userId) {
 
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
@@ -180,12 +180,12 @@ public class PortfolioService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
 
-        for(Order currOrder : orders){
+        for (Order currOrder : orders) {
             LocalDateTime currOrderDate = currOrder.getLastModification();
-            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+            if (currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)) {
                 taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
             }
-            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+            if (currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)) {
                 taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
             }
         }

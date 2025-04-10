@@ -240,32 +240,7 @@ public class OrderService {
     private void transferCommissionToBankAccount() {
     }
 
-    //@Scheduled(cron = "0 0 0 * * *")
-    public void processTaxes() {
-        for (Order order : orderRepository.findAll()) {
-            if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING)) {
-                AccountDetailsDto accountDetailsDto = bankClient.getAccountDetails(order.getAccountNumber());
-                BigDecimal taxAmount;
-                if (!accountDetailsDto.getCurrencyCode().equals("USD")) {
-                    ConvertDto convertDto = new ConvertDto("USD", accountDetailsDto.getCurrencyCode(), order.getTaxAmount());
-                    taxAmount = bankClient.convert(convertDto);
-                } else
-                    taxAmount = order.getTaxAmount();
 
-                if (accountDetailsDto.getBalance().compareTo(taxAmount) >= 0) {
-                    TaxDto taxDto = new TaxDto();
-                    taxDto.setAmount(taxAmount);
-                    taxDto.setClientId(order.getUserId());
-                    taxDto.setSenderAccountNumber(order.getAccountNumber());
-                    order.setTaxStatus(TaxStatus.PAID);
-                    orderRepository.save(order);
-                    bankClient.handleTax(taxDto);
-                } else {
-                    System.out.println("Not enough funds to pay taxes for account: " + order.getAccountNumber());
-                }
-            }
-        }
-    }
 
     public List<OrderDto> getAllOrders() {
 

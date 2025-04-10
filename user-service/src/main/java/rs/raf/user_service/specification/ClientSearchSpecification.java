@@ -2,6 +2,7 @@ package rs.raf.user_service.specification;
 
 import org.springframework.data.jpa.domain.Specification;
 import rs.raf.user_service.domain.entity.Client;
+import rs.raf.user_service.domain.entity.Employee;
 
 public class ClientSearchSpecification {
 
@@ -42,5 +43,10 @@ public class ClientSearchSpecification {
                     "%" + email.toLowerCase() + "%"
             );
         };
+    }
+
+    public static Specification<Client> hasRole(String roleName) {
+        return (root, query, cb) -> roleName == null ? null :
+                cb.equal(cb.lower(root.join("role").get("name")), roleName.toLowerCase());
     }
 }
