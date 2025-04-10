@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.*;
+import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.service.PortfolioService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -104,4 +105,24 @@ public class PortfolioController {
 
     }
 
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
+    @PostMapping("/use-option")
+    @Operation(summary = "Use option (CALL/PUT) if eligible")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Option used successfully"),
+            @ApiResponse(responseCode = "400", description = "Option not eligible or invalid request"),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
+    public ResponseEntity<?> useOption(@RequestHeader("Authorization") String authHeader,
+                                       @RequestBody UseOptionDto dto) {
+        try {
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            portfolioService.useOption(userId, dto);
+            return ResponseEntity.ok().build();
+        } catch (OptionNotEligibleException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
 }
