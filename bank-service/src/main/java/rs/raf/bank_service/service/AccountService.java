@@ -28,6 +28,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -351,4 +352,33 @@ public class AccountService {
 
         return account.getBalance(); //vidi da li treba balance ili availabe balance
     }
+
+    public List<AccountDto> getAllClientAndBankAccounts() {
+        List<Account> clientAccounts = accountRepository.findAll()
+                .stream()
+                .filter(account -> account.getClientId() != null)
+                .toList();
+
+        List<AccountDto> clientAccountDtos = clientAccounts.stream()
+                .map(account -> {
+                    ClientDto client = userClient.getClientById(account.getClientId());
+                    return AccountMapper.toDto(account, client);
+                })
+                .toList();
+
+        List<CompanyAccount> bankAccounts = companyAccountRepository
+                .findByCompanyId(1L, Pageable.unpaged()).getContent();
+        List<AccountDto> bankAccountDtos = bankAccounts.stream()
+                .map(account -> AccountMapper.toDto(account, null))
+                .toList();
+
+        List<AccountDto> allAccounts = new ArrayList<>();
+        allAccounts.addAll(clientAccountDtos);
+        allAccounts.addAll(bankAccountDtos);
+
+        allAccounts.sort(Comparator.comparing(AccountDto::getAccountNumber));
+
+        return allAccounts;
+    }
+
 }
