@@ -10,6 +10,7 @@ import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
         import rs.raf.stock_service.domain.entity.*;
         import rs.raf.stock_service.domain.enums.ListingType;
+import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
@@ -195,8 +196,8 @@ public class PortfolioService {
         PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
                 .orElseThrow(PortfolioEntryNotFoundException::new);
 
-        if (entry.getUsed() || !entry.getInTheMoney())
-            throw new OptionNotEligibleException("Option is not eligible for execution.");
+        if (entry.getUsed())
+            throw new OptionNotEligibleException("Option is already used.");
 
         if (!(entry.getListing() instanceof Option))
             throw new OptionNotEligibleException("Listing is not an Option.");
@@ -207,12 +208,24 @@ public class PortfolioService {
             throw new OptionNotEligibleException("Option settlement date has passed.");
 
         Listing underlying = option.getUnderlyingStock();
+        BigDecimal currentPrice = underlying.getPrice();
+        BigDecimal strikePrice = option.getStrikePrice();
+
+        boolean isCall = option.getOptionType() == OptionType.CALL;
+        boolean isPut = option.getOptionType() == OptionType.PUT;
+
+        boolean isInTheMoney =
+                (isCall && currentPrice.compareTo(strikePrice) > 0) ||
+                        (isPut && currentPrice.compareTo(strikePrice) < 0);
+
+        if (!isInTheMoney)
+            throw new OptionNotEligibleException("Option is not in the money.");
+
         int amount = BigDecimal.valueOf(entry.getAmount())
                 .multiply(option.getContractSize())
                 .intValue();
-        BigDecimal totalCost = option.getStrikePrice().multiply(BigDecimal.valueOf(amount));
+        BigDecimal totalCost = strikePrice.multiply(BigDecimal.valueOf(amount));
 
-        // Upisi novu stavku u portfelj ako vec ne postoji
         PortfolioEntry underlyingEntry = portfolioEntryRepository
                 .findByUserIdAndListing(userId, underlying)
                 .orElse(PortfolioEntry.builder()
@@ -220,7 +233,7 @@ public class PortfolioService {
                         .listing(underlying)
                         .type(underlying.getType())
                         .amount(0)
-                        .averagePrice(option.getStrikePrice())
+                        .averagePrice(strikePrice)
                         .publicAmount(0)
                         .lastModified(LocalDateTime.now())
                         .build());
@@ -228,7 +241,7 @@ public class PortfolioService {
         // Ažuriranje postojećeg ili kreiranje novog entry-ja
         int newAmount = underlyingEntry.getAmount() + amount;
         BigDecimal oldTotal = underlyingEntry.getAveragePrice().multiply(BigDecimal.valueOf(underlyingEntry.getAmount()));
-        BigDecimal newTotal = option.getStrikePrice().multiply(BigDecimal.valueOf(amount));
+        BigDecimal newTotal = strikePrice.multiply(BigDecimal.valueOf(amount));
         BigDecimal newAvg = oldTotal.add(newTotal).divide(BigDecimal.valueOf(newAmount), RoundingMode.HALF_UP);
 
         underlyingEntry.setAmount(newAmount);
