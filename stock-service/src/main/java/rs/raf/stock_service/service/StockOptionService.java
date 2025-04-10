@@ -24,6 +24,7 @@ public class StockOptionService {
     public List<StockOptionDto> getStockOptionsByDate(Long stockId, LocalDate settlementDate) {
         List<Option> options = optionRepository.findByUnderlyingStockIdAndSettlementDate(stockId, settlementDate);
         return options.stream()
+                .filter(Option::isOnSale)
                 .map(stockOptionMapper::toDto)
                 .collect(Collectors.toList());
     }
