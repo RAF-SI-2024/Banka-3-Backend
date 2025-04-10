@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ClientDto;
+import rs.raf.stock_service.domain.dto.UseOptionDto;
 import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
 import rs.raf.stock_service.domain.dto.PublicStockDto;
 import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
@@ -14,6 +15,7 @@ import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.service.PortfolioService;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +27,7 @@ import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -347,5 +350,143 @@ public class PortfolioServiceTest {
         assertEquals(ListingType.STOCK.name(), dto.getSecurity());
         assertEquals(20, dto.getAmount());
         assertEquals("Marko Markovic", dto.getOwner());
+    }
+    @Test
+    void testUseOption_SuccessfulExecution() {
+        // Postavljanje mock podataka
+        PortfolioEntry optionEntry = new PortfolioEntry();
+        optionEntry.setUserId(userId);
+        optionEntry.setAmount(10);
+        optionEntry.setUsed(false);
+        optionEntry.setInTheMoney(true);
+        optionEntry.setType(ListingType.OPTION);
+
+        Option option = new Option();
+        option.setStrikePrice(BigDecimal.valueOf(100));
+        option.setContractSize(BigDecimal.valueOf(10));
+        option.setSettlementDate(LocalDate.now().plusDays(5));  // Postavljanje settlementDate
+        option.setUnderlyingStock(new Stock()); // Set underlying stock
+
+
+        optionEntry.setListing(option);  // Povezivanje optionEntry sa opcijom (ovo je ključna linija)
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, optionEntry.getId()))
+                .thenReturn(Optional.of(optionEntry));
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, option.getUnderlyingStock()))
+                .thenReturn(Optional.empty());
+
+        UseOptionDto useOptionDto = new UseOptionDto();
+        useOptionDto.setPortfolioEntryId(optionEntry.getId());
+
+        // Pozivanje servisa
+        portfolioService.useOption(userId, useOptionDto);
+
+        // Proveri da li su se podaci ispravno ažurirali
+        assertTrue(optionEntry.getUsed(), "Option should be marked as used.");
+        verify(portfolioEntryRepository, times(2)).save(any(PortfolioEntry.class));  // Proverava da li su sačuvana dva entiteta
+    }
+
+    @Test
+    void testUseOption_ThrowsException_IfOptionNotInTheMoney() {
+        // Postavljanje mock podataka
+        PortfolioEntry optionEntry = new PortfolioEntry();
+        optionEntry.setUserId(userId);
+        optionEntry.setListing(new Option());
+        optionEntry.setAmount(10);
+        optionEntry.setUsed(false);
+        optionEntry.setInTheMoney(false);  // Postavljanje da nije in-the-money
+        optionEntry.setType(ListingType.OPTION);
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, optionEntry.getId()))
+                .thenReturn(Optional.of(optionEntry));
+        UseOptionDto useOptionDto = new UseOptionDto();
+        useOptionDto.setPortfolioEntryId(optionEntry.getId());
+
+        // Testiranje izuzetka
+        assertThrows(OptionNotEligibleException.class, () ->
+                portfolioService.useOption(userId, useOptionDto));
+    }
+
+    @Test
+    void testUseOption_ThrowsException_IfOptionAlreadyUsed() {
+        // Postavljanje mock podataka
+        PortfolioEntry optionEntry = new PortfolioEntry();
+        optionEntry.setUserId(userId);
+        optionEntry.setListing(new Option());
+        optionEntry.setAmount(10);
+        optionEntry.setUsed(true);  // Postavljanje da je opcija već iskorišćena
+        optionEntry.setInTheMoney(true);
+        optionEntry.setType(ListingType.OPTION);
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, optionEntry.getId()))
+                .thenReturn(Optional.of(optionEntry));
+        UseOptionDto useOptionDto = new UseOptionDto();
+        useOptionDto.setPortfolioEntryId(optionEntry.getId());
+
+        // Testiranje izuzetka
+        assertThrows(OptionNotEligibleException.class, () ->
+                portfolioService.useOption(userId, useOptionDto));
+    }
+
+    @Test
+    void testUseOption_ThrowsException_IfSettlementDatePassed() {
+        // Postavljanje mock podataka
+        PortfolioEntry optionEntry = new PortfolioEntry();
+        optionEntry.setUserId(userId);
+        optionEntry.setAmount(10);
+        optionEntry.setUsed(false);
+        optionEntry.setInTheMoney(true);
+        optionEntry.setType(ListingType.OPTION);
+
+        Option option = new Option();
+        option.setSettlementDate(LocalDate.now().minusDays(1));  // Prošlo je settlementDate
+        option.setStrikePrice(BigDecimal.valueOf(100));
+        option.setContractSize(BigDecimal.valueOf(10));
+        option.setUnderlyingStock(new Stock()); // Dodajemo underlyingStock
+
+        optionEntry.setListing(option); // Povezivanje optionEntry sa opcijom (dodajemo ovo)
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, optionEntry.getId()))
+                .thenReturn(Optional.of(optionEntry));
+
+        UseOptionDto useOptionDto = new UseOptionDto();
+        useOptionDto.setPortfolioEntryId(optionEntry.getId());
+
+        // Testiranje izuzetka
+        assertThrows(OptionNotEligibleException.class, () ->
+                portfolioService.useOption(userId, useOptionDto));
+    }
+
+    @Test
+    void testUseOption_CreatesNewPortfolioEntry_WhenUnderlyingNotExist() {
+        // Postavljanje mock podataka
+        PortfolioEntry optionEntry = new PortfolioEntry();
+        optionEntry.setUserId(userId);
+        optionEntry.setAmount(10);
+        optionEntry.setUsed(false);
+        optionEntry.setInTheMoney(true);
+        optionEntry.setType(ListingType.OPTION);
+
+        Option option = new Option();
+        option.setStrikePrice(BigDecimal.valueOf(100));
+        option.setContractSize(BigDecimal.valueOf(10));
+        option.setSettlementDate(LocalDate.now().plusDays(5));
+        option.setUnderlyingStock(new Stock()); // Set underlying stock
+
+        optionEntry.setListing(option); // Povezivanje optionEntry sa opcijom
+
+        when(portfolioEntryRepository.findByUserIdAndId(userId, optionEntry.getId()))
+                .thenReturn(Optional.of(optionEntry));
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, option.getUnderlyingStock()))
+                .thenReturn(Optional.empty()); // Simulacija da nema postojećeg entry-ja za underlying stock
+
+        UseOptionDto useOptionDto = new UseOptionDto();
+        useOptionDto.setPortfolioEntryId(optionEntry.getId());
+
+        // Poziv metode useOption
+        portfolioService.useOption(userId, useOptionDto);
+
+        // Proveri da li je nova stavka sačuvana
+        verify(portfolioEntryRepository, times(2)).save(any(PortfolioEntry.class));  // Proverava da li su sačuvana dva entiteta
     }
 }
