@@ -40,7 +40,6 @@ public class DataRefreshService {
     private int threadPoolSize;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private final List<String> problematicTickers = List.of("ZTST", "IGZ");
 
     @Scheduled(initialDelay = 150000, fixedRate = 300000) // 2.5min delay zbog bootstrap data, 5min interval
     @Transactional
@@ -59,11 +58,6 @@ public class DataRefreshService {
     }
 
     private void refreshStock(Stock stock) {
-        if (problematicTickers.contains(stock.getTicker())) {
-            log.warn("Skipping problematic stock: {}", stock.getTicker());
-            return;
-        }
-
         try {
             StockDto dto = stocksService.getStockData(stock.getTicker());
             if (dto != null && (!dto.getPrice().equals(stock.getPrice()) || dto.getVolume() != stock.getVolume())) {
