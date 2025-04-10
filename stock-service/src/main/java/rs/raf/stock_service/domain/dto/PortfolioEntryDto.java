@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 public class PortfolioEntryDto {
 
     private Long id;
+    private Long listingId;
 
     private String securityName;     // listing.name
     private String ticker;           // listing.ticker
