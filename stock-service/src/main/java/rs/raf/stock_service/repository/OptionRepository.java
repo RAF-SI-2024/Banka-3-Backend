@@ -1,6 +1,7 @@
 package rs.raf.stock_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,6 +13,7 @@ import rs.raf.stock_service.domain.enums.OptionType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface OptionRepository extends JpaRepository<Option, Long> {
@@ -26,4 +28,12 @@ public interface OptionRepository extends JpaRepository<Option, Long> {
     List<Option> findByOptionType(@Param("optionType") OptionType optionType);
 
     Optional<Option> findByTicker(String ticker);
+
+    @Modifying
+    @Query("DELETE FROM Option o WHERE o.id IN :ids")
+    void deleteByIdInBatch(@Param("ids") List<Long> ids);
+
+    @Query("SELECT o.ticker FROM Option o")
+    Set<String> findAllTickers();
+
 }

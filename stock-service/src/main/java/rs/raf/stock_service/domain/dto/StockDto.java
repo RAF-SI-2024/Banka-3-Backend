@@ -21,5 +21,6 @@ public class StockDto {
     private BigDecimal marketCap;
     private BigDecimal maintenanceMargin;
     private String exchange;
+    private BigDecimal ask;
 
 }

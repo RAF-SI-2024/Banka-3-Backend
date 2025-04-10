@@ -16,4 +16,5 @@ public class OptionDto {
     private BigDecimal maintenanceMargin;
     private BigDecimal price;
     private String ticker;
+    private boolean onSale;
 }
