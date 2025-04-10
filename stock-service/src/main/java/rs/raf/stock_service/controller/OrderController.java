@@ -136,20 +136,7 @@ public class OrderController {
         }
     }
 
-    @PreAuthorize("hasRole('SUPERVISOR')")
-    @PostMapping("/tax")
-    @Operation(summary = "Process taxes.", description = "Pays taxes where possible.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Order created successfully"),
-    })
-    public ResponseEntity<?> processTaxes() {
-        try {
-            orderService.processTaxes();
-            return ResponseEntity.status(HttpStatus.OK).body("Taxes processed successfully.");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<List<OrderDto>> getAllOrders() {

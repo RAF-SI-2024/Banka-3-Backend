@@ -29,6 +29,7 @@ import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -99,7 +100,7 @@ public class PortfolioService {
                     BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                    if (latestPrice != null && entry.getAveragePrice() != null) {
                         // Profit sada koristi `close` umesto `price`
                         profit = latestPrice
                                 .subtract(entry.getAveragePrice())
@@ -166,33 +167,24 @@ public class PortfolioService {
 
         }).collect(Collectors.toList());
     }
-    
-    public TaxGetResponseDto getUserTaxes(Long userId){
-        
+
+    public TaxGetResponseDto getUserTaxes(Long userId) {
+
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
 
-        for(Order currOrder : orders){
+        for (Order currOrder : orders) {
             LocalDateTime currOrderDate = currOrder.getLastModification();
-            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+            if (currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)) {
                 taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
             }
-            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+            if (currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)) {
                 taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
             }
         }
         return taxGetResponseDto;
-    }
-    public List<UserTaxDto> getTaxes(String name, String surname, String role){
-        List<UserTaxDto> userTaxDtos = userClient.getAgentsAndClients(name,surname,role);
-        for (UserTaxDto userTaxDto : userTaxDtos){
-            TaxGetResponseDto taxForUser = getUserTaxes(userTaxDto.getId());
-            userTaxDto.setUnpaidTaxThisMonth(bankClient.convert(new ConvertDto("USD","RSD",taxForUser.getUnpaidForThisMonth())));
-            userTaxDto.setPaidTaxThisYear(bankClient.convert(new ConvertDto("USD","RSD",taxForUser.getPaidForThisYear())));
-        }
-        return userTaxDtos;
     }
 }

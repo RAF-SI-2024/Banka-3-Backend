@@ -103,17 +103,5 @@ public class PortfolioController {
         return ResponseEntity.ok().body(portfolioService.getUserTaxes(userId));
 
     }
-    @PreAuthorize("hasRole('SUPERVISOR')")
-    @GetMapping("/tax/all")
-    @Operation(summary = "Get taxes", description = "Returns clients, actuaries and their unpaid taxes.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
-    })
-    public ResponseEntity<?>getTaxes(
-            @RequestParam(defaultValue = "") String name,
-            @RequestParam(defaultValue = "") String surname,
-            @RequestParam(defaultValue = "") String  role
-    ){
-        return ResponseEntity.ok().body(portfolioService.getTaxes(name,surname,role));
-    }
+
 }
