@@ -110,6 +110,7 @@ public class PortfolioService {
 
                     // Mapiranje PortfolioEntry u PortfolioEntryDto
                     return PortfolioMapper.toDto(entry,
+                            entry.getListing().getId(),
                             entry.getListing().getName(),
                             entry.getListing().getTicker(),
                             profit);
