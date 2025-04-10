@@ -18,6 +18,7 @@ import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
@@ -597,4 +598,8 @@ public class BootstrapData implements CommandLineRunner {
         executor.shutdown();
         return result;
     }
+
+    private BootstrapData getSelfProxy() {
+   		return applicationContext.getBean(BootstrapData.class);
+	}
 }
