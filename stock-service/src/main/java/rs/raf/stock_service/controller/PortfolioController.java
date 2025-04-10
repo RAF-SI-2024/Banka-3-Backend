@@ -8,10 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
-import rs.raf.stock_service.domain.dto.PublicStockDto;
-import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
-import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.service.PortfolioService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -97,12 +94,25 @@ public class PortfolioController {
 
     @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
     @GetMapping("/tax/{userId}")
-    @Operation(summary = "Get taxes", description = "Returns paid tax for current year, and unpaid for current month.")
+    @Operation(summary = "Get user taxes", description = "Returns paid tax for current year, and unpaid for current month.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
     })
-    public ResponseEntity<TaxGetResponseDto>getTaxes(@PathVariable Long userId){
-        return ResponseEntity.ok().body(portfolioService.getTaxes(userId));
+    public ResponseEntity<TaxGetResponseDto>getUserTaxes(@PathVariable Long userId){
+        return ResponseEntity.ok().body(portfolioService.getUserTaxes(userId));
 
+    }
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @GetMapping("/tax")
+    @Operation(summary = "Get taxes", description = "Returns clients and actuaries and their unpaid taxes.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
+    })
+    public ResponseEntity<?>getTaxes(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "") String surname,
+            @RequestParam(defaultValue = "") String  role
+    ){
+        return ResponseEntity.ok().body(portfolioService.getTaxes(name,surname,role));
     }
 }

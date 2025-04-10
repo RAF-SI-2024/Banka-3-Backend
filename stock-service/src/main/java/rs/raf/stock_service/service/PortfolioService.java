@@ -5,11 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.PortfolioEntryDto;
-import rs.raf.stock_service.domain.dto.PublicStockDto;
-import rs.raf.stock_service.domain.dto.SetPublicAmountDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
@@ -18,7 +16,6 @@ import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.dto.TaxGetResponseDto;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
@@ -44,6 +41,7 @@ public class PortfolioService {
     private final UserClient userClient;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
+    private final BankClient bankClient;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -167,7 +165,7 @@ public class PortfolioService {
         }).collect(Collectors.toList());
     }
     
-    public TaxGetResponseDto getTaxes(Long userId){
+    public TaxGetResponseDto getUserTaxes(Long userId){
         
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
@@ -185,5 +183,14 @@ public class PortfolioService {
             }
         }
         return taxGetResponseDto;
+    }
+    public List<UserTaxDto> getTaxes(String name, String surname, String role){
+        List<UserTaxDto> userTaxDtos = userClient.getAgentsAndClients(name,surname,role);
+        for (UserTaxDto userTaxDto : userTaxDtos){
+            TaxGetResponseDto taxForUser = getUserTaxes(userTaxDto.getId());
+            userTaxDto.setUnpaidTaxThisMonth(bankClient.convert(new ConvertDto("USD","RSD",taxForUser.getUnpaidForThisMonth())));
+            userTaxDto.setPaidTaxThisYear(bankClient.convert(new ConvertDto("USD","RSD",taxForUser.getPaidForThisYear())));
+        }
+        return userTaxDtos;
     }
 }

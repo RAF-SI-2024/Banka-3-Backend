@@ -10,17 +10,22 @@ import org.springframework.stereotype.Service;
 import rs.raf.user_service.client.StockClient;
 import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.domain.entity.ActuaryLimit;
+import rs.raf.user_service.domain.entity.Client;
 import rs.raf.user_service.domain.entity.Employee;
 import rs.raf.user_service.domain.mapper.ActuaryMapper;
 import rs.raf.user_service.domain.mapper.EmployeeMapper;
+import rs.raf.user_service.domain.mapper.UserMapper;
 import rs.raf.user_service.exceptions.ActuaryLimitNotFoundException;
 import rs.raf.user_service.exceptions.EmployeeNotFoundException;
 import rs.raf.user_service.exceptions.UserNotAgentException;
 import rs.raf.user_service.repository.ActuaryLimitRepository;
+import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
+import rs.raf.user_service.specification.ClientSearchSpecification;
 import rs.raf.user_service.specification.EmployeeSearchSpecification;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,6 +35,7 @@ public class ActuaryService {
 
     private final ActuaryLimitRepository actuaryLimitRepository;
     private final EmployeeRepository employeeRepository;
+    private final ClientRepository clientRepository;
     private final StockClient stockClient;
 
     public Page<EmployeeDto> findAgents(String firstName, String lastName, String email, String position, Pageable pageable) {
@@ -120,6 +126,50 @@ public class ActuaryService {
         }
         System.out.println("Daily used limits have been reset.");
         actuaryLimitRepository.saveAll(limits);
+    }
+
+    public List<ActuaryDto> getAllAgentsAndClients(String name, String surname, String role) {
+        Specification<Employee> specEmployee;
+        Specification<Client> specClient;
+        if(!role.isEmpty()){
+            specEmployee = Specification.where(EmployeeSearchSpecification.hasRole(role));
+            specClient = Specification.where(ClientSearchSpecification.hasRole(role));
+
+        }else {
+            specEmployee = Specification.where(EmployeeSearchSpecification.hasRole("AGENT")
+                    .or(EmployeeSearchSpecification.hasRole("SUPERVISOR"))
+                    .or(EmployeeSearchSpecification.hasRole("ADMIN")));
+            specClient = Specification.where(ClientSearchSpecification.hasRole("CLIENT"));
+        }
+
+        if (!name.isEmpty()){
+            specEmployee = specEmployee.and(EmployeeSearchSpecification.startsWithFirstName(name));
+            specClient= specClient.and(ClientSearchSpecification.firstNameContains(name));
+
+        }
+        if (!surname.isEmpty()){
+            specEmployee = specEmployee.and(EmployeeSearchSpecification.startsWithLastName(surname));
+            specClient = specClient.and(ClientSearchSpecification.lastNameContains(surname));
+
+        }
+
+        List<ActuaryDto> agentsAndClients = new ArrayList<>();
+
+        List<Employee> agents = employeeRepository.findAll(specEmployee);
+
+        for (Employee employee : agents) {
+            ActuaryDto actuaryDto = ActuaryMapper.toActuaryDto(employee);
+            agentsAndClients.add(actuaryDto);
+        }
+
+        List<Client> clients = clientRepository.findAll(specClient);
+
+        for (Client client : clients) {
+            ActuaryDto actuaryDto = new ActuaryDto(client.getId(),client.getFirstName(),client.getLastName(),client.getRole().getName(),BigDecimal.ZERO);
+            agentsAndClients.add(actuaryDto);
+        }
+
+        return agentsAndClients;
     }
 
 }

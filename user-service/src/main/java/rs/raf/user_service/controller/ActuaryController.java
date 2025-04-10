@@ -122,4 +122,13 @@ public class ActuaryController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllAgentsAndClients(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "") String surname,
+            @RequestParam(defaultValue = "") String  role
+    ){
+        return ResponseEntity.ok().body(actuaryService.getAllAgentsAndClients(name,surname,role));
+    }
 }
