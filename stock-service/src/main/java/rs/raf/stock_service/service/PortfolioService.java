@@ -167,7 +167,9 @@ public class PortfolioService {
         }).collect(Collectors.toList());
     }
     
-    public TaxGetResponseDto getUserTaxes(Long userId){
+    public TaxGetResponseDto getUserTaxes(String authHeader){
+
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();

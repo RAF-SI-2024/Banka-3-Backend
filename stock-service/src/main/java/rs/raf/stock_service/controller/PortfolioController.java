@@ -93,18 +93,18 @@ public class PortfolioController {
     }
 
     @PreAuthorize("hasRole('AGENT') or hasRole('CLIENT')")
-    @GetMapping("/tax/{userId}")
+    @GetMapping("/tax")
     @Operation(summary = "Get user taxes", description = "Returns paid tax for current year, and unpaid for current month.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
     })
-    public ResponseEntity<TaxGetResponseDto>getUserTaxes(@PathVariable Long userId){
-        return ResponseEntity.ok().body(portfolioService.getUserTaxes(userId));
+    public ResponseEntity<TaxGetResponseDto>getUserTaxes(@RequestHeader("Authorization") String authHeader){
+        return ResponseEntity.ok().body(portfolioService.getUserTaxes(authHeader));
 
     }
     @PreAuthorize("hasRole('SUPERVISOR')")
-    @GetMapping("/tax")
-    @Operation(summary = "Get taxes", description = "Returns clients and actuaries and their unpaid taxes.")
+    @GetMapping("/tax/all")
+    @Operation(summary = "Get taxes", description = "Returns clients, actuaries and their unpaid taxes.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
     })
