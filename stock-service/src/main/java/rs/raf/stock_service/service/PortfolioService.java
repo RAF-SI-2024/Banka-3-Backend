@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rs.raf.stock_service.utils.JwtTokenUtil;
 
 @Slf4j
 @Service
@@ -42,6 +43,7 @@ public class PortfolioService {
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
     private final BankClient bankClient;
+    private final JwtTokenUtil jwtTokenUtil;
 
     public void updateHoldingsOnOrderExecution(Order order) {
         if (!order.getIsDone()) return;
@@ -146,8 +148,8 @@ public class PortfolioService {
                 ClientDto client = userClient.getClientById(entry.getUserId());
                 ownerName = client.getFirstName() + " " + client.getLastName();
             } catch (Exception e) {
-                log.warn("Could not fetch client info for userId: {}", entry.getUserId());
-                ownerName = "user-" + entry.getUserId(); // fallback
+                ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
+                ownerName = actuary.getFirstName() + " " + actuary.getLastName();
             }
 
             BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
