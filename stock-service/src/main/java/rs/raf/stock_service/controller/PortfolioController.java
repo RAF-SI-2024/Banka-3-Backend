@@ -99,7 +99,8 @@ public class PortfolioController {
             @ApiResponse(responseCode = "200", description = "Taxes obtained successfully"),
     })
     public ResponseEntity<TaxGetResponseDto>getUserTaxes(@RequestHeader("Authorization") String authHeader){
-        return ResponseEntity.ok().body(portfolioService.getUserTaxes(authHeader));
+        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        return ResponseEntity.ok().body(portfolioService.getUserTaxes(userId));
 
     }
     @PreAuthorize("hasRole('SUPERVISOR')")
