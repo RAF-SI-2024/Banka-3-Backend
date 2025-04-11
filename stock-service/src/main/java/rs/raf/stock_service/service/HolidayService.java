@@ -12,6 +12,7 @@ import rs.raf.stock_service.domain.entity.Holiday;
 import rs.raf.stock_service.repository.CountryRepository;
 import rs.raf.stock_service.repository.HolidayRepository;
 
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
@@ -26,6 +27,7 @@ public class HolidayService {
     private final ObjectMapper objectMapper;
 
 
+    @Transactional
     public void importHolidays() {
         CountryHolidaysDto countryHolidaysDto;
         ClassPathResource resource = new ClassPathResource("holidaysUSA.json");
