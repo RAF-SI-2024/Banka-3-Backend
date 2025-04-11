@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
 @Entity
@@ -20,6 +21,7 @@ public class Exchange {
     private String name;
     private String acronym;
     @ManyToOne
+    @JoinColumn(name = "country_id", nullable = false)
     private Country polity;
     private String currencyCode;
     private Long timeZone;

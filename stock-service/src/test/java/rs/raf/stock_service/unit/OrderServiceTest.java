@@ -137,7 +137,7 @@ public class OrderServiceTest {
         createStopOrderDto = new CreateOrderDto(1L, OrderType.STOP, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(200));
 
-        stopOrder = OrderMapper.toOrder(createStopOrderDto, userId, listing);
+        stopOrder = OrderMapper.toOrder(createStopOrderDto, userId, listing, "ADMIN");
         stopOrder.setId(1L);
         stopOrder.setStatus(OrderStatus.APPROVED);
         stopOrder.setReservedAmount(stopOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopOrder.getQuantity()))
@@ -146,7 +146,7 @@ public class OrderServiceTest {
         createLimitOrderDto = new CreateOrderDto(1L, OrderType.LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100));
 
-        limitOrder = OrderMapper.toOrder(createLimitOrderDto, userId, listing);
+        limitOrder = OrderMapper.toOrder(createLimitOrderDto, userId, listing, "ADMIN");
         limitOrder.setId(2L);
         limitOrder.setStatus(OrderStatus.APPROVED);
         limitOrder.setReservedAmount(limitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
@@ -155,7 +155,7 @@ public class OrderServiceTest {
         createStopLimitOrderDto = new CreateOrderDto(1L, OrderType.STOP_LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100), new BigDecimal(200));
 
-        stopLimitOrder = OrderMapper.toOrder(createStopLimitOrderDto, userId, listing);
+        stopLimitOrder = OrderMapper.toOrder(createStopLimitOrderDto, userId, listing, "ADMIN");
         stopLimitOrder.setId(3L);
         stopLimitOrder.setStatus(OrderStatus.APPROVED);
         stopLimitOrder.setReservedAmount(stopLimitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopLimitOrder.getQuantity()))

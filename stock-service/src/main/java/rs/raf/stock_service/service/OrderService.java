@@ -104,7 +104,10 @@ public class OrderService {
 
         BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
-        order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
+        if(order.getDirection() == OrderDirection.BUY)
+            order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
+        else
+            order.setStatus(OrderStatus.APPROVED);
         order.setApprovedBy(userId);
         order.setLastModification(LocalDateTime.now());
 
@@ -138,22 +141,36 @@ public class OrderService {
         }
 
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+        String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         Listing listing = listingRepository.findById(createOrderDto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
-        Order order = OrderMapper.toOrder(createOrderDto, userId, listing);
+        Order order = OrderMapper.toOrder(createOrderDto, userId, listing, role);
 
         BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
 
-        if(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader).equals("AGENT")) {
+        boolean checksPassed = false;
+        if(role.equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
 
             if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
-                    getUsedLimit()).compareTo(price) >= 0 && updateAvailableBalance(order, price))
+                    getUsedLimit()).compareTo(price) >= 0)
+                checksPassed = true;
+        }  else {
+            checksPassed = true;
+        }
+
+        if(checksPassed){
+            if(order.getDirection() == OrderDirection.BUY){
+                if(role.equals("CLIENT")){
+                    price = priceWithCommission(order.getOrderType(), price);
+                }
+
                 order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
-        } else {
-            order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
+            } else {
+                order.setStatus(OrderStatus.APPROVED);
+            }
         }
 
         if (order.getDirection().equals(OrderDirection.SELL)) {
@@ -185,8 +202,11 @@ public class OrderService {
     }
 
     private boolean updateAvailableBalance(Order order, BigDecimal amount) {
+        if(order.getDirection() == OrderDirection.SELL)
+            return true;
+
         try{
-            bankClient.updateAvailableBalance(order.getAccountNumber(), priceWithCommission(order.getOrderType(), amount));
+            bankClient.updateAvailableBalance(order.getAccountNumber(), amount);
         }catch (InsufficientFundsException e){
             return false;
         }
@@ -214,6 +234,7 @@ public class OrderService {
     public void executeOrder(Order order) {
         if (order.getIsDone() || order.getStatus() != OrderStatus.APPROVED) return; //better safe than sorry
         order.setStatus(OrderStatus.PROCESSING);
+        orderRepository.save(order);
 
         long volume = 1000000;
         if(order.getListing() instanceof Stock){
@@ -239,12 +260,20 @@ public class OrderService {
         order.setIsDone(true);
         orderRepository.save(order);
 
-        updateAvailableBalance(order, spentAmount.subtract(order.getReservedAmount()));
+        //finalna azuriranja sredstava
+        if(order.getDirection() == OrderDirection.BUY){
+            BigDecimal priceWithCommission = order.getRole().equals("CLIENT") ?
+                    priceWithCommission(order.getOrderType(), spentAmount) : spentAmount;
+
+            updateBalance(order, priceWithCommission.subtract(spentAmount));
+            updateAvailableBalance(order, priceWithCommission.subtract(order.getReservedAmount()));
+        }
+
         portfolioService.updateHoldingsOnOrderExecution(order);
     }
 
     private BigDecimal executeTransaction(Order order, int batchSize, long volume){
-        Long extraTime = order.getAfterHours() ? 300000L : 0;
+        Long extraTime = order.getAfterHours() ? 300000L : 0L;
         Random random = new Random();
 
         try {
@@ -254,10 +283,9 @@ public class OrderService {
             e.printStackTrace();
         }
 
-        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
-                .multiply(BigDecimal.valueOf(order.getContractSize()));
+        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit()).multiply(BigDecimal.valueOf(order.getContractSize()));
 
-        if(!updateBalance(order, totalPrice)) return BigDecimal.ZERO;
+        if(order.getDirection() == OrderDirection.BUY && !updateBalance(order, totalPrice)) return BigDecimal.ZERO;
 
         Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
         transactionRepository.save(transaction);
@@ -270,8 +298,11 @@ public class OrderService {
     }
 
     private boolean updateBalance(Order order, BigDecimal amount){
+        if (order.getDirection() == OrderDirection.SELL)
+            return true;
+
         try{
-            bankClient.updateAvailableBalance(order.getAccountNumber(), priceWithCommission(order.getOrderType(), amount));
+            bankClient.updateBalance(order.getAccountNumber(), amount);
         }catch (InsufficientFundsException e){
             return false;
         }

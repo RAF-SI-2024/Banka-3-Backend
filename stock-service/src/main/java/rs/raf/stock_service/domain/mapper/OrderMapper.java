@@ -1,5 +1,6 @@
 package rs.raf.stock_service.domain.mapper;
 
+import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.ListingDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
@@ -14,11 +15,12 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+@Component
 public class OrderMapper {
 
     public static OrderDto toDto(Order order, ListingDto listingDto) {
         if (order == null) return null;
-        return new OrderDto(
+        return  new OrderDto(
                 order.getId(),
                 order.getUserId(),
                 listingDto,
@@ -32,13 +34,15 @@ public class OrderMapper {
                 order.getIsDone(),
                 order.getLastModification(),
                 order.getRemainingPortions(),
+                order.getStopPrice(),
+                order.isStopFulfilled(),
                 order.getAfterHours(),
-                order.getTransactions() == null ? new ArrayList<>() :
+                order.getTransactions() == null ? null :
                         order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
         );
     }
 
-    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, Listing listing) {
+    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, Listing listing, String role) {
         BigDecimal pricePerUnit = null;
         BigDecimal stopPrice = null;
 
@@ -73,7 +77,8 @@ public class OrderMapper {
                 afterHours(listing.getExchange()),
                 createOrderDto.getAccountNumber(),
                 stopPrice,
-                createOrderDto.isAllOrNone()
+                createOrderDto.isAllOrNone(),
+                role
         );
     }
 

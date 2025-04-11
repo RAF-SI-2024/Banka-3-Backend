@@ -1,6 +1,7 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
@@ -80,15 +81,18 @@ public class Order {
 
     private BigDecimal reservedAmount;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Transaction> transactions;
 
     @Enumerated(EnumType.STRING)
     private TaxStatus taxStatus;
     private BigDecimal taxAmount;
 
+    private String role;
+
     public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, BigDecimal pricePerUnit,
-                 OrderDirection direction, boolean afterHours, String accountNumber, BigDecimal stopPrice, boolean allOrNone) {
+                 OrderDirection direction, boolean afterHours, String accountNumber, BigDecimal stopPrice, boolean allOrNone,
+                 String role) {
         this.userId = userId;
         this.listing = listing;
         this.orderType = orderType;
@@ -106,6 +110,7 @@ public class Order {
         this.lastModification = LocalDateTime.now();
         this.stopFulfilled = false;
         this.transactions = new ArrayList<>();
+        this.role = role;
     }
 }
 
