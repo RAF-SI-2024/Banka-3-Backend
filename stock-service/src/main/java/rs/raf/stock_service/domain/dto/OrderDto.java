@@ -35,4 +35,5 @@ public class OrderDto {
     private boolean stopFulfilled;
     private Boolean afterHours;
     private List<TransactionDto> transactions;
+    private BigDecimal profit;
 }

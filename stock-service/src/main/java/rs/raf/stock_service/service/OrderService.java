@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -60,13 +61,13 @@ public class OrderService {
                 listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()))));
     }
 
-    public List<OrderDto> getOrdersByUser(Long userId, String authHeader){
+    public List<OrderDto> getOrdersByUser(Long userId, String authHeader) {
         Long userIdFromAuth = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         List<Order> ordersList;
-        if (userId.equals(userIdFromAuth) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")){
+        if (userId.equals(userIdFromAuth) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")) {
             ordersList = orderRepository.findAllByUserId(userId);
-        }else{
+        } else {
             throw new UnauthorizedException("Unauthorized attempt at getting user's orders.");
         }
 
@@ -80,16 +81,16 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
 
-        if (order.getUserId().equals(userId) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")){
-            if (!order.getIsDone() && (order.getStatus().equals(OrderStatus.PENDING) || order.getStatus().equals(OrderStatus.APPROVED))){
+        if (order.getUserId().equals(userId) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")) {
+            if (!order.getIsDone() && (order.getStatus().equals(OrderStatus.PENDING) || order.getStatus().equals(OrderStatus.APPROVED))) {
                 order.setStatus(OrderStatus.CANCELLED);
                 order.setLastModification(LocalDateTime.now());
 
                 orderRepository.save(order);
-            }else{
+            } else {
                 throw new CantCancelOrderInCurrentOrderState(id);
             }
-        }else {
+        } else {
             throw new UnauthorizedException("Unauthorized attempt at cancelling an order.");
         }
     }
@@ -179,6 +180,8 @@ public class OrderService {
             BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
             BigDecimal sellPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getQuantity()));
             BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);
+            //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
+            order.setProfit(bankClient.convert(new ConvertDto("USD", "RSD", potentialProfit)));
             if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
                 order.setTaxStatus(TaxStatus.PENDING);
                 order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
@@ -186,7 +189,7 @@ public class OrderService {
                 order.setTaxStatus(TaxStatus.TAXFREE);
                 order.setTaxAmount(BigDecimal.ZERO);
             }
-        }else{
+        } else {
             order.setTaxStatus(TaxStatus.TAXFREE);
             order.setTaxAmount(BigDecimal.ZERO);
         }
@@ -379,19 +382,15 @@ public class OrderService {
         }
     }
 
-    //@Scheduled(cron = "0 0 0 * * *")
-    public void processTaxes() {
-        for (Order order : orderRepository.findAll()) {
-            if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING) &&
-                    bankClient.getAccountBalance(order.getAccountNumber()).compareTo(order.getTaxAmount()) > 0) {
-                TaxDto taxDto = new TaxDto();
-                taxDto.setAmount(order.getTaxAmount());
-                taxDto.setClientId(order.getUserId());
-                taxDto.setSenderAccountNumber(order.getAccountNumber());
-                bankClient.handleTax(taxDto);
-                order.setTaxStatus(TaxStatus.PAID);
-                orderRepository.save(order);
-            }
-        }
+
+
+    public List<OrderDto> getAllOrders() {
+
+        List<Order> orders = orderRepository.findAllByDirection(OrderDirection.SELL);
+
+        return orders.stream()
+                .map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(), dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))))
+                .collect(Collectors.toList());
     }
+
 }

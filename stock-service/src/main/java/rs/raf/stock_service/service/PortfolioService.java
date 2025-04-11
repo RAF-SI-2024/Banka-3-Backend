@@ -5,24 +5,29 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.BankClient;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.ListingType;
+        import rs.raf.stock_service.domain.entity.*;
+        import rs.raf.stock_service.domain.enums.ListingType;
+import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.repository.*;
-import rs.raf.stock_service.domain.mapper.PortfolioMapper;
+        import rs.raf.stock_service.domain.mapper.PortfolioMapper;
 import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
@@ -41,6 +46,7 @@ public class PortfolioService {
     private final UserClient userClient;
     private final ListingPriceHistoryRepository dailyPriceInfoRepository;
     private final OrderRepository orderRepository;
+    private final BankClient bankClient;
     private final JwtTokenUtil jwtTokenUtil;
 
     public void updateHoldingsOnOrderExecution(Order order) {
@@ -97,7 +103,7 @@ public class PortfolioService {
                     BigDecimal latestPrice = entry.getListing().getPrice();
                     BigDecimal profit = BigDecimal.ZERO;
 
-                    if (latestPrice != null && entry.getAveragePrice() != null ) {
+                    if (latestPrice != null && entry.getAveragePrice() != null) {
                         // Profit sada koristi `close` umesto `price`
                         profit = latestPrice
                                 .subtract(entry.getAveragePrice())
@@ -106,6 +112,7 @@ public class PortfolioService {
 
                     // Mapiranje PortfolioEntry u PortfolioEntryDto
                     return PortfolioMapper.toDto(entry,
+                            entry.getListing().getId(),
                             entry.getListing().getName(),
                             entry.getListing().getTicker(),
                             profit);
@@ -145,7 +152,6 @@ public class PortfolioService {
             try {
                 ClientDto client = userClient.getClientById(entry.getUserId());
                 ownerName = client.getFirstName() + " " + client.getLastName();
-
             } catch (Exception e) {
                 ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
                 ownerName = actuary.getFirstName() + " " + actuary.getLastName();
@@ -166,8 +172,7 @@ public class PortfolioService {
         }).collect(Collectors.toList());
     }
 
-    public TaxGetResponseDto getTaxes(String authHeader){
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+    public TaxGetResponseDto getUserTaxes(Long userId) {
 
         List<Order> orders = orderRepository.findAllByUserId(userId);
         TaxGetResponseDto taxGetResponseDto = new TaxGetResponseDto();
@@ -175,15 +180,80 @@ public class PortfolioService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
 
-        for(Order currOrder : orders){
+        for (Order currOrder : orders) {
             LocalDateTime currOrderDate = currOrder.getLastModification();
-            if(currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)){
+            if (currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)) {
                 taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
             }
-            if(currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)){
+            if (currOrderDate.getYear() == now.getYear() && currOrder.getTaxStatus().equals(TaxStatus.PAID)) {
                 taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
             }
         }
         return taxGetResponseDto;
+    }
+
+    @Transactional
+    public void useOption(Long userId, UseOptionDto dto) {
+        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
+                .orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (entry.getUsed())
+            throw new OptionNotEligibleException("Option is already used.");
+
+        if (!(entry.getListing() instanceof Option))
+            throw new OptionNotEligibleException("Listing is not an Option.");
+
+        Option option = (Option) entry.getListing();
+
+        if (option.getSettlementDate().isBefore(LocalDate.now()))
+            throw new OptionNotEligibleException("Option settlement date has passed.");
+
+        Listing underlying = option.getUnderlyingStock();
+        BigDecimal currentPrice = underlying.getPrice();
+        BigDecimal strikePrice = option.getStrikePrice();
+
+        boolean isCall = option.getOptionType() == OptionType.CALL;
+        boolean isPut = option.getOptionType() == OptionType.PUT;
+
+        boolean isInTheMoney =
+                (isCall && currentPrice.compareTo(strikePrice) > 0) ||
+                        (isPut && currentPrice.compareTo(strikePrice) < 0);
+
+        if (!isInTheMoney)
+            throw new OptionNotEligibleException("Option is not in the money.");
+
+        int amount = BigDecimal.valueOf(entry.getAmount())
+                .multiply(option.getContractSize())
+                .intValue();
+        BigDecimal totalCost = strikePrice.multiply(BigDecimal.valueOf(amount));
+
+        PortfolioEntry underlyingEntry = portfolioEntryRepository
+                .findByUserIdAndListing(userId, underlying)
+                .orElse(PortfolioEntry.builder()
+                        .userId(userId)
+                        .listing(underlying)
+                        .type(underlying.getType())
+                        .amount(0)
+                        .averagePrice(strikePrice)
+                        .publicAmount(0)
+                        .lastModified(LocalDateTime.now())
+                        .build());
+
+        // Ažuriranje postojećeg ili kreiranje novog entry-ja
+        int newAmount = underlyingEntry.getAmount() + amount;
+        BigDecimal oldTotal = underlyingEntry.getAveragePrice().multiply(BigDecimal.valueOf(underlyingEntry.getAmount()));
+        BigDecimal newTotal = strikePrice.multiply(BigDecimal.valueOf(amount));
+        BigDecimal newAvg = oldTotal.add(newTotal).divide(BigDecimal.valueOf(newAmount), RoundingMode.HALF_UP);
+
+        underlyingEntry.setAmount(newAmount);
+        underlyingEntry.setAveragePrice(newAvg);
+        underlyingEntry.setLastModified(LocalDateTime.now());
+
+        // Označi opciju kao iskorišćenu
+        entry.setUsed(true);
+        entry.setLastModified(LocalDateTime.now());
+
+        portfolioEntryRepository.save(entry);
+        portfolioEntryRepository.save(underlyingEntry);
     }
 }

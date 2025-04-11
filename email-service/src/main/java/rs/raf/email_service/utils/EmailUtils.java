@@ -30,7 +30,7 @@ public class EmailUtils {
         switch (type) {
             case SET_PASSWORD: {
                 title = "Set Your Password";
-                link = "http://localhost::4200/set-password/" + token;
+                link = "http://localhost:4200/set-password/" + token;
                 break;
             }
             case RESET_PASSWORD: {

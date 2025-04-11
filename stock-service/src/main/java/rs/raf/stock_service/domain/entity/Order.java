@@ -87,6 +87,7 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private TaxStatus taxStatus;
     private BigDecimal taxAmount;
+    private BigDecimal profit;
 
     private String role;
 

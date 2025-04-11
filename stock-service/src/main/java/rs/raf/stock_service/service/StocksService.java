@@ -62,8 +62,11 @@ public class StocksService {
 
             String priceStr = globalQuote.path("05. price").asText();
             String changeStr = globalQuote.path("09. change").asText();
+            String highStr = globalQuote.path("03. high").asText();
+
             BigDecimal price = priceStr.isEmpty() ? BigDecimal.ZERO : new BigDecimal(priceStr);
             BigDecimal change = changeStr.isEmpty() ? BigDecimal.ZERO : new BigDecimal(changeStr);
+            BigDecimal high = highStr.isEmpty() ? BigDecimal.ZERO : new BigDecimal(highStr);
             long volume = globalQuote.path("06. volume").asLong();
 
             String overviewResponse = alphavantageClient.getCompanyOverview(symbol);
@@ -101,6 +104,7 @@ public class StocksService {
             stock.setTicker(symbol);
             stock.setMaintenanceMargin(maintenanceMargin);
             stock.setExchange(exchange);
+            stock.setAsk(high);
             //stock.setCurrencyCode(exchange.getCurrencyCode());
 
             return mapToDto(stock);
@@ -217,6 +221,7 @@ public class StocksService {
         dto.setMarketCap(stock.getMarketCap());
         dto.setMaintenanceMargin(stock.getMaintenanceMargin());
         dto.setExchange(String.valueOf(stock.getExchange()));
+        dto.setAsk(stock.getAsk());
         return dto;
     }
 }

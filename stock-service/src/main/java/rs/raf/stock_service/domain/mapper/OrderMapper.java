@@ -12,7 +12,6 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Component
@@ -39,6 +38,8 @@ public class OrderMapper {
                 order.getAfterHours(),
                 order.getTransactions() == null ? null :
                         order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
+                order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList()),
+                order.getProfit()
         );
     }
 

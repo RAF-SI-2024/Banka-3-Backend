@@ -336,4 +336,23 @@ public class AccountController {
     public ResponseEntity<String> handleDuplicateAccountNameException(DuplicateAccountNameException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
+
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @GetMapping("/for-order")
+    public ResponseEntity<?> getAccountsForOrder(@RequestHeader("Authorization") String auth) {
+        try {
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+
+            if (role.equals("CLIENT")) {
+                return ResponseEntity.ok(accountService.getMyAccounts(userId));
+            } else {
+                return ResponseEntity.ok(accountService.getAllClientAndBankAccounts());
+            }
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Unexpected error occurred: " + e.getMessage());
+        }
+    }
 }

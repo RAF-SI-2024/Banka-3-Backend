@@ -3,6 +3,10 @@ package rs.raf.stock_service.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.TaxDto;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 
@@ -16,6 +20,12 @@ public interface BankClient {
 
     @PostMapping("/api/payment/tax")
     void handleTax(@RequestBody TaxDto taxDto);
+
+    @PostMapping("api/exchange-rates/convert")
+    BigDecimal convert(@RequestBody ConvertDto convertDto);
+
+    @GetMapping("api/account/details/{accountNumber}")
+    AccountDetailsDto getAccountDetails(@PathVariable("accountNumber") String accountNumber);
 
     @PutMapping("/api/account/{accountNumber}/reserve")
     void updateAvailableBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
