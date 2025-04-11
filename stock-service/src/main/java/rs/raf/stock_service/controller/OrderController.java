@@ -17,6 +17,8 @@ import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
 
+import javax.validation.Valid;
+import javax.websocket.server.PathParam;
 
 import java.util.List;
 
@@ -128,11 +130,15 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Listing not found")
     })
-    public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
+    public ResponseEntity<?> createOrder(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        } catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException | AccountNotFoundException | ActuaryLimitNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (StopPriceMissingException | LimitPriceMissingException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

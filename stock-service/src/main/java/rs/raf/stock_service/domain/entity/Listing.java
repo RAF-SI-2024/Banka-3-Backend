@@ -1,6 +1,7 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import rs.raf.stock_service.domain.enums.ListingType;

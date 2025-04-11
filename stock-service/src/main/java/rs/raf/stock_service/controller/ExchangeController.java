@@ -37,8 +37,7 @@ public class ExchangeController {
     })
     public ResponseEntity<?> getAvailableExchanges() {
         try {
-            List<Exchange> availableExchanges = exchangeService.getAvailableExchanges();
-            return ResponseEntity.ok(availableExchanges);
+            return ResponseEntity.ok(exchangeService.getAvailableExchangesDto());
         } catch (ExchangesNotLoadedException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }

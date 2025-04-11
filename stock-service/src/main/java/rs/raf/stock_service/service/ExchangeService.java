@@ -4,8 +4,10 @@ package rs.raf.stock_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.domain.dto.ExchangeDto;
 import rs.raf.stock_service.domain.entity.Country;
 import rs.raf.stock_service.domain.entity.Exchange;
+import rs.raf.stock_service.domain.mapper.ExchangeMapper;
 import rs.raf.stock_service.exceptions.ExchangesNotLoadedException;
 import rs.raf.stock_service.repository.CountryRepository;
 import rs.raf.stock_service.repository.ExchangeRepository;
@@ -16,13 +18,15 @@ import java.io.InputStreamReader;
 import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class ExchangeService {
 
-    private ExchangeRepository exchangeRepository;
-    private CountryRepository countryRepository;
+    private final ExchangeRepository exchangeRepository;
+    private final CountryRepository countryRepository;
+    private final ExchangeMapper exchangeMapper;
 
     public void importExchanges() {
         BufferedReader bufferedReader;
@@ -85,6 +89,10 @@ public class ExchangeService {
             }
         }
         return availableExchanges;
+    }
+
+    public List<ExchangeDto> getAvailableExchangesDto() {
+        return getAvailableExchanges().stream().map(exchangeMapper::toDto).collect(Collectors.toList());
     }
 
 

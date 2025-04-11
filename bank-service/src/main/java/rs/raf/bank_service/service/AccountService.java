@@ -11,7 +11,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -43,6 +42,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
     private final JwtTokenUtil jwtTokenUtil;
+    private final ExchangeRateService exchangeRateService;
     @Autowired
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
@@ -381,4 +381,34 @@ public class AccountService {
         return allAccounts;
     }
 
+
+    public void updateAvailableBalance(String accountNumber, BigDecimal amount){
+        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
+
+        if(!account.getCurrency().getCode().equals("USD")){
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
+            amount = amount.multiply(exchangeRateDto.getExchangeRate());
+        }
+
+        if (account.getAvailableBalance().compareTo(amount) < 0)
+            throw new InsufficientFundsException(account.getAvailableBalance(), amount);
+
+        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
+        accountRepository.save(account);
+    }
+
+    public void updateBalance(String accountNumber, BigDecimal amount){
+        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
+
+        if(!account.getCurrency().getCode().equals("USD")){
+            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
+            amount = amount.multiply(exchangeRateDto.getExchangeRate());
+        }
+
+        if (account.getBalance().compareTo(amount) < 0)
+            throw new InsufficientFundsException(account.getBalance(), amount);
+
+        account.setBalance(account.getBalance().subtract(amount));
+        accountRepository.save(account);
+    }
 }
