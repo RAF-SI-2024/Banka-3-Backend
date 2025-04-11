@@ -8,10 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
-import rs.raf.stock_service.domain.dto.CreateOrderDto;
-import rs.raf.stock_service.domain.dto.OrderDto;
-import rs.raf.stock_service.domain.dto.TaxDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
@@ -389,7 +386,8 @@ public class OrderService {
         List<Order> orders = orderRepository.findAllByDirection(OrderDirection.SELL);
 
         return orders.stream()
-                .map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(), dailyPriceInfoRepository.findTopByListingOrderByDateDesc(order.getListing()))))
+                .map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
+                        listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()))))
                 .collect(Collectors.toList());
     }
 

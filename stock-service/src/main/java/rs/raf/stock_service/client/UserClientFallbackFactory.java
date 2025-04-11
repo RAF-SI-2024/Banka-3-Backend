@@ -6,7 +6,10 @@ import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.ActuaryDto;
 import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
 import rs.raf.stock_service.domain.dto.ClientDto;
+import rs.raf.stock_service.domain.dto.UserTaxDto;
 import rs.raf.stock_service.exceptions.ActuaryLimitNotFoundException;
+
+import java.util.List;
 
 @Component
 public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
@@ -28,6 +31,11 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
 
             @Override
             public ActuaryDto getEmployeeById(Long id) {
+                return null;
+            }
+
+            @Override
+            public List<UserTaxDto> getAgentsAndClients(String name, String surname, String role) {
                 return null;
             }
         };

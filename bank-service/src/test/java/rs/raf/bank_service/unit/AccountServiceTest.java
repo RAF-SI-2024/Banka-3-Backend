@@ -686,6 +686,27 @@ public class AccountServiceTest {
 
         List<Account> allAccountsFromRepo = List.of(clientAccount1, clientAccount2, nonClientAccount);
         when(accountRepository.findAll()).thenReturn(allAccountsFromRepo);
+
+        ClientDto clientDto1 = new ClientDto(10L, "Alice", "Smith");
+        ClientDto clientDto2 = new ClientDto(20L, "Bob", "Johnson");
+        when(userClient.getClientById(10L)).thenReturn(clientDto1);
+        when(userClient.getClientById(20L)).thenReturn(clientDto2);
+
+        CompanyAccount bankAccount = new CompanyAccount();
+        bankAccount.setAccountNumber("999");
+        bankAccount.setCompanyId(1L);
+        Page<CompanyAccount> bankAccountPage = new PageImpl<>(List.of(bankAccount));
+        when(companyAccountRepository.findByCompanyId(eq(1L), any(Pageable.class))).thenReturn(bankAccountPage);
+
+        List<AccountDto> result = accountService.getAllClientAndBankAccounts();
+
+        assertEquals(3, result.size());
+
+        assertEquals("111", result.get(0).getAccountNumber());
+        assertEquals("222", result.get(1).getAccountNumber());
+        assertEquals("999", result.get(2).getAccountNumber());
+    }
+
     @Test
     void updateAvailableBalance_Success() {
         // Arrange
@@ -754,25 +775,6 @@ public class AccountServiceTest {
         CompanyAccount account = CompanyAccount.builder().accountNumber("123").balance(new BigDecimal(1000))
                 .currency(Currency.builder().code("RSD").build()).build();
 
-        ClientDto clientDto1 = new ClientDto(10L, "Alice", "Smith");
-        ClientDto clientDto2 = new ClientDto(20L, "Bob", "Johnson");
-        when(userClient.getClientById(10L)).thenReturn(clientDto1);
-        when(userClient.getClientById(20L)).thenReturn(clientDto2);
-
-        CompanyAccount bankAccount = new CompanyAccount();
-        bankAccount.setAccountNumber("999");
-        bankAccount.setCompanyId(1L);
-        Page<CompanyAccount> bankAccountPage = new PageImpl<>(List.of(bankAccount));
-        when(companyAccountRepository.findByCompanyId(eq(1L), any(Pageable.class))).thenReturn(bankAccountPage);
-
-        List<AccountDto> result = accountService.getAllClientAndBankAccounts();
-
-        assertEquals(3, result.size());
-
-        assertEquals("111", result.get(0).getAccountNumber());
-        assertEquals("222", result.get(1).getAccountNumber());
-        assertEquals("999", result.get(2).getAccountNumber());
-    }
         CurrencyDto currencyDto1 = new CurrencyDto();
         currencyDto1.setCode("USD");
         CurrencyDto currencyDto2 = new CurrencyDto();

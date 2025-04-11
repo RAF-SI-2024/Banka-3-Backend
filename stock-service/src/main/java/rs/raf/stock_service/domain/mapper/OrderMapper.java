@@ -37,8 +37,7 @@ public class OrderMapper {
                 order.isStopFulfilled(),
                 order.getAfterHours(),
                 order.getTransactions() == null ? null :
-                        order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
-                order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList()),
+                        order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList()),
                 order.getProfit()
         );
     }

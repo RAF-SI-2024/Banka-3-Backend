@@ -2,6 +2,8 @@ package rs.raf.stock_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.stock_service.domain.dto.AccountDetailsDto;
+import rs.raf.stock_service.domain.dto.ConvertDto;
 import rs.raf.stock_service.domain.dto.TaxDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
