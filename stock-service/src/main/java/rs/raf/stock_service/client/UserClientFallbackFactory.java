@@ -26,12 +26,18 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
 
             @Override
             public ClientDto getClientById(Long id) {
-                return null;
+                ClientDto dummy = new ClientDto();
+                dummy.setFirstName("Fallback");
+                dummy.setLastName("Client");
+                return dummy;
             }
 
             @Override
             public ActuaryDto getEmployeeById(Long id) {
-                return null;
+                ActuaryDto dummy = new ActuaryDto();
+                dummy.setFirstName("Fallback");
+                dummy.setLastName("Actuary");
+                return dummy;
             }
 
             @Override
