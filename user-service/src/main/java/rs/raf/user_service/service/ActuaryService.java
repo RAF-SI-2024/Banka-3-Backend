@@ -3,6 +3,7 @@ package rs.raf.user_service.service;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,17 +39,29 @@ public class ActuaryService {
     private final ClientRepository clientRepository;
     private final StockClient stockClient;
 
-    public Page<EmployeeDto> findAgents(String firstName, String lastName, String email, String position, Pageable pageable) {
+    public Page<AgentDto> findAgents(String firstName, String lastName, String email, String position, Pageable pageable) {
         Specification<Employee> spec = Specification.where(EmployeeSearchSpecification.startsWithFirstName(firstName))
                 .and(EmployeeSearchSpecification.startsWithLastName(lastName))
                 .and(EmployeeSearchSpecification.startsWithEmail(email))
                 .and(EmployeeSearchSpecification.startsWithPosition(position))
                 .and(EmployeeSearchSpecification.hasRole("AGENT"));
 
-        return employeeRepository.findAll(spec, pageable)
+        Page<EmployeeDto> employeeDtoPage = employeeRepository.findAll(spec, pageable)
                 .map(EmployeeMapper::toDto);
 
+        List<AgentDto> agentList = new ArrayList<>();
 
+        for (EmployeeDto currEmployeeDto : employeeDtoPage.getContent()) {
+            ActuaryLimit currAgentLimit = actuaryLimitRepository.findByEmployeeId(currEmployeeDto.getId()).orElseThrow(() -> new ActuaryLimitNotFoundException(currEmployeeDto.getId()));
+            AgentDto agentDto = ActuaryMapper.toAgentDto(currEmployeeDto, currAgentLimit.getLimitAmount(), currAgentLimit.getUsedLimit(), currAgentLimit.isNeedsApproval());
+            agentList.add(agentDto);
+        }
+
+        return new PageImpl<>(
+                agentList,
+                employeeDtoPage.getPageable(),
+                employeeDtoPage.getTotalElements()
+        );
     }
 
     public Page<ActuaryDto> findActuaries(Pageable pageable) {

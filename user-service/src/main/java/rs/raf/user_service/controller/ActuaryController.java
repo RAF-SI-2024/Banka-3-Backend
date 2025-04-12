@@ -84,7 +84,7 @@ public class ActuaryController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agents retrieved successfully")
     })
-    public ResponseEntity<Page<EmployeeDto>> getAllAgents(
+    public ResponseEntity<Page<AgentDto>> getAllAgents(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
