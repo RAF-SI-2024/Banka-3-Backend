@@ -183,6 +183,15 @@ public class OrderService {
         BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
 
+        // commission
+        if (role.equals("CLIENT")) {
+            BigDecimal commission = price.multiply(BigDecimal.valueOf(0.01)); // lupio sam 1%
+            order.setCommission(commission);
+        } else {
+            order.setCommission(null); // aktuar nema proviziju
+        }
+
+
         boolean checksPassed = false;
         if(role.equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);

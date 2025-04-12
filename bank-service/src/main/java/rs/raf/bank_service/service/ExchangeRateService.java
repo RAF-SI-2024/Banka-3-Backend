@@ -17,6 +17,7 @@ import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,12 @@ public class ExchangeRateService {
             exchangeRate.setSellRate(rate.multiply(new BigDecimal("1.01")));
             exchangeRateRepository.save(exchangeRate);
 
+            exchangeRate.setMiddleRate(
+                    exchangeRate.getExchangeRate()
+                            .add(exchangeRate.getSellRate())
+                            .divide(BigDecimal.valueOf(2), MathContext.DECIMAL128)
+            );
+
             ExchangeRate mirrored = ExchangeRate.builder()
                     .fromCurrency(exchangeRate.getToCurrency())
                     .toCurrency(exchangeRate.getFromCurrency())
@@ -84,9 +91,15 @@ public class ExchangeRateService {
                     .sellRate(BigDecimal.ONE.divide(
                                     exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
                             .multiply(new BigDecimal("1.01")))
+                    .middleRate(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
+                            .add(BigDecimal.ONE.divide(exchangeRate.getExchangeRate(), 6, RoundingMode.UP)
+                                    .multiply(new BigDecimal("1.01")))
+                            .divide(BigDecimal.valueOf(2), MathContext.DECIMAL128)
+                    )
                     .build();
 
             exchangeRateRepository.save(mirrored);
+
         }
     }
 

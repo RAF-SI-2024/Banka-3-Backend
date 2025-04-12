@@ -65,6 +65,10 @@ public class Payment {
     @Column()
     private Long receiverClientId;
 
+    @Column
+    private BigDecimal exchangeProfit;
+
+
     @Override
     public String toString() {
         return "Payment{" +

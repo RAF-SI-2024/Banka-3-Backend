@@ -37,4 +37,7 @@ public class ExchangeRate {
     @Column(precision = 10, scale = 6)
     private BigDecimal sellRate;
 
+    @Column(precision = 10, scale = 6)
+    private BigDecimal middleRate;
+
 }
