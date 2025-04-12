@@ -1,5 +1,8 @@
 package pack.userservicekotlin.controller
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -10,8 +13,8 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import pack.userservicekotlin.arrow.ActuaryServiceError
 import pack.userservicekotlin.domain.dto.activity_code.SetApprovalDto
+import pack.userservicekotlin.domain.dto.actuary_limit.ActuaryResponseDto
 import pack.userservicekotlin.domain.dto.actuary_limit.UpdateActuaryLimitDto
-import pack.userservicekotlin.domain.dto.employee.EmployeeResponseDto
 import pack.userservicekotlin.service.ActuaryService
 import pack.userservicekotlin.swagger.ActuaryApiDoc
 
@@ -80,7 +83,7 @@ class ActuaryController(
         )
 
     @PreAuthorize("hasRole('SUPERVISOR')")
-    @GetMapping
+    @GetMapping("/agents")
     override fun getAllAgents(
         email: String?,
         firstName: String?,
@@ -88,10 +91,29 @@ class ActuaryController(
         position: String?,
         page: Int,
         size: Int,
-    ): ResponseEntity<Page<EmployeeResponseDto>> {
+    ): ResponseEntity<Page<AgentDto>> {
         val pageable: Pageable = PageRequest.of(page, size)
-        val agents = actuaryService.findAll(firstName, lastName, email, position, pageable)
-        return ResponseEntity.ok(agents)
+        return actuaryService.findAgents(firstName, lastName, email, position, pageable).fold(
+            ifLeft = { ResponseEntity.internalServerError().build() },
+            ifRight = { ResponseEntity.ok(it) },
+        )
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @GetMapping
+    @Operation(summary = "Get all actuaries.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Actuaries retrieved successfully"),
+    )
+    fun getAllActuaries(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): ResponseEntity<Page<ActuaryResponseDto>> {
+        val pageable: Pageable = PageRequest.of(page, size)
+        return actuaryService.findActuaries(pageable).fold(
+            ifLeft = { ResponseEntity.internalServerError().build() },
+            ifRight = { ResponseEntity.ok(it) },
+        )
     }
 
     @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")
@@ -107,6 +129,18 @@ class ActuaryController(
                     else -> ResponseEntity.internalServerError().build()
                 }
             },
+            ifRight = { ResponseEntity.ok(it) },
+        )
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    fun getAllAgentsAndClients(
+        @RequestParam(defaultValue = "") name: String?,
+        @RequestParam(defaultValue = "") surname: String?,
+        @RequestParam(defaultValue = "") role: String?,
+    ): ResponseEntity<Any> =
+        actuaryService.getAllAgentsAndClients(name, surname, role).fold(
+            ifLeft = { ResponseEntity.internalServerError().body("Failed to fetch agents and clients") },
             ifRight = { ResponseEntity.ok(it) },
         )
 }
