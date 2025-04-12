@@ -132,6 +132,7 @@ public class AccountService {
         newAccount.setMonthlyLimit(newBankAccountDto.getMonthlyLimit());
         newAccount.setDailySpending(newBankAccountDto.getDailySpending());
         newAccount.setMonthlySpending(newBankAccountDto.getMonthlySpending());
+        newAccount.setName(newBankAccountDto.getName());
 
         String random = String.format("%09d", ThreadLocalRandom.current().nextInt(0, 1_000_000_000));
         String accountOwnerTypeNumber = "";
