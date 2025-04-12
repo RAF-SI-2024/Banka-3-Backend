@@ -10,5 +10,5 @@ import java.util.List;
 @AllArgsConstructor
 public class StockProfitResponseDto {
     private BigDecimal stockCommissionProfit;
-    private List<ActuaryProfitDto> actuaryProfits;
+
 }

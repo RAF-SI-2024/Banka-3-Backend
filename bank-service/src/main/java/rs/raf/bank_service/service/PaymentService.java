@@ -219,7 +219,7 @@ public class PaymentService {
             convertedAmount = amount.multiply(exchangeRateValue);
 
             exchangeProfit = exchangeRateDto.getSellRate().multiply(amount)
-                    .subtract(exchangeRateDto.getMiddleRate().multiply(amount));
+                    .subtract(exchangeRateDto.getExchangeRate().multiply(amount));
         }
 
         // Kreiranje Payment entiteta
@@ -372,4 +372,9 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.CANCELED);
         paymentRepository.save(payment);
     }
+
+    public BigDecimal getExchangeProfit() {
+        return paymentRepository.getBankProfitFromExchange();
+    }
+
 }

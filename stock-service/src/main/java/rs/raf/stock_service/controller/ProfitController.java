@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import rs.raf.stock_service.domain.dto.ActuaryProfitDto;
 import rs.raf.stock_service.domain.dto.StockProfitResponseDto;
 import rs.raf.stock_service.repository.OrderRepository;
+import rs.raf.stock_service.service.OrderService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,13 +18,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProfitController {
 
-    private final OrderRepository orderRepository;
+    private final OrderService orderService;
 
     @GetMapping
     public ResponseEntity<StockProfitResponseDto> getProfit() {
-        BigDecimal stockCommissionProfit = orderRepository.getBankProfitFromOrders();
-        List<ActuaryProfitDto> actuaryProfits = orderRepository.getActuaryProfits();
-        return ResponseEntity.ok(new StockProfitResponseDto(stockCommissionProfit, actuaryProfits));
+            BigDecimal stockCommissionProfit = orderService.getCommissionProfit();
+            return ResponseEntity.ok(new StockProfitResponseDto(stockCommissionProfit));
+
     }
 }
 
