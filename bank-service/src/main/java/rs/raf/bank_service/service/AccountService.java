@@ -386,14 +386,15 @@ public class AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
 
         if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
+            amount = convertToAccountCurrency(account.getCurrency().getCode(), amount);
         }
 
-        if (account.getAvailableBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getAvailableBalance(), amount);
+        BigDecimal newAvailableBalance = account.getAvailableBalance().add(amount);
 
-        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
+        if (newAvailableBalance.compareTo(BigDecimal.ZERO) < 0)
+            throw new InsufficientFundsException(account.getAvailableBalance(), amount.multiply(BigDecimal.valueOf(-1)));
+
+        account.setAvailableBalance(newAvailableBalance);
         accountRepository.save(account);
     }
 
@@ -401,14 +402,27 @@ public class AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
 
         if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
+           amount = convertToAccountCurrency(account.getCurrency().getCode(), amount);
         }
 
-        if (account.getBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getBalance(), amount);
+        BigDecimal newBalance = account.getBalance().add(amount);
 
-        account.setBalance(account.getBalance().subtract(amount));
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0)
+            throw new InsufficientFundsException(account.getBalance(), amount.multiply(BigDecimal.valueOf(-1)));
+
+        account.setBalance(newBalance);
         accountRepository.save(account);
+    }
+
+    private BigDecimal convertToAccountCurrency(String toCurrency, BigDecimal amount) {
+        ExchangeRateDto exchangeRateDto1 = exchangeRateService.getExchangeRate("USD", "RSD");
+        amount = amount.multiply(exchangeRateDto1.getExchangeRate());
+
+        if(!toCurrency.equals("RSD")){
+            ExchangeRateDto exchangeRateDto2 = exchangeRateService.getExchangeRate("USD", toCurrency);
+            amount = amount.multiply(exchangeRateDto2.getExchangeRate());
+        }
+
+        return amount;
     }
 }

@@ -42,7 +42,7 @@ public class OrderMapper {
         );
     }
 
-    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, Listing listing, String role) {
+    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, String role, Listing listing) {
         BigDecimal pricePerUnit = null;
         BigDecimal stopPrice = null;
 
@@ -68,17 +68,17 @@ public class OrderMapper {
 
         return new Order(
                 userId,
+                role,
                 listing,
                 createOrderDto.getOrderType(),
-                createOrderDto.getQuantity(),
-                createOrderDto.getContractSize(),
-                pricePerUnit,
                 createOrderDto.getOrderDirection(),
-                afterHours(listing.getExchange()),
+                createOrderDto.isAllOrNone(),
+                createOrderDto.getContractSize(),
+                createOrderDto.getQuantity(),
+                pricePerUnit,
                 createOrderDto.getAccountNumber(),
                 stopPrice,
-                createOrderDto.isAllOrNone(),
-                role
+                afterHours(listing.getExchange())
         );
     }
 

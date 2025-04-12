@@ -137,28 +137,28 @@ public class OrderServiceTest {
         createStopOrderDto = new CreateOrderDto(1L, OrderType.STOP, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(200));
 
-        stopOrder = OrderMapper.toOrder(createStopOrderDto, userId, listing, "ADMIN");
+        stopOrder = OrderMapper.toOrder(createStopOrderDto, userId, "ADMIN", listing);
         stopOrder.setId(1L);
         stopOrder.setStatus(OrderStatus.APPROVED);
-        stopOrder.setReservedAmount(stopOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopOrder.getQuantity()))
+        stopOrder.setTotalPrice(stopOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopOrder.getQuantity()))
                 .multiply(BigDecimal.valueOf(stopOrder.getContractSize())));
 
         createLimitOrderDto = new CreateOrderDto(1L, OrderType.LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100));
 
-        limitOrder = OrderMapper.toOrder(createLimitOrderDto, userId, listing, "ADMIN");
+        limitOrder = OrderMapper.toOrder(createLimitOrderDto, userId, "ADMIN", listing);
         limitOrder.setId(2L);
         limitOrder.setStatus(OrderStatus.APPROVED);
-        limitOrder.setReservedAmount(limitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
+        limitOrder.setTotalPrice(limitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
                 .multiply(BigDecimal.valueOf(limitOrder.getContractSize())));
 
         createStopLimitOrderDto = new CreateOrderDto(1L, OrderType.STOP_LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100), new BigDecimal(200));
 
-        stopLimitOrder = OrderMapper.toOrder(createStopLimitOrderDto, userId, listing, "ADMIN");
+        stopLimitOrder = OrderMapper.toOrder(createStopLimitOrderDto, userId, "ADMIN", listing);
         stopLimitOrder.setId(3L);
         stopLimitOrder.setStatus(OrderStatus.APPROVED);
-        stopLimitOrder.setReservedAmount(stopLimitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopLimitOrder.getQuantity()))
+        stopLimitOrder.setTotalPrice(stopLimitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopLimitOrder.getQuantity()))
                 .multiply(BigDecimal.valueOf(stopLimitOrder.getContractSize())));
     }
 
@@ -408,7 +408,7 @@ public class OrderServiceTest {
         OrderDto orderDto = orderService.createOrder(createMarketOrderDto, authHeader);
 
         // Assert
-        verify(orderRepository, atLeast(3)).save(any(Order.class));
+        verify(orderRepository, atLeast(4)).save(any(Order.class));
         assertEquals(OrderStatus.DONE, orderDto.getStatus());
         assertEquals(true, orderDto.getIsDone());
         assertEquals(0, orderDto.getRemainingPortions());
@@ -438,7 +438,7 @@ public class OrderServiceTest {
         OrderDto orderDto = orderService.createOrder(createMarketOrderDto, authHeader);
 
         // Assert
-        verify(orderRepository, atLeast(2)).save(any(Order.class));
+        verify(orderRepository, atLeast(3)).save(any(Order.class));
         assertEquals(OrderStatus.DONE, orderDto.getStatus());
         assertEquals(true, orderDto.getIsDone());
         assertEquals(0, orderDto.getRemainingPortions());
@@ -462,7 +462,7 @@ public class OrderServiceTest {
         listing.setPrice(new BigDecimal(250));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(2)).save(stopOrder);
+        verify(orderRepository, atLeast(3)).save(stopOrder);
         assertEquals(true, stopOrder.isStopFulfilled());
         assertEquals(OrderStatus.DONE, stopOrder.getStatus());
         assertEquals(true, stopOrder.getIsDone());
@@ -495,7 +495,7 @@ public class OrderServiceTest {
         listing.setPrice(new BigDecimal(50));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(2)).save(limitOrder);
+        verify(orderRepository, atLeast(3)).save(limitOrder);
         assertEquals(OrderStatus.DONE, limitOrder.getStatus());
         assertEquals(true, limitOrder.getIsDone());
         assertEquals(0, limitOrder.getRemainingPortions());
@@ -537,7 +537,7 @@ public class OrderServiceTest {
         listing.setPrice(new BigDecimal(50));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(2)).save(stopLimitOrder);
+        verify(orderRepository, atLeast(3)).save(stopLimitOrder);
         assertEquals(OrderStatus.DONE, stopLimitOrder.getStatus());
         assertEquals(true, stopLimitOrder.getIsDone());
         assertEquals(0, stopLimitOrder.getRemainingPortions());
