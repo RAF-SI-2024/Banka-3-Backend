@@ -186,8 +186,12 @@ public class OrderService {
         if (order.getOrderType() == OrderType.MARKET && order.getStatus() == OrderStatus.APPROVED)
             executeOrder(order);
 
-        return OrderMapper.toDto(order, listingMapper.toDto(listing,
-                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(listing)));
+        ListingDto listingDto = listingMapper.toDto(listing,
+                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(listing));
+
+        String clientName = getClientName(order);
+
+        return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
     }
 
     private void checkFields(CreateOrderDto createOrderDto){

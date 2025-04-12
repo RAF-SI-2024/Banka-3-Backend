@@ -763,7 +763,7 @@ public class OrderServiceTest {
         order.setUserId(userId);
         order.setListing(null);
         order.setAccountNumber("123456789");
-        order.setRole("CLIENT");
+        order.setUserRole("CLIENT");
         order.setTransactions(new ArrayList<>());
 
         OrderDto expectedOrderDto = new OrderDto();
