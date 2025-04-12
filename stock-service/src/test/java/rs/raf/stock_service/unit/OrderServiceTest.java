@@ -574,6 +574,7 @@ public class OrderServiceTest {
         order.setListing(listing);
         order.setQuantity(10);
         order.setOrderType(OrderType.MARKET);
+        order.setAccountNumber("123456789012345678");
 
         ListingDto listingDto = new ListingDto(
                 10L,
@@ -591,6 +592,8 @@ public class OrderServiceTest {
         orderDto.setId(101L);
         orderDto.setUserId(userId);
         orderDto.setListing(listingDto);
+        orderDto.setClientName("Test Korisnik");
+        orderDto.setAccountNumber("123456789012345678");
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
@@ -599,7 +602,8 @@ public class OrderServiceTest {
         when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
 
         try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
-            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+            mocked.when(() -> OrderMapper.toDto(any(), any(), any(), any()))
+                    .thenReturn(orderDto);
 
             List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
 
@@ -607,6 +611,8 @@ public class OrderServiceTest {
             assertEquals(1, result.size());
             assertEquals(listingDto, result.get(0).getListing());
             assertEquals(userId, result.get(0).getUserId());
+            assertEquals("Test Korisnik", result.get(0).getClientName());
+            assertEquals("123456789012345678", result.get(0).getAccountNumber());
         }
     }
 
@@ -629,6 +635,7 @@ public class OrderServiceTest {
         order.setListing(listing);
         order.setQuantity(10);
         order.setOrderType(OrderType.MARKET);
+        order.setAccountNumber("111111111111111111");
 
         ListingDto listingDto = new ListingDto(
                 10L,
@@ -646,6 +653,8 @@ public class OrderServiceTest {
         orderDto.setId(101L);
         orderDto.setUserId(userId);
         orderDto.setListing(listingDto);
+        orderDto.setClientName("Test Ime");
+        orderDto.setAccountNumber("111111111111111111");
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(supervisorId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("SUPERVISOR");
@@ -654,7 +663,8 @@ public class OrderServiceTest {
         when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
 
         try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
-            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+            mocked.when(() -> OrderMapper.toDto(any(), any(), any(), any()))
+                    .thenReturn(orderDto);
 
             List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
 
@@ -662,6 +672,8 @@ public class OrderServiceTest {
             assertEquals(1, result.size());
             assertEquals(listingDto, result.get(0).getListing());
             assertEquals(userId, result.get(0).getUserId());
+            assertEquals("Test Ime", result.get(0).getClientName());
+            assertEquals("111111111111111111", result.get(0).getAccountNumber());
         }
     }
 
@@ -684,6 +696,7 @@ public class OrderServiceTest {
         order.setListing(listing);
         order.setQuantity(10);
         order.setOrderType(OrderType.MARKET);
+        order.setAccountNumber("987654321000000000");
 
         ListingDto listingDto = new ListingDto(
                 10L,
@@ -701,6 +714,8 @@ public class OrderServiceTest {
         orderDto.setId(101L);
         orderDto.setUserId(userId);
         orderDto.setListing(listingDto);
+        orderDto.setClientName("Admin Test");
+        orderDto.setAccountNumber("987654321000000000");
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(adminId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
@@ -709,7 +724,8 @@ public class OrderServiceTest {
         when(listingMapper.toDto(listing, listingPriceHistory)).thenReturn(listingDto);
 
         try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
-            mocked.when(() -> OrderMapper.toDto(order, listingDto)).thenReturn(orderDto);
+            mocked.when(() -> OrderMapper.toDto(any(), any(), any(), any()))
+                    .thenReturn(orderDto);
 
             List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
 
@@ -717,6 +733,8 @@ public class OrderServiceTest {
             assertEquals(1, result.size());
             assertEquals(listingDto, result.get(0).getListing());
             assertEquals(userId, result.get(0).getUserId());
+            assertEquals("Admin Test", result.get(0).getClientName());
+            assertEquals("987654321000000000", result.get(0).getAccountNumber());
         }
     }
 
@@ -744,12 +762,16 @@ public class OrderServiceTest {
         order.setId(1L);
         order.setUserId(userId);
         order.setListing(null);
+        order.setAccountNumber("123456789");
+        order.setRole("CLIENT");
         order.setTransactions(new ArrayList<>());
 
         OrderDto expectedOrderDto = new OrderDto();
         expectedOrderDto.setId(1L);
         expectedOrderDto.setUserId(userId);
         expectedOrderDto.setListing(null);
+        expectedOrderDto.setClientName("N/A");
+        expectedOrderDto.setAccountNumber("123456789");
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("USER");
@@ -758,14 +780,20 @@ public class OrderServiceTest {
         when(listingMapper.toDto(null, null)).thenReturn(null);
 
         try (MockedStatic<OrderMapper> mocked = mockStatic(OrderMapper.class)) {
-            mocked.when(() -> OrderMapper.toDto(order, null)).thenReturn(expectedOrderDto);
+            mocked.when(() -> OrderMapper.toDto(any(), any(), any(), any()))
+                    .thenReturn(expectedOrderDto);
 
             List<OrderDto> result = orderService.getOrdersByUser(userId, authHeader);
 
-            assertEquals(1, result.size());
-            assertNull(result.get(0).getListing());
+            assertNotNull(result); // lista nije null
+            assertEquals(1, result.size()); // sadrži jedan OrderDto
+            assertNotNull(result.get(0)); // sam OrderDto nije null
+            assertNull(result.get(0).getListing()); // ali listing jeste
+            assertEquals("N/A", result.get(0).getClientName());
+            assertEquals("123456789", result.get(0).getAccountNumber());
         }
     }
+
 
     @Test
     void shouldThrowUnauthorizedExceptionWhenUserIsNotAuthorized() {

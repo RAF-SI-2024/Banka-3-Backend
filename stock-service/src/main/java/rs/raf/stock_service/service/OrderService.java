@@ -46,30 +46,65 @@ public class OrderService {
     private PortfolioEntryRepository portfolioEntryRepository;
 
     public Page<OrderDto> getOrdersByStatus(OrderStatus status, Pageable pageable) {
-        Page<Order> ordersPage;
+        Page<Order> ordersPage = (status == null)
+                ? orderRepository.findAll(pageable)
+                : orderRepository.findByStatus(status, pageable);
 
-        if (status == null) {
-            ordersPage = orderRepository.findAll(pageable);
-        } else {
-            ordersPage = orderRepository.findByStatus(status, pageable);
-        }
-
-        return ordersPage.map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
-                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()))));
+        return ordersPage.map(order -> {
+            ListingDto listingDto = listingMapper.toDto(order.getListing(),
+                    listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()));
+            String clientName = getClientName(order);
+            return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+        });
     }
 
     public List<OrderDto> getOrdersByUser(Long userId, String authHeader) {
         Long userIdFromAuth = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         List<Order> ordersList;
+
         if (userId.equals(userIdFromAuth) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")) {
             ordersList = orderRepository.findAllByUserId(userId);
         } else {
             throw new UnauthorizedException("Unauthorized attempt at getting user's orders.");
         }
 
-        return ordersList.stream().map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
-                listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing())))).toList();
+        return ordersList.stream().map(order -> {
+            ListingDto listingDto = listingMapper.toDto(order.getListing(),
+                    listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()));
+            String clientName = getClientName(order);
+            return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+        }).toList();
+    }
+
+    public List<OrderDto> getAllOrders() {
+        List<Order> orders = orderRepository.findAllByDirection(OrderDirection.SELL);
+
+        return orders.stream().map(order -> {
+            ListingDto listingDto = listingMapper.toDto(order.getListing(),
+                    listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()));
+            String clientName = getClientName(order);
+            return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+        }).collect(Collectors.toList());
+    }
+
+    private String getClientName(Order order) {
+        try {
+            ClientDto client = userClient.getClientById(order.getUserId());
+            return formatName(client.getFirstName(), client.getLastName());
+        } catch (Exception e1) {
+            try {
+                ActuaryDto actuary = userClient.getEmployeeById(order.getUserId());
+                return formatName(actuary.getFirstName(), actuary.getLastName());
+            } catch (Exception e2) {
+                return "Unknown User";
+            }
+        }
+    }
+
+    private String formatName(String firstName, String lastName) {
+        if (firstName == null && lastName == null) return "Unknown User";
+        return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
     }
 
     public void cancelOrder(Long id, String authHeader) {
@@ -405,15 +440,5 @@ public class OrderService {
             order.setPricePerUnit(order.getPricePerUnit().max(order.getListing().getPrice()));
             executeOrder(order);
         }
-    }
-
-    public List<OrderDto> getAllOrders() {
-
-        List<Order> orders = orderRepository.findAllByDirection(OrderDirection.SELL);
-
-        return orders.stream()
-                .map(order -> OrderMapper.toDto(order, listingMapper.toDto(order.getListing(),
-                        listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()))))
-                .collect(Collectors.toList());
     }
 }

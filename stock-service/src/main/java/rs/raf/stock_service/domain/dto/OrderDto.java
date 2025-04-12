@@ -36,4 +36,6 @@ public class OrderDto {
     private Boolean afterHours;
     private List<TransactionDto> transactions;
     private BigDecimal profit;
+    private String clientName;
+    private String accountNumber;
 }
