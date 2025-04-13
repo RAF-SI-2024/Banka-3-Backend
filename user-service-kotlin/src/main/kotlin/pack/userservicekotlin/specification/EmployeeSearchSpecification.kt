@@ -72,4 +72,18 @@ object EmployeeSearchSpecification {
                 )
             }
         }
+
+//    // Pretraga po role-u
+//    fun hasRole(roleName: String): Specification<Employee?> =
+//        Specification { root: Root<Employee?>, query: CriteriaQuery<*>?, cb: CriteriaBuilder ->
+//            cb.equal(
+//                cb.lower(root.join<Any, Any>("role").get("name")),
+//                roleName.lowercase(Locale.getDefault()),
+//            )
+//        }
+
+    inline fun <T> Specification<T>.andIf(
+        condition: Boolean,
+        specProvider: () -> Specification<T>,
+    ): Specification<T> = if (condition) this.and(specProvider()) else this
 }

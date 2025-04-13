@@ -12,4 +12,10 @@ sealed class ActuaryServiceError {
     data class NotAnAgent(
         val employeeId: Long,
     ) : ActuaryServiceError()
+
+    data class ExternalServiceError(
+        val message: String,
+    ) : ActuaryServiceError()
+
+    data object InvalidPageRequest : ActuaryServiceError()
 }

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
@@ -15,6 +16,7 @@ import pack.userservicekotlin.arrow.ActuaryServiceError
 import pack.userservicekotlin.domain.dto.activity_code.SetApprovalDto
 import pack.userservicekotlin.domain.dto.actuary_limit.ActuaryResponseDto
 import pack.userservicekotlin.domain.dto.actuary_limit.UpdateActuaryLimitDto
+import pack.userservicekotlin.domain.dto.employee.AgentDto
 import pack.userservicekotlin.service.ActuaryService
 import pack.userservicekotlin.swagger.ActuaryApiDoc
 
@@ -38,6 +40,8 @@ class ActuaryController(
                         ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User with id ${it.employeeId} is not an agent")
                     is ActuaryServiceError.ActuaryLimitNotFound ->
                         ResponseEntity.status(HttpStatus.NOT_FOUND).body("Limit not found for agent ${it.employeeId}")
+                    is ActuaryServiceError.ExternalServiceError -> TODO()
+                    ActuaryServiceError.InvalidPageRequest -> TODO()
                 }
             },
             ifRight = { ResponseEntity.ok().build() },
@@ -57,6 +61,9 @@ class ActuaryController(
                         ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User with id ${it.employeeId} is not an agent")
                     is ActuaryServiceError.ActuaryLimitNotFound ->
                         ResponseEntity.status(HttpStatus.NOT_FOUND).body("Limit not found for agent ${it.employeeId}")
+
+                    is ActuaryServiceError.ExternalServiceError -> TODO()
+                    ActuaryServiceError.InvalidPageRequest -> TODO()
                 }
             },
             ifRight = { ResponseEntity.ok().build() },
@@ -77,6 +84,9 @@ class ActuaryController(
                         ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User with id ${it.employeeId} is not an agent")
                     is ActuaryServiceError.ActuaryLimitNotFound ->
                         ResponseEntity.status(HttpStatus.NOT_FOUND).body("Limit not found for agent ${it.employeeId}")
+
+                    is ActuaryServiceError.ExternalServiceError -> TODO()
+                    ActuaryServiceError.InvalidPageRequest -> TODO()
                 }
             },
             ifRight = { ResponseEntity.ok().build() },
@@ -85,16 +95,24 @@ class ActuaryController(
     @PreAuthorize("hasRole('SUPERVISOR')")
     @GetMapping("/agents")
     override fun getAllAgents(
-        email: String?,
-        firstName: String?,
-        lastName: String?,
-        position: String?,
-        page: Int,
-        size: Int,
+        @RequestParam(required = false) email: String?,
+        @RequestParam(required = false) firstName: String?,
+        @RequestParam(required = false) lastName: String?,
+        @RequestParam(required = false) position: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<AgentDto>> {
-        val pageable: Pageable = PageRequest.of(page, size)
+        val pageable = PageRequest.of(page, size)
         return actuaryService.findAgents(firstName, lastName, email, position, pageable).fold(
-            ifLeft = { ResponseEntity.internalServerError().build() },
+            ifLeft = {
+                when (it) {
+                    is ActuaryServiceError.ActuaryLimitNotFound ->
+                        ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .body(PageImpl(emptyList())) // could log or include message
+                    else -> ResponseEntity.internalServerError().build()
+                }
+            },
             ifRight = { ResponseEntity.ok(it) },
         )
     }
@@ -135,9 +153,9 @@ class ActuaryController(
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     fun getAllAgentsAndClients(
-        @RequestParam(defaultValue = "") name: String?,
-        @RequestParam(defaultValue = "") surname: String?,
-        @RequestParam(defaultValue = "") role: String?,
+        @RequestParam(defaultValue = "") name: String,
+        @RequestParam(defaultValue = "") surname: String,
+        @RequestParam(defaultValue = "") role: String,
     ): ResponseEntity<Any> =
         actuaryService.getAllAgentsAndClients(name, surname, role).fold(
             ifLeft = { ResponseEntity.internalServerError().body("Failed to fetch agents and clients") },
