@@ -17,6 +17,7 @@ import rs.raf.bank_service.repository.CurrencyRepository;
 import rs.raf.bank_service.repository.ExchangeRateRepository;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,8 @@ public class ExchangeRateService {
 
             exchangeRateRepository.save(mirrored);
         }
+
+
     }
 
     @Scheduled(cron = "0 0 8 * * ?")

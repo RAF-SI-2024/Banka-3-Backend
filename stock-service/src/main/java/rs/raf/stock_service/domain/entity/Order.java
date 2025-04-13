@@ -79,6 +79,10 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private boolean allOrNone;
 
+    @Column
+    private BigDecimal commission;
+
+
     private BigDecimal reservedAmount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)

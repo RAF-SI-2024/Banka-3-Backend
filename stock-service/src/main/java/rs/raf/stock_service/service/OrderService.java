@@ -180,8 +180,21 @@ public class OrderService {
 
         Order order = OrderMapper.toOrder(createOrderDto, userId, listing, role);
 
-        BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
+        BigDecimal price = BigDecimal.valueOf(order.getContractSize())
+                .multiply(BigDecimal.valueOf(order.getQuantity()))
                 .multiply(order.getPricePerUnit());
+
+
+        if (role.equals("CLIENT")) {
+            BigDecimal priceWithCommission = priceWithCommission(order.getOrderType(), price); //@todo uzeti commission iz ordera kad se doda
+            BigDecimal commission = priceWithCommission.subtract(price);
+
+            order.setCommission(commission);
+        } else {
+            order.setCommission(BigDecimal.ZERO);
+        }
+
+
 
         boolean checksPassed = false;
         if(role.equals("AGENT")) {
@@ -416,6 +429,10 @@ public class OrderService {
             order.setPricePerUnit(order.getPricePerUnit().max(order.getListing().getPrice()));
             executeOrder(order);
         }
+    }
+
+    public BigDecimal getCommissionProfit() {
+        return orderRepository.getBankProfitFromOrders();
     }
 
 
