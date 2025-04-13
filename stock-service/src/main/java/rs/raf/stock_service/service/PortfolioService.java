@@ -193,6 +193,61 @@ public class PortfolioService {
     }
 
     @Transactional
+    public void transferStockOwnership(Long fromUserId, Long toUserId, Stock stock, int quantity, BigDecimal pricePerStock) {
+
+        PortfolioEntry sellerEntry = portfolioEntryRepository
+                .findByUserIdAndListing(fromUserId, stock)
+                .orElseThrow(() -> new RuntimeException("Seller does not own the stock"));
+
+        if (sellerEntry.getAmount() < quantity) {
+            throw new RuntimeException("Seller does not have enough stocks");
+        }
+
+        sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
+        sellerEntry.setLastModified(LocalDateTime.now());
+
+        if (sellerEntry.getAmount() == 0) {
+            portfolioEntryRepository.delete(sellerEntry);
+        } else {
+            portfolioEntryRepository.save(sellerEntry);
+        }
+
+        PortfolioEntry buyerEntry = portfolioEntryRepository
+                .findByUserIdAndListing(toUserId, stock)
+                .orElse(null);
+
+        if (buyerEntry == null) {
+            buyerEntry = PortfolioEntry.builder()
+                    .userId(toUserId)
+                    .listing(stock)
+                    .type(ListingType.STOCK)
+                    .amount(quantity)
+                    .averagePrice(pricePerStock)
+                    .publicAmount(0)
+                    .inTheMoney(false)
+                    .used(false)
+                    .lastModified(LocalDateTime.now())
+                    .build();
+        } else {
+            int currentAmount = buyerEntry.getAmount();
+            BigDecimal currentAvgPrice = buyerEntry.getAveragePrice();
+
+
+            BigDecimal totalCost = currentAvgPrice.multiply(BigDecimal.valueOf(currentAmount))
+                    .add(pricePerStock.multiply(BigDecimal.valueOf(quantity)));
+            int newTotalAmount = currentAmount + quantity;
+            BigDecimal newAvgPrice = totalCost.divide(BigDecimal.valueOf(newTotalAmount), RoundingMode.HALF_UP);
+
+            buyerEntry.setAmount(newTotalAmount);
+            buyerEntry.setAveragePrice(newAvgPrice);
+            buyerEntry.setLastModified(LocalDateTime.now());
+        }
+
+        portfolioEntryRepository.save(buyerEntry);
+    }
+
+
+    @Transactional
     public void useOption(Long userId, UseOptionDto dto) {
         PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
                 .orElseThrow(PortfolioEntryNotFoundException::new);

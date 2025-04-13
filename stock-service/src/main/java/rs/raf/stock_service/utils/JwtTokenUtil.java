@@ -25,6 +25,8 @@ public class JwtTokenUtil {
                 .setExpiration(new Date(Instant.now().toEpochMilli() + expiration))
                 .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
+
+
     }
 
     public String getSubjectFromToken(String token) {
