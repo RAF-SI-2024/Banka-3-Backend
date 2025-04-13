@@ -2,10 +2,9 @@ package rs.raf.stock_service.client;
 
 import feign.FeignException;
 import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import rs.raf.stock_service.domain.dto.AccountDetailsDto;
-import rs.raf.stock_service.domain.dto.ConvertDto;
-import rs.raf.stock_service.domain.dto.TaxDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.exceptions.AccountNotFoundException;
 import rs.raf.stock_service.exceptions.InsufficientFundsException;
 
@@ -16,6 +15,31 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
     @Override
     public BankClient create(Throwable cause) {
         return new BankClient() {
+            @Override
+            public ResponseEntity<PaymentDto> createPayment(CreatePaymentDto dto) {
+                return null;
+            }
+
+            @Override
+            public ResponseEntity<String> getAccountNumberByClientId(Long clientId) {
+                return null;
+            }
+
+            @Override
+            public void rejectPayment(Long paymentId) {
+
+            }
+
+            @Override
+            public void confirmPayment(Long paymentId) {
+
+            }
+
+            @Override
+            public ResponseEntity<PaymentDto> executeSystemPayment(ExecutePaymentDto dto) {
+                return null;
+            }
+
             @Override
             public BigDecimal getAccountBalance(String accountNumber) {
                 return null;
