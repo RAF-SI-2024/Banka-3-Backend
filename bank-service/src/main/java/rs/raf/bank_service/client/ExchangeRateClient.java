@@ -10,4 +10,9 @@ public interface ExchangeRateClient {
 
     @GetMapping("/latest/{currencyCode}")
     UpdateExchangeRateDto getExchangeRates(@PathVariable("currencyCode") String currencyCode);
+
+    // Ruta za konverziju valuta, npr. /{apiKey}/pair/USD/EUR
+    @GetMapping("/pair/{base}/{target}")
+    String getConversionPair(@PathVariable("base") String base,
+                             @PathVariable("target") String target);
 }

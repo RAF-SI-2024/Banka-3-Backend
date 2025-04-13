@@ -3,12 +3,15 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.client.Banka2Client;
 import rs.raf.bank_service.client.UserClient;
+import rs.raf.bank_service.configuration.RabbitMQConfig;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.entity.CompanyAccount;
@@ -43,6 +46,9 @@ public class PaymentService {
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
     private CompanyAccountRepository companyAccountRepository;
+    private static final String OWN_BANK_CODE = "333";
+    private final Banka2Client partnerBankClient;
+    private final RabbitTemplate rabbitTemplate;
 
     public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         // Preuzimanje računa za sender i receiver
@@ -111,27 +117,96 @@ public class PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         Account sender = payment.getSenderAccount();
-        Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReceiver())
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReceiver()));
-
+        String receiverAccountNumber = payment.getAccountNumberReceiver();
+        String receiverBankCode = receiverAccountNumber.substring(0, 3);
         BigDecimal amount = payment.getAmount();
+
+        // eksterni transfer u Banku 2
+        if (!receiverBankCode.equals(OWN_BANK_CODE)) {
+            if (sender.getAvailableBalance().compareTo(amount) < 0) {
+                throw new InsufficientFundsException(sender.getAvailableBalance(), amount);
+            }
+
+            // rezervisi sredstva
+            sender.setAvailableBalance(sender.getAvailableBalance().subtract(amount));
+            accountRepository.save(sender);
+
+            // kreiranje prepare request-a za banku 2
+            InterBankTransactionRequest request = new InterBankTransactionRequest();
+            request.setFromAccountNumber(sender.getAccountNumber());
+            request.setFromCurrencyId(sender.getCurrency().getCode());
+            request.setToAccountNumber(receiverAccountNumber);
+            request.setToCurrencyId(sender.getCurrency().getCode());
+            request.setAmount(amount);
+            request.setCodeId(payment.getPaymentCode());
+            request.setPurpose(payment.getPurposeOfPayment());
+            request.setReferenceNumber(payment.getReferenceNumber());
+
+
+            // PHASE 1 – PREPARE
+            InterBankTransactionResponse response;
+            try {
+                response = partnerBankClient.prepare(request).getBody();
+            } catch (Exception e) {
+                // ako komunikacija ne uspe
+                sender.setAvailableBalance(sender.getAvailableBalance().add(amount));
+                accountRepository.save(sender);
+                throw new RuntimeException("Greska u komunikaciji sa bankom 2 (prepare): " + e.getMessage());
+            }
+
+            if (response == null || !response.isReady()) {
+                // ako banka 2 nije spremna
+                sender.setAvailableBalance(sender.getAvailableBalance().add(amount));
+                accountRepository.save(sender);
+                throw new RuntimeException("Banka 2 nije spremna: " + (response != null ? response.getMessage() : "Nepoznata greska"));
+            }
+
+            // PHASE 2 – COMMIT
+            try {
+                partnerBankClient.commit(request);
+            } catch (Exception e) {
+                try {
+                    partnerBankClient.cancel(request);
+                } catch (Exception cancelError) {
+                    System.err.println("Neuspesan cancel kod banke 2: " + cancelError.getMessage());
+                }
+
+                sender.setAvailableBalance(sender.getAvailableBalance().add(amount));
+                accountRepository.save(sender);
+
+                throw new RuntimeException("Commit kod banke 2 nije uspeo: " + e.getMessage());
+            }
+
+            // skidanje sredstva sa balansa
+            sender.setBalance(sender.getBalance().subtract(amount));
+            sender.setAvailableBalance(sender.getBalance());
+            accountRepository.save(sender);
+
+            payment.setStatus(PaymentStatus.COMPLETED);
+            payment.setOutAmount(response.getFinalAmount());
+            paymentRepository.save(payment);
+
+            return true;
+        }
+
+        // interni transfer
+        Account receiver = accountRepository.findByAccountNumber(receiverAccountNumber)
+                .orElseThrow(() -> new ReceiverAccountNotFoundException(receiverAccountNumber));
+
         BigDecimal convertedAmount = amount;
         BigDecimal exchangeRateValue = BigDecimal.ONE;
 
-        //  Ako su valute različite, koristimo kursnu listu
         if (!sender.getCurrency().getCode().equals(receiver.getCurrency().getCode())) {
-            //  Obezbeđujemo da transakcije idu preko bankovnih računa (companyId = 1)
             CompanyAccount bankAccountFrom = accountRepository.findFirstByCurrencyAndCompanyId(sender.getCurrency(), 1L)
-                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
+                    .orElseThrow(() -> new BankAccountNotFoundException("Nema bankovnog računa za: " + sender.getCurrency().getCode()));
 
             CompanyAccount bankAccountTo = accountRepository.findFirstByCurrencyAndCompanyId(receiver.getCurrency(), 1L)
-                    .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+                    .orElseThrow(() -> new BankAccountNotFoundException("Nema bankovnog računa za: " + receiver.getCurrency().getCode()));
 
             ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
             exchangeRateValue = exchangeRateDto.getExchangeRate();
             convertedAmount = amount.multiply(exchangeRateValue);
 
-            //  Sender -> Banka (ista valuta)
             sender.setBalance(sender.getBalance().subtract(amount));
             sender.setAvailableBalance(sender.getBalance());
             bankAccountFrom.setBalance(bankAccountFrom.getBalance().add(amount));
@@ -139,7 +214,6 @@ public class PaymentService {
             accountRepository.save(sender);
             accountRepository.save(bankAccountFrom);
 
-            //  Banka -> Receiver
             bankAccountTo.setBalance(bankAccountTo.getBalance().subtract(convertedAmount));
             bankAccountTo.setAvailableBalance(bankAccountTo.getBalance());
             receiver.setBalance(receiver.getBalance().add(convertedAmount));
@@ -155,13 +229,13 @@ public class PaymentService {
         accountRepository.save(sender);
         accountRepository.save(receiver);
 
-        //  Čuvamo outAmount u Payment (stvarno primljen iznos)
         payment.setOutAmount(convertedAmount);
         payment.setStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
 
         return true;
     }
+
 
     public void rejectTransfer(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
@@ -274,10 +348,18 @@ public class PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         Account sender = payment.getSenderAccount();
+
+        String receiverBankCode = payment.getAccountNumberReceiver().substring(0, 3);
+
+        // Ako je interbank → pošalji u delay queue, ne izvršavaj odmah
+        if (!receiverBankCode.equals(OWN_BANK_CODE)) {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.INTERBANK_DELAY_QUEUE, paymentId);
+            return;
+        }
+
         Account receiver = accountRepository.findByAccountNumber(payment.getAccountNumberReceiver())
                 .stream().findFirst()
                 .orElseThrow(() -> new ReceiverAccountNotFoundException(payment.getAccountNumberReceiver()));
-
 
         BigDecimal amount = payment.getAmount();
         BigDecimal convertedAmount = amount;
