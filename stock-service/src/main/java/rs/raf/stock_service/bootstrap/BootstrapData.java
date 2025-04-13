@@ -155,7 +155,7 @@ public class BootstrapData implements CommandLineRunner {
                 new String[]{"USD", "CAD"}, new String[]{"USD", "AUD"}, new String[]{"EUR", "GBP"},
                 new String[]{"EUR", "JPY"}, new String[]{"EUR", "CHF"}, new String[]{"GBP", "JPY"}, new String[]{"AUD", "NZD"}
         );
-
+        Exchange exchange = exchangeRepository.findByMic("NASDAQ");
         List<ForexPair> list = refreshInParallel(pairs, pair -> {
             try {
                 ForexPairDto dto = forexService.getForexPair(pair[0], pair[1]);
@@ -171,6 +171,7 @@ public class BootstrapData implements CommandLineRunner {
                 fx.setNominalValue(dto.getNominalValue());
                 fx.setAsk(dto.getAsk());
                 fx.setPrice(dto.getPrice());
+                fx.setExchange(exchange);
                 return List.of(fx);
             } catch (Exception e) {
                 return List.of();
@@ -206,6 +207,7 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addFutures() {
+        Exchange exchange = exchangeRepository.findByMic("NASDAQ");
         List<FuturesContractDto> dtos = futuresService.getFuturesContracts();
         List<FuturesContract> list = dtos.stream().map(dto -> {
             FuturesContract f = new FuturesContract();
@@ -215,6 +217,7 @@ public class BootstrapData implements CommandLineRunner {
             f.setSettlementDate(dto.getSettlementDate());
             f.setMaintenanceMargin(dto.getMaintenanceMargin());
             f.setContractUnit(dto.getContractUnit());
+            f.setExchange(exchange);
             return f;
         }).toList();
 
