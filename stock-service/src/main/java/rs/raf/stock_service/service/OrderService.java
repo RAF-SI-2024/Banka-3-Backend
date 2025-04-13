@@ -349,7 +349,6 @@ public class OrderService {
         return true;
     }
 
-    @Scheduled(fixedRate = 15000)
     public void checkOrders() {
         checkStopOrders();
         checkStopLimitOrders();
