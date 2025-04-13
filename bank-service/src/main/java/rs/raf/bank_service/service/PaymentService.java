@@ -118,20 +118,17 @@ public class PaymentService {
 
         Account sender = payment.getSenderAccount();
         String receiverAccountNumber = payment.getAccountNumberReceiver();
-        String receiverBankCode = receiverAccountNumber.substring(0, 3);
+        String receiverBankCode = receiverAccountNumber.length() >= 3 ? receiverAccountNumber.substring(0, 3) : "";
         BigDecimal amount = payment.getAmount();
 
-        // eksterni transfer u Banku 2
         if (!receiverBankCode.equals(OWN_BANK_CODE)) {
             if (sender.getAvailableBalance().compareTo(amount) < 0) {
                 throw new InsufficientFundsException(sender.getAvailableBalance(), amount);
             }
 
-            // rezervisi sredstva
             sender.setAvailableBalance(sender.getAvailableBalance().subtract(amount));
             accountRepository.save(sender);
 
-            // kreiranje prepare request-a za banku 2
             InterBankTransactionRequest request = new InterBankTransactionRequest();
             request.setFromAccountNumber(sender.getAccountNumber());
             request.setFromCurrencyId(sender.getCurrency().getCode());
@@ -142,26 +139,21 @@ public class PaymentService {
             request.setPurpose(payment.getPurposeOfPayment());
             request.setReferenceNumber(payment.getReferenceNumber());
 
-
-            // PHASE 1 – PREPARE
             InterBankTransactionResponse response;
             try {
                 response = partnerBankClient.prepare(request).getBody();
             } catch (Exception e) {
-                // ako komunikacija ne uspe
                 sender.setAvailableBalance(sender.getAvailableBalance().add(amount));
                 accountRepository.save(sender);
-                throw new RuntimeException("Greska u komunikaciji sa bankom 2 (prepare): " + e.getMessage());
+                throw new ReceiverAccountNotFoundException("Greska u komunikaciji sa bankom 2 (prepare): " + e.getMessage());
             }
 
             if (response == null || !response.isReady()) {
-                // ako banka 2 nije spremna
                 sender.setAvailableBalance(sender.getAvailableBalance().add(amount));
                 accountRepository.save(sender);
                 throw new RuntimeException("Banka 2 nije spremna: " + (response != null ? response.getMessage() : "Nepoznata greska"));
             }
 
-            // PHASE 2 – COMMIT
             try {
                 partnerBankClient.commit(request);
             } catch (Exception e) {
@@ -177,7 +169,6 @@ public class PaymentService {
                 throw new RuntimeException("Commit kod banke 2 nije uspeo: " + e.getMessage());
             }
 
-            // skidanje sredstva sa balansa
             sender.setBalance(sender.getBalance().subtract(amount));
             sender.setAvailableBalance(sender.getBalance());
             accountRepository.save(sender);
@@ -189,7 +180,6 @@ public class PaymentService {
             return true;
         }
 
-        // interni transfer
         Account receiver = accountRepository.findByAccountNumber(receiverAccountNumber)
                 .orElseThrow(() -> new ReceiverAccountNotFoundException(receiverAccountNumber));
 
