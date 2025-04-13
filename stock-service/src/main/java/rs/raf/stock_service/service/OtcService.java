@@ -58,19 +58,17 @@ public class OtcService {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
-        OtcOffer offer = otcOption.getOtcOffer();
-        if (offer == null) throw new InvalidOtcOptionException("This is not an OTC option");
 
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
 
-        if (offer.getStatus() == OtcOfferStatus.EXERCISED)
+        if (otcOption.isUsed())
             throw new OtcOptionAlreadyExercisedException();
 
         if (otcOption.getSettlementDate().isBefore(LocalDate.now()))
             throw new OtcOptionSettlementExpiredException();
 
-        BigDecimal totalAmount = offer.getPricePerStock().multiply(BigDecimal.valueOf(otcOption.getAmount()));
+        BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
         Stock stock = otcOption.getUnderlyingStock();
 
         Long paymentId = null;
@@ -83,7 +81,7 @@ public class OtcService {
                     otcOption.getBuyerId(),
                     stock,
                     otcOption.getAmount(),
-                    offer.getPricePerStock()
+                    otcOption.getStrikePrice()
             );
         } catch (Exception ex) {
             if (paymentId != null) {
@@ -96,7 +94,10 @@ public class OtcService {
             throw new OtcExecutionFailedException("OTC execution failed: " + ex.getMessage());
         }
 
+        OtcOffer offer = otcOption.getOtcOffer();
         offer.setStatus(OtcOfferStatus.EXERCISED);
+        otcOfferRepository.save(offer);
+
         otcOption.setUsed(true);
         otcOptionRepository.save(otcOption);
     }
