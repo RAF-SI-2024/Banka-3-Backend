@@ -219,7 +219,7 @@ public class PaymentController {
 
     //cto
     @PostMapping("/execute-system-payment")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> executeSystemPayment(@RequestBody ExecutePaymentDto dto) {
         try {
             paymentService.executeSystemPayment(dto);
