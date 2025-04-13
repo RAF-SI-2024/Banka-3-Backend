@@ -43,7 +43,7 @@ public class AuthController {
     @Operation(summary = "Employee Login", description = "Endpoint for logging employee and generating JWT token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Succesfully generated JWT token"),
-            @ApiResponse(responseCode = "401", description = "Bad credentials")
+            @ApiResponse(responseCode = "401", description = "Bad credentials or employee is inactive.")
     })
     @PostMapping("/login/employee")
     public ResponseEntity<?> employeeLogin(@RequestBody LoginRequestDto request) {
