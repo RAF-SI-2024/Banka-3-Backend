@@ -1,5 +1,6 @@
 package pack.userservicekotlin.controller
 
+import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -22,11 +23,11 @@ class ClientController(
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping
     override fun getAllClients(
-        firstName: String?,
-        lastName: String?,
-        email: String?,
-        page: Int,
-        size: Int,
+        @RequestParam(required = false) firstName: String?,
+        @RequestParam(required = false) lastName: String?,
+        @RequestParam(required = false) email: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<ClientResponseDto>> {
         val pageable = PageRequest.of(page, size, Sort.by("lastName").ascending())
         return ResponseEntity.ok(clientService.listClientsWithFilters(firstName, lastName, email, pageable))
@@ -34,7 +35,9 @@ class ClientController(
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
-    override fun getClientById(id: Long): ResponseEntity<Any> =
+    override fun getClientById(
+        @PathVariable id: Long,
+    ): ResponseEntity<Any> =
         clientService.getClientById(id).fold(
             ifLeft = {
                 when (it) {
@@ -48,7 +51,9 @@ class ClientController(
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping
-    override fun addClient(createClientDto: CreateClientDto): ResponseEntity<Any> =
+    override fun addClient(
+        @Valid @RequestBody createClientDto: CreateClientDto,
+    ): ResponseEntity<Any> =
         clientService.addClient(createClientDto).fold(
             ifLeft = {
                 when (it) {
@@ -63,8 +68,8 @@ class ClientController(
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PutMapping("/{id}")
     override fun updateClient(
-        id: Long,
-        updateClientDto: UpdateClientDto,
+        @PathVariable id: Long,
+        @Valid @RequestBody updateClientDto: UpdateClientDto,
     ): ResponseEntity<Any> =
         clientService.updateClient(id, updateClientDto).fold(
             ifLeft = {
@@ -78,7 +83,9 @@ class ClientController(
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @DeleteMapping("/{id}")
-    override fun deleteClient(id: Long): ResponseEntity<Void> =
+    override fun deleteClient(
+        @PathVariable id: Long,
+    ): ResponseEntity<Void> =
         clientService.deleteClient(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
             ifRight = { ResponseEntity.ok().build() },
