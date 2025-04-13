@@ -186,7 +186,7 @@ public class OrderService {
 
 
         if (role.equals("CLIENT")) {
-            BigDecimal priceWithCommission = priceWithCommission(order.getOrderType(), price);
+            BigDecimal priceWithCommission = priceWithCommission(order.getOrderType(), price); //@todo uzeti commission iz ordera kad se doda
             BigDecimal commission = priceWithCommission.subtract(price);
 
             order.setCommission(commission);
