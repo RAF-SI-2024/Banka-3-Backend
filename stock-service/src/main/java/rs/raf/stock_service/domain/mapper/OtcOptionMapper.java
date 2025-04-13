@@ -26,6 +26,7 @@ public class OtcOptionMapper {
                 .subtract(premium);
 
         return OtcOptionDto.builder()
+                .id(option.getId())
                 .stockSymbol(option.getUnderlyingStock().getTicker())
                 .amount(option.getAmount())
                 .strikePrice(option.getStrikePrice())
