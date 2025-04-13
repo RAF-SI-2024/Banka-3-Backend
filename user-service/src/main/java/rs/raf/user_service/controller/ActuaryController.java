@@ -13,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.user_service.domain.dto.ChangeAgentLimitDto;
-import rs.raf.user_service.domain.dto.ClientDto;
-import rs.raf.user_service.domain.dto.EmployeeDto;
-import rs.raf.user_service.domain.dto.SetApprovalDto;
+import rs.raf.user_service.domain.dto.*;
 import rs.raf.user_service.exceptions.ActuaryLimitNotFoundException;
 import rs.raf.user_service.exceptions.EmployeeNotFoundException;
 import rs.raf.user_service.exceptions.UserNotAgentException;
@@ -82,12 +79,12 @@ public class ActuaryController {
     }
 
     @PreAuthorize("hasRole('SUPERVISOR')")
-    @GetMapping
+    @GetMapping("/agents")
     @Operation(summary = "Get all agents with filtering.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agents retrieved successfully")
     })
-    public ResponseEntity<Page<EmployeeDto>> getAllAgents(
+    public ResponseEntity<Page<AgentDto>> getAllAgents(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -95,7 +92,20 @@ public class ActuaryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(actuaryService.findAll(firstName, lastName, email, position, pageable));
+        return ResponseEntity.ok(actuaryService.findAgents(firstName, lastName, email, position, pageable));
+    }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @GetMapping
+    @Operation(summary = "Get all actuaries.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Actuaries retrieved successfully")
+    })
+    public ResponseEntity<Page<ActuaryDto>> getAllActuaries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(actuaryService.findActuaries(pageable));
     }
 
     @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")
@@ -111,5 +121,14 @@ public class ActuaryController {
         } catch (ActuaryLimitNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllAgentsAndClients(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "") String surname,
+            @RequestParam(defaultValue = "") String  role
+    ){
+        return ResponseEntity.ok().body(actuaryService.getAllAgentsAndClients(name,surname,role));
     }
 }

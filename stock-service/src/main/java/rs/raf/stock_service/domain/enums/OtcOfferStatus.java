@@ -4,6 +4,6 @@ public enum OtcOfferStatus {
     PENDING,
     ACCEPTED,
     REJECTED,
-
-    EXERCISED
+    EXERCISED,
+    CANCELLED
 }

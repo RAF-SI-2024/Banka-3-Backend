@@ -47,6 +47,7 @@ class StockOptionServiceTest {
         mockOption.setOpenInterest(100);
         mockOption.setOptionType(OptionType.CALL);
         mockOption.setSettlementDate(settlementDate);
+        mockOption.setOnSale(true);
 
         StockOptionDto expectedDto = new StockOptionDto(
                 new BigDecimal("150"),

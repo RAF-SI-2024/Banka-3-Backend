@@ -20,7 +20,7 @@ class CompanyService(
     private val activityCodeRepository: ActivityCodeRepository,
 ) {
     fun createCompany(createCompanyDto: CreateCompanyDto): Either<CompanyServiceError, CompanyResponseDto> {
-        val ownerId = createCompanyDto.majorityOwner!!
+        val ownerId = createCompanyDto.majorityOwnerId!!
         val activityCodeId = createCompanyDto.activityCode!!
 
         val client =

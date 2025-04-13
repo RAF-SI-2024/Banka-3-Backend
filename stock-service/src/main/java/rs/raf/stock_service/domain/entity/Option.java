@@ -1,5 +1,6 @@
 package rs.raf.stock_service.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import rs.raf.stock_service.domain.enums.OptionType;
 
@@ -25,11 +26,12 @@ public class Option extends Listing {
     private LocalDate settlementDate;
     private BigDecimal maintenanceMargin;
 
-    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
-
-    @OneToOne
-    @JoinColumn(name = "otc_offer_id", nullable = true)
-    private OtcOffer offer;
+    
+    private boolean onSale;
 }

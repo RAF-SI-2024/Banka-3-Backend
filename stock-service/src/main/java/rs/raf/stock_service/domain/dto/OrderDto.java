@@ -31,6 +31,11 @@ public class OrderDto {
     private Boolean isDone;
     private LocalDateTime lastModification;
     private Integer remainingPortions;
+    private BigDecimal stopPrice;
+    private boolean stopFulfilled;
     private Boolean afterHours;
     private List<TransactionDto> transactions;
+    private BigDecimal profit;
+    private String clientName;
+    private String accountNumber;
 }

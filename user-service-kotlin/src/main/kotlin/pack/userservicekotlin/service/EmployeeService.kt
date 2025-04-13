@@ -149,7 +149,7 @@ class EmployeeService(
             val limit =
                 actuaryLimitRepository
                     .findByEmployeeId(id)
-                    ?.orElse(null) ?: return EmployeeServiceError.LimitNotFound.left()
+                    .orElse(null) ?: return EmployeeServiceError.LimitNotFound.left()
             actuaryLimitRepository.delete(limit)
         }
 

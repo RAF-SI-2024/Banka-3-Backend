@@ -7,7 +7,11 @@ import org.mockito.*;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
+import rs.raf.user_service.client.BankClient;
+import rs.raf.user_service.client.StockClient;
+import rs.raf.user_service.domain.dto.ActuaryDto;
 import rs.raf.user_service.domain.dto.ActuaryLimitDto;
+import rs.raf.user_service.domain.dto.AgentDto;
 import rs.raf.user_service.domain.dto.EmployeeDto;
 import rs.raf.user_service.domain.entity.ActuaryLimit;
 import rs.raf.user_service.domain.entity.Employee;
@@ -35,6 +39,9 @@ public class ActuaryServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private StockClient stockClient;
 
     @InjectMocks
     private ActuaryService actuaryService;
@@ -73,20 +80,31 @@ public class ActuaryServiceTest {
 
     @Test
     void testFindAll_Success() {
-        // Podesimo mock da vrati neku listu zaposlenih (agentEmployee)
-        Page<Employee> employeesPage = new PageImpl<>(List.of(agentEmployee));
         Pageable pageable = PageRequest.of(0, 10);
+
+        // 1. Mockuj employeeRepository da vrati stranicu sa agentom
+        Page<Employee> employeesPage = new PageImpl<>(List.of(agentEmployee));
         when(employeeRepository.findAll(any(Specification.class), eq(pageable)))
                 .thenReturn(employeesPage);
 
-        // Poziv servisa
-        Page<EmployeeDto> result = actuaryService.findAll("John", "Doe", "agent@example.com", "AGENT", pageable);
+        // 2. Ako koristiš mapiranje iz Employee u EmployeeDto direktno (bez mock mappera):
+        // onda će se mapovati kroz .map(EmployeeMapper::toDto), i ne moraš posebno mock.
 
-        // Provera rezultata
+        // 3. Mockuj actuaryLimitRepository da vrati ActuaryLimit za datog agenta
+        when(actuaryLimitRepository.findByEmployeeId(agentEmployee.getId()))
+                .thenReturn(Optional.of(actuaryLimit));
+
+        // 4. Pozovi servis
+        Page<AgentDto> result = actuaryService.findAgents("John", "Doe", "agent@example.com", "AGENT", pageable);
+
+        // 5. Provere
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        // Proveravamo da li je metoda za pronalazak pozvana
+        AgentDto returnedAgent = result.getContent().get(0);
+        assertEquals(agentEmployee.getId(), returnedAgent.getId());
+
         verify(employeeRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+        verify(actuaryLimitRepository, times(1)).findByEmployeeId(agentEmployee.getId());
     }
 
     // changeAgentLimit(...) ---------------------------------------------------------------------------------------

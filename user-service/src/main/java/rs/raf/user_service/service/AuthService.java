@@ -49,7 +49,7 @@ public class AuthService {
 
     public String authenticateEmployee(String email, String password) {
         Employee user = employeeRepository.findByEmail(email).orElse(null);
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+        if (user == null || !passwordEncoder.matches(password, user.getPassword()) || !user.isActive()) {
             return null;
         }
 

@@ -3,6 +3,7 @@ package rs.raf.stock_service.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -13,21 +14,23 @@ import rs.raf.stock_service.domain.dto.CreateOrderDto;
 import rs.raf.stock_service.domain.dto.OrderDto;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.exceptions.*;
+import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
 
+import javax.validation.Valid;
+import javax.websocket.server.PathParam;
 
 import java.util.List;
 
 
 @RestController
 @RequestMapping("/api/orders")
+@AllArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
 
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
-    }
 
     @Operation(
             summary = "Get orders with optional filtering",
@@ -127,26 +130,20 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Listing not found")
     })
-    public ResponseEntity<?> createOrder(@RequestHeader("Authorization") String authHeader, @RequestBody CreateOrderDto createOrderDto) {
+    public ResponseEntity<?> createOrder(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        } catch (ListingNotFoundException e) {
+        } catch (ListingNotFoundException | AccountNotFoundException | ActuaryLimitNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
-    }
-
-    @PreAuthorize("hasRole('SUPERVISOR')")
-    @PostMapping("/tax")
-    @Operation(summary = "Process taxes.", description = "Pays taxes where possible.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Order created successfully"),
-    })
-    public ResponseEntity<?> processTaxes() {
-        try {
-            orderService.processTaxes();
-            return ResponseEntity.status(HttpStatus.OK).body("Taxes processed successfully.");
-        } catch (RuntimeException e) {
+        } catch (StopPriceMissingException | LimitPriceMissingException e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public ResponseEntity<List<OrderDto>> getAllOrders() {
+        return ResponseEntity.status(HttpStatus.OK).body(orderService.getAllOrders());
     }
 }

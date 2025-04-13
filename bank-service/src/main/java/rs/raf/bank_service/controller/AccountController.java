@@ -23,6 +23,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
@@ -249,7 +250,7 @@ public class AccountController {
     @Operation(summary = "Get client account balance")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Account balance retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Account balance retrieved successfully")
+            @ApiResponse(responseCode = "404", description = "Account not found")
     })
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{accountNumber}/balance")
@@ -272,6 +273,47 @@ public class AccountController {
         }
 
         return ResponseEntity.ok(accounts.get(0).getAccountNumber());
+    }
+    // interni endpoint
+    @Operation(summary = "Update account available balance")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Account available balance updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{accountNumber}/reserve")
+    public ResponseEntity<?> updateAvailableBalance(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount) {
+        try {
+            accountService.updateAvailableBalance(accountNumber, amount);
+            return ResponseEntity.ok("Account available balance updated successfully");
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (InsufficientFundsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    // interni endpoint
+    @Operation(summary = "Update account balance")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Account balance updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{accountNumber}/update-balance")
+    public ResponseEntity<?> updateBalance(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount) {
+        try {
+            accountService.updateBalance(accountNumber, amount);
+            return ResponseEntity.ok("Account balance updated successfully");
+        } catch (AccountNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (InsufficientFundsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     // Globalni Exception Handleri
@@ -306,5 +348,24 @@ public class AccountController {
     @ExceptionHandler(DuplicateAccountNameException.class)
     public ResponseEntity<String> handleDuplicateAccountNameException(DuplicateAccountNameException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('CLIENT')")
+    @GetMapping("/for-order")
+    public ResponseEntity<?> getAccountsForOrder(@RequestHeader("Authorization") String auth) {
+        try {
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(auth);
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
+
+            if (role.equals("CLIENT")) {
+                return ResponseEntity.ok(accountService.getMyAccounts(userId));
+            } else {
+                return ResponseEntity.ok(accountService.getAllBankAccounts());
+            }
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Unexpected error occurred: " + e.getMessage());
+        }
     }
 }

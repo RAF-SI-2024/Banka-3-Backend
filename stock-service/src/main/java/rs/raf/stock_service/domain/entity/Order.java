@@ -1,6 +1,7 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
@@ -61,36 +62,60 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime lastModification;
 
+    @Column(nullable = false)
     private Integer remainingPortions;
 
     @Column(updatable = false)
     private Boolean afterHours;
 
+    @Column(nullable = false)
     private String accountNumber;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Column(updatable = false)
+    private BigDecimal stopPrice;
+
+    private boolean stopFulfilled;
+
+    @Column(nullable = false, updatable = false)
+    private boolean allOrNone;
+
+    @Column
+    private BigDecimal commission;
+
+
+    private BigDecimal reservedAmount;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Transaction> transactions;
 
     @Enumerated(EnumType.STRING)
     private TaxStatus taxStatus;
     private BigDecimal taxAmount;
+    private BigDecimal profit;
 
-    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection direction, boolean afterHours, String accountNumber) {
+    private String role;
+
+    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, BigDecimal pricePerUnit,
+                 OrderDirection direction, boolean afterHours, String accountNumber, BigDecimal stopPrice, boolean allOrNone,
+                 String role) {
         this.userId = userId;
         this.listing = listing;
         this.orderType = orderType;
         this.quantity = quantity;
         this.contractSize = contractSize;
         this.direction = direction;
-        //valjda je price ustvari BID price, jer promenljiva bid ne postoji
-        this.pricePerUnit = direction == OrderDirection.BUY ? listing.getAsk() == null ? BigDecimal.ONE : listing.getAsk() : listing.getPrice();
+        this.afterHours = afterHours;
+        this.accountNumber = accountNumber;
+        this.remainingPortions = quantity;
+        this.pricePerUnit = pricePerUnit;
+        this.stopPrice = stopPrice;
+        this.allOrNone = allOrNone;
         this.status = OrderStatus.PENDING;
         this.isDone = false;
         this.lastModification = LocalDateTime.now();
-        this.remainingPortions = quantity;
-        this.afterHours = afterHours;
-        this.accountNumber = accountNumber;
+        this.stopFulfilled = false;
         this.transactions = new ArrayList<>();
+        this.role = role;
     }
 }
 

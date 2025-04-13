@@ -7,12 +7,14 @@ import rs.raf.stock_service.domain.dto.CreatePaymentDto;
 import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
 import rs.raf.stock_service.domain.dto.PaymentDto;
 import rs.raf.stock_service.domain.dto.TaxDto;
+import rs.raf.stock_service.domain.dto.AccountDetailsDto;
+import rs.raf.stock_service.domain.dto.ConvertDto;
 
 import java.math.BigDecimal;
 
-
 /// Klasa koja sluzi za slanje HTTP poziva na bankService
-@FeignClient(name = "bank-service", url = "${spring.cloud.openfeign.client.config.bank-service.url}", decode404 = true)
+@FeignClient(name = "bank-service", url = "${spring.cloud.openfeign.client.config.bank-service.url}",
+        fallbackFactory = BankClientFallbackFactory.class, decode404 = true)
 public interface BankClient {
 
     @GetMapping("/api/account/{accountNumber}/balance")
@@ -20,7 +22,7 @@ public interface BankClient {
 
     @PostMapping("/api/payment/tax")
     void handleTax(@RequestBody TaxDto taxDto);
-
+  
     @PostMapping("/api/payment")
     ResponseEntity<PaymentDto> createPayment(@RequestBody CreatePaymentDto dto);
 
@@ -36,7 +38,15 @@ public interface BankClient {
     @PostMapping("/api/payment/execute-system-payment")
     ResponseEntity<PaymentDto> executeSystemPayment(@RequestBody ExecutePaymentDto dto);
 
+    @PostMapping("api/exchange-rates/convert")
+    BigDecimal convert(@RequestBody ConvertDto convertDto);
 
+    @GetMapping("api/account/details/{accountNumber}")
+    AccountDetailsDto getAccountDetails(@PathVariable("accountNumber") String accountNumber);
 
+    @PutMapping("/api/account/{accountNumber}/reserve")
+    void updateAvailableBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
 
+    @PutMapping("/api/account/{accountNumber}/update-balance")
+    void updateBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
 }

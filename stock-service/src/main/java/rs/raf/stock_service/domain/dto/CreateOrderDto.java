@@ -7,6 +7,7 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderType;
 
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 @Data
 @AllArgsConstructor
@@ -30,4 +31,37 @@ public class CreateOrderDto {
 
     @NotNull(message = "Account number cannot be null")
     private String accountNumber;
+
+    @NotNull(message = "All or None cannot be null")
+    private boolean allOrNone;
+
+    private BigDecimal limitPrice;
+    private BigDecimal stopPrice;
+
+    public CreateOrderDto(Long listingId, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection orderDirection,
+                          String accountNumber, boolean allOrNone){
+        this.listingId = listingId;
+        this.orderType = orderType;
+        this.quantity = quantity;
+        this.contractSize = contractSize;
+        this.orderDirection = orderDirection;
+        this.accountNumber = accountNumber;
+        this.allOrNone = allOrNone;
+    }
+
+    public CreateOrderDto(Long listingId, OrderType orderType, Integer quantity, Integer contractSize, OrderDirection orderDirection,
+                          String accountNumber, boolean allOrNone, BigDecimal price){
+        this.listingId = listingId;
+        this.orderType = orderType;
+        this.quantity = quantity;
+        this.contractSize = contractSize;
+        this.orderDirection = orderDirection;
+        this.accountNumber = accountNumber;
+        this.allOrNone = allOrNone;
+
+        if(orderType == OrderType.LIMIT)
+            this.limitPrice = price;
+        if(orderType == OrderType.STOP)
+            this.stopPrice = price;
+    }
 }
