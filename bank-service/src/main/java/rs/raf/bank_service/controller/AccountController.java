@@ -347,7 +347,7 @@ public class AccountController {
             if (role.equals("CLIENT")) {
                 return ResponseEntity.ok(accountService.getMyAccounts(userId));
             } else {
-                return ResponseEntity.ok(accountService.getAllClientAndBankAccounts());
+                return ResponseEntity.ok(accountService.getAllBankAccounts());
             }
         } catch (Exception e) {
             return ResponseEntity
