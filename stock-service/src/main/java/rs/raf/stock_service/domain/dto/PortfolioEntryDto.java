@@ -29,7 +29,9 @@ public class PortfolioEntryDto {
 
     private Integer publicAmount;
     private Boolean inTheMoney;      // samo za opcije
-    private Boolean used;            // samo za opcije
+    private Boolean used;// samo za opcije
+
+    private BigDecimal currentPrice;
 
 
 }

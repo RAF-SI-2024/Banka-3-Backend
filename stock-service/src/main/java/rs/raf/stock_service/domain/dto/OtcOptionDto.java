@@ -19,6 +19,8 @@ public class OtcOptionDto {
     private String settlementDate;
     private String sellerInfo;
     private BigDecimal profit;
-    private OtcOptionStatus status; // opcija se moze iskoristiti ako je status == VALID i ako je used == false
+    private OtcOptionStatus status;
     private boolean used;
+
+    private BigDecimal currentPrice; // <--- NOVO POLJE
 }

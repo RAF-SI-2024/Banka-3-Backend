@@ -49,12 +49,14 @@ class StockOptionServiceTest {
         mockOption.setSettlementDate(settlementDate);
         mockOption.setOnSale(true);
 
-        StockOptionDto expectedDto = new StockOptionDto(
-                new BigDecimal("150"),
-                new BigDecimal("2.5"),
-                100,
-                "CALL"
-        );
+        StockOptionDto expectedDto = StockOptionDto.builder()
+                .strikePrice(new BigDecimal("150"))
+                .impliedVolatility(new BigDecimal("2.5"))
+                .openInterest(100)
+                .optionType("CALL")
+                .premium(new BigDecimal("10.00"))
+                .listingId(99L)
+                .build();
 
         when(optionRepository.findByUnderlyingStockIdAndSettlementDate(stockId, settlementDate))
                 .thenReturn(Collections.singletonList(mockOption));
