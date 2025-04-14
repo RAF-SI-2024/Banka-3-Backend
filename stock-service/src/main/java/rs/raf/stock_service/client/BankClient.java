@@ -1,14 +1,14 @@
 package rs.raf.stock_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.stock_service.domain.dto.CreatePaymentDto;
+import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
+import rs.raf.stock_service.domain.dto.PaymentDto;
+import rs.raf.stock_service.domain.dto.TaxDto;
 import rs.raf.stock_service.domain.dto.AccountDetailsDto;
 import rs.raf.stock_service.domain.dto.ConvertDto;
-import rs.raf.stock_service.domain.dto.TaxDto;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 
@@ -22,6 +22,21 @@ public interface BankClient {
 
     @PostMapping("/api/payment/tax")
     void handleTax(@RequestBody TaxDto taxDto);
+  
+    @PostMapping("/api/payment")
+    ResponseEntity<PaymentDto> createPayment(@RequestBody CreatePaymentDto dto);
+
+    @GetMapping("/api/account/client/{clientId}/account-number")
+    ResponseEntity<String> getAccountNumberByClientId(@PathVariable("clientId") Long clientId);
+
+    @PostMapping("/api/payment/reject-payment/{paymentId}")
+    void rejectPayment(@PathVariable("paymentId") Long paymentId);
+
+    @PutMapping("/api/payment/confirm/{paymentId}")
+    void confirmPayment(@PathVariable("paymentId") Long paymentId);
+
+    @PostMapping("/api/payment/execute-system-payment")
+    ResponseEntity<PaymentDto> executeSystemPayment(@RequestBody ExecutePaymentDto dto);
 
     @PostMapping("api/exchange-rates/convert")
     BigDecimal convert(@RequestBody ConvertDto convertDto);

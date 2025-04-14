@@ -7,6 +7,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.*;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
@@ -17,6 +19,7 @@ import rs.raf.stock_service.client.AlphavantageClient;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -29,7 +32,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class BootstrapData implements CommandLineRunner {
-
     @Autowired private CountryService countryService;
     @Autowired private CountryRepository countryRepository;
     @Autowired private ExchangeService exchangeService;

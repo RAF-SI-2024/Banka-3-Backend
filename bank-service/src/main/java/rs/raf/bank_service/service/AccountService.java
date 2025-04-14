@@ -102,6 +102,20 @@ public class AccountService {
         return accounts.map(account -> AccountMapper.toDto(account, client));
     }
 
+    // Za Cto
+    public List<AccountDto> getAccountsForClient(Long clientId) {
+        ClientDto client = userClient.getClientById(clientId);
+
+        List<Account> accounts = accountRepository.findAll(
+                AccountSearchSpecification.clientIs(clientId)
+        );
+
+        return accounts.stream()
+                .map(acc -> AccountMapper.toDto(acc, client))
+                .collect(Collectors.toList());
+    }
+
+
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
         Long userId = newBankAccountDto.getClientId();
