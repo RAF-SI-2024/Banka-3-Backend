@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,7 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/api/account")
 @AllArgsConstructor
+@Slf4j
 public class AccountController {
 
     private final JwtTokenUtil jwtTokenUtil;
@@ -61,10 +63,13 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
             return ResponseEntity.ok(accounts);
         } catch (UserNotAClientException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (UnauthorizedException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (Exception e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
     }
@@ -80,6 +85,7 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getBankAccounts(pageable);
             return ResponseEntity.ok(accounts);
         } catch (Exception e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto("Unexpected error occurred."));
         }
     }
@@ -99,6 +105,7 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
             return ResponseEntity.ok(accounts);
         } catch (ClientNotFoundException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
