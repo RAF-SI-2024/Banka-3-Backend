@@ -47,19 +47,14 @@ public class PaymentController {
             @ApiResponse(responseCode = "422", description = "Validation or transfer creation error"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<String> createTransfer(
+    public ResponseEntity<?> createTransfer(
             @Valid @RequestBody TransferDto dto,
             @RequestHeader("Authorization") String token) {
 
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
 
         try {
-            boolean success = paymentService.createTransferPendingConfirmation(dto, clientId);
-            if (success) {
-                return ResponseEntity.status(HttpStatus.OK).body("Transfer created successfully, waiting for confirmation.");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer creation failed: Insufficient funds or invalid data");
-            }
+            return ResponseEntity.status(HttpStatus.OK).body(paymentService.createTransfer(dto, clientId));
         } catch (SenderAccountNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Sender account not found: " + e.getMessage());
         } catch (ReceiverAccountNotFoundException e) {

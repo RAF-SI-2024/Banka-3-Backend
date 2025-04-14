@@ -9,4 +9,6 @@ public enum TransactionType {
     FREE_BALANCE,
     UPDATE_BALANCE,
     SYSTEM_PAYMENT,
+    CREATE_PAYMENT,
+    CREATE_TRANSFER,
 }

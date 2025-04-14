@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.domain.dto.CreatePaymentDto;
 import rs.raf.bank_service.domain.dto.TransactionMessageDto;
+import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.enums.TransactionType;
 
 @Service
@@ -25,24 +27,28 @@ public class TransactionProcessor {
     public void processTransaction(TransactionMessageDto message) {
         try {
             switch (message.getType()) {
-                case CONFIRM_PAYMENT:
+                case CONFIRM_PAYMENT, CONFIRM_TRANSFER:
                     Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
                     paymentService.confirmPayment(paymentId);
-                    log.info("Processed payment confirmation for id: {}", paymentId);
+                    log.info("Processed payment/transfer confirmation for id: {}", paymentId);
                     break;
 
-                case CONFIRM_TRANSFER:
-                    Long transferId = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                    paymentService.confirmTransferAndExecute(transferId);
-                    log.info("Processed transfer confirmation for user {}", message.getUserId());
+                case CREATE_PAYMENT:
+                    CreatePaymentDto createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
+                    paymentService.createPaymentAndVerificationRequest(createPaymentDto, message.getUserId());
+                    log.info("Processed payment creation: {}", createPaymentDto);
+                    break;
+
+                case CREATE_TRANSFER:
+                    TransferDto transferDto = objectMapper.readValue(message.getPayloadJson(), TransferDto.class);
+                    paymentService.createTransferAndVerificationRequest(transferDto, message.getUserId());
+                    log.info("Processed transfer creation: {}", transferDto);
                     break;
 
                 case APPROVE_LOAN:
                     Long requestId = objectMapper.readValue(message.getPayloadJson(), Long.class);
-
                     loanRequestService.approveLoan(requestId);
                     log.info("Processed loan approval for loan request id {}", requestId);
-
                     break;
 
                 case PAY_INSTALLMENT:
@@ -50,6 +56,8 @@ public class TransactionProcessor {
                     loanService.payInstallment(loanid);
                     log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
                     break;
+
+
 
                 default:
                     log.warn("Unknown transaction type: {}", message.getType());

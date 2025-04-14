@@ -42,66 +42,66 @@ public class PaymentService {
     private CardRepository cardRepository;
     private CompanyAccountRepository companyAccountRepository;
 
-    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
-        // Preuzimanje računa za sender i receiver
-        Account sender = accountRepository.findByAccountNumberAndClientId(transferDto.getSenderAccountNumber(), clientId)
-                .stream().findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
-
-        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber())
-                .stream().findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
-
-        // Provera da li sender ima dovoljno sredstava
-        if (sender.getBalance().compareTo(transferDto.getAmount()) < 0) {
-            throw new InsufficientFundsException(sender.getBalance(), transferDto.getAmount());
-        }
-
-        BigDecimal amount = transferDto.getAmount();
-        BigDecimal convertedAmount = amount;
-        BigDecimal exchangeRateValue = BigDecimal.ONE;
-
-        // Provera da li su valute različite
-        if (!sender.getCurrency().equals(receiver.getCurrency())) {
-            // Dobijanje kursa konverzije
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
-            exchangeRateValue = exchangeRateDto.getSellRate();
-
-            // Konverzija iznosa u valutu receiver-a
-            convertedAmount = amount.multiply(exchangeRateValue);
-        }
-
-        // Kreiranje Payment entiteta za transfer
-        Payment payment = new Payment();
-        payment.setClientId(clientId);  // Dodajemo Client ID
-        payment.setSenderAccount(sender);  // Sender račun
-        payment.setAmount(transferDto.getAmount());  // Iznos
-        payment.setAccountNumberReceiver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
-        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
-        payment.setDate(LocalDateTime.now());  // Datum transakcije
-        payment.setOutAmount(convertedAmount);
-
-        // Postavi receiverClientId samo ako je receiver u našoj banci
-        payment.setReceiverClientId(receiver.getClientId());  // Postavljamo receiverClientId
-
-        paymentRepository.save(payment);
-
-        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
-                .fromAccountNumber(sender.getAccountNumber())
-                .toAccountNumber(transferDto.getReceiverAccountNumber())
-                .amount(transferDto.getAmount())
-                .build();
-
-        // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
-        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(
-                clientId,
-                payment.getId(),
-                VerificationType.TRANSFER,
-                objectMapper.writeValueAsString(paymentVerificationDetailsDto)
-        );
-        userClient.createVerificationRequest(paymentVerificationRequestDto);
-        return true;
-    }
+//    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
+//        // Preuzimanje računa za sender i receiver
+//        Account sender = accountRepository.findByAccountNumberAndClientId(transferDto.getSenderAccountNumber(), clientId)
+//                .stream().findFirst()
+//                .orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
+//
+//        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber())
+//                .stream().findFirst()
+//                .orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
+//
+//        // Provera da li sender ima dovoljno sredstava
+//        if (sender.getBalance().compareTo(transferDto.getAmount()) < 0) {
+//            throw new InsufficientFundsException(sender.getBalance(), transferDto.getAmount());
+//        }
+//
+//        BigDecimal amount = transferDto.getAmount();
+//        BigDecimal convertedAmount = amount;
+//        BigDecimal exchangeRateValue = BigDecimal.ONE;
+//
+//        // Provera da li su valute različite
+//        if (!sender.getCurrency().equals(receiver.getCurrency())) {
+//            // Dobijanje kursa konverzije
+//            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
+//            exchangeRateValue = exchangeRateDto.getSellRate();
+//
+//            // Konverzija iznosa u valutu receiver-a
+//            convertedAmount = amount.multiply(exchangeRateValue);
+//        }
+//
+//        // Kreiranje Payment entiteta za transfer
+//        Payment payment = new Payment();
+//        payment.setClientId(clientId);  // Dodajemo Client ID
+//        payment.setSenderAccount(sender);  // Sender račun
+//        payment.setAmount(transferDto.getAmount());  // Iznos
+//        payment.setAccountNumberReceiver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
+//        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
+//        payment.setDate(LocalDateTime.now());  // Datum transakcije
+//        payment.setOutAmount(convertedAmount);
+//
+//        // Postavi receiverClientId samo ako je receiver u našoj banci
+//        payment.setReceiverClientId(receiver.getClientId());  // Postavljamo receiverClientId
+//
+//        paymentRepository.save(payment);
+//
+//        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
+//                .fromAccountNumber(sender.getAccountNumber())
+//                .toAccountNumber(transferDto.getReceiverAccountNumber())
+//                .amount(transferDto.getAmount())
+//                .build();
+//
+//        // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
+//        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(
+//                clientId,
+//                payment.getId(),
+//                VerificationType.TRANSFER,
+//                objectMapper.writeValueAsString(paymentVerificationDetailsDto)
+//        );
+//        userClient.createVerificationRequest(paymentVerificationRequestDto);
+//        return true;
+//    }
 
     public void rejectTransfer(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
@@ -203,7 +203,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentDto createTransfer(TransferDto transferDto, Long clientId) throws JsonProcessingException {
+    public PaymentDto createTransferAndVerificationRequest(TransferDto transferDto, Long clientId) throws JsonProcessingException {
         if (!getReceiverAccount(transferDto.getReceiverAccountNumber()).getClientId().equals(clientId)) {
             throw new AccountNotFoundException();
         }
