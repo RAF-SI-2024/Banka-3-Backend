@@ -37,6 +37,7 @@ public class DataRefreshServiceTest {
     @Mock private ForexService forexService;
     @Mock private ListingService listingService;
     @Mock private EntityManager entityManager;
+    @Mock private OrderService orderService;
 
     @BeforeEach
     public void setUp() {
@@ -54,6 +55,8 @@ public class DataRefreshServiceTest {
         ForexPair forex = new ForexPair();
         forex.setId(2L);
         forex.setTicker("USD/EUR");
+
+        doNothing().when(orderService).checkOrders();
 
         when(listingRepository.findAll()).thenReturn(List.of(stock, forex));
 
@@ -132,7 +135,7 @@ public class DataRefreshServiceTest {
         Stock stock = new Stock();
         stock.setId(1L);
         stock.setTicker("FAIL");
-
+        doNothing().when(orderService).checkOrders();
         doThrow(new RuntimeException("Boom")).when(stocksService).getStockData("FAIL");
 
         assertDoesNotThrow(() -> refreshService.refreshListings()); // test indirectly
@@ -142,6 +145,8 @@ public class DataRefreshServiceTest {
     public void testRefreshForexInvalidTickerSkipped() {
         ForexPair forex = new ForexPair();
         forex.setTicker("BADFORMAT");
+
+        doNothing().when(orderService).checkOrders();
 
         refreshService.refreshListings(); // indirectly, since method is private
         verify(forexService, never()).getForexPair(any(), any());
@@ -159,6 +164,7 @@ public class DataRefreshServiceTest {
         oldOption.setTicker("OLD");
         oldOption.setUnderlyingStock(stock);
 
+        doNothing().when(orderService).checkOrders();
         when(portfolioEntryRepository.findAllOptionTickersInUse()).thenReturn(Set.of());
         when(optionRepository.findAll()).thenReturn(List.of(oldOption));
         when(optionRepository.findAllTickers()).thenReturn(Set.of("OLD"));

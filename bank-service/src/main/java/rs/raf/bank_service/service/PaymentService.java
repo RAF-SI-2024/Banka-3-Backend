@@ -211,11 +211,15 @@ public class PaymentService {
         BigDecimal amount = paymentDto.getAmount();
         BigDecimal convertedAmount = amount;
         BigDecimal exchangeRateValue = BigDecimal.ONE;
+        BigDecimal exchangeProfit = BigDecimal.ZERO;
         // Provera da li su valute različite
         if (!sender.getCurrency().equals(receiver.getCurrency())) {
             ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
             exchangeRateValue = exchangeRateDto.getSellRate();
             convertedAmount = amount.multiply(exchangeRateValue);
+
+            exchangeProfit = exchangeRateDto.getSellRate().multiply(amount)
+                    .subtract(exchangeRateDto.getExchangeRate().multiply(amount));
         }
 
         // Kreiranje Payment entiteta
@@ -231,6 +235,7 @@ public class PaymentService {
         payment.setDate(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
         payment.setOutAmount(convertedAmount);
+        payment.setExchangeProfit(exchangeProfit);
 
         // Postavi receiverClientId samo ako je receiver u našoj banci (za sad uvek postoji)
         payment.setReceiverClientId(receiver.getClientId());
@@ -262,6 +267,24 @@ public class PaymentService {
         PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
         transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
     }
+
+    public void executeSystemPayment(ExecutePaymentDto dto) throws Exception {
+
+        CreatePaymentDto createDto = new CreatePaymentDto();
+        createDto.setSenderAccountNumber(String.valueOf(dto.getSenderAccountNumber()));
+        createDto.setReceiverAccountNumber(String.valueOf(dto.getReceiverAccountNumber()));
+        createDto.setAmount(dto.getAmount());
+        createDto.setPaymentCode(String.valueOf(dto.getPaymentCode()));
+        createDto.setPurposeOfPayment(dto.getPurposeOfPayment());
+        createDto.setReferenceNumber(dto.getReferenceNumber());
+
+
+        PaymentDto payment = createPaymentBeforeConfirmation(createDto, dto.getClientId());
+
+
+        confirmPayment(payment.getId());
+    }
+
 
     @Transactional
     public void confirmPayment(Long paymentId) {
@@ -367,4 +390,9 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.CANCELED);
         paymentRepository.save(payment);
     }
+
+    public BigDecimal getExchangeProfit() {
+        return paymentRepository.getBankProfitFromExchange();
+    }
+
 }

@@ -22,6 +22,7 @@ import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.math.BigDecimal;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
@@ -261,6 +262,18 @@ public class AccountController {
         }
     }
 
+
+    //Za Cto
+    @GetMapping("/client/{clientId}/account-number")
+    public ResponseEntity<String> getAccountNumberByClientId(@PathVariable Long clientId) {
+        List<AccountDto> accounts = accountService.getAccountsForClient(clientId);
+
+        if (accounts.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(accounts.get(0).getAccountNumber());
+    }
     // interni endpoint
     @Operation(summary = "Update account available balance")
     @ApiResponses({
@@ -347,7 +360,7 @@ public class AccountController {
             if (role.equals("CLIENT")) {
                 return ResponseEntity.ok(accountService.getMyAccounts(userId));
             } else {
-                return ResponseEntity.ok(accountService.getAllClientAndBankAccounts());
+                return ResponseEntity.ok(accountService.getAllBankAccounts());
             }
         } catch (Exception e) {
             return ResponseEntity

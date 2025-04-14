@@ -61,7 +61,7 @@ public class Order {
     @Column(nullable = false)
     private String accountNumber;
 
-    @Column(nullable = false)
+    @Column
     private BigDecimal commission;
 
     @Enumerated(EnumType.STRING)

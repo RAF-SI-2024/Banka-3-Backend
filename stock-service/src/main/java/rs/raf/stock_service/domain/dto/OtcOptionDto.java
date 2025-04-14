@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class OtcOptionDto {
+    private Long id;
     private String stockSymbol;
     private Integer amount;
     private BigDecimal strikePrice;

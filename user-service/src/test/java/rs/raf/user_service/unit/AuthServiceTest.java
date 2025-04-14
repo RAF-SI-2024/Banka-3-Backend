@@ -132,6 +132,7 @@ public class AuthServiceTest {
         Role employeeRole = new Role();
         employeeRole.setName("EMPLOYEE");
         employee.setRole(employeeRole);
+        employee.setActive(true);
 
         when(employeeRepository.findByEmail(email)).thenReturn(Optional.of(employee));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);

@@ -142,9 +142,6 @@ public class OrderService {
             order.setApprovedBy(userId);
         }
 
-        if (order.getDirection() ==  OrderDirection.SELL)
-            setOrderProfitAndTax(order);
-
         order.setLastModification(LocalDateTime.now());
 
         orderRepository.save(order);
@@ -458,4 +455,10 @@ public class OrderService {
             executeOrder(order);
         }
     }
+
+    public BigDecimal getCommissionProfit() {
+        return orderRepository.getBankProfitFromOrders();
+    }
+
+
 }

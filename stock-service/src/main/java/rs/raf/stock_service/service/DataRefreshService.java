@@ -35,6 +35,7 @@ public class DataRefreshService {
     @Autowired private ForexService forexService;
     @Autowired private ListingService listingService;
     @Autowired private EntityManager entityManager;
+    @Autowired private OrderService orderService;
 
     @Value("${refresh.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -55,6 +56,12 @@ public class DataRefreshService {
         refreshOptions(stocks);
 
         log.info("---- Finished scheduled listing refresh ----");
+
+        log.info("---- Checking stop and limit orders ----");
+
+        orderService.checkOrders();
+
+        log.info("---- Finished checking stop and limit orders ----");
     }
 
     private void refreshStock(Stock stock) {
