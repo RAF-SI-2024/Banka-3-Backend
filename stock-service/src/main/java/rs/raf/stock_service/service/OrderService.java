@@ -175,11 +175,17 @@ public class OrderService {
         Listing listing = listingRepository.findById(createOrderDto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
+        if (createOrderDto.getOrderDirection() == OrderDirection.SELL) {
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
+                    orElseThrow(PortfolioEntryNotFoundException::new);
+
+            if (portfolioEntry.getAmount() < createOrderDto.getContractSize() * createOrderDto.getQuantity())
+                throw new PortfolioAmountNotEnoughException(portfolioEntry.getAmount(),
+                        createOrderDto.getContractSize() * createOrderDto.getQuantity());
+        }
+
         Order order = OrderMapper.toOrder(createOrderDto, userId, role, listing);
         setOrderStatus(order);
-
-        if (order.getStatus() == OrderStatus.APPROVED)
-            setOrderProfitAndTax(order);
 
         orderRepository.save(order);
 
@@ -189,9 +195,7 @@ public class OrderService {
         ListingDto listingDto = listingMapper.toDto(listing,
                 listingPriceHistoryRepository.findTopByListingOrderByDateDesc(listing));
 
-        String clientName = getClientName(order);
-
-        return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+        return OrderMapper.toDto(order, listingDto, getClientName(order), order.getAccountNumber());
     }
 
     private void checkFields(CreateOrderDto createOrderDto){
@@ -218,40 +222,16 @@ public class OrderService {
         order.setStatus(reserveBalance(order) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
     }
 
-    private void setOrderProfitAndTax(Order order){
-        if (order.getDirection() == OrderDirection.BUY) {
-            order.setTaxStatus(TaxStatus.TAXFREE);
-            order.setTaxAmount(BigDecimal.ZERO);
-            return;
-        }
-
-        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
-                orElseThrow(PortfolioEntryNotFoundException::new);
-
-        BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
-        BigDecimal potentialProfit = order.getTotalPrice().subtract(buyingPrice);
-
-        //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
-        order.setProfit(bankClient.convert(new ConvertDto("USD", "RSD", potentialProfit)));
-
-        if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
-            order.setTaxStatus(TaxStatus.PENDING);
-            order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
-        } else {
-            order.setTaxStatus(TaxStatus.TAXFREE);
-            order.setTaxAmount(BigDecimal.ZERO);
-        }
-    }
-
     private boolean reserveBalance(Order order){
-        if(order.getDirection() == OrderDirection.SELL)
-            return true;
-
         BigDecimal price =  order.getTotalPrice();
-        BigDecimal commission = order.getOrderType().equals("CLIENT") ?
+        BigDecimal commission = order.getUserRole().equals("CLIENT") ?
                 getCommission(order.getOrderType(), price) : BigDecimal.ZERO;
 
         order.setCommission(commission);
+
+        if(order.getDirection() == OrderDirection.SELL)
+            return true;
+
         return updateAvailableBalance(order.getAccountNumber(), price.add(commission).multiply(BigDecimal.valueOf(-1)));
     }
 
@@ -286,9 +266,10 @@ public class OrderService {
         // stime trosak ispada vise od rezervisanog pa se obustavilo na pola
         order.setStatus(order.getRemainingPortions() == 0? OrderStatus.DONE : OrderStatus.PARTIAL);
         order.setIsDone(true);
-        orderRepository.save(order);
 
+        setOrderProfitAndTax(order);
         portfolioService.updateHoldingsOnOrderExecution(order);
+        orderRepository.save(order);
     }
 
     private BigDecimal executeTransaction(Order order, int batchSize, long volume){
@@ -302,7 +283,8 @@ public class OrderService {
             e.printStackTrace();
         }
 
-        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit()).multiply(BigDecimal.valueOf(order.getContractSize()));
+        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
+                .multiply(BigDecimal.valueOf(order.getContractSize()));
 
         if(order.getDirection() == OrderDirection.BUY){
             if (!updateBalance(order.getAccountNumber(), totalPrice.multiply(BigDecimal.valueOf(-1))))
@@ -329,9 +311,13 @@ public class OrderService {
             transferCommission(order.getAccountNumber(), finalCommission);
         }
 
-
-        bankClient.updateAvailableBalance(order.getAccountNumber(),
-                finalAmount.add(finalCommission).subtract(order.getTotalPrice().add(order.getCommission())));
+        if (order.getDirection() == OrderDirection.BUY){
+            bankClient.updateAvailableBalance(order.getAccountNumber(),
+                    order.getTotalPrice().add(order.getCommission()).subtract(finalAmount.add(finalCommission)));
+        } else {
+            bankClient.updateAvailableBalance(order.getAccountNumber(),
+                    finalAmount.subtract(finalCommission));
+        }
 
         order.setTotalPrice(finalAmount);
         order.setCommission(finalCommission);
@@ -345,6 +331,33 @@ public class OrderService {
             e.printStackTrace();
         }
     }
+
+    private void setOrderProfitAndTax(Order order){
+        if (order.getDirection() == OrderDirection.BUY) {
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+            return;
+        }
+
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
+                orElseThrow(PortfolioEntryNotFoundException::new);
+
+        BigDecimal buyingPrice = portfolioEntry.getAveragePrice()
+                .multiply(BigDecimal.valueOf(order.getQuantity() * order.getContractSize()));
+        BigDecimal potentialProfit = order.getTotalPrice().subtract(buyingPrice);
+
+        //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
+        order.setProfit(bankClient.convert(new ConvertDto("USD", "RSD", potentialProfit)));
+
+        if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
+            order.setTaxStatus(TaxStatus.PENDING);
+            order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
+        } else {
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+        }
+    }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private BigDecimal getCommission(OrderType orderType, BigDecimal amount){

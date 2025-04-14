@@ -2,8 +2,6 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.BadRequestException;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +29,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 @Slf4j
