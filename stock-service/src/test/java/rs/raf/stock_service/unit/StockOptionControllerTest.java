@@ -36,12 +36,17 @@ class StockOptionControllerTest {
         Long stockId = 1L;
         LocalDate settlementDate = LocalDate.of(2025, 6, 15);
 
-        StockOptionDto mockDto = new StockOptionDto(
-                new BigDecimal("150"),
-                new BigDecimal("2.5"),
-                100,
-                "CALL"
-        );
+        StockOptionDto mockDto = StockOptionDto.builder()
+                .strikePrice(new BigDecimal("150"))
+                .impliedVolatility(new BigDecimal("2.5"))
+                .openInterest(100)
+                .optionType("CALL")
+                .premium(new BigDecimal("10.00"))
+                .listingId(55L)
+                .build();
+
+        mockDto.setPremium(new BigDecimal("10.00"));
+        mockDto.setListingId(55L);
 
         when(stockOptionService.getStockOptionsByDate(stockId, settlementDate))
                 .thenReturn(Collections.singletonList(mockDto));
@@ -51,6 +56,8 @@ class StockOptionControllerTest {
         assertEquals(200, response.getStatusCodeValue());
         assertEquals(1, response.getBody().size());
         assertEquals(mockDto, response.getBody().get(0));
+        assertEquals(new BigDecimal("10.00"), response.getBody().get(0).getPremium());
+        assertEquals(55L, response.getBody().get(0).getListingId());
 
         verify(stockOptionService, times(1)).getStockOptionsByDate(stockId, settlementDate);
     }

@@ -19,6 +19,7 @@ public class PortfolioMapper {
                 .publicAmount(entry.getPublicAmount())
                 .inTheMoney(entry.getInTheMoney())
                 .used(entry.getUsed())
+                .currentPrice(entry.getListing() != null ? entry.getListing().getPrice() : null) // dodatak ovde
                 .build();
     }
 }
