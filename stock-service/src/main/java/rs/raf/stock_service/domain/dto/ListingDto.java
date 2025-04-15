@@ -22,7 +22,7 @@ public class ListingDto {
     private BigDecimal initialMarginCost;
     private String exchangeMic;
     private BigDecimal ask;
-    private LocalDate settlementDate;
+    private LocalDate settlementDate; //todo delete
 
     public ListingDto(Long id, ListingType listingType, String ticker, BigDecimal price, BigDecimal change, Long volume, BigDecimal initialMarginCost, String exchangeMic) {
         this.id = id;
