@@ -7,6 +7,7 @@ import lombok.Setter;
 import rs.raf.stock_service.domain.enums.ListingType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -21,6 +22,7 @@ public class ListingDto {
     private BigDecimal initialMarginCost;
     private String exchangeMic;
     private BigDecimal ask;
+    private LocalDate settlementDate;
 
     public ListingDto(Long id, ListingType listingType, String ticker, BigDecimal price, BigDecimal change, Long volume, BigDecimal initialMarginCost, String exchangeMic) {
         this.id = id;
