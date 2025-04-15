@@ -23,38 +23,23 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class ListingService {
-    @Autowired
-    private ListingRepository listingRepository;
-    @Autowired
-    private ListingPriceHistoryRepository dailyPriceInfoRepository;
 
-    private TwelveDataClient twelveDataClient;
-    private AlphavantageClient alphavantageClient;
+    @Autowired private ListingRepository listingRepository;
+    @Autowired private ListingPriceHistoryRepository dailyPriceInfoRepository;
+    @Autowired private OptionRepository optionRepository;
+    @Autowired private ListingMapper listingMapper;
+    @Autowired private JwtTokenUtil jwtTokenUtil;
+    @Autowired private ListingRedisService listingRedisService;
+    @Autowired private TimeSeriesMapper timeSeriesMapper;
+    @Autowired private TwelveDataClient twelveDataClient;
+    @Autowired private AlphavantageClient alphavantageClient;
 
-    @Autowired
-    private TimeSeriesMapper timeSeriesMapper;
-
-    @Autowired
-    private ListingMapper listingMapper;
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-
-    @Autowired
-    private OptionRepository optionRepository;
-
-    @Autowired
-    private ListingRedisService listingRedisService;
-
-
-    //Posto nemamo nigde dohvatanje nekog posebnog listinga iz baze
     public ListingDto getByTicker(String ticker) {
         ListingDto cached = listingRedisService.getByTicker(ticker);
         if (cached != null) {
@@ -64,12 +49,12 @@ public class ListingService {
         Listing listing = listingRepository.findByTicker(ticker)
                 .orElseThrow(() -> new ListingNotFoundException(ticker));
 
-        ListingDto dto = listingMapper.toDtoSimple(listing);
-        listingRedisService.saveByTicker(dto);
+        ListingPriceHistory dailyInfo = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing);
+        ListingDto dto = listingMapper.toDto(listing, dailyInfo);
 
+        listingRedisService.saveByTicker(dto);
         return dto;
     }
-
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
@@ -118,10 +103,11 @@ public class ListingService {
 
         listingRepository.save(listing);
 
-        ListingDto updatedDto = listingMapper.toDtoSimple(listing);
-        listingRedisService.saveByTicker(updatedDto);
+        ListingPriceHistory dailyInfo = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing);
+        ListingDto updatedDto = listingMapper.toDto(listing, dailyInfo);
 
-        return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
+        listingRedisService.saveByTicker(updatedDto);
+        return updatedDto;
     }
 
     public TimeSeriesDto getPriceHistory(Long id, String interval) {
@@ -133,26 +119,19 @@ public class ListingService {
         }
 
         String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30");
-
         return timeSeriesMapper.mapJsonToCustomTimeSeries(response, listing);
     }
 
     public TimeSeriesDto getPriceHistoryFromAlphaVantage(String symbol, String interval, String outputsize) {
-
-        // Call the API
         String response = alphavantageClient.getIntradayData(symbol, interval, outputsize, "json");
-
-        // Map response to TimeSeriesDto
         return mapAlphaVantageResponseToDto(response, symbol, interval);
     }
 
-    // Helper method to map Alpha Vantage response to TimeSeriesDto
     private TimeSeriesDto mapAlphaVantageResponseToDto(String response, String symbol, String interval) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response);
 
-            // Get time series data (e.g., "Time Series (5min)" or other interval)
             JsonNode timeSeriesNode = rootNode.get("Time Series (" + interval + ")");
             if (timeSeriesNode == null) {
                 throw new RuntimeException("Invalid response format from Alpha Vantage");
@@ -174,7 +153,6 @@ public class ListingService {
                 values.add(dto);
             }
 
-            // Create and return TimeSeriesDto
             TimeSeriesDto timeSeriesDto = new TimeSeriesDto();
             TimeSeriesDto.MetaDto metaDto = new TimeSeriesDto.MetaDto();
             metaDto.setSymbol(symbol);
@@ -191,75 +169,14 @@ public class ListingService {
         }
     }
 
-    private void importForexPriceHistory() {
-        System.out.println("Fetching intraday price history for all forex pairs...");
-
-        List<ForexPair> forexPairs = listingRepository.findAll().stream()
-                .filter(listing -> listing instanceof ForexPair)
-                .map(listing -> (ForexPair) listing)
-                .collect(Collectors.toList());
-
-        List<ListingPriceHistory> allPriceHistoryEntities = new ArrayList<>();
-
-        for (ForexPair forexPair : forexPairs) {
-            try {
-                String fromSymbol = forexPair.getBaseCurrency();
-                String toSymbol = forexPair.getQuoteCurrency();
-
-                // Poziv API-ja za FX_INTRADAY podatke
-                String response = alphavantageClient.getForexPriceHistory(fromSymbol, toSymbol, "5min", "full");
-
-                TimeSeriesDto priceHistory = timeSeriesMapper.mapJsonToCustomTimeSeries(response, forexPair);
-
-                // Dodavanje svih podataka u listu
-                allPriceHistoryEntities.addAll(createPriceHistoryEntities(forexPair, priceHistory));
-                System.out.println("Fetched price history for forex pair: " + forexPair.getTicker());
-            } catch (Exception e) {
-                System.err.println("Error fetching price history for forex pair: " + forexPair.getTicker() + " - " + e.getMessage());
-            }
-        }
-
-        // Batch insert za price history
-        if (!allPriceHistoryEntities.isEmpty()) {
-            dailyPriceInfoRepository.saveAll(allPriceHistoryEntities);
-            System.out.println("Successfully imported price history for " + allPriceHistoryEntities.size() + " forex records.");
-        } else {
-            System.out.println("No forex price history records to import.");
-        }
-
-        System.out.println("Completed importing intraday price history for all forex pairs.");
-    }
-
-    // Pomoćna metoda za kreiranje entiteta ListingPriceHistory
-    private List<ListingPriceHistory> createPriceHistoryEntities(Listing listing, TimeSeriesDto priceHistory) {
-        List<ListingPriceHistory> priceHistoryEntities = new ArrayList<>();
-
-        for (TimeSeriesDto.TimeSeriesValueDto value : priceHistory.getValues()) {
-            ListingPriceHistory priceHistoryEntity = ListingPriceHistory.builder()
-                    .listing(listing)
-                    .date(LocalDateTime.parse(value.getDatetime(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                    .open(value.getOpen())
-                    .high(value.getHigh())
-                    .low(value.getLow())
-                    .close(value.getClose())
-                    .volume(value.getVolume())
-                    .change(value.getClose().subtract(value.getOpen()))
-                    .build();
-
-            priceHistoryEntities.add(priceHistoryEntity);
-        }
-        return priceHistoryEntities;
-    }
-
     public TimeSeriesDto getForexPriceHistory(Long id, String interval) {
         ForexPair forexPair = (ForexPair) listingRepository.findById(id)
-                .orElseThrow(() -> new ListingNotFoundException(1L));
+                .orElseThrow(() -> new ListingNotFoundException(id));
 
         String fromSymbol = forexPair.getBaseCurrency();
         String toSymbol = forexPair.getQuoteCurrency();
 
         String response = alphavantageClient.getForexPriceHistory(fromSymbol, toSymbol, interval, "compact");
-
         return timeSeriesMapper.mapJsonToCustomTimeSeries(response, forexPair);
     }
 

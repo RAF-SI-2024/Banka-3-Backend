@@ -76,7 +76,7 @@ public class BootstrapData implements CommandLineRunner {
         addOtcOptionTestData();
 
         List<ListingDto> dtos = listingRepository.findAll().stream()
-                .map(listingMapper::toDtoSimple)
+                .map(listing -> listingMapper.toDto(listing, priceHistoryRepository.findTopByListingOrderByDateDesc(listing)))
                 .toList();
         listingRedisService.saveAll(dtos);
         System.out.println("Snimljeni listing podaci u Redis.");
