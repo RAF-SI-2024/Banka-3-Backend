@@ -46,4 +46,9 @@ object ClientSearchSpecification {
             )
         }
     }
+
+    inline fun <T> Specification<T>.andIf(
+        condition: Boolean,
+        specProvider: () -> Specification<T>,
+    ): Specification<T> = if (condition) this.and(specProvider()) else this
 }
