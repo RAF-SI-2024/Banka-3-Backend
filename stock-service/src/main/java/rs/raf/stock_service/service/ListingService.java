@@ -50,8 +50,34 @@ public class ListingService {
     @Autowired
     private OptionRepository optionRepository;
 
+    @Autowired
+    private ListingRedisService listingRedisService;
+
+
+    //Posto nemamo nigde dohvatanje nekog posebnog listinga iz baze
+    public ListingDto getByTicker(String ticker) {
+        ListingDto cached = listingRedisService.getByTicker(ticker);
+        if (cached != null) {
+            return cached;
+        }
+
+        Listing listing = listingRepository.findByTicker(ticker)
+                .orElseThrow(() -> new ListingNotFoundException(ticker));
+
+        ListingDto dto = listingMapper.toDtoSimple(listing);
+        listingRedisService.saveByTicker(dto);
+
+        return dto;
+    }
+
+
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
+
+        if (filter == null) {
+            return listingRedisService.getAllListings();
+        }
+
         return listingRepository.findAll(spec).stream()
                 .map(listing -> listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)))
                 .collect(Collectors.toList());
@@ -79,7 +105,6 @@ public class ListingService {
     }
 
     public ListingDto updateListing(Long id, ListingUpdateDto updateDto, String authHeader) {
-
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         if (!"SUPERVISOR".equals(role) && !"ADMIN".equals(role)) {
             throw new UnauthorizedException("Only supervisors can update listings.");
@@ -92,6 +117,9 @@ public class ListingService {
         if (updateDto.getAsk() != null) listing.setAsk(updateDto.getAsk());
 
         listingRepository.save(listing);
+
+        ListingDto updatedDto = listingMapper.toDtoSimple(listing);
+        listingRedisService.saveByTicker(updatedDto);
 
         return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
     }

@@ -10,6 +10,7 @@ import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.*;
+import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
 @Component
 public class BootstrapData implements CommandLineRunner {
     @Autowired private CountryService countryService;
-    @Autowired private CountryRepository countryRepository;
+    @Autowired private ListingMapper listingMapper;
     @Autowired private ExchangeService exchangeService;
     @Autowired private HolidayService holidayService;
     @Autowired private ListingRepository listingRepository;
@@ -53,6 +54,8 @@ public class BootstrapData implements CommandLineRunner {
     @Autowired private AlphavantageClient alphavantageClient;
     @Autowired private OtcOptionRepository otcOptionRepository;
     @Autowired private OtcOfferRepository otcOfferRepository;
+    @Autowired private ListingRedisService listingRedisService;
+
 
     @Value("${bootstrap.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -71,6 +74,12 @@ public class BootstrapData implements CommandLineRunner {
         addOrderTestData();
         addOtcOfferTestData();
         addOtcOptionTestData();
+
+        List<ListingDto> dtos = listingRepository.findAll().stream()
+                .map(listingMapper::toDtoSimple)
+                .toList();
+        listingRedisService.saveAll(dtos);
+        System.out.println("Snimljeni listing podaci u Redis.");
     }
 
     private void importCoreData() {

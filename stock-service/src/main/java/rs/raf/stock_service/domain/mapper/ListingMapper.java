@@ -26,6 +26,20 @@ public class ListingMapper {
         return null;
     }
 
+    public ListingDto toDtoSimple(Listing listing) {
+        return new ListingDto(
+                listing.getId(),
+                getListingType(listing),
+                listing.getTicker(),
+                listing.getPrice(),
+                null,
+                null,
+                listing.getPrice().multiply(new java.math.BigDecimal("1.1")),
+                listing.getExchange() != null ? listing.getExchange().getMic() : null,
+                listing.getAsk()
+        );
+    }
+
     public ListingDto toDto(Listing listing, ListingPriceHistory dailyInfo) {
         return new ListingDto(
                 listing.getId(),

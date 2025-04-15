@@ -3,12 +3,11 @@ package rs.raf.stock_service.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.ListingType;
+import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.repository.*;
 
 import javax.persistence.EntityManager;
@@ -36,6 +35,8 @@ public class DataRefreshService {
     @Autowired private ListingService listingService;
     @Autowired private EntityManager entityManager;
     @Autowired private OrderService orderService;
+    @Autowired private ListingRedisService listingRedisService;
+    @Autowired private ListingMapper listingMapper;
 
     @Value("${refresh.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -72,6 +73,9 @@ public class DataRefreshService {
                 stock.setVolume(dto.getVolume());
                 stock.setChange(dto.getChange());
                 listingRepository.save(stock);
+
+                // redis
+                listingRedisService.saveListing(listingMapper.toDtoSimple(stock));
             }
 
             TimeSeriesDto series = listingService.getPriceHistoryFromAlphaVantage(stock.getTicker(), "5min", "compact");
@@ -92,7 +96,6 @@ public class DataRefreshService {
             }
 
             String[] parts = forex.getTicker().split("/");
-            System.out.println(Arrays.toString(parts));
             if (parts.length != 2) {
                 log.warn("Skipping malformed forex ticker: {}", forex.getTicker());
                 return;
@@ -105,6 +108,9 @@ public class DataRefreshService {
                 forex.setExchangeRate(dto.getExchangeRate());
                 forex.setLastRefresh(dto.getLastRefresh());
                 listingRepository.save(forex);
+
+                // redis
+                listingRedisService.saveListing(listingMapper.toDtoSimple(forex));
             }
 
             TimeSeriesDto series = listingService.getForexPriceHistory(forex.getId(), "5min");
@@ -122,7 +128,6 @@ public class DataRefreshService {
 
         try {
             Set<String> usedOptionTickers = portfolioEntryRepository.findAllOptionTickersInUse();
-
             List<Option> allOptions = optionRepository.findAll();
 
             List<Option> usedOptions = allOptions.stream()
@@ -145,13 +150,9 @@ public class DataRefreshService {
                     .map(opt -> opt.getUnderlyingStock().getTicker())
                     .collect(Collectors.toSet());
 
-            log.info("Tickers needing regeneration: {}", tickersToRegenerate);
-
             List<Stock> stocksToRegenerate = stocks.stream()
                     .filter(s -> tickersToRegenerate.contains(s.getTicker()))
                     .toList();
-
-            log.info("Found {} stocks to regenerate options for.", stocksToRegenerate.size());
 
             Set<String> existingTickers = optionRepository.findAllTickers();
 
@@ -183,14 +184,21 @@ public class DataRefreshService {
                 }
             });
 
-            saveInBatches(newOptions, 100, optionRepository::saveAllAndFlush);
+            // redis i baza
+            saveInBatches(newOptions, 100, batch -> {
+                optionRepository.saveAllAndFlush(batch);
+                batch.stream()
+                        .map(listingMapper::toDtoSimple)
+                        .forEach(listingRedisService::saveListing);
+            });
+
+
             log.info("Inserted {} new options.", newOptions.size());
 
         } catch (Exception e) {
             log.error("Failed refreshing options", e);
         }
     }
-
 
     private List<ListingPriceHistory> createNewHistory(Listing listing, TimeSeriesDto dto, Set<LocalDateTime> existingDates) {
         return dto.getValues().stream()
