@@ -26,6 +26,7 @@ public class OtcOptionMapper {
                 .subtract(premium);
 
         return OtcOptionDto.builder()
+                .id(option.getId())
                 .stockSymbol(option.getUnderlyingStock().getTicker())
                 .amount(option.getAmount())
                 .strikePrice(option.getStrikePrice())
@@ -36,6 +37,7 @@ public class OtcOptionMapper {
                 .profit(profit)
                 .status(option.getSettlementDate().isBefore(LocalDate.now()) ? OtcOptionStatus.EXPIRED : OtcOptionStatus.VALID)
                 .used(option.isUsed())
+                .currentPrice(currentPrice)
                 .build();
     }
 }

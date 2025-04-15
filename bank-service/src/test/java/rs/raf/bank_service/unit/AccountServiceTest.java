@@ -671,40 +671,23 @@ public class AccountServiceTest {
     }
 
     @Test
-    void getAllClientAndBankAccounts_Success() {
-        PersonalAccount clientAccount1 = new PersonalAccount();
-        clientAccount1.setAccountNumber("111");
-        clientAccount1.setClientId(10L);
+    void getAllBankAccounts_Success() {
+        CompanyAccount bankAccount1 = new CompanyAccount();
+        bankAccount1.setAccountNumber("999");
+        bankAccount1.setCompanyId(1L);
 
-        PersonalAccount clientAccount2 = new PersonalAccount();
-        clientAccount2.setAccountNumber("222");
-        clientAccount2.setClientId(20L);
+        CompanyAccount bankAccount2 = new CompanyAccount();
+        bankAccount2.setAccountNumber("888");
+        bankAccount2.setCompanyId(1L);
 
-        PersonalAccount nonClientAccount = new PersonalAccount();
-        nonClientAccount.setAccountNumber("333");
-        nonClientAccount.setClientId(null);
-
-        List<Account> allAccountsFromRepo = List.of(clientAccount1, clientAccount2, nonClientAccount);
-        when(accountRepository.findAll()).thenReturn(allAccountsFromRepo);
-
-        ClientDto clientDto1 = new ClientDto(10L, "Alice", "Smith");
-        ClientDto clientDto2 = new ClientDto(20L, "Bob", "Johnson");
-        when(userClient.getClientById(10L)).thenReturn(clientDto1);
-        when(userClient.getClientById(20L)).thenReturn(clientDto2);
-
-        CompanyAccount bankAccount = new CompanyAccount();
-        bankAccount.setAccountNumber("999");
-        bankAccount.setCompanyId(1L);
-        Page<CompanyAccount> bankAccountPage = new PageImpl<>(List.of(bankAccount));
+        Page<CompanyAccount> bankAccountPage = new PageImpl<>(List.of(bankAccount1, bankAccount2));
         when(companyAccountRepository.findByCompanyId(eq(1L), any(Pageable.class))).thenReturn(bankAccountPage);
 
-        List<AccountDto> result = accountService.getAllClientAndBankAccounts();
+        List<AccountDto> result = accountService.getAllBankAccounts();
 
-        assertEquals(3, result.size());
-
-        assertEquals("111", result.get(0).getAccountNumber());
-        assertEquals("222", result.get(1).getAccountNumber());
-        assertEquals("999", result.get(2).getAccountNumber());
+        assertEquals(2, result.size());
+        assertEquals("888", result.get(0).getAccountNumber());
+        assertEquals("999", result.get(1).getAccountNumber());
     }
 
     @Test

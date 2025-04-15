@@ -7,6 +7,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
+import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.domain.enums.*;
 import rs.raf.stock_service.exceptions.StockNotFoundException;
 import rs.raf.stock_service.repository.*;
@@ -17,6 +19,7 @@ import rs.raf.stock_service.client.AlphavantageClient;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -29,7 +32,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class BootstrapData implements CommandLineRunner {
-
     @Autowired private CountryService countryService;
     @Autowired private CountryRepository countryRepository;
     @Autowired private ExchangeService exchangeService;
@@ -50,6 +52,7 @@ public class BootstrapData implements CommandLineRunner {
     @Autowired private ApplicationContext applicationContext;
     @Autowired private AlphavantageClient alphavantageClient;
     @Autowired private OtcOptionRepository otcOptionRepository;
+    @Autowired private OtcOfferRepository otcOfferRepository;
 
     @Value("${bootstrap.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -66,6 +69,8 @@ public class BootstrapData implements CommandLineRunner {
         addOptions();
         addPortfolioTestData();
         addOrderTestData();
+        addOtcOfferTestData();
+        addOtcOptionTestData();
     }
 
     private void importCoreData() {
@@ -260,6 +265,42 @@ public class BootstrapData implements CommandLineRunner {
 
     }
 
+    @Transactional
+    public void addOtcOfferTestData() {
+        Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
+
+        OtcOffer otcOffer1 = OtcOffer.builder()
+                .id(1L)
+                .premium(new BigDecimal("5.00"))
+                .status(OtcOfferStatus.PENDING)
+                .amount(10)
+                .settlementDate(LocalDate.now().plusMonths(1))
+                .sellerId(1L)
+                .buyerId(2L)
+                .pricePerStock(new BigDecimal("23"))
+                .lastModified(LocalDateTime.now())
+                .lastModifiedById(2L)
+                .stock(stock)
+                .build();
+
+        OtcOffer otcOffer2 = OtcOffer.builder()
+                .id(2L)
+                .premium(new BigDecimal("15.00"))
+                .status(OtcOfferStatus.PENDING)
+                .amount(10)
+                .settlementDate(LocalDate.now().plusMonths(1))
+                .sellerId(1L)
+                .buyerId(2L)
+                .pricePerStock(new BigDecimal("146.56"))
+                .lastModified(LocalDateTime.now())
+                .lastModifiedById(1L)
+                .stock(stock)
+                .build();
+
+        otcOfferRepository.save(otcOffer1);
+        otcOfferRepository.save(otcOffer2);
+    }
+
      @Transactional
     public void addOtcOptionTestData() {
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
@@ -372,10 +413,6 @@ public class BootstrapData implements CommandLineRunner {
                 .publicAmount(30).lastModified(LocalDateTime.now()).build();
 
         portfolioEntryRepository.saveAllAndFlush(List.of(p1, p2));
-        
-        getSelfProxy().addOrderTestData();
-
-        getSelfProxy().addOtcOptionTestData();
     }
 
     @Transactional
@@ -523,6 +560,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
 
+        orderRepository.save(user2Pending);
         orderRepository.save(user1DoneBuy);
         orderRepository.save(user1DoneSell);
         orderRepository.save(user3DoneBuy);

@@ -332,6 +332,24 @@ public class PaymentService {
         transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
     }
 
+    public void executeSystemPayment(ExecutePaymentDto dto) throws Exception {
+
+        CreatePaymentDto createDto = new CreatePaymentDto();
+        createDto.setSenderAccountNumber(String.valueOf(dto.getSenderAccountNumber()));
+        createDto.setReceiverAccountNumber(String.valueOf(dto.getReceiverAccountNumber()));
+        createDto.setAmount(dto.getAmount());
+        createDto.setPaymentCode(String.valueOf(dto.getPaymentCode()));
+        createDto.setPurposeOfPayment(dto.getPurposeOfPayment());
+        createDto.setReferenceNumber(dto.getReferenceNumber());
+
+
+        PaymentDto payment = createPaymentBeforeConfirmation(createDto, dto.getClientId());
+
+
+        confirmPayment(payment.getId());
+    }
+
+
     @Transactional
     public void confirmPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)

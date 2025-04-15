@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,12 +23,14 @@ import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.math.BigDecimal;
 
 @Tag(name = "Bank accounts controller", description = "API for managing bank accounts")
 @RestController
 @RequestMapping("/api/account")
 @AllArgsConstructor
+@Slf4j
 public class AccountController {
 
     private final JwtTokenUtil jwtTokenUtil;
@@ -60,10 +63,13 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getAccounts(accountNumber, firstName, lastName, pageable);
             return ResponseEntity.ok(accounts);
         } catch (UserNotAClientException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (UnauthorizedException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (Exception e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error occurred.");
         }
     }
@@ -79,6 +85,7 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getBankAccounts(pageable);
             return ResponseEntity.ok(accounts);
         } catch (Exception e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto("Unexpected error occurred."));
         }
     }
@@ -98,6 +105,7 @@ public class AccountController {
             Page<AccountDto> accounts = accountService.getAccountsForClient(accountNumber, clientId, pageable);
             return ResponseEntity.ok(accounts);
         } catch (ClientNotFoundException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
@@ -261,6 +269,18 @@ public class AccountController {
         }
     }
 
+
+    //Za Cto
+    @GetMapping("/client/{clientId}/account-number")
+    public ResponseEntity<String> getAccountNumberByClientId(@PathVariable Long clientId) {
+        List<AccountDto> accounts = accountService.getAccountsForClient(clientId);
+
+        if (accounts.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(accounts.get(0).getAccountNumber());
+    }
     // interni endpoint
     @Operation(summary = "Update account available balance")
     @ApiResponses({
@@ -347,7 +367,7 @@ public class AccountController {
             if (role.equals("CLIENT")) {
                 return ResponseEntity.ok(accountService.getMyAccounts(userId));
             } else {
-                return ResponseEntity.ok(accountService.getAllClientAndBankAccounts());
+                return ResponseEntity.ok(accountService.getAllBankAccounts());
             }
         } catch (Exception e) {
             return ResponseEntity

@@ -102,6 +102,20 @@ public class AccountService {
         return accounts.map(account -> AccountMapper.toDto(account, client));
     }
 
+    // Za Cto
+    public List<AccountDto> getAccountsForClient(Long clientId) {
+        ClientDto client = userClient.getClientById(clientId);
+
+        List<Account> accounts = accountRepository.findAll(
+                AccountSearchSpecification.clientIs(clientId)
+        );
+
+        return accounts.stream()
+                .map(acc -> AccountMapper.toDto(acc, client))
+                .collect(Collectors.toList());
+    }
+
+
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
         Long userId = newBankAccountDto.getClientId();
@@ -354,19 +368,7 @@ public class AccountService {
         return account.getBalance(); //vidi da li treba balance ili availabe balance
     }
 
-    public List<AccountDto> getAllClientAndBankAccounts() {
-        List<Account> clientAccounts = accountRepository.findAll()
-                .stream()
-                .filter(account -> account.getClientId() != null)
-                .toList();
-
-        List<AccountDto> clientAccountDtos = clientAccounts.stream()
-                .map(account -> {
-                    ClientDto client = userClient.getClientById(account.getClientId());
-                    return AccountMapper.toDto(account, client);
-                })
-                .toList();
-
+    public List<AccountDto> getAllBankAccounts() {
         List<CompanyAccount> bankAccounts = companyAccountRepository
                 .findByCompanyId(1L, Pageable.unpaged()).getContent();
         List<AccountDto> bankAccountDtos = bankAccounts.stream()
@@ -374,9 +376,7 @@ public class AccountService {
                 .toList();
 
         List<AccountDto> allAccounts = new ArrayList<>();
-        allAccounts.addAll(clientAccountDtos);
         allAccounts.addAll(bankAccountDtos);
-
         allAccounts.sort(Comparator.comparing(AccountDto::getAccountNumber));
 
         return allAccounts;
