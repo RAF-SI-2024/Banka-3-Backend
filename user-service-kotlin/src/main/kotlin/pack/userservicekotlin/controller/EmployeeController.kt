@@ -44,7 +44,7 @@ class EmployeeController(
         @RequestParam(required = false) email: String?,
         @RequestParam(required = false) position: String?,
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "0") size: Int,
+        @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<EmployeeResponseDto>> {
         val pageRequest = PageRequest.of(page, size)
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageRequest))
@@ -52,7 +52,9 @@ class EmployeeController(
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    override fun createEmployee(createEmployeeDTO: CreateEmployeeDto): ResponseEntity<Any> =
+    override fun createEmployee(
+        @RequestBody @Valid createEmployeeDTO: CreateEmployeeDto,
+    ): ResponseEntity<Any> =
         employeeService.createEmployee(createEmployeeDTO).fold(
             ifLeft = {
                 when (it) {
