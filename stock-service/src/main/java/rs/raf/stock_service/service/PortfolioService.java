@@ -45,53 +45,6 @@ public class PortfolioService {
     private final BankClient bankClient;
     private final JwtTokenUtil jwtTokenUtil;
 
-    public void updateHoldingsOnOrderExecution(Order order) {
-        if (!order.getIsDone()) return;
-
-        PortfolioEntry entry = portfolioEntryRepository
-                .findByUserIdAndListing(order.getUserId(), order.getListing())
-                .orElse(null);
-
-        int totalQuantity = order.getQuantity() * order.getContractSize();
-        BigDecimal price = order.getPricePerUnit();
-
-        if (order.getDirection() == OrderDirection.BUY) {
-            if (entry == null) {
-                entry = PortfolioEntry.builder()
-                        .userId(order.getUserId())
-                        .listing(order.getListing())
-                        .type(order.getListing().getType())
-                        .amount(totalQuantity)
-                        .averagePrice(price)
-                        .publicAmount(0) // privremeno 0 moze neka logika kasnije kad bude bilo potrebno
-                        .inTheMoney(false)
-                        .used(false)
-                        .lastModified(LocalDateTime.now())
-                        .build();
-            } else {
-                int newAmount = entry.getAmount() + totalQuantity;
-                BigDecimal oldTotal = entry.getAveragePrice().multiply(BigDecimal.valueOf(entry.getAmount()));
-                BigDecimal newTotal = price.multiply(BigDecimal.valueOf(totalQuantity));
-                BigDecimal avgPrice = oldTotal.add(newTotal).divide(BigDecimal.valueOf(newAmount), RoundingMode.HALF_UP);
-
-                entry.setAmount(newAmount);
-                entry.setAveragePrice(avgPrice);
-                entry.setLastModified(LocalDateTime.now());
-            }
-            portfolioEntryRepository.save(entry);
-
-        } else if (order.getDirection() == OrderDirection.SELL && entry != null) {
-            int remaining = entry.getAmount() - totalQuantity;
-            if (remaining <= 0) {
-                portfolioEntryRepository.delete(entry);
-            } else {
-                entry.setAmount(remaining);
-                entry.setLastModified(LocalDateTime.now());
-                portfolioEntryRepository.save(entry);
-            }
-        }
-    }
-
     public List<PortfolioEntryDto> getPortfolioForUser(Long userId) {
         return portfolioEntryRepository.findAllByUserId(userId).stream()
                 .map(entry -> {
@@ -125,7 +78,7 @@ public class PortfolioService {
         }
 
 
-        if (dto.getPublicAmount() > entry.getAmount()) {
+        if (dto.getPublicAmount() > entry.getAmount() - entry.getReservedAmount()) {
             throw new InvalidPublicAmountException("Public amount cannot exceed owned amount.");
         }
 
@@ -188,18 +141,64 @@ public class PortfolioService {
         return taxGetResponseDto;
     }
 
-    @Transactional
-    public void transferStockOwnership(Long fromUserId, Long toUserId, Stock stock, int quantity, BigDecimal pricePerStock) {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        PortfolioEntry sellerEntry = portfolioEntryRepository
-                .findByUserIdAndListing(fromUserId, stock)
-                .orElseThrow(() -> new RuntimeException("Seller does not own the stock"));
+    public void updateHoldingsOnOrderExecution(Order order) {
+        if (!order.getIsDone()) return;
 
-        if (sellerEntry.getAmount() < quantity) {
-            throw new RuntimeException("Seller does not have enough stocks");
+        PortfolioEntry entry = portfolioEntryRepository
+                .findByUserIdAndListing(order.getUserId(), order.getListing())
+                .orElse(null);
+
+        int totalQuantity = order.getQuantity() * order.getContractSize() - order.getRemainingPortions();
+        BigDecimal price = order.getPricePerUnit();
+
+        if (order.getDirection() == OrderDirection.BUY) {
+            if (entry == null) {
+                entry = PortfolioEntry.builder()
+                        .userId(order.getUserId())
+                        .listing(order.getListing())
+                        .type(order.getListing().getType())
+                        .amount(totalQuantity)
+                        .averagePrice(price)
+                        .publicAmount(0) // privremeno 0 moze neka logika kasnije kad bude bilo potrebno
+                        .reservedAmount(0)
+                        .inTheMoney(false)
+                        .used(false)
+                        .lastModified(LocalDateTime.now())
+                        .build();
+            } else {
+                int newAmount = entry.getAmount() + totalQuantity;
+                BigDecimal oldTotal = entry.getAveragePrice().multiply(BigDecimal.valueOf(entry.getAmount()));
+                BigDecimal newTotal = price.multiply(BigDecimal.valueOf(totalQuantity));
+                BigDecimal avgPrice = oldTotal.add(newTotal).divide(BigDecimal.valueOf(newAmount), RoundingMode.HALF_UP);
+
+                entry.setAmount(newAmount);
+                entry.setAveragePrice(avgPrice);
+                entry.setLastModified(LocalDateTime.now());
+            }
+            portfolioEntryRepository.save(entry);
+
+        } else if (entry != null) {
+            int remaining = entry.getAmount() - totalQuantity;
+            if (remaining <= 0) {
+                portfolioEntryRepository.delete(entry);
+            } else {
+                entry.setAmount(remaining);
+                entry.setReservedAmount(entry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+                entry.setLastModified(LocalDateTime.now());
+                portfolioEntryRepository.save(entry);
+            }
         }
+    }
+
+    @Transactional
+    public void updateHoldingsOnOtcOptionExecution(Long fromUserId, Long toUserId, Stock stock, int quantity, BigDecimal pricePerStock) {
+        PortfolioEntry sellerEntry = portfolioEntryRepository.findByUserIdAndListing(fromUserId, stock)
+                .orElseThrow(() -> new PortfolioEntryNotFoundException()); //ne sme da se desi ovaj exception
 
         sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
+        sellerEntry.setReservedAmount(sellerEntry.getReservedAmount() - quantity);
         sellerEntry.setLastModified(LocalDateTime.now());
 
         if (sellerEntry.getAmount() == 0) {
@@ -208,9 +207,7 @@ public class PortfolioService {
             portfolioEntryRepository.save(sellerEntry);
         }
 
-        PortfolioEntry buyerEntry = portfolioEntryRepository
-                .findByUserIdAndListing(toUserId, stock)
-                .orElse(null);
+        PortfolioEntry buyerEntry = portfolioEntryRepository.findByUserIdAndListing(toUserId, stock).orElse(null);
 
         if (buyerEntry == null) {
             buyerEntry = PortfolioEntry.builder()
@@ -220,6 +217,7 @@ public class PortfolioService {
                     .amount(quantity)
                     .averagePrice(pricePerStock)
                     .publicAmount(0)
+                    .reservedAmount(0)
                     .inTheMoney(false)
                     .used(false)
                     .lastModified(LocalDateTime.now())
@@ -227,7 +225,6 @@ public class PortfolioService {
         } else {
             int currentAmount = buyerEntry.getAmount();
             BigDecimal currentAvgPrice = buyerEntry.getAveragePrice();
-
 
             BigDecimal totalCost = currentAvgPrice.multiply(BigDecimal.valueOf(currentAmount))
                     .add(pricePerStock.multiply(BigDecimal.valueOf(quantity)));
@@ -244,7 +241,7 @@ public class PortfolioService {
 
 
     @Transactional
-    public void useOption(Long userId, UseOptionDto dto) {
+    public void updateHoldingsOnOptionExecution(Long userId, UseOptionDto dto) {
         PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
                 .orElseThrow(PortfolioEntryNotFoundException::new);
 

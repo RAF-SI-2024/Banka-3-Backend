@@ -113,18 +113,23 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
 
-        if (order.getUserId().equals(userId) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")) {
-            if (!order.getIsDone() && (order.getStatus().equals(OrderStatus.PENDING) || order.getStatus().equals(OrderStatus.APPROVED))) {
-                order.setStatus(OrderStatus.CANCELLED);
-                order.setLastModification(LocalDateTime.now());
-
-                orderRepository.save(order);
-            } else {
-                throw new CantCancelOrderInCurrentOrderState(id);
-            }
-        } else {
+        if (!order.getUserId().equals(userId) && !role.equalsIgnoreCase("SUPERVISOR") && !role.equalsIgnoreCase("ADMIN"))
             throw new UnauthorizedException("Unauthorized attempt at cancelling an order.");
+
+        if (order.getIsDone() || (!order.getStatus().equals(OrderStatus.PENDING) && !order.getStatus().equals(OrderStatus.APPROVED)))
+            throw new CantCancelOrderInCurrentOrderState(id);
+
+        if (order.getDirection() == OrderDirection.SELL){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, order.getListing()).
+                    orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+            portfolioEntryRepository.save(portfolioEntry);
         }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setLastModification(LocalDateTime.now());
+        orderRepository.save(order);
     }
 
     public void approveOrder(Long id, String authHeader) {
@@ -156,6 +161,14 @@ public class OrderService {
         if (!order.getStatus().equals(OrderStatus.PENDING))
             throw new CantApproveNonPendingOrder(order.getId());
 
+        if(order.getDirection() == OrderDirection.SELL){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
+                    orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+            portfolioEntryRepository.save(portfolioEntry);
+        }
+
         order.setStatus(OrderStatus.DECLINED);
         order.setApprovedBy(jwtTokenUtil.getUserIdFromAuthHeader(authHeader));
         order.setLastModification(LocalDateTime.now());
@@ -176,9 +189,7 @@ public class OrderService {
             PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
                     orElseThrow(PortfolioEntryNotFoundException::new);
 
-            if (portfolioEntry.getAmount() < createOrderDto.getContractSize() * createOrderDto.getQuantity())
-                throw new PortfolioAmountNotEnoughException(portfolioEntry.getAmount(),
-                        createOrderDto.getContractSize() * createOrderDto.getQuantity());
+            reservePortfolioAmount(portfolioEntry, createOrderDto.getContractSize() * createOrderDto.getQuantity());
         }
 
         Order order = OrderMapper.toOrder(createOrderDto, userId, role, listing);
@@ -205,6 +216,14 @@ public class OrderService {
                 createOrderDto.getLimitPrice() == null){
             throw new LimitPriceMissingException(createOrderDto.getOrderType());
         }
+    }
+
+    private void reservePortfolioAmount(PortfolioEntry portfolioEntry, Integer amount){
+        if (portfolioEntry.getAvailableAmount() < amount)
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getAmount(), amount);
+
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + amount);
+        portfolioEntryRepository.save(portfolioEntry);
     }
 
     private void setOrderStatus(Order order){
@@ -459,6 +478,4 @@ public class OrderService {
     public BigDecimal getCommissionProfit() {
         return orderRepository.getBankProfitFromOrders();
     }
-
-
 }

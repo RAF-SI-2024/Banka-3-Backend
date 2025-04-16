@@ -1,27 +1,20 @@
 package rs.raf.stock_service.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.CreatePaymentDto;
 import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
 import rs.raf.stock_service.domain.dto.PaymentDto;
-import rs.raf.stock_service.domain.entity.Option;
-import rs.raf.stock_service.repository.OptionRepository;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.domain.entity.OtcOffer;
-import rs.raf.stock_service.domain.entity.OtcOption;
-import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.entity.Stock;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
 import rs.raf.stock_service.exceptions.*;
@@ -47,25 +40,23 @@ public class OtcService {
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final OtcOfferMapper otcOfferMapper;
     private final UserClient userClient;
-    private final OtcOptionRepository optionRepository;
     private final OtcOptionRepository otcOptionRepository;
     private final OtcOptionMapper otcOptionMapper;
     private final PortfolioService portfolioService;
     private final BankClient bankClient;
   
-      @Transactional
+    @Transactional
     public void exerciseOption(Long otcOptionId, Long userId) {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
-
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
 
-        if (otcOption.isUsed())
+        if (otcOption.getStatus() == OtcOptionStatus.USED)
             throw new OtcOptionAlreadyExercisedException();
 
-        if (otcOption.getSettlementDate().isBefore(LocalDate.now()))
+        if (otcOption.getStatus() == OtcOptionStatus.EXPIRED || otcOption.getSettlementDate().isBefore(LocalDate.now()))
             throw new OtcOptionSettlementExpiredException();
 
         BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
@@ -76,13 +67,8 @@ public class OtcService {
         try {
             paymentId = transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
 
-            portfolioService.transferStockOwnership(
-                    otcOption.getSellerId(),
-                    otcOption.getBuyerId(),
-                    stock,
-                    otcOption.getAmount(),
-                    otcOption.getStrikePrice()
-            );
+            portfolioService.updateHoldingsOnOtcOptionExecution(otcOption.getSellerId(), otcOption.getBuyerId(),
+                    stock, otcOption.getAmount(), otcOption.getStrikePrice());
         } catch (Exception ex) {
             if (paymentId != null) {
                 try {
@@ -98,7 +84,7 @@ public class OtcService {
         offer.setStatus(OtcOfferStatus.EXERCISED);
         otcOfferRepository.save(offer);
 
-        otcOption.setUsed(true);
+        otcOption.setStatus(OtcOptionStatus.USED);
         otcOptionRepository.save(otcOption);
     }
 
@@ -184,9 +170,35 @@ public class OtcService {
             throw new UnauthorizedActionException("Not allowed to update this offer");
         }
 
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(),
+                offer.getStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (portfolioEntry.getPublicAmount() < offer.getAmount())
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getPublicAmount(), offer.getAmount());
+
+        //Dodati payment za premium, cekam izmene payment service-a, za sad nastavi kao da je payment prosao
+
+        portfolioEntry.setPublicAmount(portfolioEntry.getPublicAmount() - offer.getAmount());
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + offer.getAmount());
+        portfolioEntryRepository.save(portfolioEntry);
+
+        OtcOption otcOption = OtcOption.builder()
+                .otcOffer(offer)
+                .sellerId(offer.getSellerId())
+                .buyerId(offer.getBuyerId())
+                .underlyingStock(offer.getStock())
+                .strikePrice(offer.getPricePerStock())
+                .amount(offer.getAmount())
+                .settlementDate(offer.getSettlementDate())
+                .premium(offer.getPremium())
+                .status(OtcOptionStatus.VALID)
+                .build();
+        otcOptionRepository.save(otcOption);
+
         offer.setStatus(OtcOfferStatus.ACCEPTED);
         offer.setLastModified(LocalDateTime.now());
         offer.setLastModifiedById(userId);
+        offer.setOtcOption(otcOption);
         otcOfferRepository.save(offer);
     }
 
@@ -254,9 +266,7 @@ public class OtcService {
             options = otcOptionRepository.findAllInvalid(userId, today);
         }
 
-        return options.stream()
-                .map(otcOptionMapper::toDto)
-                .collect(Collectors.toList());
+        return options.stream().map(otcOptionMapper::toDto).collect(Collectors.toList());
     }
 
 
@@ -277,5 +287,20 @@ public class OtcService {
     private String formatName(String firstName, String lastName) {
         if (firstName == null && lastName == null) return "Unknown User";
         return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+    }
+
+    @Scheduled()
+    private void checkOtcOptionExpiration(){
+        List<OtcOption> otcOptions =  otcOptionRepository.findAllValidButExpired(LocalDate.now());
+
+        for (OtcOption otcOption : otcOptions){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(otcOption.getSellerId(),
+                    otcOption.getUnderlyingStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setAmount(portfolioEntry.getAmount() + otcOption.getAmount());
+
+            otcOption.setStatus(OtcOptionStatus.EXPIRED);
+            otcOptionRepository.save(otcOption);
+        }
     }
 }

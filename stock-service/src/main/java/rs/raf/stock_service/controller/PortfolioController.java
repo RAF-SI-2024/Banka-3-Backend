@@ -117,7 +117,7 @@ public class PortfolioController {
                                        @RequestBody UseOptionDto dto) {
         try {
             Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            portfolioService.useOption(userId, dto);
+            portfolioService.updateHoldingsOnOptionExecution(userId, dto);
             return ResponseEntity.ok().build();
         } catch (OptionNotEligibleException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
