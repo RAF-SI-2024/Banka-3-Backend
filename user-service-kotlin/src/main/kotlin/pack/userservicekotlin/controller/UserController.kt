@@ -1,5 +1,6 @@
 package pack.userservicekotlin.controller
 
+import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -21,15 +22,17 @@ class UserController(
 ) : UserApiDoc {
     @GetMapping
     override fun getAllUsers(
-        page: Int,
-        size: Int,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<UserResponseDto>> {
         val pageable: Pageable = PageRequest.of(page, size)
         return ResponseEntity.ok(userService.listUsers(pageable))
     }
 
     @GetMapping("/{userId}/role")
-    override fun getUserRole(userId: Long): ResponseEntity<String> =
+    override fun getUserRole(
+        @PathVariable userId: Long,
+    ): ResponseEntity<String> =
         userService.getUserRole(userId).fold(
             ifLeft = { error ->
                 when (error) {
@@ -43,8 +46,8 @@ class UserController(
 
     @PostMapping("/{userId}/role")
     override fun addRoleToUser(
-        userId: Long,
-        roleRequestDto: RoleRequestDto,
+        @PathVariable userId: Long,
+        @RequestBody @Valid roleRequestDto: RoleRequestDto,
     ): ResponseEntity<Void> =
         userService.addRoleToUser(userId, roleRequestDto).fold(
             ifLeft = { error ->
@@ -61,8 +64,8 @@ class UserController(
 
     @DeleteMapping("/{userId}/role/{roleId}")
     override fun removeRoleFromUser(
-        userId: Long,
-        roleId: Long,
+        @PathVariable userId: Long,
+        @PathVariable roleId: Long,
     ): ResponseEntity<Void> =
         userService.removeRoleFromUser(userId, roleId).fold(
             ifLeft = { error ->
