@@ -43,6 +43,11 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
   user-service:
     build:
       context: .
@@ -101,6 +106,7 @@ services:
     depends_on:
       - stock_db
       - rabbitmq
+      - redis
 volumes:
   main_db_data:
   bank_db_data:

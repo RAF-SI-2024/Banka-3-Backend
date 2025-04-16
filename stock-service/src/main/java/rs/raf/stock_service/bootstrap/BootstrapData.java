@@ -69,7 +69,6 @@ public class BootstrapData implements CommandLineRunner {
         importStocksAndHistory();
         importForexAndHistory();
         addFutures();
-        addOptions();
         addPortfolioTestData();
         addOrderTestData();
         addOtcOfferTestData();
@@ -237,43 +236,6 @@ public class BootstrapData implements CommandLineRunner {
 
         saveInBatches(list, 200, futuresRepository::saveAllAndFlush);
         System.out.println("Zavrsio futures");
-
-    }
-
-    @Transactional
-    public void addOptions() {
-        if (optionRepository.count() > 0) return;
-
-        List<Stock> stocks = listingRepository.findAll().stream()
-                .filter(s -> s instanceof Stock)
-                .map(s -> (Stock) s)
-                .toList();
-
-        List<Option> all = refreshInParallel(stocks, stock -> {
-            try {
-                List<OptionDto> dtos = optionService.generateOptions(stock.getTicker(), stock.getPrice());
-                return dtos.stream().map(dto -> {
-                    Option o = new Option();
-                    o.setUnderlyingStock(stock);
-                    o.setOptionType(dto.getOptionType());
-                    o.setStrikePrice(dto.getStrikePrice());
-                    o.setContractSize(dto.getContractSize());
-                    o.setSettlementDate(dto.getSettlementDate());
-                    o.setMaintenanceMargin(dto.getMaintenanceMargin());
-                    o.setPrice(dto.getPrice());
-                    o.setTicker(dto.getTicker());
-                    o.setImpliedVolatility(BigDecimal.ONE);
-                    o.setOpenInterest(new Random().nextInt(500) + 100);
-                    o.setOnSale(true);
-                    return o;
-                }).toList();
-            } catch (Exception e) {
-                return List.of();
-            }
-        });
-
-        saveInBatches(all, 100, optionRepository::saveAllAndFlush);
-        System.out.println("Zavrsio options");
 
     }
 

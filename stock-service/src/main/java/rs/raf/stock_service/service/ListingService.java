@@ -58,8 +58,16 @@ public class ListingService {
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
-
-        if (filter == null) {
+        if (filter.getType() == null &&
+        filter.getSearch() == null &&
+        filter.getExchangePrefix() == null &&
+        filter.getMinPrice() == null &&
+        filter.getMaxPrice() == null &&
+        filter.getMinAsk() == null && filter.getMaxAsk() == null &&
+        filter.getMinBid() == null && filter.getMaxBid() == null &&
+                filter.getMinMaintenanceMargin() == null && filter.getMaxMaintenanceMargin() == null &&
+                filter.getSettlementDate() == null
+    ) {
             return listingRedisService.getAllListings();
         }
 

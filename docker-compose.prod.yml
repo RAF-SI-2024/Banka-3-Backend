@@ -36,6 +36,11 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
   user-service:
     image: harbor.k8s.elab.rs/banka-3/user-service:latest
     ports:
@@ -82,9 +87,12 @@ services:
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_BANK-SERVICE_URL: http://bank-service:8080
       SPRING_RABBITMQ_HOST: rabbitmq
       ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
     depends_on:
       - stock_db
       - rabbitmq
+      - redis
 volumes:
   main_db_data:
   bank_db_data:

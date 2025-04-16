@@ -54,7 +54,6 @@ public class DataRefreshService {
 
         refreshInParallel(stocks, this::refreshStock);
         refreshInParallel(forexPairs, this::refreshForex);
-        refreshOptions(stocks);
 
         log.info("---- Finished scheduled listing refresh ----");
         log.info("---- Checking stop and limit orders ----");
@@ -113,76 +112,6 @@ public class DataRefreshService {
 
         } catch (Exception e) {
             log.error("Failed to refresh forex {}", forex.getTicker(), e);
-        }
-    }
-
-    private void refreshOptions(List<Stock> stocks) {
-        try {
-            Set<String> usedOptionTickers = portfolioEntryRepository.findAllOptionTickersInUse();
-            List<Option> allOptions = optionRepository.findAll();
-
-            List<Option> usedOptions = allOptions.stream()
-                    .filter(opt -> usedOptionTickers.contains(opt.getTicker()))
-                    .toList();
-
-            usedOptions.forEach(option -> option.setOnSale(false));
-            optionRepository.saveAllAndFlush(usedOptions);
-
-            List<Option> toDelete = allOptions.stream()
-                    .filter(opt -> !usedOptionTickers.contains(opt.getTicker()))
-                    .toList();
-
-            if (!toDelete.isEmpty()) {
-                optionRepository.deleteByIdInBatch(toDelete.stream().map(Option::getId).toList());
-            }
-
-            Set<String> tickersToRegenerate = toDelete.stream()
-                    .map(opt -> opt.getUnderlyingStock().getTicker())
-                    .collect(Collectors.toSet());
-
-            List<Stock> stocksToRegenerate = stocks.stream()
-                    .filter(s -> tickersToRegenerate.contains(s.getTicker()))
-                    .toList();
-
-            Set<String> existingTickers = optionRepository.findAllTickers();
-
-            List<Option> newOptions = refreshInParallel(stocksToRegenerate, stock -> {
-                try {
-                    List<OptionDto> dtos = optionService.generateOptions(stock.getTicker(), stock.getPrice());
-
-                    return dtos.stream()
-                            .filter(dto -> !existingTickers.contains(dto.getTicker()))
-                            .map(dto -> {
-                                Option o = new Option();
-                                o.setUnderlyingStock(stock);
-                                o.setOptionType(dto.getOptionType());
-                                o.setStrikePrice(dto.getStrikePrice());
-                                o.setContractSize(dto.getContractSize());
-                                o.setSettlementDate(dto.getSettlementDate());
-                                o.setMaintenanceMargin(dto.getMaintenanceMargin());
-                                o.setPrice(dto.getPrice());
-                                o.setTicker(dto.getTicker());
-                                o.setImpliedVolatility(BigDecimal.ONE);
-                                o.setOpenInterest(new Random().nextInt(500) + 100);
-                                o.setOnSale(true);
-                                return o;
-                            }).toList();
-
-                } catch (Exception e) {
-                    return List.of();
-                }
-            });
-
-            saveInBatches(newOptions, 100, batch -> {
-                optionRepository.saveAllAndFlush(batch);
-                batch.forEach(option -> {
-                    ListingPriceHistory info = priceHistoryRepository.findTopByListingOrderByDateDesc(option);
-                    listingRedisService.saveByTicker(listingMapper.toDto(option, info));
-                });
-            });
-
-        } catch (Exception e) {
-            log.error("Failed refreshing options", e);
         }
     }
 
