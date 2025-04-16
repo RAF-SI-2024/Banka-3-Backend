@@ -20,12 +20,16 @@ public class OrderDto {
 
     private Long id;
     private Long userId;
+    private String clientName;
     private ListingDto listing;
+    private String accountNumber;
     private OrderType orderType;
-    private Integer quantity;
-    private Integer contractSize;
-    private BigDecimal pricePerUnit;
     private OrderDirection direction;
+    private Integer contractSize;
+    private Integer quantity;
+    private BigDecimal pricePerUnit;
+    private BigDecimal totalPrice;
+    private BigDecimal commission;
     private OrderStatus status;
     private Long approvedBy;
     private Boolean isDone;
@@ -34,8 +38,6 @@ public class OrderDto {
     private BigDecimal stopPrice;
     private boolean stopFulfilled;
     private Boolean afterHours;
-    private List<TransactionDto> transactions;
     private BigDecimal profit;
-    private String clientName;
-    private String accountNumber;
+    private List<TransactionDto> transactions;
 }

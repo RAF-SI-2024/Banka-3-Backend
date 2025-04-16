@@ -1,6 +1,8 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.*;
+import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -17,11 +19,6 @@ public class OtcOption {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private BigDecimal strikePrice;
-    private LocalDate settlementDate;
-    private Integer amount;
-    private BigDecimal premium;
-
     private Long buyerId;
     private Long sellerId;
 
@@ -29,7 +26,13 @@ public class OtcOption {
     @JoinColumn(name = "stock_id")
     private Stock underlyingStock;
 
-    private boolean used;
+    private Integer amount;
+    private BigDecimal strikePrice;
+    private LocalDate settlementDate;
+    private BigDecimal premium;
+
+    @Enumerated(EnumType.STRING)
+    private OtcOptionStatus status;
 
     @OneToOne(mappedBy = "otcOption", cascade = CascadeType.ALL)
     private OtcOffer otcOffer;

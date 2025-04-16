@@ -36,7 +36,7 @@ public class OtcOptionMapper {
                 .sellerInfo(sellerInfo)
                 .profit(profit)
                 .status(option.getSettlementDate().isBefore(LocalDate.now()) ? OtcOptionStatus.EXPIRED : OtcOptionStatus.VALID)
-                .used(option.isUsed())
+                .used(option.getStatus() == OtcOptionStatus.USED)
                 .currentPrice(currentPrice)
                 .build();
     }

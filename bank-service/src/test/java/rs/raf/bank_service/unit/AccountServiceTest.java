@@ -710,7 +710,7 @@ public class AccountServiceTest {
         accountService.updateAvailableBalance("123", new BigDecimal(1));
 
         verify(accountRepository, times(1)).save(account);
-        assertEquals(new BigDecimal(900), account.getAvailableBalance());
+        assertEquals(new BigDecimal(1100), account.getAvailableBalance());
     }
 
     @Test
@@ -745,7 +745,7 @@ public class AccountServiceTest {
         // Act & Assert
         // Act & Assert
         InsufficientFundsException exception = assertThrows(InsufficientFundsException.class, () -> {
-            accountService.updateAvailableBalance("123", new BigDecimal(10));
+            accountService.updateAvailableBalance("123", new BigDecimal(-10));
         });
 
         assertEquals("Insufficient funds: Available balance 900 is less than transfer amount 1000", exception.getMessage());
@@ -772,7 +772,7 @@ public class AccountServiceTest {
         accountService.updateBalance("123", new BigDecimal(1));
 
         verify(accountRepository, times(1)).save(account);
-        assertEquals(new BigDecimal(900), account.getBalance());
+        assertEquals(new BigDecimal(1100), account.getBalance());
     }
 
     @Test
@@ -807,7 +807,7 @@ public class AccountServiceTest {
         // Act & Assert
         // Act & Assert
         InsufficientFundsException exception = assertThrows(InsufficientFundsException.class, () -> {
-            accountService.updateBalance("123", new BigDecimal(10));
+            accountService.updateBalance("123", new BigDecimal(-10));
         });
 
         assertEquals("Insufficient funds: Available balance 900 is less than transfer amount 1000", exception.getMessage());

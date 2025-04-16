@@ -20,7 +20,6 @@ import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.service.PortfolioService;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.mapper.PortfolioMapper;
@@ -38,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PortfolioServiceTest {
@@ -132,6 +130,7 @@ public class PortfolioServiceTest {
                 .listing(stock)
                 .amount(20)
                 .averagePrice(BigDecimal.valueOf(100))
+                .reservedAmount(10)
                 .build();
 
         Order order = buildOrder(OrderDirection.SELL, 10, 1, BigDecimal.valueOf(100));
@@ -178,6 +177,7 @@ public class PortfolioServiceTest {
         order.setPricePerUnit(price);
         order.setDirection(direction);
         order.setIsDone(true);
+        order.setRemainingPortions(0);
         return order;
     }
 
@@ -254,6 +254,7 @@ public class PortfolioServiceTest {
                 .type(ListingType.STOCK)
                 .amount(100)
                 .publicAmount(0)
+                .reservedAmount(0)
                 .lastModified(LocalDateTime.now())
                 .build();
 
@@ -308,6 +309,7 @@ public class PortfolioServiceTest {
                 .type(ListingType.STOCK)
                 .amount(40)
                 .publicAmount(0)
+                .reservedAmount(0)
                 .build();
 
         SetPublicAmountDto dto = new SetPublicAmountDto(1L, 50); // vise od amount
@@ -382,7 +384,7 @@ public class PortfolioServiceTest {
         useOptionDto.setPortfolioEntryId(optionEntry.getId());
 
         // Pozivanje servisa
-        portfolioService.useOption(userId, useOptionDto);
+        portfolioService.updateHoldingsOnOptionExecution(userId, useOptionDto);
 
         // Provera
         assertTrue(optionEntry.getUsed(), "Option should be marked as used.");
@@ -416,7 +418,7 @@ public class PortfolioServiceTest {
         useOptionDto.setPortfolioEntryId(optionEntry.getId());
 
         assertThrows(OptionNotEligibleException.class, () ->
-                portfolioService.useOption(userId, useOptionDto));
+                portfolioService.updateHoldingsOnOptionExecution(userId, useOptionDto));
     }
 
     @Test
@@ -437,7 +439,7 @@ public class PortfolioServiceTest {
 
         // Testiranje izuzetka
         assertThrows(OptionNotEligibleException.class, () ->
-                portfolioService.useOption(userId, useOptionDto));
+                portfolioService.updateHoldingsOnOptionExecution(userId, useOptionDto));
     }
 
     @Test
@@ -466,7 +468,7 @@ public class PortfolioServiceTest {
 
         // Testiranje izuzetka
         assertThrows(OptionNotEligibleException.class, () ->
-                portfolioService.useOption(userId, useOptionDto));
+                portfolioService.updateHoldingsOnOptionExecution(userId, useOptionDto));
     }
 
     @Test
@@ -498,7 +500,7 @@ public class PortfolioServiceTest {
         useOptionDto.setPortfolioEntryId(optionEntry.getId());
 
         // Poziv metode useOption
-        portfolioService.useOption(userId, useOptionDto);
+        portfolioService.updateHoldingsOnOptionExecution(userId, useOptionDto);
 
         // Proveri da li je nova stavka sačuvana
         verify(portfolioEntryRepository, times(2)).save(any(PortfolioEntry.class));
@@ -535,7 +537,7 @@ public class PortfolioServiceTest {
         UseOptionDto dto = new UseOptionDto();
         dto.setPortfolioEntryId(1L);
 
-        portfolioService.useOption(userId, dto);
+        portfolioService.updateHoldingsOnOptionExecution(userId, dto);
 
         // Provera da li je opcija iskorišćena
         assertTrue(optionEntry.getUsed());
@@ -573,7 +575,7 @@ public class PortfolioServiceTest {
         UseOptionDto dto = new UseOptionDto();
         dto.setPortfolioEntryId(2L);
 
-        portfolioService.useOption(userId, dto);
+        portfolioService.updateHoldingsOnOptionExecution(userId, dto);
 
         assertTrue(optionEntry.getUsed());
         verify(portfolioEntryRepository, times(2)).save(any(PortfolioEntry.class));
@@ -606,6 +608,6 @@ public class PortfolioServiceTest {
         UseOptionDto dto = new UseOptionDto();
         dto.setPortfolioEntryId(3L);
 
-        assertThrows(OptionNotEligibleException.class, () -> portfolioService.useOption(userId, dto));
+        assertThrows(OptionNotEligibleException.class, () -> portfolioService.updateHoldingsOnOptionExecution(userId, dto));
     }
 }

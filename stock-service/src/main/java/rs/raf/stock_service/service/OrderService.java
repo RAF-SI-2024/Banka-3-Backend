@@ -113,18 +113,23 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
 
-        if (order.getUserId().equals(userId) || role.equalsIgnoreCase("SUPERVISOR") || role.equalsIgnoreCase("ADMIN")) {
-            if (!order.getIsDone() && (order.getStatus().equals(OrderStatus.PENDING) || order.getStatus().equals(OrderStatus.APPROVED))) {
-                order.setStatus(OrderStatus.CANCELLED);
-                order.setLastModification(LocalDateTime.now());
-
-                orderRepository.save(order);
-            } else {
-                throw new CantCancelOrderInCurrentOrderState(id);
-            }
-        } else {
+        if (!order.getUserId().equals(userId) && !role.equalsIgnoreCase("SUPERVISOR") && !role.equalsIgnoreCase("ADMIN"))
             throw new UnauthorizedException("Unauthorized attempt at cancelling an order.");
+
+        if (order.getIsDone() || (!order.getStatus().equals(OrderStatus.PENDING) && !order.getStatus().equals(OrderStatus.APPROVED)))
+            throw new CantCancelOrderInCurrentOrderState(id);
+
+        if (order.getDirection() == OrderDirection.SELL){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, order.getListing()).
+                    orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+            portfolioEntryRepository.save(portfolioEntry);
         }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setLastModification(LocalDateTime.now());
+        orderRepository.save(order);
     }
 
     public void approveOrder(Long id, String authHeader) {
@@ -135,13 +140,13 @@ public class OrderService {
 
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
 
-        BigDecimal price = BigDecimal.valueOf(order.getContractSize()).multiply(BigDecimal.valueOf(order.getQuantity()))
-                .multiply(order.getPricePerUnit());
-        if(order.getDirection() == OrderDirection.BUY)
-            order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
-        else
+        if(order.getDirection() == OrderDirection.BUY && !reserveBalance(order))
+            order.setStatus(OrderStatus.DECLINED);
+        else {
             order.setStatus(OrderStatus.APPROVED);
-        order.setApprovedBy(userId);
+            order.setApprovedBy(userId);
+        }
+
         order.setLastModification(LocalDateTime.now());
 
         orderRepository.save(order);
@@ -156,89 +161,39 @@ public class OrderService {
         if (!order.getStatus().equals(OrderStatus.PENDING))
             throw new CantApproveNonPendingOrder(order.getId());
 
+        if(order.getDirection() == OrderDirection.SELL){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
+                    orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+            portfolioEntryRepository.save(portfolioEntry);
+        }
+
         order.setStatus(OrderStatus.DECLINED);
         order.setApprovedBy(jwtTokenUtil.getUserIdFromAuthHeader(authHeader));
         order.setLastModification(LocalDateTime.now());
         orderRepository.save(order);
     }
 
-    public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader) {
-        if((createOrderDto.getOrderType() == OrderType.STOP || createOrderDto.getOrderType() == OrderType.STOP_LIMIT) &&
-                createOrderDto.getStopPrice() == null){
-            throw new StopPriceMissingException(createOrderDto.getOrderType());
-        }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        if((createOrderDto.getOrderType() == OrderType.LIMIT || createOrderDto.getOrderType() == OrderType.STOP_LIMIT) &&
-                createOrderDto.getLimitPrice() == null){
-            throw new LimitPriceMissingException(createOrderDto.getOrderType());
-        }
+    public OrderDto createOrder(CreateOrderDto createOrderDto, String authHeader) {
+        checkFields(createOrderDto);
 
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         Listing listing = listingRepository.findById(createOrderDto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
-        Order order = OrderMapper.toOrder(createOrderDto, userId, listing, role);
-
-        BigDecimal price = BigDecimal.valueOf(order.getContractSize())
-                .multiply(BigDecimal.valueOf(order.getQuantity()))
-                .multiply(order.getPricePerUnit());
-
-
-        if (role.equals("CLIENT")) {
-            BigDecimal priceWithCommission = priceWithCommission(order.getOrderType(), price); //@todo uzeti commission iz ordera kad se doda
-            BigDecimal commission = priceWithCommission.subtract(price);
-
-            order.setCommission(commission);
-        } else {
-            order.setCommission(BigDecimal.ZERO);
-        }
-
-
-
-        boolean checksPassed = false;
-        if(role.equals("AGENT")) {
-            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(userId);
-
-            if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
-                    getUsedLimit()).compareTo(price) >= 0)
-                checksPassed = true;
-        }  else {
-            checksPassed = true;
-        }
-
-        if(checksPassed){
-            if(order.getDirection() == OrderDirection.BUY){
-                if(role.equals("CLIENT")){
-                    price = priceWithCommission(order.getOrderType(), price);
-                }
-
-                order.setStatus(updateAvailableBalance(order, price) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
-            } else {
-                order.setStatus(OrderStatus.APPROVED);
-            }
-        }
-
-        if (order.getDirection().equals(OrderDirection.SELL)) {
+        if (createOrderDto.getOrderDirection() == OrderDirection.SELL) {
             PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
                     orElseThrow(PortfolioEntryNotFoundException::new);
-            BigDecimal buyingPrice = portfolioEntry.getAveragePrice().multiply(BigDecimal.valueOf(order.getQuantity()));
-            BigDecimal sellPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getQuantity()));
-            BigDecimal potentialProfit = sellPrice.subtract(buyingPrice);
-            //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
-            order.setProfit(bankClient.convert(new ConvertDto("USD", "RSD", potentialProfit)));
-            if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
-                order.setTaxStatus(TaxStatus.PENDING);
-                order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
-            } else {
-                order.setTaxStatus(TaxStatus.TAXFREE);
-                order.setTaxAmount(BigDecimal.ZERO);
-            }
-        } else {
-            order.setTaxStatus(TaxStatus.TAXFREE);
-            order.setTaxAmount(BigDecimal.ZERO);
+
+            reservePortfolioAmount(portfolioEntry, createOrderDto.getContractSize() * createOrderDto.getQuantity());
         }
 
+        Order order = OrderMapper.toOrder(createOrderDto, userId, role, listing);
+        setOrderStatus(order);
 
         orderRepository.save(order);
 
@@ -248,39 +203,55 @@ public class OrderService {
         ListingDto listingDto = listingMapper.toDto(listing,
                 listingPriceHistoryRepository.findTopByListingOrderByDateDesc(listing));
 
-        String clientName = getClientName(order);
-
-        return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+        return OrderMapper.toDto(order, listingDto, getClientName(order), order.getAccountNumber());
     }
 
-    private boolean updateAvailableBalance(Order order, BigDecimal amount) {
+    private void checkFields(CreateOrderDto createOrderDto){
+        if((createOrderDto.getOrderType() == OrderType.STOP || createOrderDto.getOrderType() == OrderType.STOP_LIMIT) &&
+                createOrderDto.getStopPrice() == null){
+            throw new StopPriceMissingException(createOrderDto.getOrderType());
+        }
+
+        if((createOrderDto.getOrderType() == OrderType.LIMIT || createOrderDto.getOrderType() == OrderType.STOP_LIMIT) &&
+                createOrderDto.getLimitPrice() == null){
+            throw new LimitPriceMissingException(createOrderDto.getOrderType());
+        }
+    }
+
+    private void reservePortfolioAmount(PortfolioEntry portfolioEntry, Integer amount){
+        if (portfolioEntry.getAvailableAmount() < amount)
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getAmount(), amount);
+
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + amount);
+        portfolioEntryRepository.save(portfolioEntry);
+    }
+
+    private void setOrderStatus(Order order){
+        if(order.getUserRole().equals("AGENT")) {
+            ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(order.getUserId());
+
+            if (actuaryLimitDto.isNeedsApproval() || actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
+                    getUsedLimit()).compareTo(order.getTotalPrice()) < 0)
+                return;
+        }
+
+        order.setStatus(reserveBalance(order) ? OrderStatus.APPROVED : OrderStatus.DECLINED);
+    }
+
+    private boolean reserveBalance(Order order){
+        BigDecimal price =  order.getTotalPrice();
+        BigDecimal commission = order.getUserRole().equals("CLIENT") ?
+                getCommission(order.getOrderType(), price) : BigDecimal.ZERO;
+
+        order.setCommission(commission);
+
         if(order.getDirection() == OrderDirection.SELL)
             return true;
 
-        try{
-            bankClient.updateAvailableBalance(order.getAccountNumber(), amount);
-        }catch (InsufficientFundsException e){
-            return false;
-        }
-
-        order.setReservedAmount(amount);
-        return true;
+        return updateAvailableBalance(order.getAccountNumber(), price.add(commission).multiply(BigDecimal.valueOf(-1)));
     }
 
-    public BigDecimal priceWithCommission(OrderType orderType, BigDecimal amount){
-        BigDecimal commissionPercentage;
-        BigDecimal commissionMax;
-        if (orderType == OrderType.MARKET || orderType == OrderType.STOP){
-            commissionPercentage = BigDecimal.valueOf(0.14);
-            commissionMax = BigDecimal.valueOf(7);
-        }
-        else{
-            commissionPercentage = BigDecimal.valueOf(0.24);
-            commissionMax = BigDecimal.valueOf(12);
-        }
-
-        return amount.add(amount.multiply(commissionPercentage).min(commissionMax));
-    }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Async
     public void executeOrder(Order order) {
@@ -293,35 +264,28 @@ public class OrderService {
             volume = Math.max(200000, ((Stock) order.getListing()).getVolume());
         }
 
-        BigDecimal spentAmount = BigDecimal.ZERO;
+        BigDecimal finalAmount = BigDecimal.ZERO;
         if (order.isAllOrNone()){
-            spentAmount = spentAmount.add(executeTransaction(order, order.getRemainingPortions(), volume));
+            finalAmount = finalAmount.add(executeTransaction(order, order.getRemainingPortions(), volume));
         } else {
             Random random = new Random();
 
             while (order.getRemainingPortions() > 0) {
-                spentAmount = spentAmount.add(executeTransaction(order,
+                finalAmount = finalAmount.add(executeTransaction(order,
                         random.nextInt(1, order.getRemainingPortions() + 1), volume));
                 orderRepository.save(order);
             }
         }
 
+        balanceAdjustment(order, finalAmount);
         //Extreme edge case PARTIAL: account nije u dolarima, a exhange rate se promenio i
-        // stime trosak ispada vise od rezervisanog pa se obustavlja
+        // stime trosak ispada vise od rezervisanog pa se obustavilo na pola
         order.setStatus(order.getRemainingPortions() == 0? OrderStatus.DONE : OrderStatus.PARTIAL);
         order.setIsDone(true);
-        orderRepository.save(order);
 
-        //finalna azuriranja sredstava
-        if(order.getDirection() == OrderDirection.BUY){
-            BigDecimal priceWithCommission = order.getRole().equals("CLIENT") ?
-                    priceWithCommission(order.getOrderType(), spentAmount) : spentAmount;
-
-            updateBalance(order, priceWithCommission.subtract(spentAmount));
-            updateAvailableBalance(order, priceWithCommission.subtract(order.getReservedAmount()));
-        }
-
+        setOrderProfitAndTax(order);
         portfolioService.updateHoldingsOnOrderExecution(order);
+        orderRepository.save(order);
     }
 
     private BigDecimal executeTransaction(Order order, int batchSize, long volume){
@@ -335,9 +299,15 @@ public class OrderService {
             e.printStackTrace();
         }
 
-        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit()).multiply(BigDecimal.valueOf(order.getContractSize()));
+        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
+                .multiply(BigDecimal.valueOf(order.getContractSize()));
 
-        if(order.getDirection() == OrderDirection.BUY && !updateBalance(order, totalPrice)) return BigDecimal.ZERO;
+        if(order.getDirection() == OrderDirection.BUY){
+            if (!updateBalance(order.getAccountNumber(), totalPrice.multiply(BigDecimal.valueOf(-1))))
+                return BigDecimal.ZERO;
+        } else {
+            updateBalance(order.getAccountNumber(), totalPrice);
+        }
 
         Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
         transactionRepository.save(transaction);
@@ -349,12 +319,74 @@ public class OrderService {
         return totalPrice;
     }
 
-    private boolean updateBalance(Order order, BigDecimal amount){
-        if (order.getDirection() == OrderDirection.SELL)
-            return true;
+    private void balanceAdjustment(Order order, BigDecimal finalAmount){
+        BigDecimal finalCommission = BigDecimal.ZERO;
 
+        if (order.getUserRole().equals("CLIENT")){
+            finalCommission = getCommission(order.getOrderType(), finalAmount);
+            transferCommission(order.getAccountNumber(), finalCommission);
+        }
+
+        if (order.getDirection() == OrderDirection.BUY){
+            bankClient.updateAvailableBalance(order.getAccountNumber(),
+                    order.getTotalPrice().add(order.getCommission()).subtract(finalAmount.add(finalCommission)));
+        } else {
+            bankClient.updateAvailableBalance(order.getAccountNumber(),
+                    finalAmount.subtract(finalCommission));
+        }
+
+        order.setTotalPrice(finalAmount);
+        order.setCommission(finalCommission);
+    }
+
+    private void transferCommission(String accountNumber, BigDecimal amount){
         try{
-            bankClient.updateBalance(order.getAccountNumber(), amount);
+            //OVDE UMESTO OVOG POZIVA IDE PAYMENT BANCI!!!!
+            bankClient.updateBalance(accountNumber, amount.multiply(BigDecimal.valueOf(-1)));
+        }catch (InsufficientFundsException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void setOrderProfitAndTax(Order order){
+        if (order.getDirection() == OrderDirection.BUY) {
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+            return;
+        }
+
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
+                orElseThrow(PortfolioEntryNotFoundException::new);
+
+        BigDecimal buyingPrice = portfolioEntry.getAveragePrice()
+                .multiply(BigDecimal.valueOf(order.getQuantity() * order.getContractSize()));
+        BigDecimal potentialProfit = order.getTotalPrice().subtract(buyingPrice);
+
+        //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
+        order.setProfit(bankClient.convert(new ConvertDto("USD", "RSD", potentialProfit)));
+
+        if (potentialProfit.compareTo(BigDecimal.ZERO) > 0) {
+            order.setTaxStatus(TaxStatus.PENDING);
+            order.setTaxAmount(potentialProfit.multiply(new BigDecimal("0.15")));
+        } else {
+            order.setTaxStatus(TaxStatus.TAXFREE);
+            order.setTaxAmount(BigDecimal.ZERO);
+        }
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private BigDecimal getCommission(OrderType orderType, BigDecimal amount){
+        if (orderType == OrderType.MARKET || orderType == OrderType.STOP){
+            return amount.multiply(BigDecimal.valueOf(0.14)).min( BigDecimal.valueOf(7));
+        }
+
+        return amount.multiply(BigDecimal.valueOf(0.24)).min(BigDecimal.valueOf(12));
+    }
+
+    private boolean updateAvailableBalance(String accountNumber, BigDecimal amount){
+        try{
+            bankClient.updateAvailableBalance(accountNumber, amount);
         }catch (InsufficientFundsException e){
             return false;
         }
@@ -362,6 +394,19 @@ public class OrderService {
         return true;
     }
 
+    private boolean updateBalance(String accountNumber, BigDecimal amount){
+        try{
+            bankClient.updateBalance(accountNumber, amount);
+        }catch (InsufficientFundsException e){
+            return false;
+        }
+
+        return true;
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    @Scheduled(fixedRate = 15000)
     public void checkOrders() {
         checkStopOrders();
         checkStopLimitOrders();
@@ -433,6 +478,4 @@ public class OrderService {
     public BigDecimal getCommissionProfit() {
         return orderRepository.getBankProfitFromOrders();
     }
-
-
 }
