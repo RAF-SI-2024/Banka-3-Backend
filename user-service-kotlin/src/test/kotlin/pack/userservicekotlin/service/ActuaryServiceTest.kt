@@ -9,8 +9,11 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import pack.userservicekotlin.arrow.ActuaryServiceError
 import pack.userservicekotlin.domain.TestDataFactory
+import pack.userservicekotlin.external.StockClient
 import pack.userservicekotlin.repository.ActuaryLimitRepository
+import pack.userservicekotlin.repository.ClientRepository
 import pack.userservicekotlin.repository.EmployeeRepository
 import java.math.BigDecimal
 import java.util.*
@@ -22,6 +25,12 @@ class ActuaryServiceTest {
 
     @Mock
     lateinit var actuaryLimitRepository: ActuaryLimitRepository
+
+    @Mock
+    lateinit var clientRepository: ClientRepository
+
+    @Mock
+    lateinit var stockClient: StockClient
 
     @Mock
     lateinit var pageable: Pageable
@@ -59,6 +68,16 @@ class ActuaryServiceTest {
     }
 
     @Test
+    fun `changeAgentLimit fails when employee not found`() {
+        `when`(employeeRepository.findById(1L)).thenReturn(Optional.empty())
+
+        val result = actuaryService.changeAgentLimit(1L, BigDecimal(9000))
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.EmployeeNotFound)
+    }
+
+    @Test
     fun `resetDailyLimit sets usedLimit to zero`() {
         val employee = TestDataFactory.employee(id = 2L)
         val limit = TestDataFactory.actuaryLimit(usedLimit = BigDecimal(100))
@@ -72,6 +91,16 @@ class ActuaryServiceTest {
         assertTrue(result.isRight())
         assertEquals(BigDecimal.ZERO, limit.usedLimit)
         verify(actuaryLimitRepository).save(limit)
+    }
+
+    @Test
+    fun `resetDailyLimit fails when employee not found`() {
+        `when`(employeeRepository.findById(2L)).thenReturn(Optional.empty())
+
+        val result = actuaryService.resetDailyLimit(2L)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.EmployeeNotFound)
     }
 
     @Test
@@ -106,6 +135,16 @@ class ActuaryServiceTest {
     }
 
     @Test
+    fun `getAgentLimit fails when limit not found`() {
+        `when`(actuaryLimitRepository.findByEmployeeId(4L)).thenReturn(Optional.empty())
+
+        val result = actuaryService.getAgentLimit(4L)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.ActuaryLimitNotFound)
+    }
+
+    @Test
     fun `resetDailyLimits resets all used limits`() {
         val limit1 = TestDataFactory.actuaryLimit(usedLimit = BigDecimal(999))
         val limit2 = TestDataFactory.actuaryLimit(usedLimit = BigDecimal(888))
@@ -117,5 +156,37 @@ class ActuaryServiceTest {
         assertEquals(BigDecimal.ZERO, limit1.usedLimit)
         assertEquals(BigDecimal.ZERO, limit2.usedLimit)
         verify(actuaryLimitRepository).saveAll(listOf(limit1, limit2))
+    }
+
+    @Test
+    fun `findActuaries returns enriched page`() {
+        val employee = TestDataFactory.employee(id = 1L)
+        val employeePage = PageImpl(listOf(employee))
+        val order = TestDataFactory.orderDto(userId = 1L, profit = BigDecimal(100))
+
+        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(employeePage)
+        `when`(stockClient.getAll()).thenReturn(listOf(order))
+
+        val result = actuaryService.findActuaries(pageable)
+
+        assertTrue(result.isRight())
+        val page = result.getOrNull()
+        assertEquals(1, page?.totalElements)
+        assertEquals(BigDecimal(100), page?.content?.get(0)?.profit)
+    }
+
+    @Test
+    fun `findActuaries fails when stock client throws exception`() {
+        val employee = TestDataFactory.employee(id = 1L)
+        val employeePage = PageImpl(listOf(employee))
+
+        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(employeePage)
+        `when`(stockClient.getAll()).thenThrow(RuntimeException("Stock service down"))
+
+        val result = actuaryService.findActuaries(pageable)
+
+        assertTrue(result.isLeft())
+        val error = result.swap().getOrNull()
+        assertTrue(error is ActuaryServiceError.ExternalServiceError)
     }
 }

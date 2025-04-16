@@ -13,13 +13,15 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.*
+import pack.userservicekotlin.arrow.ActuaryServiceError
 import pack.userservicekotlin.domain.dto.activity_code.SetApprovalDto
 import pack.userservicekotlin.domain.dto.actuary_limit.ActuaryLimitResponseDto
 import pack.userservicekotlin.domain.dto.actuary_limit.UpdateActuaryLimitDto
-import pack.userservicekotlin.domain.dto.employee.EmployeeResponseDto
+import pack.userservicekotlin.domain.dto.employee.AgentDto
 import pack.userservicekotlin.service.ActuaryService
 import pack.userservicekotlin.utils.JwtTokenUtil
 import java.math.BigDecimal
+import java.util.*
 
 @WebMvcTest(ActuaryController::class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -35,8 +37,7 @@ class ActuaryControllerTest {
     @Test
     fun `changeAgentLimit should return 200 when successful`() {
         val request = UpdateActuaryLimitDto(BigDecimal(500.0))
-
-        `when`(actuaryService.changeAgentLimit(1L, BigDecimal(500.0))).thenReturn(Either.Right(Unit))
+        `when`(actuaryService.changeAgentLimit(1L, request.newLimit!!)).thenReturn(Either.Right(Unit))
 
         mockMvc
             .put("/api/admin/actuaries/change-limit/1") {
@@ -59,7 +60,6 @@ class ActuaryControllerTest {
     @Test
     fun `setApprovalValue should return 200 when successful`() {
         val request = SetApprovalDto(needApproval = true)
-
         `when`(actuaryService.setApproval(1L, true)).thenReturn(Either.Right(Unit))
 
         mockMvc
@@ -73,13 +73,34 @@ class ActuaryControllerTest {
 
     @Test
     fun `getAllAgents should return paginated agents`() {
-        val agents = listOf(EmployeeResponseDto(id = 1L, firstName = "A", lastName = "B", email = "a@b.com"))
+        val agents =
+            listOf(
+                AgentDto(
+                    1L,
+                    "username",
+                    "position",
+                    "department",
+                    true,
+                    "A",
+                    "B",
+                    "a@b.com",
+                    "123",
+                    Date(),
+                    "M",
+                    "123-456",
+                    "Some Street",
+                    "AGENT",
+                    BigDecimal(0),
+                    BigDecimal(0),
+                    false,
+                ),
+            )
         val page = PageImpl(agents)
 
-        `when`(actuaryService.findAll(null, null, null, null, PageRequest.of(0, 10))).thenReturn(page)
+        `when`(actuaryService.findAgents(null, null, null, null, PageRequest.of(0, 10))).thenReturn(Either.Right(page))
 
         mockMvc
-            .get("/api/admin/actuaries?page=0&size=10")
+            .get("/api/admin/actuaries/agents?page=0&size=10")
             .andExpect {
                 status { isOk() }
                 jsonPath("$.content[0].email") { value("a@b.com") }
@@ -88,8 +109,7 @@ class ActuaryControllerTest {
 
     @Test
     fun `getAgentLimit should return 200 when found`() {
-        val response = ActuaryLimitResponseDto(BigDecimal(100.0))
-
+        val response = ActuaryLimitResponseDto(BigDecimal(100.0), BigDecimal(0), false)
         `when`(actuaryService.getAgentLimit(1L)).thenReturn(Either.Right(response))
 
         mockMvc
@@ -100,13 +120,25 @@ class ActuaryControllerTest {
             }
     }
 
-    inline fun <reified T> anyNonNull(): T {
-        try {
-            return Mockito.any(T::class.java) ?: createInstance()
-        } catch (e: Exception) {
-            return createInstance()
-        }
+    @Test
+    fun `getAgentLimit should return 404 when not found`() {
+        `when`(actuaryService.getAgentLimit(1L))
+            .thenReturn(Either.Left(ActuaryServiceError.ActuaryLimitNotFound(1L)))
+
+        mockMvc
+            .get("/api/admin/actuaries/1")
+            .andExpect {
+                status { isNotFound() }
+                content { string("Limit not found for agent 1") }
+            }
     }
+
+    inline fun <reified T> anyNonNull(): T =
+        try {
+            Mockito.any(T::class.java) ?: createInstance()
+        } catch (e: Exception) {
+            createInstance()
+        }
 
     inline fun <reified T : Any> createInstance(): T =
         when (T::class) {

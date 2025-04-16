@@ -1,5 +1,6 @@
 package pack.userservicekotlin.domain
 
+import pack.userservicekotlin.domain.dto.external.OrderDto
 import pack.userservicekotlin.domain.entities.*
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -9,6 +10,15 @@ object TestDataFactory {
     fun role(name: String = "AGENT"): Role = Role(id = 1L, name = name, permissions = mutableSetOf())
 
     fun permission(name: String = "READ"): Permission = Permission(id = 1L, name = name)
+
+    fun orderDto(
+        userId: Long = 1L,
+        profit: BigDecimal = BigDecimal.ZERO,
+    ): OrderDto =
+        OrderDto(
+            userId = userId,
+            profit = profit,
+        )
 
     fun client(
         id: Long = 2L,

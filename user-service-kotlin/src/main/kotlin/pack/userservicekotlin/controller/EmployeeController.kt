@@ -1,6 +1,7 @@
 package pack.userservicekotlin.controller
 
 import io.swagger.v3.oas.annotations.Parameter
+import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
@@ -22,7 +23,9 @@ class EmployeeController(
 ) : EmployeeApiDoc {
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
-    override fun getEmployeeById(id: Long): ResponseEntity<Any> =
+    override fun getEmployeeById(
+        @PathVariable id: Long,
+    ): ResponseEntity<Any> =
         employeeService.findById(id).fold(
             ifLeft = {
                 when (it) {
@@ -36,12 +39,12 @@ class EmployeeController(
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping
     override fun getAllEmployees(
-        firstName: String?,
-        lastName: String?,
-        email: String?,
-        position: String?,
-        page: Int,
-        size: Int,
+        @RequestParam(required = false) firstName: String?,
+        @RequestParam(required = false)lastName: String?,
+        @RequestParam(required = false) email: String?,
+        @RequestParam(required = false) position: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<EmployeeResponseDto>> {
         val pageRequest = PageRequest.of(page, size)
         return ResponseEntity.ok(employeeService.findAll(firstName, lastName, email, position, pageRequest))
@@ -49,7 +52,9 @@ class EmployeeController(
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    override fun createEmployee(createEmployeeDTO: CreateEmployeeDto): ResponseEntity<Any> =
+    override fun createEmployee(
+        @RequestBody @Valid createEmployeeDTO: CreateEmployeeDto,
+    ): ResponseEntity<Any> =
         employeeService.createEmployee(createEmployeeDTO).fold(
             ifLeft = {
                 when (it) {
@@ -63,8 +68,8 @@ class EmployeeController(
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     override fun updateEmployee(
-        id: Long,
-        updateEmployeeDTO: UpdateEmployeeDto,
+        @PathVariable id: Long,
+        @RequestBody @Valid updateEmployeeDTO: UpdateEmployeeDto,
     ): ResponseEntity<Any> =
         employeeService.updateEmployee(id, updateEmployeeDTO).fold(
             ifLeft = {
@@ -80,7 +85,9 @@ class EmployeeController(
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    override fun deleteEmployee(id: Long): ResponseEntity<Void> =
+    override fun deleteEmployee(
+        @PathVariable id: Long,
+    ): ResponseEntity<Void> =
         employeeService.deleteEmployee(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
             ifRight = { ResponseEntity.ok().build() },
@@ -88,7 +95,9 @@ class EmployeeController(
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/deactivate")
-    override fun deactivateEmployee(id: Long): ResponseEntity<Void> =
+    override fun deactivateEmployee(
+        @PathVariable id: Long,
+    ): ResponseEntity<Void> =
         employeeService.deactivateEmployee(id).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).build() },
             ifRight = { ResponseEntity.ok().build() },
