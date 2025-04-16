@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pack.userservicekotlin.domain.dto.activity_code.SetApprovalDto
 import pack.userservicekotlin.domain.dto.actuary_limit.UpdateActuaryLimitDto
-import pack.userservicekotlin.domain.dto.employee.EmployeeResponseDto
+import pack.userservicekotlin.domain.dto.employee.AgentDto
 
 interface ActuaryApiDoc {
     @Operation(summary = "Change agent limit.")
@@ -58,7 +58,7 @@ interface ActuaryApiDoc {
         @RequestParam(required = false) position: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
-    ): ResponseEntity<Page<EmployeeResponseDto>>
+    ): ResponseEntity<Page<AgentDto>>
 
     @Operation(summary = "Get agent actuary limit.")
     @ApiResponses(

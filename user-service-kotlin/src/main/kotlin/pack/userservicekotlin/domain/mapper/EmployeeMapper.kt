@@ -1,8 +1,11 @@
 package pack.userservicekotlin.domain.mapper
 
+import pack.userservicekotlin.domain.dto.actuary_limit.ActuaryResponseDto
+import pack.userservicekotlin.domain.dto.employee.AgentDto
 import pack.userservicekotlin.domain.dto.employee.CreateEmployeeDto
 import pack.userservicekotlin.domain.dto.employee.EmployeeResponseDto
 import pack.userservicekotlin.domain.entities.Employee
+import java.math.BigDecimal
 
 fun Employee?.toDto(): EmployeeResponseDto? {
     if (this == null) return null
@@ -43,4 +46,60 @@ fun CreateEmployeeDto?.toEntity(): Employee? {
     employee.jmbg = jmbg
     // role will be set later manually
     return employee
+}
+
+fun Employee?.toActuaryDto(): ActuaryResponseDto? {
+    if (this == null || id == null || firstName == null || lastName == null || role?.name == null) return null
+
+    return ActuaryResponseDto(
+        id = id!!,
+        firstName = firstName!!,
+        lastName = lastName!!,
+        role = role?.name!!,
+        profit = BigDecimal.ZERO,
+    )
+}
+
+fun EmployeeResponseDto?.toAgentDto(
+    limitAmount: BigDecimal,
+    usedLimit: BigDecimal,
+    needsApproval: Boolean,
+): AgentDto? {
+    if (this == null ||
+        id == null ||
+        email == null ||
+        firstName == null ||
+        lastName == null ||
+        address == null ||
+        phone == null ||
+        gender == null ||
+        birthDate == null ||
+        position == null ||
+        department == null ||
+        username == null ||
+        jmbg == null ||
+        role == null
+    ) {
+        return null
+    }
+
+    return AgentDto(
+        id = id,
+        username = username,
+        position = position,
+        department = department,
+        active = active,
+        firstName = firstName,
+        lastName = lastName,
+        email = email,
+        jmbg = jmbg,
+        birthDate = birthDate,
+        gender = gender,
+        phone = phone,
+        address = address,
+        role = role,
+        limitAmount = limitAmount,
+        usedLimit = usedLimit,
+        needsApproval = needsApproval,
+    )
 }
