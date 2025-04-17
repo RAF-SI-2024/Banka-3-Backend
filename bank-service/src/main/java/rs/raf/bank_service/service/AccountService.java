@@ -178,6 +178,18 @@ public class AccountService {
         }
     }
 
+    public List<AccountDto> getMyUSDAccounts(Long clientId) {
+        try {
+            ClientDto clientDto = userClient.getClientById(clientId);
+
+            return accountRepository.findAllByClientIdAndCurrency_Code(clientId, "USD").stream().map(account ->
+                    AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
+                    Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
+        } catch (FeignException.NotFound e) {
+            throw new UserNotAClientException();
+        }
+    }
+
     public AccountDetailsDto getAccountDetails(String role, Long clientId, String accountNumber) {
         try {
             Account account = accountRepository.findByAccountNumber(accountNumber)
@@ -380,6 +392,14 @@ public class AccountService {
         allAccounts.sort(Comparator.comparing(AccountDto::getAccountNumber));
 
         return allAccounts;
+    }
+
+    public List<AccountDto> getBankUSDAccounts() {
+        return companyAccountRepository
+                .findByCompanyIdAndCurrency_Code(1L, "USD")
+                .stream()
+                .map(account -> AccountMapper.toDto(account, null))
+                .toList();
     }
 
 

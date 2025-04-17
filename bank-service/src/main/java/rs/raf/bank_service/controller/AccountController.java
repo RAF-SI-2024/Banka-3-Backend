@@ -358,9 +358,9 @@ public class AccountController {
             Long userId = jwtTokenUtil.getUserIdFromAuthHeader(auth);
 
             if (role.equals("CLIENT")) {
-                return ResponseEntity.ok(accountService.getMyAccounts(userId));
+                return ResponseEntity.ok(accountService.getMyUSDAccounts(userId));
             } else {
-                return ResponseEntity.ok(accountService.getAllBankAccounts());
+                return ResponseEntity.ok(accountService.getBankUSDAccounts());
             }
         } catch (Exception e) {
             return ResponseEntity

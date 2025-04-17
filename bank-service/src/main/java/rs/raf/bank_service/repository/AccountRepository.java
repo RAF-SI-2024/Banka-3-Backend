@@ -18,6 +18,8 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     List<Account> findAllByClientId(@Param("clientId") Long clientId);
 
+    List<Account> findAllByClientIdAndCurrency_Code(@Param("clientId") Long clientId, @Param("currency") String code);
+
     Optional<Account> findByAccountNumber(String accountNumber);
 
     Optional<Account> findByAccountNumberAndClientId(String accountNumber, Long clientId);
