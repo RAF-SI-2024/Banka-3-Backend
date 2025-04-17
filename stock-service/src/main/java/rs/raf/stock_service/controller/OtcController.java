@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOptionDto;
+import rs.raf.stock_service.domain.dto.PaymentSuccessfulDto;
 import rs.raf.stock_service.exceptions.OtcException;
 import rs.raf.stock_service.service.OtcService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -163,10 +164,19 @@ public class OtcController {
             @ApiResponse(responseCode = "400", description = "Invalid option or business rules violated"),
             @ApiResponse(responseCode = "500", description = "Unexpected error occurred during option execution")
     })
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
     @PostMapping("/{optionId}/exercise")
     public ResponseEntity<Void> exerciseOtcOption(@PathVariable Long optionId, @RequestHeader("Authorization") String authHeader) {
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         otcService.exerciseOption(optionId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    // ovo se ne koristi na frontu
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PostMapping("/exercise-payment-successful")
+    public ResponseEntity<Void> handleExercisePaymentSuccessful(@RequestBody @Valid PaymentSuccessfulDto optionId) {
+        otcService.handleExerciseSuccessfulPayment(optionId.getCallbackId());
         return ResponseEntity.ok().build();
     }
 

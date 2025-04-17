@@ -300,7 +300,7 @@ public class BootstrapData implements CommandLineRunner {
 
         // Validni ugovor
         OtcOption option3 = OtcOption.builder()
-                .strikePrice(new BigDecimal("2.00"))
+                .strikePrice(new BigDecimal("1.00"))
                 .settlementDate(LocalDate.now().plusWeeks(2))
                 .amount(200)
                 .buyerId(2L)
@@ -314,8 +314,72 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
+         // Validni ugovor
+         OtcOption option4 = OtcOption.builder()
+                 .strikePrice(new BigDecimal("2.00"))
+                 .settlementDate(LocalDate.now().plusWeeks(2))
+                 .amount(200)
+                 .buyerId(2L)
+                 .sellerId(1L)
+                 .underlyingStock(stock)
+                 .used(false)
+                 .premium(new BigDecimal("50.00"))
+                 .otcOffer(OtcOffer.builder()
+                         .premium(new BigDecimal("50.00"))
+                         .status(OtcOfferStatus.ACCEPTED)
+                         .build())
+                 .build();
+
+         // Validni ugovor
+         OtcOption option5 = OtcOption.builder()
+                 .strikePrice(new BigDecimal("3.00"))
+                 .settlementDate(LocalDate.now().plusWeeks(2))
+                 .amount(200)
+                 .buyerId(2L)
+                 .sellerId(1L)
+                 .underlyingStock(stock)
+                 .used(false)
+                 .premium(new BigDecimal("50.00"))
+                 .otcOffer(OtcOffer.builder()
+                         .premium(new BigDecimal("50.00"))
+                         .status(OtcOfferStatus.ACCEPTED)
+                         .build())
+                 .build();
+
+         // Validni ugovor
+         OtcOption option6 = OtcOption.builder()
+                 .strikePrice(new BigDecimal("4.00"))
+                 .settlementDate(LocalDate.now().plusWeeks(2))
+                 .amount(200)
+                 .buyerId(2L)
+                 .sellerId(1L)
+                 .underlyingStock(stock)
+                 .used(false)
+                 .premium(new BigDecimal("50.00"))
+                 .otcOffer(OtcOffer.builder()
+                         .premium(new BigDecimal("50.00"))
+                         .status(OtcOfferStatus.ACCEPTED)
+                         .build())
+                 .build();
+
+         // Validni ugovor
+         OtcOption option7 = OtcOption.builder()
+                 .strikePrice(new BigDecimal("5.00"))
+                 .settlementDate(LocalDate.now().plusWeeks(2))
+                 .amount(200)
+                 .buyerId(2L)
+                 .sellerId(1L)
+                 .underlyingStock(stock)
+                 .used(false)
+                 .premium(new BigDecimal("50.00"))
+                 .otcOffer(OtcOffer.builder()
+                         .premium(new BigDecimal("50.00"))
+                         .status(OtcOfferStatus.ACCEPTED)
+                         .build())
+                 .build();
+
         // Istekao neiskorišćen ugovor
-        OtcOption option4 = OtcOption.builder()
+        OtcOption option8 = OtcOption.builder()
                 .strikePrice(new BigDecimal("2.00"))
                 .settlementDate(LocalDate.now().minusMonths(1))
                 .amount(75)
@@ -330,7 +394,7 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
-        OtcOption option5 = OtcOption.builder()
+        OtcOption option9 = OtcOption.builder()
                 .strikePrice(new BigDecimal("2.00"))
                 .settlementDate(LocalDate.now().plusMonths(3))
                 .amount(100)
@@ -345,7 +409,7 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
-        List<OtcOption> options = List.of(option1, option2, option3, option4, option5);
+        List<OtcOption> options = List.of(option1, option2, option3, option4, option5, option6, option7, option8, option9);
 
         // Postavi bidirectional vezu za otcOffer
         options.forEach(option -> {
@@ -360,7 +424,7 @@ public class BootstrapData implements CommandLineRunner {
     @Transactional
     public void addPortfolioTestData() {
         PortfolioEntry p1 = PortfolioEntry.builder()
-                .id(1L).amount(100).type(ListingType.STOCK).used(false)
+                .id(1L).amount(1000).type(ListingType.STOCK).used(false)
                 .averagePrice(new BigDecimal("154")).userId(1L)
                 .inTheMoney(false)
                 .listing(listingRepository.findByTicker("DADA").orElseThrow())

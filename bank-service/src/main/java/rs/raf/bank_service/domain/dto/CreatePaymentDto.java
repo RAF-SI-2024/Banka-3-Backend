@@ -34,4 +34,8 @@ public class CreatePaymentDto {
     private String purposeOfPayment;
 
     private String referenceNumber;
+
+    private String callbackUrlSuccess;
+    private String callbackUrlFailure;
+    private Long callbackId;
 }

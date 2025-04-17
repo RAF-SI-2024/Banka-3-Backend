@@ -37,10 +37,8 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
-    private final TransactionQueueService transactionQueueService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
-    private CompanyAccountRepository companyAccountRepository;
 
     // Dohvatanje svih transakcija za određenog klijenta sa filtriranjem
     public Page<PaymentOverviewDto> getPayments(
@@ -117,7 +115,6 @@ public class PaymentService {
     @Transactional
     public PaymentDetailsDto createAndExecuteSystemPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
         Payment payment = createPayment(paymentDto, clientId);
-
         return confirmPayment(payment.getId());
     }
 
@@ -193,6 +190,7 @@ public class PaymentService {
         processPaymentWithCurrencyHandling(payment, sender, receiver);
 
         payment.setStatus(PaymentStatus.COMPLETED);
+
         return paymentMapper.toDetailsDto(paymentRepository.save(payment));
     }
 

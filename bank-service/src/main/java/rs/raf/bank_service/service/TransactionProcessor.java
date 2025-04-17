@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import rs.raf.bank_service.domain.dto.CreatePaymentDto;
-import rs.raf.bank_service.domain.dto.ExecutePaymentDto;
-import rs.raf.bank_service.domain.dto.TransactionMessageDto;
-import rs.raf.bank_service.domain.dto.TransferDto;
+import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.enums.TransactionType;
 
 @Service
@@ -19,9 +16,9 @@ public class TransactionProcessor {
 
     private final PaymentService paymentService;
     private final LoanRequestService loanRequestService;
-    private final TransactionQueueService transactionQueueService;
     private final LoanService loanService;
     private final ObjectMapper objectMapper;
+    private final PaymentCallbackService paymentCallbackService;
 
     @RabbitListener(queues = "transaction-queue")
     @Transactional
@@ -55,8 +52,21 @@ public class TransactionProcessor {
                 }
 
                 case SYSTEM_PAYMENT: {
-                    CreatePaymentDto createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
-                    paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
+                    CreatePaymentDto createPaymentDto = null;
+                    try {
+                        createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
+                        PaymentDetailsDto paymentDetailsDto = paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
+                        if (createPaymentDto.getCallbackUrlSuccess() != null) {
+                            System.out.println(paymentDetailsDto);
+                            paymentCallbackService.notifySuccess(createPaymentDto.getCallbackUrlSuccess(), createPaymentDto.getCallbackId());
+                        }
+                    } catch (Exception e) {
+                        log.error("Error executing system payment", e);
+                        if (createPaymentDto != null && createPaymentDto.getCallbackUrlFailure() != null) {
+                            paymentCallbackService.notifyFailure(createPaymentDto.getCallbackUrlFailure(), createPaymentDto.getCallbackId());
+                        }
+                    }
+
                     break;
                 }
 

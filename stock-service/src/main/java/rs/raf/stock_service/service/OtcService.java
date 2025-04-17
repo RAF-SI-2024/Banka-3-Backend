@@ -58,7 +58,6 @@ public class OtcService {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
-
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
 
@@ -69,30 +68,48 @@ public class OtcService {
             throw new OtcOptionSettlementExpiredException();
 
         BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
+
+        String senderAccount = bankClient.getAccountNumberByClientId(otcOption.getBuyerId()).getBody();
+        String receiverAccount = bankClient.getAccountNumberByClientId(otcOption.getSellerId()).getBody();
+
+        CreatePaymentDto createPaymentDto = CreatePaymentDto
+            .builder()
+            .amount(totalAmount)
+            .senderAccountNumber(senderAccount)
+            .receiverAccountNumber(receiverAccount)
+            .callbackId(otcOptionId)
+            .callbackUrlSuccess("/api/otc/exercise-payment-successful")
+            // nista nismo promenili, tako da failure nas ne zanima...?
+            // jedino sto ne znam kako da korisnik zna da je fejlalo s obzirom da nemamo taj info odmah
+                // mozda da imamo neki status, pa da polluju,
+                // neki entitet exercise transacttion status itd za sve ovakve stvari
+            .callbackUrlFailure(null)
+            .purposeOfPayment("OTC Exercise Option")
+            .paymentCode("289")
+            .build();
+
+        bankClient.executeSystemPayment(
+            ExecutePaymentDto.builder()
+            .clientId(userId)
+            .createPaymentDto(createPaymentDto)
+            .build()
+        );
+    }
+
+    public void handleExerciseSuccessfulPayment(Long otcOptionId) {
+        log.info("Handling exercise successful payment with otc option id {}", otcOptionId);
+        OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
+                .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
+
         Stock stock = otcOption.getUnderlyingStock();
 
-        Long paymentId = null;
-
-        try {
-            paymentId = transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
-
-            portfolioService.transferStockOwnership(
-                    otcOption.getSellerId(),
-                    otcOption.getBuyerId(),
-                    stock,
-                    otcOption.getAmount(),
-                    otcOption.getStrikePrice()
-            );
-        } catch (Exception ex) {
-            if (paymentId != null) {
-                try {
-                    bankClient.rejectPayment(paymentId);
-                } catch (Exception rollbackEx) {
-                    throw new OtcRollbackFailedException("Rollback failed after OTC execution error: " + rollbackEx.getMessage());
-                }
-            }
-            throw new OtcExecutionFailedException("OTC execution failed: " + ex.getMessage());
-        }
+        portfolioService.transferStockOwnership(
+                otcOption.getSellerId(),
+                otcOption.getBuyerId(),
+                stock,
+                otcOption.getAmount(),
+                otcOption.getStrikePrice()
+        );
 
         OtcOffer offer = otcOption.getOtcOffer();
         offer.setStatus(OtcOfferStatus.EXERCISED);
@@ -102,27 +119,6 @@ public class OtcService {
         otcOptionRepository.save(otcOption);
     }
 
-    private Long transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
-        String senderAccount = bankClient.getAccountNumberByClientId(fromUserId).getBody();
-        String receiverAccount = bankClient.getAccountNumberByClientId(toUserId).getBody();
-
-        ExecutePaymentDto dto = new ExecutePaymentDto();
-        dto.setSenderAccountNumber(senderAccount);
-        dto.setReceiverAccountNumber(receiverAccount);
-        dto.setAmount(amount);
-        dto.setPaymentCode("289");
-        dto.setPurposeOfPayment("OTC Option Purchase");
-        dto.setReferenceNumber("OTC-" + System.currentTimeMillis());
-        dto.setClientId(fromUserId);
-
-        ResponseEntity<PaymentDto> response = bankClient.executeSystemPayment(dto);
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new SystemPaymentFailedException("Payment failed: " + response.getStatusCode());
-        }
-
-        return response.getBody().getId();
-    }
 
     public OtcOfferDto createOffer(CreateOtcOfferDto dto, Long buyerId) {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findById(dto.getPortfolioEntryId())

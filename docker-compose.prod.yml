@@ -68,6 +68,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://bank_db/bank_db
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_USER-SERVICE_URL: http://user-service:8080
+      SPRING_CLOUD_OPENFEIGN_CLIENT_CONFIG_STOCK-SERVICE_URL: http://stock-service:8083
     depends_on:
       - bank_db
       - rabbitmq
