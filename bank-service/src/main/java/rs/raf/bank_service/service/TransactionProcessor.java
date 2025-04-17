@@ -57,6 +57,7 @@ public class TransactionProcessor {
                 case SYSTEM_PAYMENT: {
                     CreatePaymentDto createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
                     paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
+                    break;
                 }
 
                 case APPROVE_LOAN: {

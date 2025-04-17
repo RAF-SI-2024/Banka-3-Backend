@@ -297,11 +297,8 @@ public class PaymentService {
     }
 
     private void processDifferentCurrencyPayment(Account sender, Account receiver, BigDecimal amount, BigDecimal convertedAmount) {
-        CompanyAccount bankAccountFrom = accountRepository.findFirstByCurrencyAndCompanyId(sender.getCurrency(), 1L)
-                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + sender.getCurrency().getCode()));
-
-        CompanyAccount bankAccountTo = accountRepository.findFirstByCurrencyAndCompanyId(receiver.getCurrency(), 1L)
-                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + receiver.getCurrency().getCode()));
+        CompanyAccount bankAccountFrom = getBankCompanyAccount(sender.getCurrency());
+        CompanyAccount bankAccountTo = getBankCompanyAccount(receiver.getCurrency());
 
         // Sender -> Bank (same currency)
         updateAccountBalance(sender, sender.getBalance().subtract(amount));
@@ -326,5 +323,10 @@ public class PaymentService {
         account.setBalance(newBalance);
         account.setAvailableBalance(newAvailableBalance);
         accountRepository.save(account);
+    }
+
+    private CompanyAccount getBankCompanyAccount(Currency currency) {
+        return accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L)
+                .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + currency.getCode()));
     }
 }
