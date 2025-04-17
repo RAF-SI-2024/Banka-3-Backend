@@ -34,6 +34,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -309,8 +310,20 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
 
     @When("the admin approves the payment")
     public void theAdminApprovesThePayment() {
-        Long paymentId = paymentController.getPayments("Bearer " + clientToken, null, null, null, null,
-                null, dto.getAccountNumber(), null, 0, 10).getBody().toList().get(0).getId();
+        List<PaymentOverviewDto> payments = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            payments = paymentController.getPayments("Bearer " + clientToken, null, null, null, null,
+                    null, dto.getAccountNumber(), null, 0, 10).getBody().toList();
+
+            if (payments.isEmpty()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        Long paymentId = payments.get(0).getId();
         payment = paymentId;
         authenticateWithJwtAdmin("Bearer " + employeeToken, jwtTokenUtil);
         paymentController.confirmPayment(paymentId);
