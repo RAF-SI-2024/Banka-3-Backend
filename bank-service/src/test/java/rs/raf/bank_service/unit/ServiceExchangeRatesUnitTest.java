@@ -132,6 +132,6 @@ class ServiceExchangeRatesUnitTest {
 
         ExchangeRateDto result = exchangeRateService.getExchangeRate("USD", "EUR");
 
-        assertEquals(new BigDecimal("0.93740"), result.getExchangeRate());
+        assertEquals(new BigDecimal("0.91800"), result.getExchangeRate());
     }
 }

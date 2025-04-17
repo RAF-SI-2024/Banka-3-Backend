@@ -2,14 +2,13 @@ package rs.raf.bank_service.domain.dto;
 
 import lombok.*;
 
-import java.math.BigDecimal;
 @Getter
 @Setter
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ExecutePaymentDto {
+public class ExecuteTransferDto {
     private Long clientId;
-    private CreatePaymentDto createPaymentDto;
+    private TransferDto createTransferDto;
 }
 

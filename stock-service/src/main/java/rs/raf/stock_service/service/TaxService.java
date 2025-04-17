@@ -34,7 +34,8 @@ public class TaxService {
     }
 
     //@Scheduled(cron = "0 0 0 * * *")
-    public void processTaxes() {
+    public boolean processTaxes() {
+        boolean success = true;
         for (Order order : orderRepository.findAll()) {
             if (order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING)) {
                 AccountDetailsDto accountDetailsDto = bankClient.getAccountDetails(order.getAccountNumber());
@@ -50,13 +51,14 @@ public class TaxService {
                     taxDto.setAmount(taxAmount);
                     taxDto.setClientId(order.getUserId());
                     taxDto.setSenderAccountNumber(order.getAccountNumber());
-                    order.setTaxStatus(TaxStatus.PAID);
-                    orderRepository.save(order);
                     bankClient.handleTax(taxDto);
+                    //                     order.setTaxStatus(TaxStatus.PAID);
+                    //                    orderRepository.save(order);
                 } else {
-                    System.out.println("Not enough funds to pay taxes for account: " + order.getAccountNumber());
+                    success = false;
                 }
             }
         }
+        return success;
     }
 }

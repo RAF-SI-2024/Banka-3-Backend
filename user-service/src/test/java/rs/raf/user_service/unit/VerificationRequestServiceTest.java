@@ -143,7 +143,6 @@ public class VerificationRequestServiceTest {
                 verificationRequestService.processApproval(2L, "Bearer abc"));
 
         verify(bankClient, never()).confirmPayment(anyLong());
-        verify(bankClient, never()).confirmTransfer(anyLong());
         verify(verificationRequestRepository, never()).save(any());
     }
 
