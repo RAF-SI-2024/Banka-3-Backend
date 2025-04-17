@@ -7,6 +7,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.domain.dto.CreatePaymentDto;
+import rs.raf.bank_service.domain.dto.ExecutePaymentDto;
 import rs.raf.bank_service.domain.dto.TransactionMessageDto;
 import rs.raf.bank_service.domain.dto.TransferDto;
 import rs.raf.bank_service.domain.enums.TransactionType;
@@ -27,40 +28,54 @@ public class TransactionProcessor {
     public void processTransaction(TransactionMessageDto message) {
         try {
             switch (message.getType()) {
-                case CONFIRM_PAYMENT, CONFIRM_TRANSFER:
+                case CONFIRM_PAYMENT: {
                     Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
                     paymentService.confirmPayment(paymentId);
                     log.info("Processed payment/transfer confirmation for id: {}", paymentId);
                     break;
+                }
 
-                case CREATE_PAYMENT:
+                case REJECT_PAYMENT: {
+                    Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                    paymentService.rejectPayment(paymentId);
+                    log.info("Processed payment/transfer reject for id: {}", paymentId);
+                    break;
+                }
+                case CREATE_PAYMENT: {
                     CreatePaymentDto createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
                     paymentService.createPaymentAndVerificationRequest(createPaymentDto, message.getUserId());
                     log.info("Processed payment creation: {}", createPaymentDto);
                     break;
-
-                case CREATE_TRANSFER:
+                }
+                case CREATE_TRANSFER: {
                     TransferDto transferDto = objectMapper.readValue(message.getPayloadJson(), TransferDto.class);
                     paymentService.createTransferAndVerificationRequest(transferDto, message.getUserId());
                     log.info("Processed transfer creation: {}", transferDto);
                     break;
+                }
 
-                case APPROVE_LOAN:
+                case SYSTEM_PAYMENT: {
+                    CreatePaymentDto createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
+                    paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
+                }
+
+                case APPROVE_LOAN: {
                     Long requestId = objectMapper.readValue(message.getPayloadJson(), Long.class);
                     loanRequestService.approveLoan(requestId);
                     log.info("Processed loan approval for loan request id {}", requestId);
                     break;
-
-                case PAY_INSTALLMENT:
+                }
+                case PAY_INSTALLMENT: {
                     Long loanid = objectMapper.readValue(message.getPayloadJson(), Long.class);
                     loanService.payInstallment(loanid);
                     log.info("Processed PAY_INSTALLMENT for loan id {}", loanid);
                     break;
+                }
 
 
-
-                default:
+                default: {
                     log.warn("Unknown transaction type: {}", message.getType());
+                }
             }
 
         } catch (Exception e) {

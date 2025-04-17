@@ -54,7 +54,8 @@ public class PaymentController {
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(paymentService.createTransfer(dto, clientId));
+            transactionQueueService.queueTransaction(TransactionType.CREATE_TRANSFER, dto, clientId);
+            return ResponseEntity.status(HttpStatus.OK).body("Transfer creation successful");
         } catch (SenderAccountNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Sender account not found: " + e.getMessage());
         } catch (ReceiverAccountNotFoundException e) {
@@ -65,38 +66,6 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Currency mismatch: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + e.getMessage());
-        }
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/confirm-transfer/{paymentId}")
-    @Operation(summary = "Confirm and execute transfer", description = "Confirm transfer and execute funds transfer between accounts after verification.")
-    public ResponseEntity<String> confirmTransfer(@PathVariable Long paymentId) {
-        try {
-            boolean success = transactionQueueService.queueTransaction(TransactionType.CONFIRM_TRANSFER, paymentId);
-            if (success) {
-                return ResponseEntity.status(HttpStatus.OK).body("Transfer completed successfully.");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer failed.");
-            }
-        } catch (PaymentNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found: " + e.getMessage());
-        } catch (UnauthorizedTransferConormationException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized access: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to complete transfer: " + e.getMessage());
-        }
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/reject-transfer/{paymentId}")
-    @Operation(summary = "Reject transfer", description = "Rejects transfer.")
-    public ResponseEntity<?> rejectTransfer(@PathVariable Long paymentId) {
-        try {
-            paymentService.rejectTransfer(paymentId);
-            return ResponseEntity.status(HttpStatus.OK).body("Transfer rejected successfully.");
-        } catch (PaymentNotFoundException | RejectNonPendingRequestException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
@@ -112,26 +81,25 @@ public class PaymentController {
     public ResponseEntity<?> newPayment(
             @Valid @RequestBody CreatePaymentDto dto,
             @RequestHeader("Authorization") String token) {
-        System.out.println("AUTH: " + SecurityContextHolder.getContext().getAuthentication());
-
         Long clientId = jwtTokenUtil.getUserIdFromAuthHeader(token);
         try {
-            return ResponseEntity.status(HttpStatus.OK).body( paymentService.createPaymentBeforeConfirmation(dto, clientId));
+            transactionQueueService.queueTransaction(TransactionType.CREATE_PAYMENT, dto, clientId);
+            return ResponseEntity.status(HttpStatus.OK).body("Payment created successfully.");
         } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException |
-                 SenderAccountNotFoundException | ReceiverAccountNotFoundException | InsufficientFundsException |
-                 JsonProcessingException e) {
+                 SenderAccountNotFoundException | ReceiverAccountNotFoundException | InsufficientFundsException e
+//                 JsonProcessingException e
+        ) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/tax")
-    public ResponseEntity<?> handleTax(
-            @Valid @RequestBody TaxDto taxDto,
-            @RequestHeader("Authorization") String token) throws JsonProcessingException {
-        paymentService.handleTax(taxDto);
-        return ResponseEntity.status(HttpStatus.OK).build();
-    }
+//    @PreAuthorize("hasRole('ADMIN')")
+//    @PostMapping("/tax")
+//    public ResponseEntity<?> handleTax(
+//            @Valid @RequestBody TaxDto taxDto) throws JsonProcessingException {
+//        paymentService.handleTax(taxDto);
+//        return ResponseEntity.status(HttpStatus.OK).build();
+//    }
 
     // Metoda za potvrdu plaćanja
     @PreAuthorize("hasRole('ADMIN')")
@@ -165,7 +133,7 @@ public class PaymentController {
     })
     public ResponseEntity<String> rejectPayment(@PathVariable Long paymentId) {
         try {
-            paymentService.rejectPayment(paymentId);
+            transactionQueueService.queueTransaction(TransactionType.REJECT_PAYMENT, paymentId);
             return ResponseEntity.status(HttpStatus.OK).body("Payment rejected successfully.");
         } catch (PaymentNotFoundException | RejectNonPendingRequestException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -217,7 +185,7 @@ public class PaymentController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> executeSystemPayment(@RequestBody ExecutePaymentDto dto) {
         try {
-            paymentService.executeSystemPayment(dto);
+            transactionQueueService.queueTransaction(TransactionType.SYSTEM_PAYMENT, dto.getCreatePaymentDto(), dto.getClientId());
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

@@ -42,112 +42,6 @@ public class PaymentService {
     private CardRepository cardRepository;
     private CompanyAccountRepository companyAccountRepository;
 
-//    public boolean createTransferPendingConfirmation(TransferDto transferDto, Long clientId) throws JsonProcessingException {
-//        // Preuzimanje računa za sender i receiver
-//        Account sender = accountRepository.findByAccountNumberAndClientId(transferDto.getSenderAccountNumber(), clientId)
-//                .stream().findFirst()
-//                .orElseThrow(() -> new SenderAccountNotFoundException(transferDto.getSenderAccountNumber()));
-//
-//        Account receiver = accountRepository.findByAccountNumber(transferDto.getReceiverAccountNumber())
-//                .stream().findFirst()
-//                .orElseThrow(() -> new ReceiverAccountNotFoundException(transferDto.getReceiverAccountNumber()));
-//
-//        // Provera da li sender ima dovoljno sredstava
-//        if (sender.getBalance().compareTo(transferDto.getAmount()) < 0) {
-//            throw new InsufficientFundsException(sender.getBalance(), transferDto.getAmount());
-//        }
-//
-//        BigDecimal amount = transferDto.getAmount();
-//        BigDecimal convertedAmount = amount;
-//        BigDecimal exchangeRateValue = BigDecimal.ONE;
-//
-//        // Provera da li su valute različite
-//        if (!sender.getCurrency().equals(receiver.getCurrency())) {
-//            // Dobijanje kursa konverzije
-//            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate(sender.getCurrency().getCode(), receiver.getCurrency().getCode());
-//            exchangeRateValue = exchangeRateDto.getSellRate();
-//
-//            // Konverzija iznosa u valutu receiver-a
-//            convertedAmount = amount.multiply(exchangeRateValue);
-//        }
-//
-//        // Kreiranje Payment entiteta za transfer
-//        Payment payment = new Payment();
-//        payment.setClientId(clientId);  // Dodajemo Client ID
-//        payment.setSenderAccount(sender);  // Sender račun
-//        payment.setAmount(transferDto.getAmount());  // Iznos
-//        payment.setAccountNumberReceiver(transferDto.getReceiverAccountNumber());  // Primalac (receiver)
-//        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);  // Status je "na čekanju"
-//        payment.setDate(LocalDateTime.now());  // Datum transakcije
-//        payment.setOutAmount(convertedAmount);
-//
-//        // Postavi receiverClientId samo ako je receiver u našoj banci
-//        payment.setReceiverClientId(receiver.getClientId());  // Postavljamo receiverClientId
-//
-//        paymentRepository.save(payment);
-//
-//        PaymentVerificationDetailsDto paymentVerificationDetailsDto = PaymentVerificationDetailsDto.builder()
-//                .fromAccountNumber(sender.getAccountNumber())
-//                .toAccountNumber(transferDto.getReceiverAccountNumber())
-//                .amount(transferDto.getAmount())
-//                .build();
-//
-//        // Kreiraj PaymentVerificationRequestDto i pozovi UserClient da kreira verificationRequest
-//        CreateVerificationRequestDto paymentVerificationRequestDto = new CreateVerificationRequestDto(
-//                clientId,
-//                payment.getId(),
-//                VerificationType.TRANSFER,
-//                objectMapper.writeValueAsString(paymentVerificationDetailsDto)
-//        );
-//        userClient.createVerificationRequest(paymentVerificationRequestDto);
-//        return true;
-//    }
-
-    public void rejectTransfer(Long paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
-
-        if (!payment.getStatus().equals(PaymentStatus.PENDING_CONFIRMATION))
-            throw new RejectNonPendingRequestException();
-
-        payment.setStatus(PaymentStatus.CANCELED);
-        paymentRepository.save(payment);
-    }
-
-
-
-//    public void handleTax(TaxDto taxDto) throws JsonProcessingException {
-//        CreatePaymentDto createPaymentDto = new CreatePaymentDto();
-//        createPaymentDto.setPurposeOfPayment("tax");
-//        createPaymentDto.setSenderAccountNumber(taxDto.getSenderAccountNumber());
-//        createPaymentDto.setReferenceNumber("N/A");
-//        createPaymentDto.setPaymentCode("N/A");
-//        createPaymentDto.setRecieverName("Republika Srbija");
-//        createPaymentDto.setAmount(taxDto.getAmount());
-//        Account account = companyAccountRepository.findByCompanyId(2L);
-//        createPaymentDto.setReceiverAccountNumber(account.getAccountNumber());
-//        PaymentDto paymentDto = createPaymentBeforeConfirmation(createPaymentDto, taxDto.getClientId());
-//        transactionQueueService.queueTransaction(TransactionType.CONFIRM_PAYMENT, paymentDto.getId());
-//    }
-
-//    public void executeSystemPayment(ExecutePaymentDto dto) throws Exception {
-//
-//        CreatePaymentDto createDto = new CreatePaymentDto();
-//        createDto.setSenderAccountNumber(String.valueOf(dto.getSenderAccountNumber()));
-//        createDto.setReceiverAccountNumber(String.valueOf(dto.getReceiverAccountNumber()));
-//        createDto.setAmount(dto.getAmount());
-//        createDto.setPaymentCode(String.valueOf(dto.getPaymentCode()));
-//        createDto.setPurposeOfPayment(dto.getPurposeOfPayment());
-//        createDto.setReferenceNumber(dto.getReferenceNumber());
-//
-//
-//        PaymentDto payment = createPaymentBeforeConfirmation(createDto, dto.getClientId());
-//
-//
-//        confirmPayment(payment.getId());
-//    }
-
-
     // Dohvatanje svih transakcija za određenog klijenta sa filtriranjem
     public Page<PaymentOverviewDto> getPayments(
             String token,
@@ -208,14 +102,16 @@ public class PaymentService {
             throw new AccountNotFoundException();
         }
 
-        return createPaymentAndVerificationRequest(
-            CreatePaymentDto.builder()
-                    .senderAccountNumber(transferDto.getSenderAccountNumber())
-                    .receiverAccountNumber(transferDto.getReceiverAccountNumber())
-                    .amount(transferDto.getAmount())
-                    .build(),
-                clientId
-        );
+        Payment payment = createPayment(CreatePaymentDto.builder()
+                        .senderAccountNumber(transferDto.getSenderAccountNumber())
+                        .receiverAccountNumber(transferDto.getReceiverAccountNumber())
+                        .amount(transferDto.getAmount())
+                        .build(),
+                clientId);
+
+        createPaymentVerificationRequest(payment, clientId);
+
+        return paymentMapper.toPaymentDto(payment, "Receiver");
     }
 
     @Transactional
@@ -226,6 +122,7 @@ public class PaymentService {
     }
 
     public PaymentDto createPaymentAndVerificationRequest(CreatePaymentDto createPaymentDto, Long clientId) throws JsonProcessingException {
+        validatePaymentData(createPaymentDto);
         Payment payment = createPayment(createPaymentDto, clientId);
         createPaymentVerificationRequest(payment, clientId);
 
@@ -235,12 +132,12 @@ public class PaymentService {
     }
 
     private Payment createPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
-        validatePaymentData(paymentDto);
-
         Account sender = getSenderAccount(paymentDto.getSenderAccountNumber(), clientId);
         Account receiver = getReceiverAccount(paymentDto.getReceiverAccountNumber());
 
         validateSufficientFunds(sender, paymentDto.getAmount());
+
+        updateAccountBalance(sender, sender.getBalance(), sender.getAvailableBalance().subtract(paymentDto.getAmount()));
 
         String senderNameSurname = getSenderName(sender);
 
@@ -262,8 +159,6 @@ public class PaymentService {
 
         payment.setReceiverClientId(receiver.getClientId());
         paymentRepository.save(payment);
-
-        createPaymentVerificationRequest(payment, clientId);
 
         return payment;
     }
@@ -288,6 +183,10 @@ public class PaymentService {
     @Transactional
     public PaymentDetailsDto confirmPayment(Long paymentId) {
         Payment payment = getPaymentById(paymentId);
+
+        if (!payment.getStatus().equals(PaymentStatus.PENDING_CONFIRMATION))
+            throw new RejectNonPendingRequestException();
+
         Account sender = payment.getSenderAccount();
         Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
 
@@ -379,8 +278,8 @@ public class PaymentService {
             exchangeRateValue = exchangeRateDto.getSellRate();
             convertedAmount = amount.multiply(exchangeRateValue);
 
-            exchangeProfit = exchangeRateDto.getSellRate().multiply(amount)
-                    .subtract(exchangeRateDto.getExchangeRate().multiply(amount));
+            exchangeProfit = exchangeRateDto.getExchangeRate().multiply(amount)
+                    .subtract(exchangeRateDto.getSellRate().multiply(amount));
         }
 
         return new CurrencyConversionResult(convertedAmount, exchangeRateValue, exchangeProfit);
