@@ -22,5 +22,4 @@ public class OtcOptionDto {
     private OtcOptionStatus status;
     private boolean used;
     private BigDecimal currentPrice;
-    private String ownerName;
 }
