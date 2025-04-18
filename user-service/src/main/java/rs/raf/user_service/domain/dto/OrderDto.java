@@ -15,4 +15,12 @@ public class OrderDto {
 
     private Long userId;
     private BigDecimal profit;
+
+    @Override
+    public String toString() {
+        return "OrderDto{" +
+                "userId=" + userId +
+                ", profit=" + profit +
+                '}';
+    }
 }
