@@ -14,11 +14,6 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
             }
 
             @Override
-            public void confirmTransfer(Long id) {
-                throw new RuntimeException("Unable to communicate with Bank Service");
-            }
-
-            @Override
             public void changeAccountLimit(Long id) {
                 throw new RuntimeException("Unable to communicate with Bank Service");
             }
@@ -30,11 +25,6 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
 
             @Override
             public void rejectConfirmPayment(Long id) {
-                throw new RuntimeException("Unable to communicate with Bank Service");
-            }
-
-            @Override
-            public void rejectConfirmTransfer(Long id) {
                 throw new RuntimeException("Unable to communicate with Bank Service");
             }
 

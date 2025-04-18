@@ -65,7 +65,7 @@ class BootstrapData(
                         role = clientRole
                     },
                 )
-            clientRepository.saveAll(clients.toSet())
+            clientRepository.saveAll(clients.toList())
         }
 
         if (employeeRepository.count() == 0L) {
@@ -123,7 +123,7 @@ class BootstrapData(
                         role = agentRole
                     },
                 )
-            employeeRepository.saveAll(employees.toSet())
+            employeeRepository.saveAll(employees.toList())
         }
 
         if (activityCodeRepository.count() == 0L) {

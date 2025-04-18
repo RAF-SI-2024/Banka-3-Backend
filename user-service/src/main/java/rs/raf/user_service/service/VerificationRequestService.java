@@ -69,8 +69,7 @@ public class VerificationRequestService {
 
         switch (request.getVerificationType()) {
             case CHANGE_LIMIT -> bankClient.changeAccountLimit(request.getTargetId());//radi
-            case PAYMENT -> bankClient.confirmPayment(request.getTargetId());//radi
-            case TRANSFER -> bankClient.confirmTransfer(request.getTargetId());
+            case PAYMENT, TRANSFER -> bankClient.confirmPayment(request.getTargetId());//radi
             case CARD_REQUEST -> bankClient.approveCardRequest(request.getTargetId());//radi
         }
 
@@ -92,8 +91,7 @@ public class VerificationRequestService {
 
         switch (request.getVerificationType()) {
             case CHANGE_LIMIT -> bankClient.rejectChangeAccountLimit(request.getTargetId());
-            case PAYMENT -> bankClient.rejectConfirmPayment(request.getTargetId());
-            case TRANSFER -> bankClient.rejectConfirmTransfer(request.getTargetId());
+            case PAYMENT, TRANSFER -> bankClient.rejectConfirmPayment(request.getTargetId());
             case CARD_REQUEST -> bankClient.rejectApproveCardRequest(request.getTargetId());
         }
     }

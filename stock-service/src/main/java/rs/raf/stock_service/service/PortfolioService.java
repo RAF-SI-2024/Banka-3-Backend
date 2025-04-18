@@ -203,6 +203,8 @@ public class PortfolioService {
             throw new RuntimeException("Seller does not have enough stocks");
         }
 
+        // @todo update ako treba jos nesto, nisam siguran,
+        // @todo zbog onih novih varijabli za rezervisane, i public mozda treba itd
         sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
         sellerEntry.setLastModified(LocalDateTime.now());
 

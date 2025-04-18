@@ -67,6 +67,7 @@ public class BootstrapData implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Role CLIENT not found"));
 
             Client client = Client.builder()
+                    .id(1L)
                     .firstName("Marko")
                     .lastName("Markovic")
                     .email("marko.m@example.com")
@@ -81,6 +82,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client2 = Client.builder()
+                    .id(2L)
                     .firstName("Jovan")
                     .lastName("Jovanovic")
                     .email("jovan.v@example.com")
@@ -94,7 +96,7 @@ public class BootstrapData implements CommandLineRunner {
                     .role(clientRole)
                     .build();
 
-            clientRepository.saveAll(Set.of(client, client2));
+            clientRepository.saveAll(List.of(client, client2));
         }
 
         if (employeeRepository.count() == 0) {
@@ -107,6 +109,7 @@ public class BootstrapData implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
 
             Employee employee = Employee.builder()
+                    .id(3L)
                     .firstName("Petar")
                     .lastName("Petrovic")
                     .email("petar.p@example.com")
@@ -124,6 +127,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Employee employee2 = Employee.builder()
+                    .id(4L)
                     .firstName("Jana")
                     .lastName("Ivanovic")
                     .email("jana.i@example.com")
@@ -141,6 +145,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Employee employee3 = Employee.builder()
+                    .id(5L)
                     .firstName("Zika")
                     .lastName("Petrović")
                     .email("zika.p@example.com")
@@ -157,7 +162,7 @@ public class BootstrapData implements CommandLineRunner {
                     .role(agentRole)
                     .build();
 
-            employeeRepository.saveAll(Set.of(employee, employee2,employee3));
+            employeeRepository.saveAll(List.of(employee, employee2,employee3));
         }
 
         // CHATGPT CODE START 😊
