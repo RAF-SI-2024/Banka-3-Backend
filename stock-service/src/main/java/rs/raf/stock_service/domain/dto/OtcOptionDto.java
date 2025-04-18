@@ -21,6 +21,6 @@ public class OtcOptionDto {
     private BigDecimal profit;
     private OtcOptionStatus status;
     private boolean used;
-
-    private BigDecimal currentPrice; // <--- NOVO POLJE
+    private BigDecimal currentPrice;
+    private String ownerName;
 }
