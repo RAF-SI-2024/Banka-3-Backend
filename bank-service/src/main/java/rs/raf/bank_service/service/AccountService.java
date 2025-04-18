@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
+import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.AccountMapper;
 import rs.raf.bank_service.exceptions.*;
@@ -27,9 +28,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -103,16 +102,17 @@ public class AccountService {
     }
 
     // Za Cto
-    public List<AccountDto> getAccountsForClient(Long clientId) {
+    public AccountDto getUSDAccountForClient(Long clientId) {
         ClientDto client = userClient.getClientById(clientId);
 
-        List<Account> accounts = accountRepository.findAll(
-                AccountSearchSpecification.clientIs(clientId)
+        List<Account> accounts = accountRepository.findAllByClientIdAndCurrency_Code(
+                clientId, "USD"
         );
 
-        return accounts.stream()
-                .map(acc -> AccountMapper.toDto(acc, client))
-                .collect(Collectors.toList());
+        Optional<Account> highestBalance = accounts.stream().max(Comparator.comparing(Account::getAvailableBalance));
+
+        return highestBalance.map(account -> AccountMapper.toDto(account, client)).orElse(null);
+
     }
 
 
@@ -171,6 +171,18 @@ public class AccountService {
             ClientDto clientDto = userClient.getClientById(clientId);
 
             return accountRepository.findAllByClientId(clientId).stream().map(account ->
+                    AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
+                    Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
+        } catch (FeignException.NotFound e) {
+            throw new UserNotAClientException();
+        }
+    }
+
+    public List<AccountDto> getMyUSDAccounts(Long clientId) {
+        try {
+            ClientDto clientDto = userClient.getClientById(clientId);
+
+            return accountRepository.findAllByClientIdAndCurrency_Code(clientId, "USD").stream().map(account ->
                     AccountMapper.toDto(account, clientDto)).sorted(Comparator.comparing(AccountDto::getAvailableBalance,
                     Comparator.nullsLast(Comparator.naturalOrder())).reversed()).collect(Collectors.toList());
         } catch (FeignException.NotFound e) {
@@ -380,6 +392,14 @@ public class AccountService {
         allAccounts.sort(Comparator.comparing(AccountDto::getAccountNumber));
 
         return allAccounts;
+    }
+
+    public List<AccountDto> getBankUSDAccounts() {
+        return companyAccountRepository
+                .findByCompanyIdAndCurrency_Code(1L, "USD")
+                .stream()
+                .map(account -> AccountMapper.toDto(account, null))
+                .toList();
     }
 
 

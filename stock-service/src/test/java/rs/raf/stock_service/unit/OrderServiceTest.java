@@ -116,8 +116,8 @@ public class OrderServiceTest {
         orderId = 1L;
         listingId = 1L;
 
-        Country country = Country.builder().openTime(LocalTime.of(16, 0))
-                .closeTime(LocalTime.of(22, 0)).build();
+        Country country = Country.builder().openTime(LocalTime.of(0, 0))
+                .closeTime(LocalTime.of(23, 59)).build();
 
         Exchange exchange = Exchange.builder().polity(country).timeZone(-5L).build();
 
