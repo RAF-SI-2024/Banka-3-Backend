@@ -14,10 +14,6 @@ import java.time.format.DateTimeFormatter;
 @AllArgsConstructor
 public class OtcOptionMapper {
     public OtcOptionDto toDto(OtcOption option, String sellerName) {
-//         seller = userRepository.findById(option.getSellerId())
-//                .orElseThrow(() -> new RuntimeException("Prodavac nije pronađen"));
-//        String sellerInfo = seller.getName() + ", " + seller.getBank();
-        String sellerInfo = "Coming soon lol"; // uskoro dodati
         BigDecimal premium = option.getPremium();
 
         BigDecimal currentPrice = option.getUnderlyingStock().getPrice();
@@ -33,8 +29,7 @@ public class OtcOptionMapper {
                 .premium(premium)
                 .settlementDate(option.getSettlementDate()
                         .format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
-                .sellerInfo(sellerInfo)
-                .ownerName(sellerName)
+                .sellerInfo(sellerName)
                 .profit(profit)
                 .status(option.getSettlementDate().isBefore(LocalDate.now()) ? OtcOptionStatus.EXPIRED : OtcOptionStatus.VALID)
                 .used(option.isUsed())
