@@ -1,49 +1,68 @@
-version: '3.9'
+version: '3.8'
 
 services:
-  main_db:
-    image: postgres:17.3-alpine
-    restart: always
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "5432:5432"
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  data-analysis-service:
+    build:
+      context: ./data-analysis-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_BROKER=kafka:29092
+      - DOCKER_ENV=true
+    depends_on:
+      - kafka
     volumes:
-      - main_db_data:/var/lib/postgresql/data
+      - ./data-analysis-service:/app
+
+  mock-data-generator:
+    build:
+      context: ./data-analysis-service
+      dockerfile: scripts/Dockerfile
     environment:
-      - POSTGRES_PASSWORD=lozinka
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=main_db
-  bank_db:
-    image: postgres:17.3-alpine
-    restart: always
-    ports:
-      - "5433:5432"
+      - KAFKA_BROKER=kafka:29092
+      - DOCKER_ENV=true
+    depends_on:
+      - kafka
     volumes:
-      - bank_db_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=lozinka
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=bank_db
-  stock_db:
-    image: postgres:17.3-alpine
-    restart: always
+      - ./data-analysis-service:/app
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
     ports:
-      - "5434:5432"
+      - "8001:8000"
+    environment:
+      - KAFKA_BROKER=kafka:29092
+      - DOCKER_ENV=true
+    depends_on:
+      - kafka
     volumes:
-      - stock_db_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=lozinka
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=stock_db
-  rabbitmq:
-    image: rabbitmq:3-management
-    restart: always
-    ports:
-      - "5672:5672"  # RabbitMQ port
-      - "15672:15672"  # RabbitMQ management console port
-    environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - ./user-service:/app
+
 volumes:
-  main_db_data:
-  bank_db_data:
-  stock_db_data:
+  postgres_data:
+  redis_data:
