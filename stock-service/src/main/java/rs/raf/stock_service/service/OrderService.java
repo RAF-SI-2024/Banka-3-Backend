@@ -83,8 +83,7 @@ public class OrderService {
         return orders.stream().map(order -> {
             ListingDto listingDto = listingMapper.toDto(order.getListing(),
                     listingPriceHistoryRepository.findTopByListingOrderByDateDesc(order.getListing()));
-            String clientName = getClientName(order);
-            return OrderMapper.toDto(order, listingDto, clientName, order.getAccountNumber());
+            return OrderMapper.toDto(order, listingDto, "", order.getAccountNumber());
         }).collect(Collectors.toList());
     }
 

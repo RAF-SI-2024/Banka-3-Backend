@@ -276,8 +276,19 @@ public class PaymentService {
             exchangeRateValue = exchangeRateDto.getSellRate();
             convertedAmount = amount.multiply(exchangeRateValue);
 
-            exchangeProfit = exchangeRateDto.getExchangeRate().multiply(amount)
-                    .subtract(exchangeRateDto.getSellRate().multiply(amount));
+            exchangeProfit = (exchangeRateDto.getExchangeRate().subtract(exchangeRateDto.getSellRate())
+                    .multiply(amount));
+
+            if (!receiverCurrency.getCode().equals("RSD")) {
+                exchangeProfit = exchangeRateService.convert(
+                        new ConvertDto(
+                                receiverCurrency.getCode(),
+                                "RSD",
+                                exchangeProfit
+                        )
+                );
+            }
+            
         }
 
         return new CurrencyConversionResult(convertedAmount, exchangeRateValue, exchangeProfit);

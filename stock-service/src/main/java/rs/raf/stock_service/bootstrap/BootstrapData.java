@@ -63,10 +63,12 @@ public class BootstrapData implements CommandLineRunner {
     public void run(String... args) {
         System.out.println("tu sam");
         importCoreData();
-        importStocksAndHistory();
-        importForexAndHistory();
-        addFutures();
-        addOptions();
+        if (listingRepository.count() == 0) {
+            importStocksAndHistory();
+            importForexAndHistory();
+            addFutures();
+            addOptions();
+        }
         addPortfolioTestData();
         addOrderTestData();
         addOtcOfferTestData();
@@ -270,6 +272,7 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addOtcOfferTestData() {
+        if (otcOfferRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         OtcOffer otcOffer1 = OtcOffer.builder()
@@ -306,6 +309,7 @@ public class BootstrapData implements CommandLineRunner {
 
      @Transactional
     public void addOtcOptionTestData() {
+        if (otcOptionRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         // Validni neiskorišćeni ugovor
@@ -465,6 +469,8 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addPortfolioTestData() {
+        if (portfolioEntryRepository.count() == 0) return;
+
         PortfolioEntry p1 = PortfolioEntry.builder()
                 .id(1L).amount(1000).type(ListingType.STOCK).used(false)
                 .averagePrice(new BigDecimal("154")).userId(1L)
@@ -484,27 +490,8 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addOrderTestData() {
+        if (orderRepository.count() > 0) return;
         Listing stock = listingRepository.findByTicker("DADA").orElse(null);
-
-        Order user2Pending = Order.builder()
-                .id(2L)
-                .orderType(OrderType.MARKET)
-                .contractSize(1)
-                .accountNumber("111111111111111111")
-                .afterHours(false)
-                .isDone(false)
-                .direction(OrderDirection.BUY)
-                .pricePerUnit(new BigDecimal("140"))
-                .remainingPortions(0)
-                .taxAmount(BigDecimal.ZERO)
-                .taxStatus(TaxStatus.TAXFREE)
-                .userId(2L)
-                .quantity(20)
-                .approvedBy(null)
-                .status(OrderStatus.PENDING)
-                .lastModification(LocalDateTime.now())
-                .listing(stock)
-                .build();
 
         Order user1DoneBuy = Order.builder()
                 .id(1L)
@@ -522,6 +509,26 @@ public class BootstrapData implements CommandLineRunner {
                 .quantity(10)
                 .approvedBy(null)
                 .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user2Pending = Order.builder()
+                .id(2L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("111111111111111111")
+                .afterHours(false)
+                .isDone(false)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("140"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(2L)
+                .quantity(20)
+                .approvedBy(null)
+                .status(OrderStatus.PENDING)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
                 .build();
@@ -544,6 +551,7 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("100"))
                 .build();
 
         Order user1DoneBuy2 = Order.builder()
@@ -584,6 +592,7 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("50"))
                 .build();
 
         Order user3DoneBuy = Order.builder()
@@ -624,18 +633,22 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("200"))
                 .build();
 
 
-        orderRepository.save(user2Pending);
-        orderRepository.save(user1DoneBuy);
-        orderRepository.save(user1DoneSell);
-        orderRepository.save(user3DoneBuy);
-        orderRepository.save(user3DoneSell);
-        orderRepository.save(user1DoneBuy2);
-        orderRepository.save(user1DoneSell2);
-        orderRepository.save(user3DoneBuy);
-        orderRepository.save(user3DoneSell);
+        orderRepository.saveAll(List.of(
+                user1DoneBuy,
+                user2Pending,
+                user1DoneBuy,
+                user1DoneSell,
+                user3DoneBuy,
+                user3DoneSell,
+                user1DoneBuy2,
+                user1DoneSell2,
+                user3DoneBuy,
+                user3DoneSell
+        ));
     }
 
     private List<ListingPriceHistory> createNewHistory(Listing listing, TimeSeriesDto dto, Set<LocalDateTime> existingDates) {

@@ -56,14 +56,14 @@ public class TransactionProcessor {
                     try {
                         createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
                         PaymentDetailsDto paymentDetailsDto = paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
-                        if (createPaymentDto.getCallbackUrlSuccess() != null) {
+                        if (createPaymentDto.getCallbackId() != null) {
                             System.out.println(paymentDetailsDto);
-                            paymentCallbackService.notifySuccess(createPaymentDto.getCallbackUrlSuccess(), createPaymentDto.getCallbackId());
+                            paymentCallbackService.notifySuccess(createPaymentDto.getCallbackId());
                         }
                     } catch (Exception e) {
                         log.error("Error executing system payment", e);
-                        if (createPaymentDto != null && createPaymentDto.getCallbackUrlFailure() != null) {
-                            paymentCallbackService.notifyFailure(createPaymentDto.getCallbackUrlFailure(), createPaymentDto.getCallbackId());
+                        if (createPaymentDto != null && createPaymentDto.getCallbackId() != null) {
+                            paymentCallbackService.notifyFailure(createPaymentDto.getCallbackId());
                         }
                     }
 
