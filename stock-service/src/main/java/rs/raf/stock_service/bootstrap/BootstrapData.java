@@ -63,10 +63,12 @@ public class BootstrapData implements CommandLineRunner {
     public void run(String... args) {
         System.out.println("tu sam");
         importCoreData();
-        importStocksAndHistory();
-        importForexAndHistory();
-        addFutures();
-        addOptions();
+        if (listingRepository.count() == 0) {
+            importStocksAndHistory();
+            importForexAndHistory();
+            addFutures();
+            addOptions();
+        }
         addPortfolioTestData();
         addOrderTestData();
         addOtcOfferTestData();
@@ -270,6 +272,7 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addOtcOfferTestData() {
+        if (otcOfferRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         OtcOffer otcOffer1 = OtcOffer.builder()
@@ -306,6 +309,7 @@ public class BootstrapData implements CommandLineRunner {
 
      @Transactional
     public void addOtcOptionTestData() {
+        if (otcOptionRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         // Validni neiskorišćeni ugovor
@@ -465,6 +469,8 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addPortfolioTestData() {
+        if (portfolioEntryRepository.count() == 0) return;
+
         PortfolioEntry p1 = PortfolioEntry.builder()
                 .id(1L).amount(1000).type(ListingType.STOCK).used(false)
                 .averagePrice(new BigDecimal("154")).userId(1L)
@@ -484,6 +490,7 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addOrderTestData() {
+        if (orderRepository.count() > 0) return;
         Listing stock = listingRepository.findByTicker("DADA").orElse(null);
 
         Order user1DoneBuy = Order.builder()
