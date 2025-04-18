@@ -197,6 +197,8 @@ public class PortfolioService {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findByUserIdAndListing(fromUserId, stock)
                 .orElseThrow(() -> new PortfolioEntryNotFoundException()); //ne sme da se desi ovaj exception
 
+        // @todo update ako treba jos nesto, nisam siguran,
+        // @todo zbog onih novih varijabli za rezervisane, i public mozda treba itd
         sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
         sellerEntry.setReservedAmount(sellerEntry.getReservedAmount() - quantity);
         sellerEntry.setLastModified(LocalDateTime.now());

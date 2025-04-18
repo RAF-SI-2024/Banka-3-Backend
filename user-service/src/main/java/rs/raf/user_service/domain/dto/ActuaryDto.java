@@ -17,4 +17,15 @@ public class ActuaryDto {
     private String lastName;
     private String role;
     private BigDecimal profit;
+
+    @Override
+    public String toString() {
+        return "ActuaryDto{" +
+                "id=" + id +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", role='" + role + '\'' +
+                ", profit=" + profit +
+                '}';
+    }
 }

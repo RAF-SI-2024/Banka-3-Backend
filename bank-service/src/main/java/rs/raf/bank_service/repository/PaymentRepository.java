@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
     Optional<Payment> findByIdAndClientId(Long id, Long clientId);
 
-    @Query("SELECT SUM(p.exchangeProfit) FROM payments p WHERE p.exchangeProfit IS NOT NULL")
+    @Query("SELECT SUM(p.exchangeProfit) FROM payments p WHERE p.exchangeProfit IS NOT NULL AND p.status = 'COMPLETED'")
     BigDecimal getBankProfitFromExchange();
 
 }

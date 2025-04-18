@@ -145,12 +145,13 @@ public class ExchangeRateService {
         Optional<ExchangeRate> fromRsdRate = exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, toCurrency);
 
         if (toRsdRate.isPresent() && fromRsdRate.isPresent()) {
-            BigDecimal intermediateRate = toRsdRate.get().getSellRate().multiply(fromRsdRate.get().getSellRate());
+            BigDecimal intermediateRate = toRsdRate.get().getExchangeRate().multiply(fromRsdRate.get().getExchangeRate());
+            BigDecimal intermediateSellRate = toRsdRate.get().getSellRate().multiply(fromRsdRate.get().getSellRate());
             return new ExchangeRateDto(
                     new CurrencyDto(fromCurrency.getCode(), fromCurrency.getName(), fromCurrency.getSymbol()),
                     new CurrencyDto(toCurrency.getCode(), toCurrency.getName(), toCurrency.getSymbol()),
                     intermediateRate,
-                    intermediateRate
+                    intermediateSellRate
             );
         }
 

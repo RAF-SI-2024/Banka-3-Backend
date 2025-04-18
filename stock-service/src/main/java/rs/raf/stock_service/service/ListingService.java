@@ -163,65 +163,6 @@ public class ListingService {
         }
     }
 
-    private void importForexPriceHistory() {
-        System.out.println("Fetching intraday price history for all forex pairs...");
-
-        List<ForexPair> forexPairs = listingRepository.findAll().stream()
-                .filter(listing -> listing instanceof ForexPair)
-                .map(listing -> (ForexPair) listing)
-                .collect(Collectors.toList());
-
-        List<ListingPriceHistory> allPriceHistoryEntities = new ArrayList<>();
-
-        for (ForexPair forexPair : forexPairs) {
-            try {
-                String fromSymbol = forexPair.getBaseCurrency();
-                String toSymbol = forexPair.getQuoteCurrency();
-
-                // Poziv API-ja za FX_INTRADAY podatke
-                String response = alphavantageClient.getForexPriceHistory(fromSymbol, toSymbol, "5min", "full");
-
-                TimeSeriesDto priceHistory = timeSeriesMapper.mapJsonToCustomTimeSeries(response, forexPair);
-
-                // Dodavanje svih podataka u listu
-                allPriceHistoryEntities.addAll(createPriceHistoryEntities(forexPair, priceHistory));
-                System.out.println("Fetched price history for forex pair: " + forexPair.getTicker());
-            } catch (Exception e) {
-                System.err.println("Error fetching price history for forex pair: " + forexPair.getTicker() + " - " + e.getMessage());
-            }
-        }
-
-        // Batch insert za price history
-        if (!allPriceHistoryEntities.isEmpty()) {
-            dailyPriceInfoRepository.saveAll(allPriceHistoryEntities);
-            System.out.println("Successfully imported price history for " + allPriceHistoryEntities.size() + " forex records.");
-        } else {
-            System.out.println("No forex price history records to import.");
-        }
-
-        System.out.println("Completed importing intraday price history for all forex pairs.");
-    }
-
-    // Pomoćna metoda za kreiranje entiteta ListingPriceHistory
-    private List<ListingPriceHistory> createPriceHistoryEntities(Listing listing, TimeSeriesDto priceHistory) {
-        List<ListingPriceHistory> priceHistoryEntities = new ArrayList<>();
-
-        for (TimeSeriesDto.TimeSeriesValueDto value : priceHistory.getValues()) {
-            ListingPriceHistory priceHistoryEntity = ListingPriceHistory.builder()
-                    .listing(listing)
-                    .date(LocalDateTime.parse(value.getDatetime(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                    .open(value.getOpen())
-                    .high(value.getHigh())
-                    .low(value.getLow())
-                    .close(value.getClose())
-                    .volume(value.getVolume())
-                    .change(value.getClose().subtract(value.getOpen()))
-                    .build();
-
-            priceHistoryEntities.add(priceHistoryEntity);
-        }
-        return priceHistoryEntities;
-    }
 
     public TimeSeriesDto getForexPriceHistory(Long id, String interval) {
         ForexPair forexPair = (ForexPair) listingRepository.findById(id)

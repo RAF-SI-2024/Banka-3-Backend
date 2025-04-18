@@ -12,6 +12,8 @@ import rs.raf.stock_service.domain.enums.OrderDirection;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.stream.Collectors;
 
 @Component
@@ -85,15 +87,33 @@ public class OrderMapper {
         );
     }
 
-    private static boolean afterHours(Exchange exchange){
-        LocalTime closeTime = exchange.getPolity().getCloseTime();
-        LocalTime afterHoursTime = closeTime.plusHours(4);
-        LocalTime nowInTimeZone = LocalTime.now().plusHours(exchange.getTimeZone() -
-                (OffsetDateTime.now().getOffset().getTotalSeconds() / 3600));
+    private static boolean afterHours(Exchange exchange) {
+        // Pretpostavka: exchange.getTimeZone() vraća npr. "America/New_York" ili "Europe/Belgrade"
+        ZoneId zoneId = ZoneId.of(String.valueOf(exchange.getTimeZone()));
+        ZonedDateTime now = ZonedDateTime.now(zoneId);
 
-        if (closeTime.isBefore(afterHoursTime))
-            return nowInTimeZone.isAfter(closeTime) && nowInTimeZone.isBefore(afterHoursTime);
-        else
-            return nowInTimeZone.isAfter(closeTime) || nowInTimeZone.isBefore(afterHoursTime);
+        // Dobijanje vremena zatvaranja berze (npr. 17:00)
+        LocalTime closeTime = exchange.getPolity().getCloseTime();
+        LocalTime openTime = exchange.getPolity().getOpenTime();
+
+        // Ako berza radi 24/7, nema after hours
+        if (openTime.equals(LocalTime.MIDNIGHT) && closeTime.equals(LocalTime.of(23, 59))) {
+            return false;
+        }
+
+        // Konstruisanje današnjeg zatvaranja
+        ZonedDateTime closeDateTime = now.with(closeTime);
+        if (now.toLocalTime().isBefore(closeTime)) {
+            // Ako je trenutno vreme pre vremena zatvaranja, znači zatvaranje je bilo juče
+            closeDateTime = closeDateTime.minusDays(1);
+        }
+
+        // After hours traje 4 sata nakon zatvaranja
+        ZonedDateTime afterHoursEnd = closeDateTime.plusHours(4);
+
+        System.out.println(!now.isBefore(closeDateTime) && now.isBefore(afterHoursEnd));
+
+        // Provera da li je sadašnje vreme između zatvaranja i kraja after hours
+        return !now.isBefore(closeDateTime) && now.isBefore(afterHoursEnd);
     }
 }

@@ -10,9 +10,6 @@ public interface BankClient {
     @PostMapping("/api/payment/confirm-payment/{id}")
     void confirmPayment(@PathVariable("id") Long id);
 
-    @PostMapping("/api/payment/confirm-transfer/{id}")
-    void confirmTransfer(@PathVariable("id") Long id);
-
     @PutMapping("/api/account/{id}/change-limit")
     void changeAccountLimit(@PathVariable("id") Long id);
 
@@ -21,9 +18,6 @@ public interface BankClient {
 
     @PostMapping("/api/payment/reject-payment/{id}")
     void rejectConfirmPayment(@PathVariable("id") Long id);
-
-    @PostMapping("/api/payment/reject-transfer/{id}")
-    void rejectConfirmTransfer(@PathVariable("id") Long id);//
 
     @PutMapping("/api/account/{id}/change-limit/reject")
     void rejectChangeAccountLimit(@PathVariable("id") Long id);//

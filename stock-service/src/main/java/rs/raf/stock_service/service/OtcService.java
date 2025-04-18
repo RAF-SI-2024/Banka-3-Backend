@@ -1,22 +1,17 @@
 package rs.raf.stock_service.service;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
-import rs.raf.stock_service.domain.dto.PaymentDto;
-
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
-import rs.raf.stock_service.domain.enums.OtcOptionStatus;
+import rs.raf.stock_service.domain.enums.TrackedPaymentType;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
+import rs.raf.stock_service.domain.mapper.TrackedPaymentMapper;
 import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.OtcOfferRepository;
 import rs.raf.stock_service.repository.OtcOptionRepository;
@@ -44,11 +39,13 @@ public class OtcService {
     private final OtcOptionMapper otcOptionMapper;
     private final PortfolioService portfolioService;
     private final BankClient bankClient;
-  
+    private final TrackedPaymentService trackedPaymentService;
+
     @Transactional
-    public void exerciseOption(Long otcOptionId, Long userId) {
+    public TrackedPaymentDto exerciseOption(Long otcOptionId, Long userId) {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
+
 
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
@@ -60,25 +57,65 @@ public class OtcService {
             throw new OtcOptionSettlementExpiredException();
 
         BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
+
+        String senderAccount = bankClient.getUSDAccountNumberByClientId(otcOption.getBuyerId()).getBody();
+        String receiverAccount = bankClient.getUSDAccountNumberByClientId(otcOption.getSellerId()).getBody();
+
+        if (senderAccount == null) {
+            throw new OtcAccountNotFoundForBuyerException();
+        }
+
+        if (receiverAccount == null) {
+            throw new OtcAccountNotFoundForSellerException();
+        }
+
+        TrackedPayment trackedPayment = trackedPaymentService.createTrackedPayment(
+                otcOptionId,
+                TrackedPaymentType.OTC_EXERCISE
+        );
+
+        log.info("Created tracked payment {}", trackedPayment);
+
+        CreatePaymentDto createPaymentDto = CreatePaymentDto
+                .builder()
+                .amount(totalAmount)
+                .senderAccountNumber(senderAccount)
+                .receiverAccountNumber(receiverAccount)
+                .callbackId(trackedPayment.getId())
+                .purposeOfPayment("OTC Exercise Option")
+                .paymentCode("289")
+                .build();
+
+        bankClient.executeSystemPayment(
+                ExecutePaymentDto.builder()
+                        .clientId(userId)
+                        .createPaymentDto(createPaymentDto)
+                        .build()
+        );
+
+        return TrackedPaymentMapper.toDto(trackedPayment);
+    }
+
+    public void handleExerciseSuccessfulPayment(Long trackedPaymentId) {
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long otcOptionId = trackedPayment.getTrackedEntityId();
+
+        OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
+                .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
+
         Stock stock = otcOption.getUnderlyingStock();
 
-        Long paymentId = null;
-
-        try {
-            paymentId = transferMoney(otcOption.getBuyerId(), otcOption.getSellerId(), totalAmount);
-
-            portfolioService.updateHoldingsOnOtcOptionExecution(otcOption.getSellerId(), otcOption.getBuyerId(),
-                    stock, otcOption.getAmount(), otcOption.getStrikePrice());
-        } catch (Exception ex) {
-            if (paymentId != null) {
-                try {
-                    bankClient.rejectPayment(paymentId);
-                } catch (Exception rollbackEx) {
-                    throw new OtcRollbackFailedException("Rollback failed after OTC execution error: " + rollbackEx.getMessage());
-                }
-            }
-            throw new OtcExecutionFailedException("OTC execution failed: " + ex.getMessage());
+        if (otcOption.isUsed()) {
+            throw new OtcOptionAlreadyExercisedException();
         }
+
+        portfolioService.transferStockOwnership(
+                otcOption.getSellerId(),
+                otcOption.getBuyerId(),
+                stock,
+                otcOption.getAmount(),
+                otcOption.getStrikePrice()
+        );
 
         OtcOffer offer = otcOption.getOtcOffer();
         offer.setStatus(OtcOfferStatus.EXERCISED);
@@ -86,28 +123,6 @@ public class OtcService {
 
         otcOption.setStatus(OtcOptionStatus.USED);
         otcOptionRepository.save(otcOption);
-    }
-
-    private Long transferMoney(Long fromUserId, Long toUserId, BigDecimal amount) {
-        String senderAccount = bankClient.getAccountNumberByClientId(fromUserId).getBody();
-        String receiverAccount = bankClient.getAccountNumberByClientId(toUserId).getBody();
-
-        ExecutePaymentDto dto = new ExecutePaymentDto();
-        dto.setSenderAccountNumber(senderAccount);
-        dto.setReceiverAccountNumber(receiverAccount);
-        dto.setAmount(amount);
-        dto.setPaymentCode("289");
-        dto.setPurposeOfPayment("OTC Option Purchase");
-        dto.setReferenceNumber("OTC-" + System.currentTimeMillis());
-        dto.setClientId(fromUserId);
-
-        ResponseEntity<PaymentDto> response = bankClient.executeSystemPayment(dto);
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new SystemPaymentFailedException("Payment failed: " + response.getStatusCode());
-        }
-
-        return response.getBody().getId();
     }
 
     public OtcOfferDto createOffer(CreateOtcOfferDto dto, Long buyerId) {
@@ -198,7 +213,6 @@ public class OtcService {
         offer.setStatus(OtcOfferStatus.ACCEPTED);
         offer.setLastModified(LocalDateTime.now());
         offer.setLastModifiedById(userId);
-        offer.setOtcOption(otcOption);
         otcOfferRepository.save(offer);
     }
 
@@ -258,7 +272,7 @@ public class OtcService {
         LocalDate today = LocalDate.now();
         List<OtcOption> options;
 
-        if(valid == null) {
+        if (valid == null) {
             options = otcOptionRepository.findAllByBuyerId(userId);
         } else if (valid) {
             options = otcOptionRepository.findAllValid(userId, today);

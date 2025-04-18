@@ -4,13 +4,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
-import rs.raf.stock_service.domain.dto.OtcOfferDto;
-import rs.raf.stock_service.domain.dto.OtcOptionDto;
+import rs.raf.stock_service.domain.dto.*;
+import rs.raf.stock_service.exceptions.AccountNotFoundException;
+import rs.raf.stock_service.exceptions.OtcAccountNotFoundForBuyerException;
+import rs.raf.stock_service.exceptions.OtcAccountNotFoundForSellerException;
 import rs.raf.stock_service.exceptions.OtcException;
 import rs.raf.stock_service.service.OtcService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -23,6 +25,7 @@ import java.util.NoSuchElementException;
 @RestController
 @RequestMapping("/api/otc")
 @RequiredArgsConstructor
+@Slf4j
 public class OtcController {
 
     private final OtcService otcService;
@@ -163,11 +166,17 @@ public class OtcController {
             @ApiResponse(responseCode = "400", description = "Invalid option or business rules violated"),
             @ApiResponse(responseCode = "500", description = "Unexpected error occurred during option execution")
     })
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
     @PostMapping("/{optionId}/exercise")
-    public ResponseEntity<Void> exerciseOtcOption(@PathVariable Long optionId, @RequestHeader("Authorization") String authHeader) {
-        Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-        otcService.exerciseOption(optionId, userId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> exerciseOtcOption(@PathVariable Long optionId, @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            return ResponseEntity.ok().body(otcService.exerciseOption(optionId, userId));
+        } catch (OtcAccountNotFoundForBuyerException | OtcAccountNotFoundForSellerException e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
+        }
+
     }
 
     @ExceptionHandler(OtcException.class)
