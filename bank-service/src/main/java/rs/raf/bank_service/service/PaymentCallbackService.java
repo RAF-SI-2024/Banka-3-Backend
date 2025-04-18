@@ -8,42 +8,28 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import rs.raf.bank_service.client.StockClient;
+import rs.raf.bank_service.domain.dto.TrackedPaymentNotifyDto;
 
 @Slf4j
 @Service
-
+@AllArgsConstructor
 public class PaymentCallbackService {
+    private final StockClient stockClient;
 
-    private final RestTemplate restTemplate;
-    private final String baseUrl;
-
-    public PaymentCallbackService(RestTemplate restTemplate, @Value("${spring.cloud.openfeign.client.config.stock-service.url}") String baseUrl) {
-        this.restTemplate = restTemplate;
-        this.baseUrl = baseUrl;
-    }
-
-    public void notifySuccess(String url, Long callbackId) {
+    public void notifySuccess(Long callbackId) {
         try {
-            HttpEntity<Long> request = createRequestEntity(callbackId);
-            restTemplate.postForEntity(baseUrl + url, request, Void.class);
+            stockClient.notifySuccess(new TrackedPaymentNotifyDto(callbackId));
         } catch (Exception e) {
-            log.error("Failed to notify successful payment to url {} with callbackId {}, error: {}", baseUrl + url, callbackId, e.getMessage());
+            log.error("Failed to notify successful payment with callbackId {}, error: {}", callbackId, e.getMessage());
         }
     }
 
-    public void notifyFailure(String url, Long callbackId) {
+    public void notifyFailure(Long callbackId) {
         try {
-            HttpEntity<Long> request = createRequestEntity(callbackId);
-            restTemplate.postForEntity(baseUrl + url, request, Void.class);
+            stockClient.notifyFail(new TrackedPaymentNotifyDto(callbackId));
         } catch (Exception e) {
-            log.error("Failed to notify failed payment to url {} with callbackId {}, error: {}", baseUrl + url, callbackId, e.getMessage());
+            log.error("Failed to notify failed payment with callbackId {}, error: {}", callbackId, e.getMessage());
         }
-    }
-
-    private HttpEntity<Long> createRequestEntity(Long callbackId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth("eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwZXRhci5wQGV4YW1wbGUuY29tIiwicm9sZSI6IkFETUlOIiwidXNlcklkIjozLCJpYXQiOjE3NDE1MjEwMTEsImV4cCI6MjA1NzA1MzgxMX0.3425U9QrOg04G_bZv8leJNYEOKy7C851P5pWv0k9R3rWpA0ePoeBGpLDd-vKK2qNVgi-Eu2PkfFz41WdUTdFeQ");
-        return new HttpEntity<>(callbackId, headers);
     }
 }

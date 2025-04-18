@@ -1,29 +1,17 @@
 package rs.raf.stock_service.service;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import rs.raf.stock_service.client.BankClient;
-import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.CreatePaymentDto;
-import rs.raf.stock_service.domain.dto.ExecutePaymentDto;
-import rs.raf.stock_service.domain.dto.PaymentDto;
-import rs.raf.stock_service.domain.entity.Option;
-import rs.raf.stock_service.repository.OptionRepository;
-
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.domain.entity.OtcOffer;
-import rs.raf.stock_service.domain.entity.OtcOption;
-import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.entity.Stock;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.TrackedPaymentType;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
+import rs.raf.stock_service.domain.mapper.TrackedPaymentMapper;
 import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.OtcOfferRepository;
 import rs.raf.stock_service.repository.OtcOptionRepository;
@@ -52,9 +40,10 @@ public class OtcService {
     private final OtcOptionMapper otcOptionMapper;
     private final PortfolioService portfolioService;
     private final BankClient bankClient;
-  
-      @Transactional
-    public void exerciseOption(Long otcOptionId, Long userId) {
+    private final TrackedPaymentService trackedPaymentService;
+
+    @Transactional
+    public TrackedPaymentDto exerciseOption(Long otcOptionId, Long userId) {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
@@ -72,36 +61,45 @@ public class OtcService {
         String senderAccount = bankClient.getAccountNumberByClientId(otcOption.getBuyerId()).getBody();
         String receiverAccount = bankClient.getAccountNumberByClientId(otcOption.getSellerId()).getBody();
 
+        TrackedPayment trackedPayment = trackedPaymentService.createTrackedPayment(
+                otcOptionId,
+                TrackedPaymentType.OTC_EXERCISE
+        );
+
+        log.info("Created tracked payment {}", trackedPayment);
+
         CreatePaymentDto createPaymentDto = CreatePaymentDto
-            .builder()
-            .amount(totalAmount)
-            .senderAccountNumber(senderAccount)
-            .receiverAccountNumber(receiverAccount)
-            .callbackId(otcOptionId)
-            .callbackUrlSuccess("/api/otc/exercise-payment-successful")
-            // nista nismo promenili, tako da failure nas ne zanima...?
-            // jedino sto ne znam kako da korisnik zna da je fejlalo s obzirom da nemamo taj info odmah
-                // mozda da imamo neki status, pa da polluju,
-                // neki entitet exercise transacttion status itd za sve ovakve stvari
-            .callbackUrlFailure(null)
-            .purposeOfPayment("OTC Exercise Option")
-            .paymentCode("289")
-            .build();
+                .builder()
+                .amount(totalAmount)
+                .senderAccountNumber(senderAccount)
+                .receiverAccountNumber(receiverAccount)
+                .callbackId(trackedPayment.getId())
+                .purposeOfPayment("OTC Exercise Option")
+                .paymentCode("289")
+                .build();
 
         bankClient.executeSystemPayment(
-            ExecutePaymentDto.builder()
-            .clientId(userId)
-            .createPaymentDto(createPaymentDto)
-            .build()
+                ExecutePaymentDto.builder()
+                        .clientId(userId)
+                        .createPaymentDto(createPaymentDto)
+                        .build()
         );
+
+        return TrackedPaymentMapper.toDto(trackedPayment);
     }
 
-    public void handleExerciseSuccessfulPayment(Long otcOptionId) {
-        log.info("Handling exercise successful payment with otc option id {}", otcOptionId);
+    public void handleExerciseSuccessfulPayment(Long trackedPaymentId) {
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long otcOptionId = trackedPayment.getTrackedEntityId();
+
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
         Stock stock = otcOption.getUnderlyingStock();
+
+        if (otcOption.isUsed()) {
+            throw new OtcOptionAlreadyExercisedException();
+        }
 
         portfolioService.transferStockOwnership(
                 otcOption.getSellerId(),
@@ -118,7 +116,6 @@ public class OtcService {
         otcOption.setUsed(true);
         otcOptionRepository.save(otcOption);
     }
-
 
     public OtcOfferDto createOffer(CreateOtcOfferDto dto, Long buyerId) {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findById(dto.getPortfolioEntryId())
@@ -242,7 +239,7 @@ public class OtcService {
         LocalDate today = LocalDate.now();
         List<OtcOption> options;
 
-        if(valid == null) {
+        if (valid == null) {
             options = otcOptionRepository.findAllByBuyerId(userId);
         } else if (valid) {
             options = otcOptionRepository.findAllValid(userId, today);
