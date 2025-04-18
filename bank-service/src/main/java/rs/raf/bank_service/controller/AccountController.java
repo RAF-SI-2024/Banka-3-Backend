@@ -271,15 +271,15 @@ public class AccountController {
 
 
     //Za Cto
-    @GetMapping("/client/{clientId}/account-number")
-    public ResponseEntity<String> getAccountNumberByClientId(@PathVariable Long clientId) {
-        List<AccountDto> accounts = accountService.getAccountsForClient(clientId);
+    @GetMapping("/client/{clientId}/usd-account-number")
+    public ResponseEntity<?> getAccountNumberByClientId(@PathVariable Long clientId) {
+        AccountDto account = accountService.getUSDAccountForClient(clientId);
 
-        if (accounts.isEmpty()) {
+        if (account == null) {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(accounts.get(0).getAccountNumber());
+        return ResponseEntity.ok(account.getAccountNumber());
     }
     // interni endpoint
     @Operation(summary = "Update account available balance")

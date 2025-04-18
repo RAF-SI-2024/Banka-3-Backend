@@ -58,8 +58,16 @@ public class OtcService {
 
         BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
 
-        String senderAccount = bankClient.getAccountNumberByClientId(otcOption.getBuyerId()).getBody();
-        String receiverAccount = bankClient.getAccountNumberByClientId(otcOption.getSellerId()).getBody();
+        String senderAccount = bankClient.getUSDAccountNumberByClientId(otcOption.getBuyerId()).getBody();
+        String receiverAccount = bankClient.getUSDAccountNumberByClientId(otcOption.getSellerId()).getBody();
+
+        if (senderAccount == null) {
+            throw new OtcAccountNotFoundForBuyerException();
+        }
+
+        if (receiverAccount == null) {
+            throw new OtcAccountNotFoundForSellerException();
+        }
 
         TrackedPayment trackedPayment = trackedPaymentService.createTrackedPayment(
                 otcOptionId,
