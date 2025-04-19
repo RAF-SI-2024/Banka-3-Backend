@@ -24,7 +24,7 @@ presubmits:
     # od "pom.xml" ili "docker-compose.yml" fajlova.
     # Direktorijumi su naznačeni sa "/" na kraju naziva direktorijuma,
     # npr. "user-service/".
-    run_if_changed: "(user-service-kotlin/|docker-compose.yml|pom.xml|.prow/)"
+    run_if_changed: "(user-service-kotlin/|docker-compose.yml|docker-compose.test.yml|pom.xml|.prow/)"
     decorate: true
     spec:
       containers:
