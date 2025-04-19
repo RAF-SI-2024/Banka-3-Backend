@@ -30,6 +30,8 @@ public class TrackedPayment {
 
     private Long trackedEntityId;
 
+    private Long secondaryTrackedEntityId;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
