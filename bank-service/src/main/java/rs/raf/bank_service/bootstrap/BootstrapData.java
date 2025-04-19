@@ -11,8 +11,10 @@ import rs.raf.bank_service.service.ExchangeRateService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
@@ -26,6 +28,8 @@ public class BootstrapData implements CommandLineRunner {
     private final LoanRepository loanRepository;
     private final LoanRequestRepository loanRequestRepository;
     private final InstallmentRepository installmentRepository;
+    private final PaymentRepository paymentRepository;
+    private final PayeeRepository payeeRepository;
 
     @Override
     public void run(String... args) {
@@ -53,374 +57,202 @@ public class BootstrapData implements CommandLineRunner {
         Currency currencyAUD = currencyRepository.findByCode("AUD").get();
 
         if (accountRepository.count() == 0) {
-            // Kreiramo račune za klijente
-            PersonalAccount currentAccount1 = PersonalAccount.builder()
-                    .name("My RSD account")
-                    .accountNumber("111111111111111111")
-                    .clientId(2L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(1))
-                    .expirationDate(LocalDate.now().plusYears(5))
-                    .currency(currencyRSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(1000))
-                    .availableBalance(BigDecimal.valueOf(1000))
-                    .dailyLimit(BigDecimal.valueOf(500))
-                    .monthlyLimit(BigDecimal.valueOf(5000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.CURRENT)
-                    .accountOwnerType(AccountOwnerType.PERSONAL)
-                    .build();
+            // Get existing account numbers to avoid conflicts
+            List<String> existingAccountNumbers = accountRepository.findAll()
+                    .stream()
+                    .map(Account::getAccountNumber)
+                    .collect(Collectors.toList());
 
-            // Kreiramo račune za klijente
-            PersonalAccount foreignAccount1 = PersonalAccount.builder()
-                    .name("My USD account")
-                    .accountNumber("311111111111111111")
-                    .clientId(2L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(1))
-                    .expirationDate(LocalDate.now().plusYears(5))
-                    .currency(currencyUSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(1000))
-                    .availableBalance(BigDecimal.valueOf(1000))
-                    .dailyLimit(BigDecimal.valueOf(500))
-                    .monthlyLimit(BigDecimal.valueOf(5000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.PERSONAL)
-                    .build();
+            List<Card> newCards = new ArrayList<>();
+            List<Payment> newPayments = new ArrayList<>();
 
+            // Generate accounts for all 10 clients with diverse profiles
+            for (int i = 1; i <= 10; i++) {
+                // Generate unique account number
+                String accountNumber;
+                do {
+                    String prefix = i % 3 == 0 ? "840" : (i % 3 == 1 ? "978" : "840"); // RSD, EUR, or RSD
+                    accountNumber = prefix + String.format("%013d", 1000000L + i);
+                } while (existingAccountNumbers.contains(accountNumber));
 
-            PersonalAccount currentAccount2 = PersonalAccount.builder()
-                    .name("My RSD account")
-                    .accountNumber("211111111111111111")
-                    .clientId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(1))
-                    .expirationDate(LocalDate.now().plusYears(5))
-                    .currency(currencyRSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(1000))
-                    .availableBalance(BigDecimal.valueOf(1000))
-                    .dailyLimit(BigDecimal.valueOf(500))
-                    .monthlyLimit(BigDecimal.valueOf(5000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.CURRENT)
-                    .accountOwnerType(AccountOwnerType.PERSONAL)
-                    .build();
+                // Create account with diverse characteristics
+                Account account = PersonalAccount.builder()
+                        .name("Client " + i + " Account")
+                        .accountNumber(accountNumber)
+                        .clientId((long) i)
+                        .createdByEmployeeId(3L)
+                        .creationDate(LocalDate.now().minusMonths(i % 12))
+                        .expirationDate(LocalDate.now().plusYears(2))
+                        .currency(i % 3 == 0 ? currencyRSD : (i % 3 == 1 ? currencyEUR : currencyRSD))
+                        .status(AccountStatus.ACTIVE)
+                        .balance(BigDecimal.valueOf(1000 + (i * 2000))) // Varying balances
+                        .availableBalance(BigDecimal.valueOf(1000 + (i * 2000)))
+                        .dailyLimit(BigDecimal.valueOf(1000 + (i * 500)))
+                        .monthlyLimit(BigDecimal.valueOf(5000 + (i * 2000)))
+                        .dailySpending(BigDecimal.ZERO)
+                        .monthlySpending(BigDecimal.ZERO)
+                        .type(i % 2 == 0 ? AccountType.CURRENT : AccountType.FOREIGN)
+                        .accountOwnerType(AccountOwnerType.PERSONAL)
+                        .build();
 
-            CompanyAccount foreignAccount = CompanyAccount.builder()
-                    .name("My company's EUR account")
-                    .accountNumber("222222222222222222")
-                    .clientId(1L)
-                    .companyId(3L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyEUR)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(2000))
-                    .availableBalance(BigDecimal.valueOf(2000))
-                    .dailyLimit(BigDecimal.valueOf(1000))
-                    .monthlyLimit(BigDecimal.valueOf(10000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .authorizedPersonId(1L)
-                    .build();
+                // Save account
+                account = accountRepository.save(account);
+                existingAccountNumbers.add(accountNumber);
 
+                // Create card based on client profile
+                if (i != 3 && i != 7) { // Clients 3 and 7 don't get cards (poor credit)
+                    String cardNumber;
+                    do {
+                        cardNumber = "4" + String.format("%015d", 1000000L + i);
+                    } while (cardRepository.findByCardNumber(cardNumber).isPresent());
 
-            // RACUNI NASE BANKE
-            CompanyAccount bankAccountRSD = CompanyAccount.builder()
-                    .name("Bank account for RSD")
-                    .accountNumber("333000156732897612")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyRSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.CURRENT)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    CardType cardType = i % 2 == 0 ? CardType.CREDIT : CardType.DEBIT;
+                    BigDecimal cardLimit = cardType == CardType.CREDIT ? 
+                        account.getDailyLimit().multiply(BigDecimal.valueOf(3)) : 
+                        account.getDailyLimit();
 
-            CompanyAccount bankAccountEUR = CompanyAccount.builder()
-                    .name("Bank account for EUR")
-                    .accountNumber("333000177732897122")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyEUR)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    Card card = Card.builder()
+                            .cardNumber(cardNumber)
+                            .account(account)
+                            .name("Card for " + account.getName())
+                            .cvv("123")
+                            .creationDate(LocalDate.now().minusMonths(1))
+                            .expirationDate(LocalDate.now().plusYears(3))
+                            .type(cardType)
+                            .status(CardStatus.ACTIVE)
+                            .issuer(i % 2 == 0 ? CardIssuer.VISA : CardIssuer.MASTERCARD)
+                            .cardLimit(cardLimit)
+                            .build();
 
-            CompanyAccount bankAccountCHF = CompanyAccount.builder()
-                    .name("Bank account for CHF")
-                    .accountNumber("333000137755897822")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyCHF)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    card = cardRepository.save(card);
+                    newCards.add(card);
+                }
+            }
 
-            CompanyAccount bankAccountUSD = CompanyAccount.builder()
-                    .name("Bank account for USD")
-                    .accountNumber("333000157555885522")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyUSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+            // Create diverse transactions for all accounts
+            List<Account> allAccounts = accountRepository.findAll();
+            for (Account senderAccount : allAccounts) {
+                // Generate varying number of transactions based on client profile
+                int transactionCount = (int) (Math.random() * 30) + 5;
+                
+                for (int i = 0; i < transactionCount; i++) {
+                    // Find a different receiver account
+                    Account receiverAccount;
+                    do {
+                        receiverAccount = allAccounts.get((int) (Math.random() * allAccounts.size()));
+                    } while (receiverAccount.getAccountNumber().equals(senderAccount.getAccountNumber()));
 
-            CompanyAccount bankAccountJPY = CompanyAccount.builder()
-                    .name("Bank account for JPY")
-                    .accountNumber("333000117755885122")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyJPY)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    // Create payment with varying amounts
+                    BigDecimal amount = BigDecimal.valueOf((Math.random() * 3000) + 50)
+                            .setScale(2, RoundingMode.HALF_UP);
+                    
+                    Payment payment = Payment.builder()
+                            .senderName("Sender " + senderAccount.getClientId())
+                            .clientId(senderAccount.getClientId())
+                            .senderAccount(senderAccount)
+                            .amount(amount)
+                            .date(LocalDateTime.now().minusDays(i))
+                            .status(Math.random() > 0.1 ? PaymentStatus.COMPLETED : PaymentStatus.CANCELED)
+                            .purposeOfPayment("Transaction " + i)
+                            .referenceNumber(String.format("REF%08d", i))
+                            .accountNumberReceiver(receiverAccount.getAccountNumber())
+                            .receiverClientId(receiverAccount.getClientId())
+                            .build();
 
-            CompanyAccount bankAccountGBP = CompanyAccount.builder()
-                    .name("Bank account for GBP")
-                    .accountNumber("333000166675885622")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyGBP)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    // Assign card based on probability
+                    if (Math.random() > 0.6 && !senderAccount.getCards().isEmpty()) {
+                        payment.setCard(senderAccount.getCards().get(0));
+                    }
 
+                    // Handle foreign currency transactions
+                    if (!senderAccount.getCurrency().equals(receiverAccount.getCurrency())) {
+                        payment.setOutAmount(amount.multiply(BigDecimal.valueOf(0.95)));
+                        payment.setExchangeProfit(amount.multiply(BigDecimal.valueOf(0.05)));
+                    }
 
-            CompanyAccount bankAccountCAD = CompanyAccount.builder()
-                    .name("Bank account for CAD")
-                    .accountNumber("333000188875885822")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyCAD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+                    payment = paymentRepository.save(payment);
+                    newPayments.add(payment);
+                }
+            }
 
-            CompanyAccount bankAccountAUD = CompanyAccount.builder()
-                    .name("Bank account for AUD")
-                    .accountNumber("333000199975899922")
-                    .clientId(null)
-                    .companyId(1L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyAUD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.FOREIGN)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+            // Create diverse loans and installments
+            List<Loan> newLoans = new ArrayList<>();
+            List<Installment> newInstallments = new ArrayList<>();
 
-            CompanyAccount bankAccountState = CompanyAccount.builder()
-                    .name("State bank account")
-                    .accountNumber("333000100000897612")
-                    .clientId(null)
-                    .companyId(2L)
-                    .createdByEmployeeId(3L)
-                    .creationDate(LocalDate.now().minusMonths(2))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .currency(currencyRSD)
-                    .status(AccountStatus.ACTIVE)
-                    .balance(BigDecimal.valueOf(50000000))
-                    .availableBalance(BigDecimal.valueOf(50000000))
-                    .dailyLimit(BigDecimal.valueOf(2000000))
-                    .monthlyLimit(BigDecimal.valueOf(10000000))
-                    .dailySpending(BigDecimal.ZERO)
-                    .monthlySpending(BigDecimal.ZERO)
-                    .type(AccountType.CURRENT)
-                    .accountOwnerType(AccountOwnerType.COMPANY)
-                    .build();
+            // Create different loan scenarios for eligible accounts
+            for (Account account : allAccounts) {
+                // Skip loans for clients 3 and 7 (poor credit)
+                if (account.getClientId() == 3L || account.getClientId() == 7L) {
+                    continue;
+                }
 
-            accountRepository.saveAll(java.util.List.of(
-                    currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
-                    bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
-                    bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState
-            ));
+                // Random number of loans per account (0-2)
+                int loanCount = (int) (Math.random() * 3);
+                
+                for (int j = 0; j < loanCount; j++) {
+                    // Generate loan amount based on account balance and client profile
+                    BigDecimal maxLoanAmount = account.getBalance().multiply(BigDecimal.valueOf(1.5));
+                    BigDecimal loanAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.3 + (Math.random() * 0.7)))
+                            .setScale(2, RoundingMode.HALF_UP);
+                    
+                    // Random loan term in months (12-60)
+                    int termMonths = (int) (Math.random() * 48) + 12;
+                    
+                    // Calculate monthly installment with varying interest rates
+                    BigDecimal monthlyRate = BigDecimal.valueOf(0.008 + (Math.random() * 0.004)); // 0.8% - 1.2% monthly
+                    BigDecimal monthlyPayment = calculateMonthlyPayment(loanAmount, monthlyRate, termMonths);
+                    
+                    // Generate loan number
+                    String loanNumber = "LN" + String.format("%08d", 10000000L + (j * 100));
 
-            // Kreiramo kartice
-            Card card1 = Card.builder()
-                    .name("Moja debitna")
-                    .cardNumber("1234123412341234")
-                    .cvv("123")
-                    .creationDate(LocalDate.now().minusDays(10))
-                    .expirationDate(LocalDate.now().plusYears(3))
-                    .account(currentAccount1)
-                    .status(CardStatus.ACTIVE)
-                    .cardLimit(BigDecimal.valueOf(500))
-                    .issuer(CardIssuer.VISA)
-                    .type(CardType.DEBIT)
-                    .build();
+                    // Create loan with varying statuses
+                    LoanStatus status = Math.random() > 0.1 ? LoanStatus.APPROVED : LoanStatus.REJECTED;
+                    if (status == LoanStatus.APPROVED) {
+                        Loan loan = Loan.builder()
+                                .loanNumber(loanNumber)
+                                .type(LoanType.CASH)
+                                .amount(loanAmount)
+                                .repaymentPeriod(termMonths)
+                                .nominalInterestRate(monthlyRate.multiply(BigDecimal.valueOf(12)))
+                                .effectiveInterestRate(monthlyRate.multiply(BigDecimal.valueOf(12.68)))
+                                .startDate(LocalDate.now().minusMonths((int) (Math.random() * termMonths)))
+                                .dueDate(LocalDate.now().plusMonths(termMonths))
+                                .nextInstallmentAmount(monthlyPayment)
+                                .nextInstallmentDate(LocalDate.now().plusMonths(1))
+                                .remainingDebt(loanAmount)
+                                .currency(account.getCurrency())
+                                .status(status)
+                                .interestRateType(InterestRateType.FIXED)
+                                .account(account)
+                                .build();
 
-            Card card2 = Card.builder()
-                    .name("Moja kreditna")
-                    .cardNumber("4321432143214321")
-                    .cvv("321")
-                    .creationDate(LocalDate.now().minusDays(5))
-                    .expirationDate(LocalDate.now().plusYears(2))
-                    .account(foreignAccount)
-                    .status(CardStatus.ACTIVE)
-                    .cardLimit(BigDecimal.valueOf(1000))
-                    .issuer(CardIssuer.VISA)
-                    .type(CardType.CREDIT)
-                    .build();
+                        loan = loanRepository.save(loan);
+                        newLoans.add(loan);
 
-            cardRepository.saveAll(java.util.List.of(card1, card2));
+                        // Create installments with varying payment statuses
+                        LocalDate startDate = loan.getStartDate();
+                        for (int i = 0; i < termMonths; i++) {
+                            LocalDate dueDate = startDate.plusMonths(i + 1);
+                            boolean isPaid = dueDate.isBefore(LocalDate.now()) && Math.random() > 0.2; // 80% chance of payment
+                            
+                            Installment installment = Installment.builder()
+                                    .loan(loan)
+                                    .amount(monthlyPayment)
+                                    .actualDueDate(dueDate)
+                                    .installmentStatus(isPaid ? InstallmentStatus.PAID : InstallmentStatus.UNPAID)
+                                    .expectedDueDate(isPaid ? dueDate : null)
+                                    .build();
 
-            // Kreiranje primera zahteva za kredit
-            LoanRequest loanRequest = LoanRequest.builder()
-                    .type(LoanType.AUTO)
-                    .amount(new BigDecimal("500000"))
-                    .purpose("Kupovina automobila")
-                    .monthlyIncome(new BigDecimal("1000"))
-                    .employmentStatus(EmploymentStatus.PERMANENT)
-                    .employmentDuration(36)
-                    .repaymentPeriod(24)
-                    .contactPhone("+381641234567")
-                    .account(currentAccount1)
-                    .currency(currencyRSD)
-                    .status(LoanRequestStatus.APPROVED)
-                    .interestRateType(InterestRateType.FIXED)
-                    .build();
+                            installment = installmentRepository.save(installment);
+                            newInstallments.add(installment);
+                        }
+                    }
+                }
+            }
 
-            LoanRequest loanRequest2 = LoanRequest.builder()
-                    .type(LoanType.CASH)
-                    .amount(new BigDecimal("300000"))
-                    .purpose("Kupovina necega")
-                    .monthlyIncome(new BigDecimal("1000"))
-                    .employmentStatus(EmploymentStatus.PERMANENT)
-                    .employmentDuration(36)
-                    .repaymentPeriod(24)
-                    .contactPhone("+381641234567")
-                    .account(currentAccount1)
-                    .currency(currencyRSD)
-                    .status(LoanRequestStatus.PENDING)
-                    .interestRateType(InterestRateType.FIXED)
-                    .build();
-
-            loanRequestRepository.save(loanRequest);
-            loanRequestRepository.save(loanRequest2);
-
-            // Kreiranje primera odobrenog kredita
-            Loan loan = Loan.builder()
-                    .loanNumber("d7742918-4b78-44eb-93b7-25adfd5123e9")
-                    .type(LoanType.AUTO)
-                    .amount(new BigDecimal("500000"))
-                    .repaymentPeriod(24)
-                    .nominalInterestRate(new BigDecimal("5.5"))
-                    .effectiveInterestRate(new BigDecimal("6.0"))
-                    .startDate(LocalDate.now())
-                    .dueDate(LocalDate.now().plusMonths(24))
-                    .nextInstallmentAmount(new BigDecimal("220"))
-                    .nextInstallmentDate(LocalDate.now().plusMonths(1))
-                    .remainingDebt(new BigDecimal("500000"))
-                    .currency(currencyRSD)
-                    .status(LoanStatus.APPROVED)
-                    .interestRateType(InterestRateType.FIXED)
-                    .account(currentAccount1)
-                    .build();
-
-            loanRepository.save(loan);
-
-            Installment installment = Installment.builder()
-                    .amount(new BigDecimal("220"))
-                    .installmentStatus(InstallmentStatus.UNPAID)
-                    .loan(loan)
-                    .expectedDueDate(LocalDate.now().plusMonths(1))
-                    .interestRate(new BigDecimal("6.0"))
-                    .build();
-
-            installmentRepository.save(installment);
+            // Save all installments
+            installmentRepository.saveAll(newInstallments);
         }
-
-
-
-
 
         // Kreiranje kursne liste
 //        exchangeRateService.updateExchangeRates();
@@ -496,5 +328,16 @@ public class BootstrapData implements CommandLineRunner {
             // Test kursna lista da ne trosimo API pozive
         }
 
+    }
+
+    private BigDecimal calculateMonthlyPayment(BigDecimal loanAmount, BigDecimal monthlyRate, int termMonths) {
+        // PMT = P * (r * (1 + r)^n) / ((1 + r)^n - 1)
+        BigDecimal onePlusR = BigDecimal.ONE.add(monthlyRate);
+        BigDecimal onePlusRPowerN = onePlusR.pow(termMonths);
+        BigDecimal numerator = monthlyRate.multiply(onePlusRPowerN);
+        BigDecimal denominator = onePlusRPowerN.subtract(BigDecimal.ONE);
+        
+        return loanAmount.multiply(numerator.divide(denominator, 2, RoundingMode.HALF_UP))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

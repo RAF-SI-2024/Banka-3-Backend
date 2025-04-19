@@ -33,15 +33,22 @@ class ClientSegmentation:
             'total_transaction_amount', 'avg_transaction_amount', 'card_count'
         ])
 
+        # Replace None values with 0 for numeric columns
+        numeric_columns = ['balance', 'transaction_count', 'total_transaction_amount', 'avg_transaction_amount', 'card_count']
+        df[numeric_columns] = df[numeric_columns].fillna(0)
+
         return df
 
     def perform_clustering(self, n_clusters=5):
         """Perform k-means clustering on client data"""
         df = self.get_client_features()
 
+        # Select only numeric features for clustering
+        features = df.drop('client_id', axis=1)
+
         # Standardize features
         scaler = StandardScaler()
-        features_scaled = scaler.fit_transform(df.drop('client_id', axis=1))
+        features_scaled = scaler.fit_transform(features)
 
         # Perform k-means clustering
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)

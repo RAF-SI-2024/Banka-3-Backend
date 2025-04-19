@@ -96,7 +96,127 @@ public class BootstrapData implements CommandLineRunner {
                     .role(clientRole)
                     .build();
 
-            clientRepository.saveAll(List.of(client, client2));
+            Client client3 = Client.builder()
+                    .id(3L)
+                    .firstName("Ana")
+                    .lastName("Anic")
+                    .email("ana.a@example.com")
+                    .phone("0634567890")
+                    .address("Knez Mihailova 15")
+                    .birthDate(dateFormat.parse("1985-07-12"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("anaana"))
+                    .jmbg("0123456789124")
+                    .username("ana1")
+                    .role(clientRole)
+                    .build();
+
+            Client client4 = Client.builder()
+                    .id(4L)
+                    .firstName("Milan")
+                    .lastName("Milankovic")
+                    .email("milan.m@example.com")
+                    .phone("0641234567")
+                    .address("Bulevar Oslobodjenja 25")
+                    .birthDate(dateFormat.parse("1978-03-30"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("milanmilan"))
+                    .jmbg("0123456789123")
+                    .username("milan1")
+                    .role(clientRole)
+                    .build();
+
+            Client client5 = Client.builder()
+                    .id(5L)
+                    .firstName("Jelena")
+                    .lastName("Jelenic")
+                    .email("jelena.j@example.com")
+                    .phone("0659876543")
+                    .address("Futoska 10")
+                    .birthDate(dateFormat.parse("1995-11-05"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("jelenajelena"))
+                    .jmbg("0123456789122")
+                    .username("jelena1")
+                    .role(clientRole)
+                    .build();
+
+            Client client6 = Client.builder()
+                    .id(6L)
+                    .firstName("Stefan")
+                    .lastName("Stefanovic")
+                    .email("stefan.s@example.com")
+                    .phone("0661234567")
+                    .address("Bulevar Cara Lazara 45")
+                    .birthDate(dateFormat.parse("1982-09-18"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("stefanstefan"))
+                    .jmbg("0123456789121")
+                    .username("stefan1")
+                    .role(clientRole)
+                    .build();
+
+            Client client7 = Client.builder()
+                    .id(7L)
+                    .firstName("Milica")
+                    .lastName("Milic")
+                    .email("milica.m@example.com")
+                    .phone("0679876543")
+                    .address("Zmaj Jovina 8")
+                    .birthDate(dateFormat.parse("1992-04-22"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("milica"))
+                    .jmbg("0123456789120")
+                    .username("milica1")
+                    .role(clientRole)
+                    .build();
+
+            Client client8 = Client.builder()
+                    .id(8L)
+                    .firstName("Nikola")
+                    .lastName("Nikolic")
+                    .email("nikola.n@example.com")
+                    .phone("0681234567")
+                    .address("Bulevar Mihajla Pupina 12")
+                    .birthDate(dateFormat.parse("1988-12-10"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("nikolanikola"))
+                    .jmbg("0123456789119")
+                    .username("nikola1")
+                    .role(clientRole)
+                    .build();
+
+            Client client9 = Client.builder()
+                    .id(9L)
+                    .firstName("Sofija")
+                    .lastName("Sofijic")
+                    .email("sofija.s@example.com")
+                    .phone("0699876543")
+                    .address("Dunavska 30")
+                    .birthDate(dateFormat.parse("1997-06-28"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("sofija"))
+                    .jmbg("0123456789118")
+                    .username("sofija1")
+                    .role(clientRole)
+                    .build();
+
+            Client client10 = Client.builder()
+                    .id(10L)
+                    .firstName("Luka")
+                    .lastName("Lukic")
+                    .email("luka.l@example.com")
+                    .phone("0619876543")
+                    .address("Bulevar Patrijarha Pavla 20")
+                    .birthDate(dateFormat.parse("1980-08-15"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("lukaluka"))
+                    .jmbg("0123456789117")
+                    .username("luka1")
+                    .role(clientRole)
+                    .build();
+
+            clientRepository.saveAll(List.of(client, client2, client3, client4, client5, client6, client7, client8, client9, client10));
         }
 
         if (employeeRepository.count() == 0) {
@@ -123,7 +243,7 @@ public class BootstrapData implements CommandLineRunner {
                     .department("HR")
                     .active(true)
                     .role(adminRole)
-                    .jmbg("0123456789123")
+                    .jmbg("0123456789116")
                     .build();
 
             Employee employee2 = Employee.builder()
@@ -140,7 +260,7 @@ public class BootstrapData implements CommandLineRunner {
                     .position("Manager")
                     .department("Finance")
                     .active(true)
-                    .jmbg("0123456789124")
+                    .jmbg("0123456789115")
                     .role(employeeRole)
                     .build();
 

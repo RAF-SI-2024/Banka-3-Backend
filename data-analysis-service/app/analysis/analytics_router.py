@@ -14,7 +14,10 @@ from .visualizations import (
     create_credit_score_visualization,
     create_client_value_visualization,
     create_churn_risk_visualization,
-    create_product_usage_visualization
+    create_product_usage_visualization,
+    create_client_segments_visualization,
+    create_loan_recommendation_visualization,
+    create_client_insights_visualization
 )
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -51,25 +54,54 @@ def create_html_response(data, visualizations):
     return HTMLResponse(content=html_content)
 
 
-@router.get("/client-segments")
+@router.get("/client-segments", response_class=HTMLResponse)
 def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
-    """Get client segments based on clustering analysis"""
+    """Get client segments based on clustering analysis with visualization"""
     try:
         segmentation = ClientSegmentation(db)
-        return segmentation.perform_clustering(n_clusters)
+        result = segmentation.perform_clustering(n_clusters)
+        
+        visualizations = create_client_segments_visualization(result)
+        if visualizations:
+            viz_html = f"""
+                <div class="card">
+                    <h2>Cluster Statistics</h2>
+                    {visualizations['clusters']}
+                </div>
+                <div class="card">
+                    <h2>Segment Distribution</h2>
+                    {visualizations['distribution']}
+                </div>
+            """
+            return create_html_response(str(result), viz_html)
+        return create_html_response(str(result), "")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/loan-recommendation/{client_id}")
+@router.get("/loan-recommendation/{client_id}", response_class=HTMLResponse)
 def get_loan_recommendation(client_id: int, db: Session = Depends(get_db)):
-    """Get loan recommendations for a specific client"""
+    """Get loan recommendations for a specific client with visualization"""
     try:
         recommender = LoanRecommendation(db)
         result = recommender.recommend_loan(client_id)
         if not result:
             raise HTTPException(status_code=404, detail="Client not found")
-        return result
+        
+        visualizations = create_loan_recommendation_visualization(result)
+        if visualizations:
+            viz_html = f"""
+                <div class="card">
+                    <h2>Loan Recommendations</h2>
+                    {visualizations['recommendations']}
+                </div>
+                <div class="card">
+                    <h2>Eligibility Score</h2>
+                    {visualizations['eligibility']}
+                </div>
+            """
+            return create_html_response(str(result), viz_html)
+        return create_html_response(str(result), "")
     except HTTPException:
         raise
     except Exception as e:
@@ -193,9 +225,9 @@ def get_credit_score(client_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/client-insights/{client_id}")
+@router.get("/client-insights/{client_id}", response_class=HTMLResponse)
 async def get_client_insights(client_id: int, db: Session = Depends(get_db)):
-    """Get comprehensive insights for a client"""
+    """Get comprehensive insights for a client with visualization"""
     try:
         # Get all analytics for the client
         loan_rec = LoanRecommendation(db).recommend_loan(client_id)
@@ -206,12 +238,17 @@ async def get_client_insights(client_id: int, db: Session = Depends(get_db)):
         if not any([loan_rec, client_value, churn_risk, credit_score]):
             raise HTTPException(status_code=404, detail="Client not found")
 
-        return {
+        result = {
             "loan_recommendations": loan_rec,
             "client_value": client_value,
             "churn_risk": churn_risk,
             "credit_score": credit_score
         }
+
+        visualizations = create_client_insights_visualization(result)
+        if visualizations:
+            return create_html_response(str(result), visualizations)
+        return create_html_response(str(result), "")
     except HTTPException:
         raise
     except Exception as e:

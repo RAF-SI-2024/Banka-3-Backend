@@ -185,4 +185,162 @@ def create_product_usage_visualization(usage_data):
     return {
         'combinations': fig.to_html(full_html=False),
         'stats': stats_fig.to_html(full_html=False)
-    } 
+    }
+
+def create_client_segments_visualization(segments_data):
+    """Create visualization for client segmentation analysis"""
+    if not segments_data:
+        return None
+
+    # Create a bar chart for cluster statistics
+    clusters_df = pd.DataFrame(segments_data['clusters']).T
+    clusters_fig = go.Figure()
+    
+    for column in clusters_df.columns:
+        clusters_fig.add_trace(go.Bar(
+            x=clusters_df.index,
+            y=clusters_df[column],
+            name=column.replace('_', ' ').title(),
+            text=[f"{v:.2f}" for v in clusters_df[column]],
+            textposition='auto',
+        ))
+
+    clusters_fig.update_layout(
+        title="Cluster Statistics",
+        xaxis_title="Cluster",
+        yaxis_title="Value",
+        barmode='group'
+    )
+
+    # Create a pie chart for segment distribution
+    segment_counts = pd.DataFrame(segments_data['client_segments'])['cluster'].value_counts()
+    distribution_fig = go.Figure(data=[go.Pie(
+        labels=[f"Segment {i}" for i in segment_counts.index],
+        values=segment_counts.values,
+        hole=.3
+    )])
+    distribution_fig.update_layout(title="Client Segment Distribution")
+
+    return {
+        'clusters': clusters_fig.to_html(full_html=False),
+        'distribution': distribution_fig.to_html(full_html=False)
+    }
+
+def create_loan_recommendation_visualization(loan_data):
+    """Create visualization for loan recommendations"""
+    if not loan_data:
+        return None
+
+    # Create a bar chart for loan recommendations
+    recommendations = loan_data['recommendations']
+    if recommendations:
+        rec_fig = go.Figure(data=[
+            go.Bar(
+                x=[rec['loan_type'] for rec in recommendations],
+                y=[rec['max_amount'] for rec in recommendations],
+                text=[f"${rec['max_amount']:,.0f}" for rec in recommendations],
+                textposition='auto',
+                marker_color=[rec['confidence'] * 255 for rec in recommendations],
+                marker_colorscale='RdYlGn',
+                showscale=True,
+                name='Maximum Amount'
+            )
+        ])
+        rec_fig.update_layout(
+            title="Loan Recommendations",
+            xaxis_title="Loan Type",
+            yaxis_title="Maximum Amount",
+            yaxis_tickprefix="$"
+        )
+
+        # Create a gauge for overall eligibility
+        eligibility_score = max(rec['confidence'] for rec in recommendations) if recommendations else 0
+        eligibility_fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=eligibility_score,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Overall Eligibility Score"},
+            gauge={
+                'axis': {'range': [0, 1]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 0.3], 'color': "red"},
+                    {'range': [0.3, 0.7], 'color': "yellow"},
+                    {'range': [0.7, 1], 'color': "green"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': eligibility_score
+                }
+            }
+        ))
+
+        return {
+            'recommendations': rec_fig.to_html(full_html=False),
+            'eligibility': eligibility_fig.to_html(full_html=False)
+        }
+    return None
+
+def create_client_insights_visualization(insights_data):
+    """Create a comprehensive dashboard for all client insights"""
+    if not insights_data:
+        return None
+
+    # Create a grid of visualizations
+    credit_score_viz = create_credit_score_visualization(insights_data['credit_score'])
+    client_value_viz = create_client_value_visualization(insights_data['client_value'])
+    churn_risk_viz = create_churn_risk_visualization(insights_data['churn_risk'])
+    loan_rec_viz = create_loan_recommendation_visualization(insights_data['loan_recommendations'])
+
+    viz_html = ""
+    
+    if credit_score_viz:
+        viz_html += f"""
+            <div class="card">
+                <h2>Credit Score</h2>
+                {credit_score_viz['gauge']}
+            </div>
+            <div class="card">
+                <h2>Score Components</h2>
+                {credit_score_viz['components']}
+            </div>
+        """
+    
+    if client_value_viz:
+        viz_html += f"""
+            <div class="card">
+                <h2>Value Metrics</h2>
+                {client_value_viz['radar']}
+            </div>
+            <div class="card">
+                <h2>Total Value Score</h2>
+                {client_value_viz['gauge']}
+            </div>
+        """
+    
+    if churn_risk_viz:
+        viz_html += f"""
+            <div class="card">
+                <h2>Churn Risk Score</h2>
+                {churn_risk_viz['gauge']}
+            </div>
+            <div class="card">
+                <h2>Risk Indicators</h2>
+                {churn_risk_viz['indicators']}
+            </div>
+        """
+    
+    if loan_rec_viz:
+        viz_html += f"""
+            <div class="card">
+                <h2>Loan Recommendations</h2>
+                {loan_rec_viz['recommendations']}
+            </div>
+            <div class="card">
+                <h2>Eligibility Score</h2>
+                {loan_rec_viz['eligibility']}
+            </div>
+        """
+
+    return viz_html 
