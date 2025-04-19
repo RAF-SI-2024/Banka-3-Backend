@@ -7,6 +7,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OptionType;
+import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.repository.*;
 import rs.raf.stock_service.service.*;
 
@@ -38,12 +39,18 @@ public class DataRefreshServiceTest {
     @Mock private ListingService listingService;
     @Mock private EntityManager entityManager;
     @Mock private OrderService orderService;
+    @Mock private ListingMapper listingMapper;
+    @Mock private ListingRedisService listingRedisService;
+
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
         ReflectionTestUtils.setField(refreshService, "threadPoolSize", 4);
+        ReflectionTestUtils.setField(refreshService, "listingMapper", listingMapper);
+        ReflectionTestUtils.setField(refreshService, "listingRedisService", listingRedisService);
+
     }
 
     @Test
@@ -102,32 +109,10 @@ public class DataRefreshServiceTest {
         when(listingService.getForexPriceHistory(2L, "5min"))
                 .thenReturn(timeSeries);
         when(priceHistoryRepository.findDatesByListingId(2L)).thenReturn(Set.of());
-
-        when(portfolioEntryRepository.findAllOptionTickersInUse()).thenReturn(Set.of());
-        when(optionRepository.findAll()).thenReturn(List.of());
-        when(optionRepository.findAllTickers()).thenReturn(Set.of());
-
-        OptionDto optionDto = OptionDto.builder()
-                .ticker("AAPL-CALL-1")
-                .optionType(OptionType.CALL)
-                .strikePrice(new BigDecimal("100"))
-                .contractSize(new BigDecimal("100"))
-                .settlementDate(LocalDate.now().plusDays(30))
-                .maintenanceMargin(new BigDecimal("10"))
-                .price(new BigDecimal("5"))
-                .stockListing("AAPL")
-                .onSale(true)
-                .build();
-
-
-        when(optionService.generateOptions("AAPL", new BigDecimal("100")))
-                .thenReturn(List.of(optionDto));
-
         assertDoesNotThrow(() -> refreshService.refreshListings());
 
         verify(listingRepository, atLeastOnce()).findAll();
         verify(listingRepository, atLeastOnce()).save(any());
-        verify(optionRepository, atLeastOnce()).saveAllAndFlush(any());
     }
 
     @Test
@@ -150,28 +135,6 @@ public class DataRefreshServiceTest {
 
         refreshService.refreshListings(); // indirectly, since method is private
         verify(forexService, never()).getForexPair(any(), any());
-    }
-
-    @Test
-    public void testRefreshOptionsHandlesOptionServiceFailureGracefully() {
-        Stock stock = new Stock();
-        stock.setId(1L);
-        stock.setTicker("AAPL");
-        stock.setPrice(new BigDecimal("100"));
-
-        Option oldOption = new Option();
-        oldOption.setId(10L);
-        oldOption.setTicker("OLD");
-        oldOption.setUnderlyingStock(stock);
-
-        doNothing().when(orderService).checkOrders();
-        when(portfolioEntryRepository.findAllOptionTickersInUse()).thenReturn(Set.of());
-        when(optionRepository.findAll()).thenReturn(List.of(oldOption));
-        when(optionRepository.findAllTickers()).thenReturn(Set.of("OLD"));
-        when(optionService.generateOptions("AAPL", new BigDecimal("100")))
-                .thenThrow(new RuntimeException("Simulated failure"));
-
-        assertDoesNotThrow(() -> refreshService.refreshListings());
     }
 
     @Test

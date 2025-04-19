@@ -26,4 +26,25 @@ public class ListingFilterDto {
     private String sortBy;
     private String sortOrder;
 
+    @Override
+    public String toString() {
+        return "ListingFilterDto{" +
+                "type='" + type + '\'' +
+                ", search='" + search + '\'' +
+                ", exchangePrefix='" + exchangePrefix + '\'' +
+                ", minPrice=" + minPrice +
+                ", maxPrice=" + maxPrice +
+                ", minAsk=" + minAsk +
+                ", maxAsk=" + maxAsk +
+                ", minBid=" + minBid +
+                ", maxBid=" + maxBid +
+                ", minVolume=" + minVolume +
+                ", maxVolume=" + maxVolume +
+                ", minMaintenanceMargin=" + minMaintenanceMargin +
+                ", maxMaintenanceMargin=" + maxMaintenanceMargin +
+                ", settlementDate=" + settlementDate +
+                ", sortBy='" + sortBy + '\'' +
+                ", sortOrder='" + sortOrder + '\'' +
+                '}';
+    }
 }
