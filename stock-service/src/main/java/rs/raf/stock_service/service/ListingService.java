@@ -142,7 +142,7 @@ public class ListingService {
 
             JsonNode timeSeriesNode = rootNode.get("Time Series (" + interval + ")");
             if (timeSeriesNode == null) {
-                throw new RuntimeException("Invalid response format from Alpha Vantage");
+                throw new RuntimeException("Invalid response format from Alpha Vantage: " + response);
             }
 
             List<TimeSeriesDto.TimeSeriesValueDto> values = new ArrayList<>();

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @Component
 public class BootstrapData implements CommandLineRunner {
     @Autowired private CountryService countryService;
-    @Autowired private ListingMapper listingMapper;
+    @Autowired private CountryRepository countryRepository;
     @Autowired private ExchangeService exchangeService;
     @Autowired private HolidayService holidayService;
     @Autowired private ListingRepository listingRepository;
@@ -55,7 +55,7 @@ public class BootstrapData implements CommandLineRunner {
     @Autowired private OtcOptionRepository otcOptionRepository;
     @Autowired private OtcOfferRepository otcOfferRepository;
     @Autowired private ListingRedisService listingRedisService;
-
+    @Autowired private ListingMapper listingMapper;
 
     @Value("${bootstrap.thread.pool.size:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}")
     private int threadPoolSize;
@@ -64,21 +64,24 @@ public class BootstrapData implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        System.out.println("tu sam");
+        log.info("Starting db seeder");
         importCoreData();
-        importStocksAndHistory();
-        importForexAndHistory();
-        addFutures();
-        addPortfolioTestData();
-        addOrderTestData();
-        addOtcOfferTestData();
-        addOtcOptionTestData();
+        if (listingRepository.count() == 0) {
+            importStocksAndHistory();
+            importForexAndHistory();
+            addFutures();
+        }
 
         List<ListingDto> dtos = listingRepository.findAll().stream()
                 .map(listing -> listingMapper.toDto(listing, priceHistoryRepository.findTopByListingOrderByDateDesc(listing)))
                 .toList();
         listingRedisService.saveAll(dtos);
-        System.out.println("Snimljeni listing podaci u Redis.");
+        log.info("Listings saved to redis");
+
+        addPortfolioTestData();
+        addOrderTestData();
+        addOtcOfferTestData();
+        addOtcOptionTestData();
     }
 
     private void importCoreData() {
@@ -137,7 +140,7 @@ public class BootstrapData implements CommandLineRunner {
         });
 
         saveInBatches(allStocks, 500, listingRepository::saveAllAndFlush);
-        System.out.println("Zavrsio stock");
+        log.info("Imported stocks");
     }
 
     private void importStockPriceHistory() {
@@ -158,7 +161,7 @@ public class BootstrapData implements CommandLineRunner {
         });
 
         saveInBatches(all, 100, priceHistoryRepository::saveAllAndFlush);
-        System.out.println("Zavrsio stock history");
+        log.info("Imported stock price history");
 
     }
 
@@ -192,7 +195,7 @@ public class BootstrapData implements CommandLineRunner {
         });
 
         saveInBatches(list, 500, listingRepository::saveAllAndFlush);
-        System.out.println("Zavrsio forex");
+        log.info("Imported forex pairs");
 
     }
 
@@ -214,7 +217,7 @@ public class BootstrapData implements CommandLineRunner {
         });
 
         saveInBatches(all, 100, priceHistoryRepository::saveAllAndFlush);
-        System.out.println("Zavrsio forex history");
+        log.info("Imported forex price history");
 
     }
 
@@ -235,12 +238,13 @@ public class BootstrapData implements CommandLineRunner {
         }).toList();
 
         saveInBatches(list, 200, futuresRepository::saveAllAndFlush);
-        System.out.println("Zavrsio futures");
+        log.info("Imported futures");
 
     }
 
     @Transactional
     public void addOtcOfferTestData() {
+        if (otcOfferRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         OtcOffer otcOffer1 = OtcOffer.builder()
@@ -275,8 +279,9 @@ public class BootstrapData implements CommandLineRunner {
         otcOfferRepository.save(otcOffer2);
     }
 
-     @Transactional
+    @Transactional
     public void addOtcOptionTestData() {
+        if (otcOptionRepository.count() > 0) return;
         Stock stock = (Stock) listingRepository.findByTicker("DADA").orElse(null);
 
         // Validni neiskorišćeni ugovor
@@ -313,6 +318,22 @@ public class BootstrapData implements CommandLineRunner {
 
         // Validni ugovor
         OtcOption option3 = OtcOption.builder()
+                .strikePrice(new BigDecimal("1.00"))
+                .settlementDate(LocalDate.now().plusWeeks(2))
+                .amount(200)
+                .buyerId(2L)
+                .sellerId(1L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Validni ugovor
+        OtcOption option4 = OtcOption.builder()
                 .strikePrice(new BigDecimal("2.00"))
                 .settlementDate(LocalDate.now().plusWeeks(2))
                 .amount(200)
@@ -327,8 +348,56 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
+        // Validni ugovor
+        OtcOption option5 = OtcOption.builder()
+                .strikePrice(new BigDecimal("3.00"))
+                .settlementDate(LocalDate.now().plusWeeks(2))
+                .amount(200)
+                .buyerId(2L)
+                .sellerId(1L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Validni ugovor
+        OtcOption option6 = OtcOption.builder()
+                .strikePrice(new BigDecimal("4.00"))
+                .settlementDate(LocalDate.now().plusWeeks(2))
+                .amount(200)
+                .buyerId(2L)
+                .sellerId(1L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
+        // Validni ugovor
+        OtcOption option7 = OtcOption.builder()
+                .strikePrice(new BigDecimal("5.00"))
+                .settlementDate(LocalDate.now().plusWeeks(2))
+                .amount(200)
+                .buyerId(2L)
+                .sellerId(1L)
+                .underlyingStock(stock)
+                .used(false)
+                .premium(new BigDecimal("50.00"))
+                .otcOffer(OtcOffer.builder()
+                        .premium(new BigDecimal("50.00"))
+                        .status(OtcOfferStatus.ACCEPTED)
+                        .build())
+                .build();
+
         // Istekao neiskorišćen ugovor
-        OtcOption option4 = OtcOption.builder()
+        OtcOption option8 = OtcOption.builder()
                 .strikePrice(new BigDecimal("2.00"))
                 .settlementDate(LocalDate.now().minusMonths(1))
                 .amount(75)
@@ -343,7 +412,7 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
-        OtcOption option5 = OtcOption.builder()
+        OtcOption option9 = OtcOption.builder()
                 .strikePrice(new BigDecimal("2.00"))
                 .settlementDate(LocalDate.now().plusMonths(3))
                 .amount(100)
@@ -358,7 +427,7 @@ public class BootstrapData implements CommandLineRunner {
                         .build())
                 .build();
 
-        List<OtcOption> options = List.of(option1, option2, option3, option4, option5);
+        List<OtcOption> options = List.of(option1, option2, option3, option4, option5, option6, option7, option8, option9);
 
         // Postavi bidirectional vezu za otcOffer
         options.forEach(option -> {
@@ -372,8 +441,10 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addPortfolioTestData() {
+        if (portfolioEntryRepository.count() == 0) return;
+
         PortfolioEntry p1 = PortfolioEntry.builder()
-                .id(1L).amount(100).type(ListingType.STOCK).used(false)
+                .id(1L).amount(1000).type(ListingType.STOCK).used(false)
                 .averagePrice(new BigDecimal("154")).userId(1L)
                 .inTheMoney(false)
                 .listing(listingRepository.findByTicker("DADA").orElseThrow())
@@ -391,27 +462,8 @@ public class BootstrapData implements CommandLineRunner {
 
     @Transactional
     public void addOrderTestData() {
+        if (orderRepository.count() > 0) return;
         Listing stock = listingRepository.findByTicker("DADA").orElse(null);
-
-        Order user2Pending = Order.builder()
-                .id(2L)
-                .orderType(OrderType.MARKET)
-                .contractSize(1)
-                .accountNumber("111111111111111111")
-                .afterHours(false)
-                .isDone(false)
-                .direction(OrderDirection.BUY)
-                .pricePerUnit(new BigDecimal("140"))
-                .remainingPortions(0)
-                .taxAmount(BigDecimal.ZERO)
-                .taxStatus(TaxStatus.TAXFREE)
-                .userId(2L)
-                .quantity(20)
-                .approvedBy(null)
-                .status(OrderStatus.PENDING)
-                .lastModification(LocalDateTime.now())
-                .listing(stock)
-                .build();
 
         Order user1DoneBuy = Order.builder()
                 .id(1L)
@@ -429,6 +481,26 @@ public class BootstrapData implements CommandLineRunner {
                 .quantity(10)
                 .approvedBy(null)
                 .status(OrderStatus.APPROVED)
+                .lastModification(LocalDateTime.now())
+                .listing(stock)
+                .build();
+
+        Order user2Pending = Order.builder()
+                .id(2L)
+                .orderType(OrderType.MARKET)
+                .contractSize(1)
+                .accountNumber("111111111111111111")
+                .afterHours(false)
+                .isDone(false)
+                .direction(OrderDirection.BUY)
+                .pricePerUnit(new BigDecimal("140"))
+                .remainingPortions(0)
+                .taxAmount(BigDecimal.ZERO)
+                .taxStatus(TaxStatus.TAXFREE)
+                .userId(2L)
+                .quantity(20)
+                .approvedBy(null)
+                .status(OrderStatus.PENDING)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
                 .build();
@@ -451,6 +523,7 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("100"))
                 .build();
 
         Order user1DoneBuy2 = Order.builder()
@@ -491,6 +564,7 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("50"))
                 .build();
 
         Order user3DoneBuy = Order.builder()
@@ -531,18 +605,22 @@ public class BootstrapData implements CommandLineRunner {
                 .status(OrderStatus.APPROVED)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .profit(new BigDecimal("200"))
                 .build();
 
 
-        orderRepository.save(user2Pending);
-        orderRepository.save(user1DoneBuy);
-        orderRepository.save(user1DoneSell);
-        orderRepository.save(user3DoneBuy);
-        orderRepository.save(user3DoneSell);
-        orderRepository.save(user1DoneBuy2);
-        orderRepository.save(user1DoneSell2);
-        orderRepository.save(user3DoneBuy);
-        orderRepository.save(user3DoneSell);
+        orderRepository.saveAll(List.of(
+                user1DoneBuy,
+                user2Pending,
+                user1DoneBuy,
+                user1DoneSell,
+                user3DoneBuy,
+                user3DoneSell,
+                user1DoneBuy2,
+                user1DoneSell2,
+                user3DoneBuy,
+                user3DoneSell
+        ));
     }
 
     private List<ListingPriceHistory> createNewHistory(Listing listing, TimeSeriesDto dto, Set<LocalDateTime> existingDates) {
@@ -612,6 +690,6 @@ public class BootstrapData implements CommandLineRunner {
     }
 
     private BootstrapData getSelfProxy() {
-   		return applicationContext.getBean(BootstrapData.class);
-	}
+        return applicationContext.getBean(BootstrapData.class);
+    }
 }

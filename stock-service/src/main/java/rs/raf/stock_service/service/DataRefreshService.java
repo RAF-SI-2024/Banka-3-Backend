@@ -43,7 +43,7 @@ public class DataRefreshService {
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @Scheduled(initialDelay = 150000, fixedRate = 300000)
+    @Scheduled(initialDelay = 60000, fixedRate = 301000)
     @Transactional
     public void refreshListings() {
         log.info("---- Starting scheduled listing refresh ----");
