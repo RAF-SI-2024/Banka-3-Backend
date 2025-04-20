@@ -165,7 +165,8 @@ class ListingServiceTest {
                 ),
                 null,
                 null,
-                List.of(LocalDate.of(2024, 3, 2))
+                List.of(LocalDate.of(2024, 3, 2)),
+                null
         );
 
         // Mock ponašanje repozitorijuma

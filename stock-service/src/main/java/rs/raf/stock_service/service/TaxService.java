@@ -42,8 +42,8 @@ public class TaxService {
         List<UserTaxDto> userTaxDtos = userClient.getAgentsAndClients(name, surname, role);
         for (UserTaxDto userTaxDto : userTaxDtos) {
             TaxGetResponseDto taxForUser = portfolioService.getUserTaxes(userTaxDto.getId());
-            userTaxDto.setUnpaidTaxThisMonth(bankClient.convert(new ConvertDto("USD", "RSD", taxForUser.getUnpaidForThisMonth())));
-            userTaxDto.setPaidTaxThisYear(bankClient.convert(new ConvertDto("USD", "RSD", taxForUser.getPaidForThisYear())));
+            userTaxDto.setUnpaidTaxThisMonth(taxForUser.getUnpaidForThisMonth());
+            userTaxDto.setPaidTaxThisYear(taxForUser.getPaidForThisYear());
         }
         return userTaxDtos;
     }
