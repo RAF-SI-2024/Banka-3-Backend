@@ -35,7 +35,7 @@ public class ListingDto {
         this.exchangeMic = exchangeMic;
     }
 
-    public ListingDto(Long id, ListingType listingType, String ticker, BigDecimal price, BigDecimal change, Long volume, BigDecimal initialMarginCost, String exchangeMic, BigDecimal ask) {
+    public ListingDto(Long id, ListingType listingType, String ticker, BigDecimal price, BigDecimal change, Long volume, BigDecimal initialMarginCost, String exchangeMic, BigDecimal ask, LocalDate settlementDate) {
         this.id = id;
         this.listingType = listingType;
         this.ticker = ticker;
@@ -45,6 +45,7 @@ public class ListingDto {
         this.initialMarginCost = initialMarginCost;
         this.exchangeMic = exchangeMic;
         this.ask = ask;
+        this.settlementDate = settlementDate;
     }
 
 }
