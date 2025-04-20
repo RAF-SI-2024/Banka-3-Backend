@@ -37,18 +37,6 @@ services:
     volumes:
       - ./data-analysis-service:/app
 
-  mock-data-generator:
-    build:
-      context: ./data-analysis-service
-      dockerfile: scripts/Dockerfile
-    environment:
-      - KAFKA_BROKER=kafka:29092
-      - DOCKER_ENV=true
-    depends_on:
-      - kafka
-    volumes:
-      - ./data-analysis-service:/app
-
   user-service:
     build:
       context: ./user-service

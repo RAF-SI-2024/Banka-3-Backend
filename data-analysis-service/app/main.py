@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(analysis_router)
 app.include_router(analytics_router)
 
+
 @app.get("/")
 async def root():
     return {
@@ -26,6 +27,7 @@ async def root():
         "version": "1.0.0",
         "docs_url": "/docs"
     }
+
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

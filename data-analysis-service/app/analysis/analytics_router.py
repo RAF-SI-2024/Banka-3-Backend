@@ -130,45 +130,38 @@ def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
                         client profiles and their needs.
                     </p>
                     <div class="segment-insights">
-                        <h3>Key Insights:</h3>
+                        <h3>How Clients are Clustered:</h3>
+                        <p>Clients are grouped based on five key behavioral metrics:</p>
                         <ul>
-                            <li><strong>Balance-based Groups:</strong> Segments show different levels of account balance maintenance</li>
-                            <li><strong>Transaction Patterns:</strong> Each group has distinct transaction frequencies and amounts</li>
-                            <li><strong>Product Usage:</strong> Different segments show varying levels of engagement with banking products</li>
-                            <li><strong>Activity Levels:</strong> Groups range from highly active to minimal engagement</li>
+                            <li><strong>Account Balance:</strong> Average balance maintained in accounts</li>
+                            <li><strong>Transaction Count:</strong> Frequency of banking transactions</li>
+                            <li><strong>Transaction Volume:</strong> Total amount of monthly transactions</li>
+                            <li><strong>Average Transaction:</strong> Typical size of individual transactions</li>
+                            <li><strong>Card Usage:</strong> Number of active cards per client</li>
                         </ul>
+                        <p>These metrics are normalized and analyzed using k-means clustering to identify distinct client segments.</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Cluster Statistics</h2>
+                    <h2>Segment Comparison</h2>
                     <p class="description">
-                        The chart below shows key metrics for each client segment, including average balance,
-                        transaction frequency, and product usage. Higher values indicate stronger engagement
-                        in that particular aspect.
+                        The spider chart below compares all segments across key metrics. Each axis represents a different
+                        aspect of client behavior, allowing for easy comparison of segment characteristics. Hover over
+                        the chart to see detailed metric values and descriptions.
                     </p>
-                    {visualizations['clusters']}
+                    {visualizations['spider']}
                 </div>
                 <div class="card">
-                    <h2>Segment Distribution</h2>
+                    <h2>Segment Distribution & Revenue Share</h2>
                     <p class="description">
-                        This chart shows how clients are distributed across different segments.
-                        The size of each segment indicates the number of clients with similar banking behavior patterns.
+                        This chart shows how clients are distributed across different segments and their contribution
+                        to total revenue. Hover over segments to see detailed statistics including client count,
+                        percentage share, and revenue contribution.
                     </p>
                     {visualizations['distribution']}
                 </div>
-                <div class="card">
-                    <h2>Segment Characteristics</h2>
-                    <div class="segment-details">
-                        <h3>Typical Segment Profiles:</h3>
-                        <ul>
-                            <li><strong>High-Value Segment:</strong> Clients with high balances, frequent transactions, and multiple products</li>
-                            <li><strong>Active Traders:</strong> Regular transaction activity but moderate balances</li>
-                            <li><strong>Stable Savers:</strong> High balances but lower transaction frequency</li>
-                            <li><strong>Basic Users:</strong> Lower balances and minimal product usage</li>
-                            <li><strong>Occasional Users:</strong> Infrequent activity across all metrics</li>
-                        </ul>
-                    </div>
-                </div>
+                {visualizations['descriptions']}
+                {visualizations['recommendations']}
             """
             return create_html_response(str(result), viz_html)
         return create_html_response(str(result), "")

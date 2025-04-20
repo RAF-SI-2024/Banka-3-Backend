@@ -66,14 +66,14 @@ public class BootstrapData implements CommandLineRunner {
             List<Card> newCards = new ArrayList<>();
             List<Payment> newPayments = new ArrayList<>();
 
-            // Client profiles (1-5 from user service)
-            // Client 1: High-value client
-            // Client 2: Average client with stable history
-            // Client 3: Low-activity client
-            // Client 4: Client with mixed history
-            // Client 5: New client with minimal history
+            // Client profiles with natural variations:
+            // - Mix of account balances (very low to very high)
+            // - Various transaction patterns (frequency, amounts, success rates)
+            // - Different card usage behaviors (no cards, debit only, credit, multiple cards)
+            // - Mix of activity levels and transaction types
+            // Let natural segments emerge from data
 
-            for (int i = 1; i <= 10; i++) {
+            for (int i = 1; i <= 20; i++) {
                 // Generate unique account number
                 String accountNumber;
                 int attempts = 0;
@@ -107,52 +107,46 @@ public class BootstrapData implements CommandLineRunner {
                     default -> currencyRSD;
                 };
 
-                // Determine client type based on binomial distribution
-                int clientType = (int)(i % 10); // Using modulo 10 for more granular control
-                
-                // Base values that will be modified by specific client number
-                BigDecimal baseBalance = BigDecimal.ZERO;
-                BigDecimal baseLimit = BigDecimal.ZERO;
-                accountType = AccountType.CURRENT;
-                
-                // Set base characteristics by client type pattern
-                switch (clientType) {
-                    case 0, 1 -> { // High-risk clients (2 clients)
-                        baseBalance = BigDecimal.valueOf(1000);
-                        baseLimit = BigDecimal.valueOf(500);
-                        // Characteristics: Low balance, declining activity, high failure rate
-                    }
-                    case 2 -> { // Moderately low-risk client (1 client)
-                        baseBalance = BigDecimal.valueOf(5000);
-                        baseLimit = BigDecimal.valueOf(1000);
-                        // Characteristics: Moderate balance, stable but low activity
-                    }
-                    case 3, 4, 5, 6 -> { // Middle-risk clients (4 clients)
-                        baseBalance = BigDecimal.valueOf(15000);
-                        baseLimit = BigDecimal.valueOf(2000);
-                        // Characteristics: Good balance, regular activity, occasional failures
-                    }
-                    case 7 -> { // Moderately high-risk client (1 client)
-                        baseBalance = BigDecimal.valueOf(30000);
-                        baseLimit = BigDecimal.valueOf(3000);
-                        accountType = AccountType.FOREIGN;
-                        // Characteristics: High balance, good activity, rare failures
-                    }
-                    case 8, 9 -> { // High-value clients (2 clients)
-                        baseBalance = BigDecimal.valueOf(50000);
-                        baseLimit = BigDecimal.valueOf(5000);
-                        accountType = AccountType.FOREIGN;
-                        // Characteristics: Very high balance, excellent activity, minimal failures
-                    }
+                // Create naturally diverse base characteristics
+                double profileRandomizer = Math.random(); // Used for creating natural groupings
+                double activityLevel = Math.random(); // General activity level
+                double riskLevel = Math.random(); // Risk level affects decline rates and behaviors
+
+                // Set base values with high variability
+                BigDecimal baseBalance;
+                BigDecimal baseLimit;
+
+                // Determine base balance - create natural variety
+                if (profileRandomizer < 0.15) { // Very low balance accounts
+                    baseBalance = BigDecimal.valueOf(100 + Math.random() * 900); // 100-1000
+                    baseLimit = BigDecimal.valueOf(200);
+                    accountType = AccountType.CURRENT;
+                } else if (profileRandomizer < 0.40) { // Low-moderate balance
+                    baseBalance = BigDecimal.valueOf(1000 + Math.random() * 4000); // 1000-5000
+                    baseLimit = BigDecimal.valueOf(1000);
+                    accountType = AccountType.CURRENT;
+                } else if (profileRandomizer < 0.70) { // Moderate balance
+                    baseBalance = BigDecimal.valueOf(5000 + Math.random() * 15000); // 5000-20000
+                    baseLimit = BigDecimal.valueOf(2000);
+                    accountType = AccountType.CURRENT;
+                } else if (profileRandomizer < 0.85) { // High balance
+                    baseBalance = BigDecimal.valueOf(20000 + Math.random() * 30000); // 20000-50000
+                    baseLimit = BigDecimal.valueOf(5000);
+                    accountType = Math.random() > 0.5 ? AccountType.FOREIGN : AccountType.CURRENT;
+                } else { // Very high balance
+                    baseBalance = BigDecimal.valueOf(50000 + Math.random() * 50000); // 50000-100000
+                    baseLimit = BigDecimal.valueOf(10000);
+                    accountType = AccountType.FOREIGN;
                 }
 
-                // Modify base values based on specific client number to create variety
-                double balanceMultiplier = 1.0 + (i * 0.1); // Each client gets progressively larger modification
-                double randomFactor = Math.random() * 0.5 + 0.75; // Random factor between 0.75 and 1.25
+                // Add some randomization to limits
+                double limitVariation = 0.75 + (Math.random() * 0.5); // 75%-125% of base limit
+                dailyLimit = baseLimit.multiply(BigDecimal.valueOf(limitVariation));
+                monthlyLimit = dailyLimit.multiply(BigDecimal.valueOf(15 + Math.random() * 10)); // 15-25x daily limit
 
-                balance = baseBalance.multiply(BigDecimal.valueOf(balanceMultiplier * randomFactor));
-                dailyLimit = baseLimit.multiply(BigDecimal.valueOf(randomFactor));
-                monthlyLimit = dailyLimit.multiply(BigDecimal.valueOf(10)); // Monthly limit is 10x daily
+                // Actual balance varies from base
+                double balanceVariation = 0.8 + (Math.random() * 0.4); // 80%-120% of base balance
+                balance = baseBalance.multiply(BigDecimal.valueOf(balanceVariation));
 
                 // Create account with diverse characteristics
                 Account account = PersonalAccount.builder()
@@ -160,7 +154,7 @@ public class BootstrapData implements CommandLineRunner {
                         .accountNumber(accountNumber)
                         .clientId((long) i)
                         .createdByEmployeeId(3L)
-                        .creationDate(LocalDate.now().minusMonths(i * 3)) // Different ages spread across 30 months
+                        .creationDate(LocalDate.now().minusMonths((int)(Math.random() * 24))) // Random age 0-24 months
                         .expirationDate(LocalDate.now().plusYears(2))
                         .currency(accountCurrency)
                         .status(AccountStatus.ACTIVE)
@@ -177,25 +171,25 @@ public class BootstrapData implements CommandLineRunner {
                 account = accountRepository.save(account);
                 existingAccountNumbers.add(accountNumber);
 
-                // Create cards based on client profile and creditworthiness
-                if (clientType < 2) { // High-risk clients: no cards
-                    // Skip card creation
-                } else if (clientType == 2) { // Moderately low-risk: debit card only
+                // Card creation with natural variety
+                double cardChance = Math.random();
+                if (cardChance < 0.2) { // 20% no cards
+                    // No cards for this client
+                } else if (cardChance < 0.5) { // 30% debit only
                     createDebitCard(account, dailyLimit, newCards);
-                } else if (clientType >= 3 && clientType <= 6) { // Middle-risk: debit card with chance of credit card
+                } else if (cardChance < 0.8) { // 30% debit + credit
                     createDebitCard(account, dailyLimit, newCards);
-                    if (Math.random() > 0.5) {
-                        createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(2)), newCards);
+                    createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(1.5 + Math.random())), newCards);
+                } else { // 20% multiple cards
+                    createDebitCard(account, dailyLimit, newCards);
+                    createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(2 + Math.random())), newCards);
+                    if (Math.random() > 0.5) { // Sometimes a second credit card
+                        createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(1.5 + Math.random())), newCards);
                     }
-                } else if (clientType == 7) { // Moderately high-risk: credit card
-                    createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(3)), newCards);
-                } else { // High-value: multiple credit cards
-                    createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(5)), newCards);
-                    createCreditCard(account, dailyLimit.multiply(BigDecimal.valueOf(4)), newCards);
                 }
 
-                // Create second account for high-value clients
-                if (clientType >= 8) {
+                // Create second account for some clients (independent of balance)
+                if (Math.random() < 0.3) { // 30% chance of second account
                     String secondAccountNumber;
                     do {
                         secondAccountNumber = "978" + String.format("%013d", 2000000L + i);
@@ -225,127 +219,81 @@ public class BootstrapData implements CommandLineRunner {
                 }
             }
 
-            // Create diverse transactions with meaningful patterns
+            // Create diverse transactions
             List<Account> allAccounts = accountRepository.findAll();
             for (Account senderAccount : allAccounts) {
-                // Calculate base transaction count using client type
-                int clientType = (int)(senderAccount.getClientId() % 10);
-                int baseTransactions = 5;
-                
-                // Determine additional transactions based on client type pattern
-                int additionalTransactions = switch (clientType) {
-                    case 0, 1 -> 5;  // High-risk: minimal transactions
-                    case 2 -> 10;    // Moderately low-risk: few transactions
-                    case 3, 4, 5, 6 -> 15; // Middle-risk: regular transactions
-                    case 7 -> 20;    // Moderately high-risk: frequent transactions
-                    default -> 30;   // High-value: many transactions
-                };
+                // Determine transaction patterns
+                double activityLevel = Math.random(); // Overall activity level
+                double consistencyLevel = Math.random(); // How consistent are their transactions
+                double riskLevel = Math.random(); // Affects failure rates
 
-                // Modify transaction count based on specific client number
-                additionalTransactions = (int)(additionalTransactions * (1.0 + (senderAccount.getClientId() % 3) * 0.1));
-                
-                int transactionCount = baseTransactions + additionalTransactions;
-                
-                for (int i = 0; i < transactionCount; i++) {
+                // Base number of transactions varies greatly
+                int baseTransactions;
+                if (activityLevel < 0.2) { // Very low activity
+                    baseTransactions = 1 + (int)(Math.random() * 5); // 1-5 transactions
+                } else if (activityLevel < 0.5) { // Low activity
+                    baseTransactions = 5 + (int)(Math.random() * 10); // 5-15 transactions
+                } else if (activityLevel < 0.8) { // Moderate activity
+                    baseTransactions = 15 + (int)(Math.random() * 20); // 15-35 transactions
+                } else { // High activity
+                    baseTransactions = 35 + (int)(Math.random() * 30); // 35-65 transactions
+                }
+
+                for (int i = 0; i < baseTransactions; i++) {
+                    // Select random receiver
                     Account receiverAccount;
                     do {
-                        receiverAccount = allAccounts.get((int) (Math.random() * allAccounts.size()));
+                        receiverAccount = allAccounts.get((int)(Math.random() * allAccounts.size()));
                     } while (receiverAccount.getAccountNumber().equals(senderAccount.getAccountNumber()));
 
-                    // Calculate transaction date with churn risk patterns
+                    // Transaction timing varies by consistency level
                     long daysAgo;
-                    if (clientType >= 8) { // High-value: consistent recent activity
-                        daysAgo = (long)(Math.random() * 30);
-                    } else if (clientType == 7) { // Moderately high-risk: mostly recent
-                        daysAgo = (long)(Math.random() * 45);
-                    } else if (clientType >= 3 && clientType <= 6) { // Middle-risk: mix of recent and older
-                        daysAgo = (long)(Math.random() * 60);
-                    } else if (clientType == 2) { // Moderately low-risk: mostly older
-                        daysAgo = 45 + (long)(Math.random() * 30);
-                    } else { // High-risk: very old transactions
-                        daysAgo = 60 + (long)(Math.random() * 30);
+                    if (consistencyLevel < 0.3) { // Irregular activity
+                        daysAgo = (long)(Math.random() * 90); // 0-90 days
+                    } else if (consistencyLevel < 0.7) { // Somewhat regular
+                        daysAgo = (long)(Math.random() * 45); // 0-45 days
+                    } else { // Regular activity
+                        daysAgo = (long)(Math.random() * 30); // 0-30 days
                     }
 
-                    // Calculate transaction amount with churn risk patterns
-                    double baseAmount = switch (clientType) {
-                        case 0, 1 -> 500.0;  // High-risk: small amounts
-                        case 2 -> 1000.0;    // Moderately low-risk: moderate amounts
-                        case 3, 4, 5, 6 -> 2000.0; // Middle-risk: good amounts
-                        case 7 -> 3000.0;    // Moderately high-risk: large amounts
-                        default -> 5000.0;   // High-value: very large amounts
-                    };
-
-                    // Modify amount based on transaction index to create churn patterns
-                    double amountMultiplier = 1.0;
-                    if (clientType >= 8) { // High-value: increasing amounts
-                        amountMultiplier = 1.0 + (i * 0.01);
-                    } else if (clientType == 7) { // Moderately high-risk: stable amounts
-                        amountMultiplier = 1.0 + (Math.random() * 0.1);
-                    } else if (clientType >= 3 && clientType <= 6) { // Middle-risk: slightly declining
-                        amountMultiplier = 1.0 - (i * 0.005);
-                    } else if (clientType == 2) { // Moderately low-risk: declining
-                        amountMultiplier = 1.0 - (i * 0.01);
-                    } else { // High-risk: sharply declining
-                        amountMultiplier = 1.0 - (i * 0.02);
+                    // Transaction amounts vary by account balance and activity pattern
+                    double baseAmount;
+                    double randomFactor = Math.random();
+                    if (randomFactor < 0.6) { // 60% normal transactions
+                        baseAmount = 50 + Math.random() * 950; // 50-1000
+                    } else if (randomFactor < 0.9) { // 30% larger transactions
+                        baseAmount = 1000 + Math.random() * 4000; // 1000-5000
+                    } else { // 10% very large transactions
+                        baseAmount = 5000 + Math.random() * 15000; // 5000-20000
                     }
 
-                    // Calculate failure chance with churn patterns
-                    double baseFailureChance = switch (clientType) {
-                        case 0, 1 -> 0.25;   // High-risk: frequent failures
-                        case 2 -> 0.15;      // Moderately low-risk: some failures
-                        case 3, 4, 5, 6 -> 0.10; // Middle-risk: occasional failures
-                        case 7 -> 0.05;      // Moderately high-risk: rare failures
-                        default -> 0.02;     // High-value: very rare failures
-                    };
+                    // Adjust amount based on account balance (can't send more than they have)
+                    baseAmount = Math.min(baseAmount, senderAccount.getBalance().doubleValue() * 0.9);
 
-                    // Modify failure chance based on transaction index
-                    double failureChance = baseFailureChance;
-                    if (clientType <= 1) { // High-risk: increasing failure rate
-                        failureChance += (i * 0.02);
-                    } else if (clientType == 2) { // Moderately low-risk: slightly increasing
-                        failureChance += (i * 0.01);
-                    }
+                    // Calculate failure chance based on risk level and amount
+                    double failureChance = 0.05 + (riskLevel * 0.15); // Base 5-20% failure rate
+                    failureChance += (baseAmount / senderAccount.getBalance().doubleValue()) * 0.1; // Higher chance for larger relative amounts
 
-                    // Set balance based on churn risk
-                    BigDecimal balance = senderAccount.getBalance();
-                    if (clientType <= 1) { // High-risk: very low balance
-                        balance = BigDecimal.valueOf(50 + Math.random() * 50);
-                    } else if (clientType == 2) { // Moderately low-risk: low balance
-                        balance = BigDecimal.valueOf(500 + Math.random() * 500);
-                    } else if (clientType >= 3 && clientType <= 6) { // Middle-risk: moderate balance
-                        balance = balance.multiply(BigDecimal.valueOf(0.95));
-                    }
-
-                    // Update account balance
-                    senderAccount.setBalance(balance);
-                    senderAccount.setAvailableBalance(balance);
-                    accountRepository.save(senderAccount);
-
+                    // Create payment with natural variations
                     Payment payment = Payment.builder()
                             .senderName("Sender " + senderAccount.getClientId())
                             .clientId(senderAccount.getClientId())
                             .senderAccount(senderAccount)
-                            .amount(BigDecimal.valueOf((Math.random() * baseAmount * amountMultiplier) + 50)
-                                    .setScale(2, RoundingMode.HALF_UP))
+                            .amount(BigDecimal.valueOf(baseAmount).setScale(2, RoundingMode.HALF_UP))
                             .date(LocalDateTime.now().minusDays(daysAgo))
                             .status(Math.random() > failureChance ? PaymentStatus.COMPLETED : PaymentStatus.CANCELED)
-                            .purposeOfPayment("Payment for service " + i)
+                            .purposeOfPayment("Payment " + i)
                             .referenceNumber(String.format("REF%08d", i))
                             .accountNumberReceiver(receiverAccount.getAccountNumber())
                             .receiverClientId(receiverAccount.getClientId())
                             .build();
 
-                    // Card usage pattern based on churn risk
-                    boolean useCard = !senderAccount.getCards().isEmpty() && 
-                        (clientType >= 8 || // High-value: always use card
-                         clientType == 7 || // Moderately high-risk: frequent card use
-                         (clientType >= 3 && clientType <= 6 && i < transactionCount/2) || // Middle-risk: declining card use
-                         (clientType == 2 && Math.random() > 0.5)); // Moderately low-risk: occasional card use
-
-                    if (useCard) {
+                    // Card usage varies by availability and preference
+                    if (!senderAccount.getCards().isEmpty() && Math.random() > 0.3) { // 70% card usage if available
                         payment.setCard(senderAccount.getCards().get(0));
                     }
 
+                    // Handle currency exchange if needed
                     if (!senderAccount.getCurrency().equals(receiverAccount.getCurrency())) {
                         payment.setOutAmount(payment.getAmount().multiply(BigDecimal.valueOf(0.95)));
                         payment.setExchangeProfit(payment.getAmount().multiply(BigDecimal.valueOf(0.05)));
@@ -361,117 +309,171 @@ public class BootstrapData implements CommandLineRunner {
             List<Installment> newInstallments = new ArrayList<>();
 
             for (Account account : allAccounts) {
-                // Skip loans for client 3 (poor credit) and client 5 (too new)
-                if (account.getClientId() == 3L || account.getClientId() == 5L) {
-                    continue;
+                // Determine loan eligibility and patterns
+                double creditScore = Math.random(); // Random credit score for variety
+                double paymentReliability = Math.random(); // How reliable are they with payments
+                double riskAppetite = Math.random(); // How much they tend to borrow
+
+                // Number of loan applications (not all will be approved)
+                int loanApplications;
+                if (riskAppetite < 0.4) { // Conservative borrowers
+                    loanApplications = 1;
+                } else if (riskAppetite < 0.7) { // Moderate borrowers
+                    loanApplications = 1 + (int)(Math.random() * 2); // 1-2 loans
+                } else if (riskAppetite < 0.9) { // Active borrowers
+                    loanApplications = 2 + (int)(Math.random() * 2); // 2-3 loans
+                } else { // Heavy borrowers
+                    loanApplications = 3 + (int)(Math.random() * 2); // 3-4 loans
                 }
 
-                // Number of loans based on client profile
-                int loanCount;
-                Long clientId = account.getClientId();
-                
-                if (clientId == 1L) {
-                    loanCount = 2; // High-value client: multiple loans
-                } else if (clientId == 2L) {
-                    loanCount = 1; // Average client: one loan
-                } else if (clientId == 4L) {
-                    loanCount = (int) (Math.random() * 2); // Mixed history: 0-1 loans
-                } else {
-                    loanCount = 0; // Others: no loans
-                }
-                
-                for (int j = 0; j < loanCount; j++) {
-                    // Loan amount based on client profile
-                    BigDecimal maxLoanAmount = account.getBalance().multiply(BigDecimal.valueOf(2));
-                    BigDecimal loanAmount;
-                    
-                    if (clientId == 1L) {
-                        loanAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.8)); // High-value client: larger loans
-                    } else if (clientId == 2L) {
-                        loanAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.5)); // Average client: moderate loans
-                    } else {
-                        loanAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.3)); // Others: smaller loans
+                for (int j = 0; j < loanApplications; j++) {
+                    // Loan amount based on account balance and credit score
+                    BigDecimal maxLoanAmount = account.getBalance().multiply(BigDecimal.valueOf(3)); // Can borrow up to 3x balance
+                    BigDecimal requestedAmount;
+
+                    if (riskAppetite < 0.3) { // Conservative
+                        requestedAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.2 + Math.random() * 0.3)); // 20-50% of max
+                    } else if (riskAppetite < 0.7) { // Moderate
+                        requestedAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.4 + Math.random() * 0.3)); // 40-70% of max
+                    } else { // Aggressive
+                        requestedAmount = maxLoanAmount.multiply(BigDecimal.valueOf(0.6 + Math.random() * 0.4)); // 60-100% of max
                     }
+
+                    // Round to 2 decimal places
+                    requestedAmount = requestedAmount.setScale(2, RoundingMode.HALF_UP);
+
+                    // Determine loan approval based on multiple factors
+                    double approvalChance = creditScore; // Base approval on credit score
+                    approvalChance -= (requestedAmount.doubleValue() / maxLoanAmount.doubleValue()) * 0.2; // Larger loans are riskier
+                    approvalChance -= (j * 0.1); // Each additional loan reduces approval chance
+                    approvalChance += (account.getBalance().doubleValue() / 10000) * 0.1; // Higher balance helps
                     
-                    loanAmount = loanAmount.setScale(2, RoundingMode.HALF_UP);
-                    
-                    // Loan terms and rates based on client profile
+                    // Loan terms based on amount and credit score
                     int termMonths;
-                    if (clientId == 1L) {
-                        termMonths = 48 + (int) (Math.random() * 12); // 48-60 months
-                    } else if (clientId == 2L) {
-                        termMonths = 24 + (int) (Math.random() * 24); // 24-48 months
+                    if (requestedAmount.compareTo(BigDecimal.valueOf(10000)) < 0) {
+                        termMonths = 12 + (int)(Math.random() * 12); // 12-24 months for small loans
+                    } else if (requestedAmount.compareTo(BigDecimal.valueOf(50000)) < 0) {
+                        termMonths = 24 + (int)(Math.random() * 24); // 24-48 months for medium loans
                     } else {
-                        termMonths = 12 + (int) (Math.random() * 12); // 12-24 months
+                        termMonths = 48 + (int)(Math.random() * 36); // 48-84 months for large loans
                     }
-                    
-                    BigDecimal monthlyRate;
-                    if (clientId == 1L) {
-                        monthlyRate = BigDecimal.valueOf(0.006 + (Math.random() * 0.002)); // 0.6-0.8%
-                    } else if (clientId == 2L) {
-                        monthlyRate = BigDecimal.valueOf(0.008 + (Math.random() * 0.002)); // 0.8-1.0%
+
+                    // Interest rate based on credit score and loan size
+                    BigDecimal baseRate = BigDecimal.valueOf(0.05); // 5% base rate
+                    baseRate = baseRate.add(BigDecimal.valueOf((1 - creditScore) * 0.05)); // Add up to 5% for low credit
+                    baseRate = baseRate.add(BigDecimal.valueOf(requestedAmount.doubleValue() / maxLoanAmount.doubleValue() * 0.02)); // Add up to 2% for loan size
+                    BigDecimal monthlyRate = baseRate.divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
+
+                    // Calculate monthly payment
+                    BigDecimal monthlyPayment = calculateMonthlyPayment(requestedAmount, monthlyRate, termMonths);
+
+                    // Determine loan type with some variety
+                    LoanType loanType;
+                    double loanTypeRandom = Math.random();
+                    if (loanTypeRandom < 0.4) {
+                        loanType = LoanType.CASH;
+                    } else if (loanTypeRandom < 0.7) {
+                        loanType = LoanType.REFINANCING;
                     } else {
-                        monthlyRate = BigDecimal.valueOf(0.010 + (Math.random() * 0.002)); // 1.0-1.2%
+                        loanType = LoanType.MORTGAGE;
                     }
-                    
-                    BigDecimal monthlyPayment = calculateMonthlyPayment(loanAmount, monthlyRate, termMonths);
-                    
-                    String loanNumber = "LN" + String.format("%08d", 10000000L + (j * 100));
 
                     // Create loan with appropriate status
-                    LoanStatus status = Math.random() > 0.1 ? LoanStatus.APPROVED : LoanStatus.REJECTED;
+                    LoanStatus status = Math.random() < approvalChance ? LoanStatus.APPROVED : LoanStatus.REJECTED;
+                    
                     if (status == LoanStatus.APPROVED) {
-                        LocalDate startDate = LocalDate.now().minusMonths((int) (Math.random() * 12));
+                        LocalDate startDate = LocalDate.now().minusMonths((int)(Math.random() * 12));
                         
                         Loan loan = Loan.builder()
-                                .loanNumber(loanNumber)
-                                .type(j == 0 ? LoanType.CASH : LoanType.REFINANCING)
-                                .amount(loanAmount)
+                                .loanNumber("LN" + String.format("%08d", 10000000L + (account.getClientId() * 100) + j))
+                                .type(loanType)
+                                .amount(requestedAmount)
                                 .repaymentPeriod(termMonths)
-                                .nominalInterestRate(monthlyRate.multiply(BigDecimal.valueOf(12)))
-                                .effectiveInterestRate(monthlyRate.multiply(BigDecimal.valueOf(12.68)))
+                                .nominalInterestRate(baseRate)
+                                .effectiveInterestRate(baseRate.multiply(BigDecimal.valueOf(1.2)))
                                 .startDate(startDate)
                                 .dueDate(startDate.plusMonths(termMonths))
                                 .nextInstallmentAmount(monthlyPayment)
                                 .nextInstallmentDate(LocalDate.now().plusMonths(1))
-                                .remainingDebt(loanAmount)
+                                .remainingDebt(requestedAmount)
                                 .currency(account.getCurrency())
                                 .status(status)
-                                .interestRateType(InterestRateType.FIXED)
+                                .interestRateType(Math.random() > 0.7 ? InterestRateType.VARIABLE : InterestRateType.FIXED)
                                 .account(account)
                                 .build();
 
                         loan = loanRepository.save(loan);
                         newLoans.add(loan);
 
-                        // Create installments with payment history reflecting client profile
-                        LocalDate installmentStartDate = loan.getStartDate();
+                        // Create installments with varied payment history
+                        LocalDate installmentDate = loan.getStartDate();
+                        BigDecimal remainingDebt = loan.getAmount();
+                        
                         for (int i = 0; i < termMonths; i++) {
-                            LocalDate dueDate = installmentStartDate.plusMonths(i + 1);
+                            LocalDate dueDate = installmentDate.plusMonths(i + 1);
+                            boolean isPastDue = dueDate.isBefore(LocalDate.now());
                             
-                            // Payment probability based on client profile
-                            double paymentProbability;
-                            if (clientId == 1L) {
-                                paymentProbability = 0.95; // High-value client: excellent payment history
-                            } else if (clientId == 2L) {
-                                paymentProbability = 0.85; // Average client: good payment history
-                            } else {
-                                paymentProbability = 0.70; // Others: mixed payment history
+                            // Payment probability based on multiple factors
+                            double paymentProbability = paymentReliability; // Base on general reliability
+                            paymentProbability -= (1 - creditScore) * 0.2; // Lower credit score means more missed payments
+                            paymentProbability -= (i * 0.01); // Slight decrease over time
+                            paymentProbability -= (monthlyPayment.doubleValue() / account.getBalance().doubleValue()) * 0.2; // Higher payments relative to balance are harder to make
+                            
+                            // Add some randomness to payment timing
+                            LocalDate actualPaymentDate = null;
+                            if (isPastDue && Math.random() < paymentProbability) {
+                                int daysLate = (int)(Math.random() * 15); // 0-15 days late
+                                if (Math.random() < 0.1) { // 10% chance of being very late
+                                    daysLate += (int)(Math.random() * 30); // Additional 0-30 days
+                                }
+                                actualPaymentDate = dueDate.plusDays(daysLate);
                             }
-                            
-                            boolean isPaid = dueDate.isBefore(LocalDate.now()) && Math.random() < paymentProbability;
-                            
+
+                            InstallmentStatus installmentStatus;
+                            if (!isPastDue) {
+                                installmentStatus = InstallmentStatus.UNPAID;
+                            } else if (actualPaymentDate != null) {
+                                installmentStatus = InstallmentStatus.PAID;
+                                remainingDebt = remainingDebt.subtract(monthlyPayment);
+                            } else {
+                                installmentStatus = InstallmentStatus.LATE;
+                            }
+
                             Installment installment = Installment.builder()
                                     .loan(loan)
                                     .amount(monthlyPayment)
+//                                    .remainingDebt(remainingDebt)
                                     .actualDueDate(dueDate)
-                                    .installmentStatus(isPaid ? InstallmentStatus.PAID : InstallmentStatus.UNPAID)
-                                    .expectedDueDate(isPaid ? dueDate : null)
+                                    .installmentStatus(installmentStatus)
+                                    .expectedDueDate(actualPaymentDate)
                                     .build();
 
                             installment = installmentRepository.save(installment);
                             newInstallments.add(installment);
                         }
+
+                        // Update loan's remaining debt
+                        loan.setRemainingDebt(remainingDebt);
+                        loanRepository.save(loan);
+                    } else {
+                        // Create rejected loan record
+                        Loan rejectedLoan = Loan.builder()
+                                .loanNumber("LN" + String.format("%08d", 90000000L + (account.getClientId() * 100) + j))
+                                .type(loanType)
+                                .amount(requestedAmount)
+                                .repaymentPeriod(termMonths)
+                                .nominalInterestRate(baseRate)
+                                .effectiveInterestRate(baseRate.multiply(BigDecimal.valueOf(1.2)))
+                                .startDate(LocalDate.now())
+                                .dueDate(LocalDate.now().plusMonths(termMonths))
+                                .currency(account.getCurrency())
+                                .status(LoanStatus.REJECTED)
+                                .interestRateType(Math.random() > 0.7 ? InterestRateType.VARIABLE : InterestRateType.FIXED)
+                                .account(account)
+                                .build();
+
+                        rejectedLoan = loanRepository.save(rejectedLoan);
+                        newLoans.add(rejectedLoan);
                     }
                 }
             }

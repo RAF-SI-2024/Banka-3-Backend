@@ -370,105 +370,182 @@ def create_client_segments_visualization(segments_data):
     if not segments_data:
         return None
 
-    # Create a bar chart for cluster statistics
+    # Create a spider chart for cluster comparison
     clusters_df = pd.DataFrame(segments_data['clusters']).T
-    clusters_fig = go.Figure()
+    spider_fig = go.Figure()
 
-    # Define metric descriptions for tooltips
-    metric_descriptions = {
-        'balance': 'Average account balance in the segment',
-        'transaction_count': 'Average number of monthly transactions',
-        'total_transaction_amount': 'Average total transaction amount per month',
-        'avg_transaction_amount': 'Average amount per transaction',
-        'card_count': 'Average number of cards per client'
+    # Define metric descriptions and display names
+    metric_info = {
+        'balance': {
+            'display': 'Account Balance',
+            'description': 'Average account balance in the segment',
+            'unit': '$'
+        },
+        'transaction_count': {
+            'display': 'Transaction Count',
+            'description': 'Average number of monthly transactions',
+            'unit': 'txns'
+        },
+        'total_transaction_amount': {
+            'display': 'Transaction Volume',
+            'description': 'Average total transaction amount per month',
+            'unit': '$'
+        },
+        'avg_transaction_amount': {
+            'display': 'Avg Transaction',
+            'description': 'Average amount per transaction',
+            'unit': '$'
+        },
+        'card_count': {
+            'display': 'Card Usage',
+            'description': 'Average number of cards per client',
+            'unit': 'cards'
+        },
+        'large_transaction_ratio': {
+            'display': 'Large Transactions',
+            'description': 'Ratio of large transactions to total transactions',
+            'unit': '%'
+        },
+        'transaction_success_rate': {
+            'display': 'Success Rate',
+            'description': 'Percentage of successful transactions',
+            'unit': '%'
+        },
+        'activity_level': {
+            'display': 'Activity Level',
+            'description': 'Average transactions per day',
+            'unit': 'txns/day'
+        }
     }
 
-    # Custom color palette for better distinction between metrics
-    colors = ['rgb(82, 106, 255)',  # Blue
-              'rgb(255, 127, 14)',  # Orange
-              'rgb(44, 160, 44)',  # Green
-              'rgb(214, 39, 40)',  # Red
-              'rgb(148, 103, 189)']  # Purple
+    # Custom color palette for better distinction between segments
+    colors = px.colors.qualitative.Set3
 
-    for i, column in enumerate(clusters_df.columns):
-        # Format the metric name for display
-        display_name = column.replace('_', ' ').title()
-        description = metric_descriptions.get(column, '')
+    # Calculate segment characteristics for descriptions
+    segment_descriptions = {}
+    for segment, row in clusters_df.iterrows():
+        # Calculate segment scores
+        balance_score = row['balance']
+        transaction_score = row['transaction_count']
+        volume_score = row['total_transaction_amount']
+        activity_score = row['activity_level']
+        card_score = row['card_count']
+        large_tx_score = row['large_transaction_ratio']
+        success_score = row['transaction_success_rate']
 
-        # Create hover text with descriptions
+        # Determine segment type based on multiple criteria
+        if (balance_score > 0.9 and volume_score > 0.8 and 
+            large_tx_score > 0.3 and success_score > 0.9):
+            segment_type = "High-Value Clients"
+            description = "Clients with significant balances and high transaction volumes. They maintain large account balances and conduct frequent, high-value transactions."
+        elif (transaction_score > 0.8 and activity_score > 0.7 and 
+              row['avg_transaction_amount'] < 0.4 and success_score > 0.8):
+            segment_type = "Active Retail Users"
+            description = "Clients with high transaction frequency but lower individual transaction amounts. They are frequent users of banking services for everyday transactions."
+        elif (balance_score > 0.7 and transaction_score < 0.3 and 
+              activity_score < 0.3 and success_score > 0.7):
+            segment_type = "Savings-Focused"
+            description = "Clients who maintain substantial balances but have lower transaction activity. They primarily use the bank for savings and long-term deposits."
+        elif (card_score > 0.8 and transaction_score > 0.6 and 
+              activity_score > 0.5 and success_score > 0.8):
+            segment_type = "Card-Heavy Users"
+            description = "Clients who heavily utilize card services and maintain moderate to high transaction volumes. They are active in card-based transactions."
+        elif (balance_score < 0.3 and transaction_score < 0.3 and 
+              activity_score < 0.3 and card_score < 0.3):
+            segment_type = "Basic Users"
+            description = "Clients with lower engagement across all metrics. They maintain basic banking relationships with minimal product usage."
+        else:
+            segment_type = "Mixed Profile"
+            description = "Clients with a mix of characteristics that don't fit into other categories. They may be transitioning between segments or have unique usage patterns."
+
+        segment_descriptions[segment] = {
+            'type': segment_type,
+            'description': description,
+            'metrics': {
+                metric: {
+                    'value': value,
+                    'display': metric_info[metric]['display'],
+                    'unit': metric_info[metric]['unit']
+                }
+                for metric, value in row.items()
+                if metric in metric_info
+            }
+        }
+
+    # Create spider chart
+    for i, (segment, row) in enumerate(clusters_df.iterrows()):
+        # Filter metrics to only include those defined in metric_info
+        valid_metrics = {metric: value for metric, value in row.items() if metric in metric_info}
+        
+        # Create hover text with detailed information
         hover_text = [
-            f"Cluster {idx}<br>" +
-            f"{display_name}: {value:.2f}<br>" +
-            f"Description: {description}"
-            for idx, value in enumerate(clusters_df[column])
+            f"{metric_info[metric]['display']}: {value:.2f} {metric_info[metric]['unit']}<br>" +
+            f"{metric_info[metric]['description']}"
+            for metric, value in valid_metrics.items()
         ]
 
-        clusters_fig.add_trace(go.Bar(
-            x=[f"Segment {i}" for i in clusters_df.index],
-            y=clusters_df[column],
-            name=display_name,
-            text=[f"{v:.2f}" for v in clusters_df[column]],
-            textposition='auto',
-            marker_color=colors[i % len(colors)],
+        spider_fig.add_trace(go.Scatterpolar(
+            r=list(valid_metrics.values()),
+            theta=[metric_info[metric]['display'] for metric in valid_metrics.keys()],
+            fill='toself',
+            name=f'Segment {segment} - {segment_descriptions[segment]["type"]}',
+            line=dict(color=colors[i % len(colors)]),
             hovertext=hover_text,
             hoverinfo='text'
         ))
 
-    clusters_fig.update_layout(
-        xaxis_title="Client Segments",
-        yaxis_title="Normalized Values",
-        barmode='group',
-        height=350,
-        margin=dict(t=50, b=50, l=50, r=25),
-        paper_bgcolor='white',
-        plot_bgcolor='rgb(250, 250, 250)',
+    spider_fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )
+        ),
         showlegend=True,
+        height=500,
+        margin=dict(t=50, b=0, l=25, r=25),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
             xanchor="right",
             x=1
-        ),
-        hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
-            font_family="Arial"
         )
     )
 
-    # Create a pie chart for segment distribution
+    # Create a pie chart for segment distribution with revenue share
     segment_counts = pd.DataFrame(segments_data['client_segments'])['cluster'].value_counts()
-
-    # Calculate percentages for hover text
     total_clients = segment_counts.sum()
+    
+    # Calculate revenue share (using total_transaction_amount as proxy)
+    revenue_share = clusters_df['total_transaction_amount'] * segment_counts
+    total_revenue = revenue_share.sum()
+    revenue_share = (revenue_share / total_revenue * 100).round(1)
+
+    # Create hover text with detailed information
     hover_text = [
-        f"Segment {i}<br>" +
+        f"Segment {i} - {segment_descriptions[i]['type']}<br>" +
         f"Clients: {count}<br>" +
-        f"Percentage: {(count / total_clients * 100):.1f}%"
+        f"Client Share: {(count / total_clients * 100):.1f}%<br>" +
+        f"Revenue Share: {revenue_share[i]:.1f}%<br>" +
+        f"Description: {segment_descriptions[i]['description']}"
         for i, count in zip(segment_counts.index, segment_counts.values)
     ]
 
     distribution_fig = go.Figure(data=[go.Pie(
-        labels=[f"Segment {i}" for i in segment_counts.index],
+        labels=[f"Segment {i} - {segment_descriptions[i]['type']}" for i in segment_counts.index],
         values=segment_counts.values,
         hole=.3,
-        marker=dict(colors=px.colors.qualitative.Set3),
+        marker=dict(colors=colors),
         hovertext=hover_text,
         hoverinfo='text',
         textinfo='percent+label'
     )])
 
     distribution_fig.update_layout(
-        title={
-            'text': "Client Segment Distribution",
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': {'size': 24}
-        },
-        height=350,
+        height=500,
         margin=dict(t=50, b=0, l=25, r=25),
         paper_bgcolor='white',
         plot_bgcolor='white',
@@ -479,9 +556,79 @@ def create_client_segments_visualization(segments_data):
         )
     )
 
+    # Generate meaningful segment recommendations
+    recommendations = []
+    for segment, desc in segment_descriptions.items():
+        metrics = desc['metrics']
+        
+        if desc['type'] == "High-Value Clients":
+            rec = f"Segment {segment}: Offer premium investment products and wealth management services. Consider personalized relationship manager assignment."
+        elif desc['type'] == "Active Retail Users":
+            rec = f"Segment {segment}: Introduce transaction fee packages and cashback rewards. Promote mobile banking features for convenience."
+        elif desc['type'] == "Savings-Focused":
+            rec = f"Segment {segment}: Recommend high-yield savings accounts and term deposits. Consider financial planning services."
+        elif desc['type'] == "Card-Heavy Users":
+            rec = f"Segment {segment}: Upsell premium credit cards with rewards programs. Offer card-based insurance products."
+        elif desc['type'] == "Basic Users":
+            rec = f"Segment {segment}: Focus on financial education and basic product awareness. Consider low-cost digital banking solutions."
+        else:  # Mixed Profile
+            rec = f"Segment {segment}: Monitor behavior patterns for potential upselling opportunities. Consider targeted marketing based on specific product usage."
+
+        # Add specific metrics to recommendation
+        rec += f"<br>Key Metrics: Balance: {metrics['balance']['value']:.2f}{metrics['balance']['unit']}, "
+        rec += f"Transactions: {metrics['transaction_count']['value']:.2f}{metrics['transaction_count']['unit']}, "
+        rec += f"Volume: {metrics['total_transaction_amount']['value']:.2f}{metrics['total_transaction_amount']['unit']}"
+
+        recommendations.append(rec)
+
+    # Create HTML for segment descriptions and recommendations
+    descriptions_html = """
+        <div class="card">
+            <h2>Segment Descriptions</h2>
+            <div class="segment-descriptions">
+    """
+    for segment, desc in segment_descriptions.items():
+        descriptions_html += f"""
+            <div class="segment-description">
+                <h3>Segment {segment} - {desc['type']}</h3>
+                <p>{desc['description']}</p>
+                <div class="segment-metrics">
+                    <h4>Key Metrics:</h4>
+                    <ul>
+        """
+        for metric, info in desc['metrics'].items():
+            descriptions_html += f"""
+                        <li>{info['display']}: {info['value']:.2f} {info['unit']}</li>
+            """
+        descriptions_html += """
+                    </ul>
+                </div>
+            </div>
+        """
+    descriptions_html += """
+            </div>
+        </div>
+    """
+
+    recommendations_html = """
+        <div class="card">
+            <h2>Segment-Specific Recommendations</h2>
+            <div class="recommendations">
+                <ul>
+    """
+    for rec in recommendations:
+        recommendations_html += f"<li>{rec}</li>"
+    recommendations_html += """
+                </ul>
+            </div>
+        </div>
+    """
+
     return {
-        'clusters': clusters_fig.to_html(full_html=False, config={'displayModeBar': False}),
-        'distribution': distribution_fig.to_html(full_html=False, config={'displayModeBar': False})
+        'spider': spider_fig.to_html(full_html=False, config={'displayModeBar': False}),
+        'distribution': distribution_fig.to_html(full_html=False, config={'displayModeBar': False}),
+        'descriptions': descriptions_html,
+        'recommendations': recommendations_html
     }
 
 

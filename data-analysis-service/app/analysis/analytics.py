@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from .models import Account, Payment, Card, Loan
 from typing import List, Dict, Any
+import numpy as np
 
 
 class ClientSegmentation:
@@ -21,7 +22,10 @@ class ClientSegmentation:
             func.count(Payment.id).label('transaction_count'),
             func.sum(Payment.amount).label('total_transaction_amount'),
             func.avg(Payment.amount).label('avg_transaction_amount'),
-            func.count(Card.id).label('card_count')
+            func.count(Card.id).label('card_count'),
+            func.count(case((Payment.amount > 1000, Payment.id))).label('large_transactions'),
+            func.min(Account.creation_date).label('first_activity'),
+            func.count(case((Payment.status == 'COMPLETED', Payment.id))).label('successful_transactions')
         ).outerjoin(Payment, Account.account_number == Payment.sender_account_number) \
             .outerjoin(Card, Account.account_number == Card.account_number) \
             .group_by(Account.client_id, Account.balance)
@@ -31,12 +35,25 @@ class ClientSegmentation:
         # Convert to DataFrame for easier processing
         df = pd.DataFrame(result, columns=[
             'client_id', 'balance', 'transaction_count',
-            'total_transaction_amount', 'avg_transaction_amount', 'card_count'
+            'total_transaction_amount', 'avg_transaction_amount', 'card_count',
+            'large_transactions', 'first_activity', 'successful_transactions'
         ])
 
         # Replace None values with 0 for numeric columns
-        numeric_columns = ['balance', 'transaction_count', 'total_transaction_amount', 'avg_transaction_amount', 'card_count']
+        numeric_columns = ['balance', 'transaction_count', 'total_transaction_amount', 
+                         'avg_transaction_amount', 'card_count', 'large_transactions',
+                         'successful_transactions']
         df[numeric_columns] = df[numeric_columns].fillna(0)
+
+        # Calculate additional metrics
+        df['transaction_success_rate'] = df['successful_transactions'] / df['transaction_count'].replace(0, 1)
+        df['large_transaction_ratio'] = df['large_transactions'] / df['transaction_count'].replace(0, 1)
+        df['days_active'] = (datetime.now() - pd.to_datetime(df['first_activity'])).dt.days
+        df['activity_level'] = df['transaction_count'] / df['days_active'].replace(0, 1)
+
+        # Replace NaN and inf values with 0
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(0)
 
         return df
 
@@ -44,8 +61,12 @@ class ClientSegmentation:
         """Perform k-means clustering on client data"""
         df = self.get_client_features()
 
-        # Select only numeric features for clustering
-        features = df.drop('client_id', axis=1)
+        # Select features for clustering
+        features = df[[
+            'balance', 'transaction_count', 'total_transaction_amount',
+            'avg_transaction_amount', 'card_count', 'large_transaction_ratio',
+            'transaction_success_rate', 'activity_level'
+        ]]
 
         # Standardize features
         scaler = StandardScaler()
@@ -62,12 +83,31 @@ class ClientSegmentation:
             'total_transaction_amount': 'mean',
             'avg_transaction_amount': 'mean',
             'card_count': 'mean',
+            'large_transaction_ratio': 'mean',
+            'transaction_success_rate': 'mean',
+            'activity_level': 'mean',
             'client_id': 'count'
         }).round(2)
 
+        # Calculate segment characteristics
+        segment_characteristics = {}
+        for cluster in cluster_stats.index:
+            stats = cluster_stats.loc[cluster]
+            characteristics = {
+                'size': int(stats['client_id']),
+                'balance_level': 'High' if stats['balance'] > 0.7 else 'Medium' if stats['balance'] > 0.3 else 'Low',
+                'activity_level': 'High' if stats['activity_level'] > 0.7 else 'Medium' if stats['activity_level'] > 0.3 else 'Low',
+                'transaction_volume': 'High' if stats['total_transaction_amount'] > 0.7 else 'Medium' if stats['total_transaction_amount'] > 0.3 else 'Low',
+                'card_usage': 'High' if stats['card_count'] > 0.7 else 'Medium' if stats['card_count'] > 0.3 else 'Low',
+                'success_rate': 'High' if stats['transaction_success_rate'] > 0.9 else 'Medium' if stats['transaction_success_rate'] > 0.7 else 'Low',
+                'large_transactions': 'Frequent' if stats['large_transaction_ratio'] > 0.3 else 'Occasional' if stats['large_transaction_ratio'] > 0.1 else 'Rare'
+            }
+            segment_characteristics[cluster] = characteristics
+
         return {
             'clusters': cluster_stats.to_dict('index'),
-            'client_segments': df[['client_id', 'cluster']].to_dict('records')
+            'client_segments': df[['client_id', 'cluster']].to_dict('records'),
+            'segment_characteristics': segment_characteristics
         }
 
 
