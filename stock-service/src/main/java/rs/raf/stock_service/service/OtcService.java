@@ -2,12 +2,14 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 import rs.raf.stock_service.domain.enums.TrackedPaymentType;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
@@ -105,11 +107,13 @@ public class OtcService {
 
         Stock stock = otcOption.getUnderlyingStock();
 
-        if (otcOption.isUsed()) {
+        if (otcOption.getStatus() == OtcOptionStatus.USED)
             throw new OtcOptionAlreadyExercisedException();
-        }
 
-        portfolioService.transferStockOwnership(
+        if (otcOption.getStatus() == OtcOptionStatus.EXPIRED || otcOption.getSettlementDate().isBefore(LocalDate.now()))
+            throw new OtcOptionSettlementExpiredException();
+
+        portfolioService.updateHoldingsOnOtcOptionExecution(
                 otcOption.getSellerId(),
                 otcOption.getBuyerId(),
                 stock,

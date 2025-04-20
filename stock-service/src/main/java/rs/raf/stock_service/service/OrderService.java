@@ -340,7 +340,8 @@ public class OrderService {
 
     private void transferCommission(String accountNumber, BigDecimal amount){
         try{
-            //OVDE UMESTO OVOG POZIVA IDE PAYMENT BANCI!!!!
+            String bankAccount = bankClient.getUSDAccountNumberByClientId(1L).getBody();
+            
             bankClient.updateBalance(accountNumber, amount.multiply(BigDecimal.valueOf(-1)));
         }catch (InsufficientFundsException e){
             e.printStackTrace();
