@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+from typing import Dict, Any, List
 
 
 def create_credit_score_visualization(credit_score_data):
@@ -370,341 +371,444 @@ def create_client_segments_visualization(segments_data):
     if not segments_data:
         return None
 
-    # Create a spider chart for cluster comparison
-    clusters_df = pd.DataFrame(segments_data['clusters']).T
-    spider_fig = go.Figure()
-
-    # Define metric descriptions and display names
-    metric_info = {
-        'balance': {
-            'display': 'Account Balance',
-            'description': 'Average account balance in the segment',
-            'unit': '$'
-        },
-        'transaction_count': {
-            'display': 'Transaction Count',
-            'description': 'Average number of monthly transactions',
-            'unit': 'txns'
-        },
-        'total_transaction_amount': {
-            'display': 'Transaction Volume',
-            'description': 'Average total transaction amount per month',
-            'unit': '$'
-        },
-        'avg_transaction_amount': {
-            'display': 'Avg Transaction',
-            'description': 'Average amount per transaction',
-            'unit': '$'
-        },
-        'card_count': {
-            'display': 'Card Usage',
-            'description': 'Average number of cards per client',
-            'unit': 'cards'
-        },
-        'large_transaction_ratio': {
-            'display': 'Large Transactions',
-            'description': 'Ratio of large transactions to total transactions',
-            'unit': '%'
-        },
-        'transaction_success_rate': {
-            'display': 'Success Rate',
-            'description': 'Percentage of successful transactions',
-            'unit': '%'
-        },
-        'activity_level': {
-            'display': 'Activity Level',
-            'description': 'Average transactions per day',
-            'unit': 'txns/day'
-        }
-    }
-
-    # Custom color palette for better distinction between segments
-    colors = px.colors.qualitative.Set3
-
-    # Calculate segment characteristics for descriptions
-    segment_descriptions = {}
-    for segment, row in clusters_df.iterrows():
-        # Calculate segment scores
-        balance_score = row['balance']
-        transaction_score = row['transaction_count']
-        volume_score = row['total_transaction_amount']
-        activity_score = row['activity_level']
-        card_score = row['card_count']
-        large_tx_score = row['large_transaction_ratio']
-        success_score = row['transaction_success_rate']
-
-        # Determine segment type based on multiple criteria
-        if (balance_score > 0.9 and volume_score > 0.8 and 
-            large_tx_score > 0.3 and success_score > 0.9):
-            segment_type = "High-Value Clients"
-            description = "Clients with significant balances and high transaction volumes. They maintain large account balances and conduct frequent, high-value transactions."
-        elif (transaction_score > 0.8 and activity_score > 0.7 and 
-              row['avg_transaction_amount'] < 0.4 and success_score > 0.8):
-            segment_type = "Active Retail Users"
-            description = "Clients with high transaction frequency but lower individual transaction amounts. They are frequent users of banking services for everyday transactions."
-        elif (balance_score > 0.7 and transaction_score < 0.3 and 
-              activity_score < 0.3 and success_score > 0.7):
-            segment_type = "Savings-Focused"
-            description = "Clients who maintain substantial balances but have lower transaction activity. They primarily use the bank for savings and long-term deposits."
-        elif (card_score > 0.8 and transaction_score > 0.6 and 
-              activity_score > 0.5 and success_score > 0.8):
-            segment_type = "Card-Heavy Users"
-            description = "Clients who heavily utilize card services and maintain moderate to high transaction volumes. They are active in card-based transactions."
-        elif (balance_score < 0.3 and transaction_score < 0.3 and 
-              activity_score < 0.3 and card_score < 0.3):
-            segment_type = "Basic Users"
-            description = "Clients with lower engagement across all metrics. They maintain basic banking relationships with minimal product usage."
-        else:
-            segment_type = "Mixed Profile"
-            description = "Clients with a mix of characteristics that don't fit into other categories. They may be transitioning between segments or have unique usage patterns."
-
-        segment_descriptions[segment] = {
-            'type': segment_type,
-            'description': description,
-            'metrics': {
-                metric: {
-                    'value': value,
-                    'display': metric_info[metric]['display'],
-                    'unit': metric_info[metric]['unit']
-                }
-                for metric, value in row.items()
-                if metric in metric_info
-            }
-        }
-
-    # Create spider chart
-    for i, (segment, row) in enumerate(clusters_df.iterrows()):
-        # Filter metrics to only include those defined in metric_info
-        valid_metrics = {metric: value for metric, value in row.items() if metric in metric_info}
-        
-        # Create hover text with detailed information
-        hover_text = [
-            f"{metric_info[metric]['display']}: {value:.2f} {metric_info[metric]['unit']}<br>" +
-            f"{metric_info[metric]['description']}"
-            for metric, value in valid_metrics.items()
-        ]
-
-        spider_fig.add_trace(go.Scatterpolar(
-            r=list(valid_metrics.values()),
-            theta=[metric_info[metric]['display'] for metric in valid_metrics.keys()],
-            fill='toself',
-            name=f'Segment {segment} - {segment_descriptions[segment]["type"]}',
-            line=dict(color=colors[i % len(colors)]),
-            hovertext=hover_text,
-            hoverinfo='text'
-        ))
-
-    spider_fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 1]
-            )
-        ),
-        showlegend=True,
-        height=500,
-        margin=dict(t=50, b=0, l=25, r=25),
-        paper_bgcolor='white',
-        plot_bgcolor='white',
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        )
-    )
-
-    # Create a pie chart for segment distribution with revenue share
-    segment_counts = pd.DataFrame(segments_data['client_segments'])['cluster'].value_counts()
-    total_clients = segment_counts.sum()
+    # Extract data
+    clusters = segments_data['clusters']
+    characteristics = segments_data['segment_characteristics']
     
-    # Calculate revenue share (using total_transaction_amount as proxy)
-    revenue_share = clusters_df['total_transaction_amount'] * segment_counts
-    total_revenue = revenue_share.sum()
-    revenue_share = (revenue_share / total_revenue * 100).round(1)
-
-    # Create hover text with detailed information
-    hover_text = [
-        f"Segment {i} - {segment_descriptions[i]['type']}<br>" +
-        f"Clients: {count}<br>" +
-        f"Client Share: {(count / total_clients * 100):.1f}%<br>" +
-        f"Revenue Share: {revenue_share[i]:.1f}%<br>" +
-        f"Description: {segment_descriptions[i]['description']}"
-        for i, count in zip(segment_counts.index, segment_counts.values)
-    ]
-
-    distribution_fig = go.Figure(data=[go.Pie(
-        labels=[f"Segment {i} - {segment_descriptions[i]['type']}" for i in segment_counts.index],
-        values=segment_counts.values,
-        hole=.3,
-        marker=dict(colors=colors),
-        hovertext=hover_text,
-        hoverinfo='text',
-        textinfo='percent+label'
-    )])
-
-    distribution_fig.update_layout(
-        height=500,
-        margin=dict(t=50, b=0, l=25, r=25),
-        paper_bgcolor='white',
-        plot_bgcolor='white',
-        hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
-            font_family="Arial"
+    # Create a DataFrame for easier plotting
+    df = pd.DataFrame.from_dict(clusters, orient='index')
+    
+    # 1. Segment Size Distribution
+    size_fig = go.Figure(data=[
+        go.Pie(
+            labels=[f"Segment {i}" for i in range(len(characteristics))],
+            values=[char['size'] for char in characteristics.values()],
+            hole=0.3,
+            textinfo='label+percent',
+            textposition='outside',
+            marker=dict(colors=px.colors.qualitative.Pastel)
         )
+    ])
+    size_fig.update_layout(
+        title="Client Segment Distribution",
+        height=400,
+        margin=dict(t=50, b=0, l=0, r=0)
     )
 
-    # Generate meaningful segment recommendations
-    recommendations = []
-    for segment, desc in segment_descriptions.items():
-        metrics = desc['metrics']
-        
-        if desc['type'] == "High-Value Clients":
-            rec = f"Segment {segment}: Offer premium investment products and wealth management services. Consider personalized relationship manager assignment."
-        elif desc['type'] == "Active Retail Users":
-            rec = f"Segment {segment}: Introduce transaction fee packages and cashback rewards. Promote mobile banking features for convenience."
-        elif desc['type'] == "Savings-Focused":
-            rec = f"Segment {segment}: Recommend high-yield savings accounts and term deposits. Consider financial planning services."
-        elif desc['type'] == "Card-Heavy Users":
-            rec = f"Segment {segment}: Upsell premium credit cards with rewards programs. Offer card-based insurance products."
-        elif desc['type'] == "Basic Users":
-            rec = f"Segment {segment}: Focus on financial education and basic product awareness. Consider low-cost digital banking solutions."
-        else:  # Mixed Profile
-            rec = f"Segment {segment}: Monitor behavior patterns for potential upselling opportunities. Consider targeted marketing based on specific product usage."
+    # 2. Balance and Activity Analysis
+    balance_activity_fig = go.Figure()
+    
+    # Add balance bars
+    balance_activity_fig.add_trace(go.Bar(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['balance'],
+        name='Average Balance',
+        marker_color='rgb(82, 106, 255)'
+    ))
+    
+    # Add activity line
+    balance_activity_fig.add_trace(go.Scatter(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['activity_level'],
+        name='Activity Level',
+        yaxis='y2',
+        line=dict(color='rgb(255, 127, 14)')
+    ))
+    
+    balance_activity_fig.update_layout(
+        title="Balance and Activity by Segment",
+        yaxis=dict(title="Average Balance"),
+        yaxis2=dict(
+            title="Activity Level",
+            overlaying="y",
+            side="right"
+        ),
+        height=400,
+        margin=dict(t=50, b=0, l=0, r=0)
+    )
 
-        # Add specific metrics to recommendation
-        rec += f"<br>Key Metrics: Balance: {metrics['balance']['value']:.2f}{metrics['balance']['unit']}, "
-        rec += f"Transactions: {metrics['transaction_count']['value']:.2f}{metrics['transaction_count']['unit']}, "
-        rec += f"Volume: {metrics['total_transaction_amount']['value']:.2f}{metrics['total_transaction_amount']['unit']}"
+    # 3. Card Usage Analysis
+    card_usage_fig = go.Figure()
+    
+    # Add card count bars
+    card_usage_fig.add_trace(go.Bar(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['card_count'],
+        name='Total Cards',
+        marker_color='rgb(44, 160, 44)'
+    ))
+    
+    # Add credit card ratio line
+    card_usage_fig.add_trace(go.Scatter(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['credit_card_ratio'],
+        name='Credit Card Ratio',
+        yaxis='y2',
+        line=dict(color='rgb(214, 39, 40)')
+    ))
+    
+    card_usage_fig.update_layout(
+        title="Card Usage by Segment",
+        yaxis=dict(title="Total Cards"),
+        yaxis2=dict(
+            title="Credit Card Ratio",
+            overlaying="y",
+            side="right"
+        ),
+        height=400,
+        margin=dict(t=50, b=0, l=0, r=0)
+    )
 
-        recommendations.append(rec)
+    # 4. Transaction Analysis
+    transaction_fig = go.Figure()
+    
+    # Add transaction count bars
+    transaction_fig.add_trace(go.Bar(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['transaction_count'],
+        name='Transaction Count',
+        marker_color='rgb(148, 103, 189)'
+    ))
+    
+    # Add success rate line
+    transaction_fig.add_trace(go.Scatter(
+        x=[f"Segment {i}" for i in range(len(characteristics))],
+        y=df['transaction_success_rate'],
+        name='Success Rate',
+        yaxis='y2',
+        line=dict(color='rgb(140, 86, 75)')
+    ))
+    
+    transaction_fig.update_layout(
+        title="Transaction Analysis by Segment",
+        yaxis=dict(title="Transaction Count"),
+        yaxis2=dict(
+            title="Success Rate",
+            overlaying="y",
+            side="right"
+        ),
+        height=400,
+        margin=dict(t=50, b=0, l=0, r=0)
+    )
 
-    # Create HTML for segment descriptions and recommendations
-    descriptions_html = """
+    # 5. Segment Characteristics Table
+    characteristics_df = pd.DataFrame.from_dict(characteristics, orient='index')
+    characteristics_fig = go.Figure(data=[go.Table(
+        header=dict(
+            values=['Segment'] + list(characteristics_df.columns),
+            fill_color='paleturquoise',
+            align='left'
+        ),
+        cells=dict(
+            values=[['Segment ' + str(i) for i in range(len(characteristics))]] + 
+                   [characteristics_df[col] for col in characteristics_df.columns],
+            fill_color='lavender',
+            align='left'
+        )
+    )])
+    characteristics_fig.update_layout(
+        title="Segment Characteristics",
+        height=400,
+        margin=dict(t=50, b=0, l=0, r=0)
+    )
+
+    # Combine all visualizations
+    html_content = f"""
+    <div class="container">
         <div class="card">
-            <h2>Segment Descriptions</h2>
-            <div class="segment-descriptions">
+            {size_fig.to_html(full_html=False, include_plotlyjs=False)}
+                </div>
+        <div class="card">
+            {balance_activity_fig.to_html(full_html=False, include_plotlyjs=False)}
+            </div>
+        <div class="card">
+            {card_usage_fig.to_html(full_html=False, include_plotlyjs=False)}
+        </div>
+        <div class="card">
+            {transaction_fig.to_html(full_html=False, include_plotlyjs=False)}
+        </div>
+        <div class="card" style="grid-column: span 2;">
+            {characteristics_fig.to_html(full_html=False, include_plotlyjs=False)}
+            </div>
+        </div>
     """
-    for segment, desc in segment_descriptions.items():
-        descriptions_html += f"""
-            <div class="segment-description">
-                <h3>Segment {segment} - {desc['type']}</h3>
-                <p>{desc['description']}</p>
-                <div class="segment-metrics">
-                    <h4>Key Metrics:</h4>
+
+    return html_content
+
+
+def format_recommendations_html(recommendations):
+    """Format loan recommendations into an HTML table"""
+    html = """
+    <div class="recommendations-section">
+        <h3>Loan Recommendations</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Loan Type</th>
+                    <th>Maximum Amount</th>
+                    <th>Confidence</th>
+                    <th>Interest Rate</th>
+                    <th>Term</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
+    
+    for rec in recommendations:
+        confidence = rec.get('confidence', 0)
+        if isinstance(confidence, float):
+            confidence_pct = confidence * 100 if confidence <= 1 else confidence
+        else:
+            confidence_pct = 0
+            
+        amount = rec.get('max_amount', 0)
+        if isinstance(amount, (int, float)):
+            formatted_amount = f"${amount:,.2f}"
+        else:
+            formatted_amount = "$0.00"
+            
+        html += f"""
+            <tr>
+                <td>{rec.get('loan_type', '')}</td>
+                <td>{formatted_amount}</td>
+                <td>{confidence_pct:.0f}%</td>
+                <td>{rec.get('interest_rate', '')}</td>
+                <td>{rec.get('term', '')}</td>
+                <td>{rec.get('description', '')}</td>
+            </tr>
+        """
+    
+    html += """
+            </tbody>
+        </table>
+        </div>
+    """
+    return html
+
+
+def create_loan_recommendation_visualization(recommendation_data):
+    """Create visualizations for loan recommendations including funnel chart, likelihood gauge, and recommendations table"""
+    try:
+        # Extract data for funnel chart
+        loan_history = recommendation_data.get('loan_history', {})
+        if isinstance(loan_history, dict):
+            funnel_data = {
+                'Total Applications': loan_history.get('total_applications', 0),
+                'Approved': loan_history.get('approved', 0),
+                'Paid Off': loan_history.get('paid_off', 0),
+                'Delinquent': loan_history.get('delinquent', 0)
+            }
+        else:
+            # If loan_history is not a dictionary, create default funnel data
+            funnel_data = {
+                'Total Applications': 0,
+                'Approved': 0,
+                'Paid Off': 0,
+                'Delinquent': 0
+            }
+
+        # Create funnel chart
+        funnel = go.Figure(go.Funnel(
+            y=list(funnel_data.keys()),
+            x=list(funnel_data.values()),
+            textinfo="value+percent initial"
+        ))
+        funnel.update_layout(
+            title="Loan Application History",
+            showlegend=False,
+            width=600,
+            height=400
+        )
+
+        # Create likelihood gauge
+        likelihood_score = recommendation_data.get('likelihood_to_repay', 0)
+        reasons = recommendation_data.get('reasons', [])
+
+        gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=likelihood_score,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Likelihood to Repay"},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 30], 'color': "red"},
+                    {'range': [30, 70], 'color': "yellow"},
+                    {'range': [70, 100], 'color': "green"}
+                ]
+            }
+        ))
+        gauge.update_layout(
+            width=400,
+            height=300
+        )
+
+        # Create recommendations table
+        recommendations = recommendation_data.get('recommendations', [])
+        recommendations_table = format_recommendations_html(recommendations)
+        
+        # Format factors
+        factors = recommendation_data.get('factors', {})
+        factors_html = """
+        <div class="factors-section">
+            <h3>Factors Considered</h3>
+            <div class="factors-grid">
+        """
+        for factor, score in factors.items():
+            # Convert score to percentage and format
+            score_percent = round(score * 100, 1)
+            # Create a progress bar for each factor
+            factors_html += f"""
+                <div class="factor-item">
+                    <div class="factor-label">{factor.replace('_', ' ').title()}</div>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {score_percent}%" 
+                             aria-valuenow="{score_percent}" aria-valuemin="0" aria-valuemax="100">
+                            {score_percent}%
+                        </div>
+                    </div>
+                </div>
+            """
+        factors_html += """
+            </div>
+        </div>
+        """
+
+        # Create explanation section
+        explanation_html = f"""
+        <div class="explanation-section">
+            <h3>Analysis Details</h3>
+            <div class="card">
+                <div class="card-body">
+                    <h4>Likelihood to Repay: {likelihood_score:.1f}%</h4>
+                    <h5>Factors Considered:</h5>
+                    {factors_html}
+                    <h5>Reasons:</h5>
                     <ul>
         """
-        for metric, info in desc['metrics'].items():
-            descriptions_html += f"""
-                        <li>{info['display']}: {info['value']:.2f} {info['unit']}</li>
-            """
-        descriptions_html += """
+        
+        for reason in reasons:
+            explanation_html += f"<li>{reason}</li>"
+        
+        explanation_html += """
                     </ul>
                 </div>
             </div>
+        </div>
         """
-    descriptions_html += """
+
+        # Combine all components into dashboard HTML
+        dashboard_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Loan Recommendation Dashboard</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <style>
+                .dashboard-container {{
+                    padding: 20px;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }}
+                .visualization-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 30px;
+                }}
+                .recommendations-section {{
+                    margin-top: 30px;
+                }}
+                .explanation-section {{
+                    margin-top: 30px;
+                }}
+                .table {{
+                    width: 100%;
+                    margin-bottom: 1rem;
+                    color: #212529;
+                    border-collapse: collapse;
+                }}
+                .table th,
+                .table td {{
+                    padding: 0.75rem;
+                    vertical-align: top;
+                    border-top: 1px solid #dee2e6;
+                }}
+                .table thead th {{
+                    vertical-align: bottom;
+                    border-bottom: 2px solid #dee2e6;
+                }}
+                .table tbody + tbody {{
+                    border-top: 2px solid #dee2e6;
+                }}
+                .table-striped tbody tr:nth-of-type(odd) {{
+                    background-color: rgba(0,0,0,.05);
+                }}
+                .factors-section {{
+                    margin-top: 20px;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                }}
+                .factors-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 20px;
+                    margin-top: 15px;
+                }}
+                .factor-item {{
+                    margin-bottom: 10px;
+                }}
+                .factor-label {{
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                }}
+                .progress {{
+                    height: 20px;
+                    background-color: #e9ecef;
+                    border-radius: 10px;
+                    overflow: hidden;
+                }}
+                .progress-bar {{
+                    background-color: #007bff;
+                    color: white;
+                    text-align: center;
+                    line-height: 20px;
+                    font-size: 12px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="dashboard-container">
+                <h1>Loan Recommendation Dashboard</h1>
+                <div class="visualization-row">
+                    <div id="funnel"></div>
+                    <div id="gauge"></div>
+                </div>
+                {recommendations_table}
+                {explanation_html}
             </div>
-        </div>
-    """
-
-    recommendations_html = """
-        <div class="card">
-            <h2>Segment-Specific Recommendations</h2>
-            <div class="recommendations">
-                <ul>
-    """
-    for rec in recommendations:
-        recommendations_html += f"<li>{rec}</li>"
-    recommendations_html += """
-                </ul>
-            </div>
-        </div>
-    """
-
-    return {
-        'spider': spider_fig.to_html(full_html=False, config={'displayModeBar': False}),
-        'distribution': distribution_fig.to_html(full_html=False, config={'displayModeBar': False}),
-        'descriptions': descriptions_html,
-        'recommendations': recommendations_html
-    }
-
-
-def create_loan_recommendation_visualization(loan_data):
-    """Create visualization for loan recommendations"""
-    if not loan_data:
-        return None
-
-    # Create a bar chart for loan recommendations
-    recommendations = loan_data['recommendations']
-    if recommendations:
-        rec_fig = go.Figure(data=[
-            go.Bar(
-                x=[rec['loan_type'] for rec in recommendations],
-                y=[rec['max_amount'] for rec in recommendations],
-                text=[f"${rec['max_amount']:,.0f}" for rec in recommendations],
-                textposition='auto',
-                marker_color=[rec['confidence'] * 255 for rec in recommendations],
-                marker_colorscale='RdYlGn',
-                showscale=True,
-                name='Maximum Amount'
-            )
-        ])
-        rec_fig.update_layout(
-            title={
-                'text': "Loan Recommendations",
-                'y': 0.95,
-                'x': 0.5,
-                'xanchor': 'center',
-                'yanchor': 'top',
-                'font': {'size': 24}
-            },
-            xaxis_title="Loan Type",
-            yaxis_title="Maximum Amount",
-            yaxis_tickprefix="$",
-            height=350,
-            margin=dict(t=50, b=50, l=50, r=25),
-            paper_bgcolor='white',
-            plot_bgcolor='rgb(250, 250, 250)'
-        )
-
-        # Create a gauge for overall eligibility
-        eligibility_score = max(rec['confidence'] for rec in recommendations) if recommendations else 0
-        eligibility_fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=eligibility_score,
-            domain={'x': [0.1, 0.9], 'y': [0, 0.9]},
-            title={'text': "Overall Eligibility Score", 'font': {'size': 24}},
-            number={'font': {'size': 40}},
-            gauge={
-                'axis': {'range': [0, 1], 'tickwidth': 1, 'tickcolor': "darkblue"},
-                'bar': {'color': "darkblue", 'thickness': 0.6},
-                'steps': [
-                    {'range': [0, 0.3], 'color': "red"},
-                    {'range': [0.3, 0.7], 'color': "yellow"},
-                    {'range': [0.7, 1], 'color': "green"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': eligibility_score
-                }
-            }
-        ))
-        eligibility_fig.update_layout(
-            height=350,
-            margin=dict(t=50, b=0, l=25, r=25),
-            paper_bgcolor='white',
-            plot_bgcolor='white'
-        )
+            <script>
+                var funnel_data = {funnel.to_json()};
+                var gauge_data = {gauge.to_json()};
+                Plotly.newPlot('funnel', funnel_data.data, funnel_data.layout);
+                Plotly.newPlot('gauge', gauge_data.data, gauge_data.layout);
+            </script>
+        </body>
+        </html>
+        """
 
         return {
-            'recommendations': rec_fig.to_html(full_html=False, config={'displayModeBar': False}),
-            'eligibility': eligibility_fig.to_html(full_html=False, config={'displayModeBar': False})
+            'dashboard_html': dashboard_html,
+            'funnel': funnel.to_html(full_html=False),
+            'gauge': gauge.to_html(full_html=False)
         }
-    return None
+
+    except Exception as e:
+        print(f"Error creating visualization: {str(e)}")
+        return None
 
 
 def create_client_insights_visualization(insights_data):
@@ -763,8 +867,12 @@ def create_client_insights_visualization(insights_data):
                 {loan_rec_viz['recommendations']}
             </div>
             <div class="card">
-                <h2>Eligibility Score</h2>
-                {loan_rec_viz['eligibility']}
+                <h2>Likelihood to Repay</h2>
+                {loan_rec_viz['gauge']}
+            </div>
+            <div class="card">
+                <h2>Loan Application Flow</h2>
+                {loan_rec_viz['funnel']}
             </div>
         """
 

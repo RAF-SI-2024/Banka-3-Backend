@@ -1,8 +1,11 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Numeric, BigInteger, Boolean, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Numeric, BigInteger, Boolean, Table, Float, Date
 from sqlalchemy.orm import relationship, declared_attr
+from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import enum
 from .database import Base
+
+Base = declarative_base()
 
 
 class AccountType(enum.Enum):
@@ -73,10 +76,9 @@ class InterestRateType(enum.Enum):
 
 
 class InstallmentStatus(enum.Enum):
-    PENDING = "PENDING"
     PAID = "PAID"
-    OVERDUE = "OVERDUE"
-    CANCELLED = "CANCELLED"
+    UNPAID = "UNPAID"
+    LATE = "LATE"
 
 
 class Currency(Base):
@@ -192,15 +194,6 @@ class Payee(Base):
     payments = relationship("Payment", back_populates="payee")
 
 
-# Association table for loan payments
-loan_payments = Table(
-    'loan_payments',
-    Base.metadata,
-    Column('loan_id', BigInteger, ForeignKey('loans.id'), primary_key=True),
-    Column('payment_id', BigInteger, ForeignKey('payments.id'), primary_key=True)
-)
-
-
 class Payment(Base):
     __tablename__ = "payments"
 
@@ -220,12 +213,13 @@ class Payment(Base):
     status = Column(Enum(PaymentStatus))
     receiver_client_id = Column(BigInteger)
     exchange_profit = Column(Numeric(20, 2))
+    installment_id = Column(BigInteger, ForeignKey("installments.id"))
 
     # Relationships
     sender_account = relationship("Account", back_populates="payments_sent")
     card = relationship("Card", back_populates="payments")
     payee = relationship("Payee", back_populates="payments")
-    loans = relationship("Loan", secondary=loan_payments, back_populates="payments")
+    installment = relationship("Installment", back_populates="payments")
 
 
 class Installment(Base):
@@ -233,14 +227,15 @@ class Installment(Base):
 
     id = Column(BigInteger, primary_key=True)
     loan_id = Column(BigInteger, ForeignKey("loans.id"), nullable=False)
-    amount = Column(Numeric(20, 2))
-    interest_rate = Column(Numeric(5, 2))
-    expected_due_date = Column(DateTime)
-    actual_due_date = Column(DateTime)
-    installment_status = Column(Enum(InstallmentStatus))
+    amount = Column(Float, nullable=False)
+    interest_rate = Column(Float, nullable=False)
+    expected_due_date = Column(Date, nullable=False)
+    actual_due_date = Column(Date)
+    installment_status = Column(Enum(InstallmentStatus), nullable=False)
 
     # Relationships
     loan = relationship("Loan", back_populates="installments")
+    payments = relationship("Payment", back_populates="installment")
 
 
 class Loan(Base):
@@ -266,6 +261,5 @@ class Loan(Base):
     # Relationships
     currency = relationship("Currency")
     account = relationship("Account", back_populates="loans")
-    installments = relationship("Installment", back_populates="loan", cascade="all, delete-orphan")
-    payments = relationship("Payment", secondary=loan_payments, back_populates="loans")
+    installments = relationship("Installment", back_populates="loan")
 

@@ -112,88 +112,169 @@ def create_html_response(data, visualizations):
     return HTMLResponse(content=html_content)
 
 
+# DONE
 @router.get("/client-segments", response_class=HTMLResponse)
 def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
-    """Get client segments based on clustering analysis with visualization"""
+    """Get client segmentation analysis with visualizations"""
     try:
+        # Initialize segmentation
         segmentation = ClientSegmentation(db)
-        result = segmentation.perform_clustering(n_clusters)
         
-        visualizations = create_client_segments_visualization(result)
-        if visualizations:
-            viz_html = f"""
-                <div class="card">
-                    <h2>Client Segments Overview</h2>
-                    <p class="description">
-                        Client segmentation groups customers based on their financial behavior and characteristics.
-                        Each segment represents a distinct pattern in banking activity, helping us understand different
-                        client profiles and their needs.
-                    </p>
-                    <div class="segment-insights">
-                        <h3>How Clients are Clustered:</h3>
-                        <p>Clients are grouped based on five key behavioral metrics:</p>
-                        <ul>
-                            <li><strong>Account Balance:</strong> Average balance maintained in accounts</li>
-                            <li><strong>Transaction Count:</strong> Frequency of banking transactions</li>
-                            <li><strong>Transaction Volume:</strong> Total amount of monthly transactions</li>
-                            <li><strong>Average Transaction:</strong> Typical size of individual transactions</li>
-                            <li><strong>Card Usage:</strong> Number of active cards per client</li>
-                        </ul>
-                        <p>These metrics are normalized and analyzed using k-means clustering to identify distinct client segments.</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <h2>Segment Comparison</h2>
-                    <p class="description">
-                        The spider chart below compares all segments across key metrics. Each axis represents a different
-                        aspect of client behavior, allowing for easy comparison of segment characteristics. Hover over
-                        the chart to see detailed metric values and descriptions.
-                    </p>
-                    {visualizations['spider']}
-                </div>
-                <div class="card">
-                    <h2>Segment Distribution & Revenue Share</h2>
-                    <p class="description">
-                        This chart shows how clients are distributed across different segments and their contribution
-                        to total revenue. Hover over segments to see detailed statistics including client count,
-                        percentage share, and revenue contribution.
-                    </p>
-                    {visualizations['distribution']}
-                </div>
-                {visualizations['descriptions']}
-                {visualizations['recommendations']}
-            """
-            return create_html_response(str(result), viz_html)
-        return create_html_response(str(result), "")
+        # Perform clustering
+        segments_data = segmentation.perform_clustering(n_clusters=n_clusters)
+        
+        # Create visualizations
+        visualizations = create_client_segments_visualization(segments_data)
+        
+        # Create HTML response with insights
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Client Segmentation Analysis</title>
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <style>
+                body {{ 
+                    font-family: Arial, sans-serif; 
+                    margin: 20px; 
+                    background-color: #f5f5f5;
+                }}
+                .container {{ 
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 20px;
+                    margin-bottom: 20px;
+                    max-width: 1400px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }}
+                .card {{ 
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .insights {{ 
+                    grid-column: span 2;
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-top: 20px;
+                }}
+                h1, h2, h3 {{ color: #333; }}
+                .segment-description {{ margin-bottom: 15px; }}
+                .metric {{ 
+                    display: inline-block;
+                    margin-right: 20px;
+                    padding: 5px 10px;
+                    background: #f0f0f0;
+                    border-radius: 4px;
+                }}
+            </style>
+        </head>
+        <body>
+            <h1>Client Segmentation Analysis</h1>
+            <p>Analysis of client segments based on their banking behavior and characteristics.</p>
+            
+            {visualizations}
+            
+            <div class="insights">
+                <h2>Segment Insights</h2>
+                {generate_segment_insights(segments_data)}
+            </div>
+        </body>
+        </html>
+        """
+        
+        return HTMLResponse(content=html_content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/loan-recommendation/{client_id}", response_class=HTMLResponse)
-def get_loan_recommendation(client_id: int, db: Session = Depends(get_db)):
-    """Get loan recommendations for a specific client with visualization"""
+def generate_segment_insights(segments_data):
+    """Generate insights for each segment based on their characteristics"""
+    characteristics = segments_data['segment_characteristics']
+    insights = []
+    
+    for segment_id, char in characteristics.items():
+        segment_insight = f"""
+        <div class="segment-description">
+            <h3>Segment {segment_id}</h3>
+            <p>This segment represents {char['size']} clients with the following characteristics:</p>
+            <div class="metrics">
+                <span class="metric">Balance Level: {char['balance_level']}</span>
+                <span class="metric">Activity Level: {char['activity_level']}</span>
+                <span class="metric">Card Usage: {char['card_usage']}</span>
+                <span class="metric">Credit Card Usage: {char['credit_card_usage']}</span>
+                <span class="metric">International Activity: {char['international_activity']}</span>
+            </div>
+            <p><strong>Recommendations:</strong></p>
+            <ul>
+                {generate_segment_recommendations(char)}
+            </ul>
+        </div>
+        """
+        insights.append(segment_insight)
+    
+    return "\n".join(insights)
+
+
+def generate_segment_recommendations(characteristics):
+    """Generate specific recommendations based on segment characteristics"""
+    recommendations = []
+    
+    # Balance-based recommendations
+    if characteristics['balance_level'] in ['High', 'Very High']:
+        recommendations.append("Offer premium investment products and wealth management services")
+    elif characteristics['balance_level'] in ['Low', 'Very Low']:
+        recommendations.append("Consider financial education programs and basic banking solutions")
+    
+    # Activity-based recommendations
+    if characteristics['activity_level'] == 'High':
+        recommendations.append("Introduce transaction fee packages and cashback rewards")
+    elif characteristics['activity_level'] == 'Low':
+        recommendations.append("Promote mobile banking features to increase engagement")
+    
+    # Card usage recommendations
+    if characteristics['card_usage'] == 'Multiple':
+        recommendations.append("Offer premium credit cards with rewards programs")
+    elif characteristics['card_usage'] == 'None':
+        recommendations.append("Promote card-based services and digital payment solutions")
+    
+    # International activity recommendations
+    if characteristics['international_activity'] == 'Yes':
+        recommendations.append("Offer foreign currency accounts and international transfer services")
+    
+    # Credit card specific recommendations
+    if characteristics['credit_card_usage'] == 'High':
+        recommendations.append("Consider card-based insurance products and travel benefits")
+    
+    # Format recommendations as list items
+    return "\n".join([f"<li>{rec}</li>" for rec in recommendations])
+
+
+# DONE
+@router.get("/loan-recommendation/{client_id}")
+async def get_loan_recommendation(client_id: int, db: Session = Depends(get_db)):
+    """Get loan recommendations for a client with visualizations"""
     try:
+        # Initialize loan recommendation
         recommender = LoanRecommendation(db)
+        
+        # Get loan recommendation data
         result = recommender.recommend_loan(client_id)
         if not result:
-            raise HTTPException(status_code=404, detail="Client not found")
-        
+            raise HTTPException(status_code=404, detail="Could not generate loan recommendations")
+            
+        # Create visualizations
         visualizations = create_loan_recommendation_visualization(result)
-        if visualizations:
-            viz_html = f"""
-                <div class="card">
-                    <h2>Loan Recommendations</h2>
-                    {visualizations['recommendations']}
-                </div>
-                <div class="card">
-                    <h2>Eligibility Score</h2>
-                    {visualizations['eligibility']}
-                </div>
-            """
-            return create_html_response(str(result), viz_html)
-        return create_html_response(str(result), "")
-    except HTTPException:
-        raise
+        if not visualizations:
+            raise HTTPException(status_code=500, detail="Error creating visualizations")
+            
+        # Return the complete dashboard HTML
+        return HTMLResponse(content=visualizations['dashboard_html'], status_code=200)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -228,6 +309,7 @@ def get_product_usage(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# DONE
 @router.get("/client-value/{client_id}", response_class=HTMLResponse)
 def get_client_value(client_id: int, db: Session = Depends(get_db)):
     """Get client lifetime value analysis with visualization"""
@@ -286,6 +368,7 @@ def get_churn_risk(client_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# DONE
 @router.get("/credit-score/{client_id}", response_class=HTMLResponse)
 def get_credit_score(client_id: int, db: Session = Depends(get_db)):
     """Get internal credit score for a client with visualization"""
@@ -315,6 +398,7 @@ def get_credit_score(client_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# DONE WHEN EVERYTHING
 @router.get("/client-insights/{client_id}", response_class=HTMLResponse)
 async def get_client_insights(client_id: int, db: Session = Depends(get_db)):
     """Get comprehensive insights for a client with visualization"""
