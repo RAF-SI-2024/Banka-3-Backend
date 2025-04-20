@@ -12,4 +12,4 @@ WORKDIR /app
 COPY --from=builder /app .
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app/service/target/user-service-kotlin-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app/service/target/user-service-kotlin-0.0.1.jar"]
