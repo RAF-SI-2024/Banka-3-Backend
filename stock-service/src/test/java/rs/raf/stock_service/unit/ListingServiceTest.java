@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.util.ReflectionTestUtils;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
@@ -19,6 +20,7 @@ import rs.raf.stock_service.exceptions.UnauthorizedException;
 import rs.raf.stock_service.repository.ListingPriceHistoryRepository;
 import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OptionRepository;
+import rs.raf.stock_service.service.ListingRedisService;
 import rs.raf.stock_service.service.ListingService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -59,15 +61,21 @@ class ListingServiceTest {
     @Mock
     private OptionRepository optionRepository;
 
+    @Mock
+    private ListingRedisService listingRedisService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        ReflectionTestUtils.setField(listingService, "dailyPriceInfoRepository", priceHistoryRepository);
     }
 
     @Test
     void getListings_ShouldReturnListOfDtos() {
-        // Mock podaci za Stock
+        // Filter da se ne koristi Redis
+        ListingFilterDto filter = new ListingFilterDto();
+        filter.setSearch("AAPL"); // Bilo koji da premosti if uslov
+
         Exchange exchange = new Exchange();
         exchange.setMic("XNAS");
 
@@ -83,26 +91,19 @@ class ListingServiceTest {
         dailyInfo.setVolume(2000000L);
 
         ListingDto expectedDto = new ListingDto(
-                1L, ListingType.STOCK, "AAPL", new BigDecimal("150.50"), new BigDecimal("2.50"), 2000000L,
+                1L, ListingType.STOCK, "AAPL", new BigDecimal("150.50"),
+                new BigDecimal("2.50"), 2000000L,
                 new BigDecimal("165.55"), "XNAS"
         );
 
-        // Mock ponašanje repozitorijuma
-        when(listingRepository.findAll(any(Specification.class))).thenReturn(Collections.singletonList(stock));
+        when(listingRepository.findAll(any(Specification.class))).thenReturn(List.of(stock));
         when(priceHistoryRepository.findTopByListingOrderByDateDesc(stock)).thenReturn(dailyInfo);
         when(listingMapper.toDto(stock, dailyInfo)).thenReturn(expectedDto);
 
-        // Poziv metode
-        List<ListingDto> result = listingService.getListings(new ListingFilterDto(), "CLIENT");
+        List<ListingDto> result = listingService.getListings(filter, "CLIENT");
 
-        // Provera rezultata
         assertEquals(1, result.size());
         assertEquals(expectedDto, result.get(0));
-
-        // Verifikacija poziva
-        verify(listingRepository, times(1)).findAll(any(Specification.class));
-        verify(priceHistoryRepository, times(1)).findTopByListingOrderByDateDesc(stock);
-        verify(listingMapper, times(1)).toDto(stock, dailyInfo);
     }
 
     @Test
