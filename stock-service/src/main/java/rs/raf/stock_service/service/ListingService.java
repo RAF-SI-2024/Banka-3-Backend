@@ -23,35 +23,54 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class ListingService {
-    @Autowired
-    private ListingRepository listingRepository;
-    @Autowired
-    private ListingPriceHistoryRepository dailyPriceInfoRepository;
 
-    private TwelveDataClient twelveDataClient;
-    private AlphavantageClient alphavantageClient;
+    @Autowired private ListingRepository listingRepository;
+    @Autowired private ListingPriceHistoryRepository dailyPriceInfoRepository;
+    @Autowired private OptionRepository optionRepository;
+    @Autowired private ListingMapper listingMapper;
+    @Autowired private JwtTokenUtil jwtTokenUtil;
+    @Autowired private ListingRedisService listingRedisService;
+    @Autowired private TimeSeriesMapper timeSeriesMapper;
+    @Autowired private TwelveDataClient twelveDataClient;
+    @Autowired private AlphavantageClient alphavantageClient;
 
-    @Autowired
-    private TimeSeriesMapper timeSeriesMapper;
+    public ListingDto getByTicker(String ticker) {
+        ListingDto cached = listingRedisService.getByTicker(ticker);
+        if (cached != null) {
+            return cached;
+        }
 
-    @Autowired
-    private ListingMapper listingMapper;
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
+        Listing listing = listingRepository.findByTicker(ticker)
+                .orElseThrow(() -> new ListingNotFoundException(ticker));
 
-    @Autowired
-    private OptionRepository optionRepository;
+        ListingPriceHistory dailyInfo = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing);
+        ListingDto dto = listingMapper.toDto(listing, dailyInfo);
+
+        listingRedisService.saveByTicker(dto);
+        return dto;
+    }
 
     public List<ListingDto> getListings(ListingFilterDto filter, String role) {
         var spec = ListingSpecification.buildSpecification(filter, role);
+        if (filter.getType() == null &&
+        filter.getSearch() == null &&
+        filter.getExchangePrefix() == null &&
+        filter.getMinPrice() == null &&
+        filter.getMaxPrice() == null &&
+        filter.getMinAsk() == null && filter.getMaxAsk() == null &&
+        filter.getMinBid() == null && filter.getMaxBid() == null &&
+                filter.getMinMaintenanceMargin() == null && filter.getMaxMaintenanceMargin() == null &&
+                filter.getSettlementDate() == null
+    ) {
+            return listingRedisService.getAllListings();
+        }
+
         return listingRepository.findAll(spec).stream()
                 .map(listing -> listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)))
                 .collect(Collectors.toList());
@@ -79,7 +98,6 @@ public class ListingService {
     }
 
     public ListingDto updateListing(Long id, ListingUpdateDto updateDto, String authHeader) {
-
         String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
         if (!"SUPERVISOR".equals(role) && !"ADMIN".equals(role)) {
             throw new UnauthorizedException("Only supervisors can update listings.");
@@ -93,7 +111,11 @@ public class ListingService {
 
         listingRepository.save(listing);
 
-        return listingMapper.toDto(listing, dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing));
+        ListingPriceHistory dailyInfo = dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing);
+        ListingDto updatedDto = listingMapper.toDto(listing, dailyInfo);
+
+        listingRedisService.saveByTicker(updatedDto);
+        return updatedDto;
     }
 
     public TimeSeriesDto getPriceHistory(Long id, String interval) {
@@ -105,29 +127,22 @@ public class ListingService {
         }
 
         String response = twelveDataClient.getTimeSeries(listing.getTicker(), interval, "30");
-
         return timeSeriesMapper.mapJsonToCustomTimeSeries(response, listing);
     }
 
     public TimeSeriesDto getPriceHistoryFromAlphaVantage(String symbol, String interval, String outputsize) {
-
-        // Call the API
         String response = alphavantageClient.getIntradayData(symbol, interval, outputsize, "json");
-
-        // Map response to TimeSeriesDto
         return mapAlphaVantageResponseToDto(response, symbol, interval);
     }
 
-    // Helper method to map Alpha Vantage response to TimeSeriesDto
     private TimeSeriesDto mapAlphaVantageResponseToDto(String response, String symbol, String interval) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response);
 
-            // Get time series data (e.g., "Time Series (5min)" or other interval)
             JsonNode timeSeriesNode = rootNode.get("Time Series (" + interval + ")");
             if (timeSeriesNode == null) {
-                throw new RuntimeException("Invalid response format from Alpha Vantage");
+                throw new RuntimeException("Invalid response format from Alpha Vantage: " + response);
             }
 
             List<TimeSeriesDto.TimeSeriesValueDto> values = new ArrayList<>();
@@ -146,7 +161,6 @@ public class ListingService {
                 values.add(dto);
             }
 
-            // Create and return TimeSeriesDto
             TimeSeriesDto timeSeriesDto = new TimeSeriesDto();
             TimeSeriesDto.MetaDto metaDto = new TimeSeriesDto.MetaDto();
             metaDto.setSymbol(symbol);
@@ -163,16 +177,14 @@ public class ListingService {
         }
     }
 
-
     public TimeSeriesDto getForexPriceHistory(Long id, String interval) {
         ForexPair forexPair = (ForexPair) listingRepository.findById(id)
-                .orElseThrow(() -> new ListingNotFoundException(1L));
+                .orElseThrow(() -> new ListingNotFoundException(id));
 
         String fromSymbol = forexPair.getBaseCurrency();
         String toSymbol = forexPair.getQuoteCurrency();
 
         String response = alphavantageClient.getForexPriceHistory(fromSymbol, toSymbol, interval, "compact");
-
         return timeSeriesMapper.mapJsonToCustomTimeSeries(response, forexPair);
     }
 
