@@ -256,7 +256,10 @@ public class OtcService {
         }
 
         return options.stream()
-                .map(otcOptionMapper::toDto)
+                .map(option -> {
+                    String ownerName = resolveUserName(option.getSellerId());
+                    return otcOptionMapper.toDto(option, ownerName);
+                })
                 .collect(Collectors.toList());
     }
 

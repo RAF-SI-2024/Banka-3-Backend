@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.stock_service.domain.dto.ErrorMessageDto;
+import rs.raf.stock_service.domain.dto.TrackedPaymentDto;
+import rs.raf.stock_service.exceptions.InsufficientFundsException;
 import rs.raf.stock_service.service.TaxService;
 
 @Tag(name = "Tax API", description = "Api for managing taxes")
@@ -41,10 +44,13 @@ public class TaxController {
     })
     public ResponseEntity<?> processTaxes() {
         try {
-            taxService.processTaxes();
-            return ResponseEntity.status(HttpStatus.OK).body("Taxes processed successfully.");
+            TrackedPaymentDto trackedPaymentDto = taxService.processTaxes();
+            return ResponseEntity.status(HttpStatus.OK).body(trackedPaymentDto);
+
+        } catch (InsufficientFundsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 }
