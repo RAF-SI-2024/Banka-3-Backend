@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Numeric, BigInteger, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Numeric, BigInteger, Boolean, Table
 from sqlalchemy.orm import relationship, declared_attr
 from datetime import datetime
 import enum
@@ -52,6 +52,33 @@ class CardIssuer(enum.Enum):
     AMERICAN_EXPRESS = "AMERICAN_EXPRESS"
 
 
+class LoanType(enum.Enum):
+    CASH = "CASH"
+    MORTGAGE = "MORTGAGE"
+    AUTO = "AUTO"
+    REFINANCING = "REFINANCING"
+    STUDENT = "STUDENT"
+
+
+class LoanStatus(enum.Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    PAID_OFF = "PAID_OFF"
+    DELINQUENT = "DELINQUENT"
+
+
+class InterestRateType(enum.Enum):
+    FIXED = "FIXED"
+    VARIABLE = "VARIABLE"
+
+
+class InstallmentStatus(enum.Enum):
+    PENDING = "PENDING"
+    PAID = "PAID"
+    OVERDUE = "OVERDUE"
+    CANCELLED = "CANCELLED"
+
+
 class Currency(Base):
     __tablename__ = "currencies"
 
@@ -87,23 +114,22 @@ class Account(Base):
     daily_spending = Column(Numeric(20, 2))
     monthly_spending = Column(Numeric(20, 2))
 
-    # Foreign key columns need to be declared with @declared_attr
-    @declared_attr
-    def currency_code(cls):
-        return Column(String, ForeignKey("currencies.code"))
-
-    # Relationships also need to be declared with @declared_attr
+    # Relationships
     @declared_attr
     def currency(cls):
         return relationship("Currency", back_populates="accounts", foreign_keys=[cls.currency_id])
 
     @declared_attr
     def cards(cls):
-        return relationship("Card", back_populates="account")
+        return relationship("Card", back_populates="account", cascade="all, delete-orphan")
+
+    @declared_attr
+    def loans(cls):
+        return relationship("Loan", back_populates="account")
 
     @declared_attr
     def payments_sent(cls):
-        return relationship("Payment", back_populates="sender_account")
+        return relationship("Payment", back_populates="sender_account", foreign_keys="[Payment.sender_account_number]")
 
     __mapper_args__ = {
         'polymorphic_on': account_owner_type,
@@ -166,6 +192,15 @@ class Payee(Base):
     payments = relationship("Payment", back_populates="payee")
 
 
+# Association table for loan payments
+loan_payments = Table(
+    'loan_payments',
+    Base.metadata,
+    Column('loan_id', BigInteger, ForeignKey('loans.id'), primary_key=True),
+    Column('payment_id', BigInteger, ForeignKey('payments.id'), primary_key=True)
+)
+
+
 class Payment(Base):
     __tablename__ = "payments"
 
@@ -190,3 +225,47 @@ class Payment(Base):
     sender_account = relationship("Account", back_populates="payments_sent")
     card = relationship("Card", back_populates="payments")
     payee = relationship("Payee", back_populates="payments")
+    loans = relationship("Loan", secondary=loan_payments, back_populates="payments")
+
+
+class Installment(Base):
+    __tablename__ = "installments"
+
+    id = Column(BigInteger, primary_key=True)
+    loan_id = Column(BigInteger, ForeignKey("loans.id"), nullable=False)
+    amount = Column(Numeric(20, 2))
+    interest_rate = Column(Numeric(5, 2))
+    expected_due_date = Column(DateTime)
+    actual_due_date = Column(DateTime)
+    installment_status = Column(Enum(InstallmentStatus))
+
+    # Relationships
+    loan = relationship("Loan", back_populates="installments")
+
+
+class Loan(Base):
+    __tablename__ = "loans"
+
+    id = Column(BigInteger, primary_key=True)
+    loan_number = Column(String, unique=True)
+    type = Column(Enum(LoanType))
+    amount = Column(Numeric(20, 2))
+    repayment_period = Column(Integer)
+    nominal_interest_rate = Column(Numeric(5, 2))
+    effective_interest_rate = Column(Numeric(5, 2))
+    start_date = Column(DateTime)
+    due_date = Column(DateTime)
+    next_installment_amount = Column(Numeric(20, 2))
+    next_installment_date = Column(DateTime)
+    remaining_debt = Column(Numeric(20, 2))
+    currency_id = Column(BigInteger, ForeignKey("currencies.id"))
+    status = Column(Enum(LoanStatus))
+    interest_rate_type = Column(Enum(InterestRateType))
+    account_account_number = Column(String, ForeignKey("accounts.account_number"))
+
+    # Relationships
+    currency = relationship("Currency")
+    account = relationship("Account", back_populates="loans")
+    installments = relationship("Installment", back_populates="loan", cascade="all, delete-orphan")
+    payments = relationship("Payment", secondary=loan_payments, back_populates="loans")
+

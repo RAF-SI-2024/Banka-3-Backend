@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
-from .models import Account, Payment, Card
+from .models import Account, Payment, Card, Loan
+from typing import List, Dict, Any
 
 
 class ClientSegmentation:
@@ -140,6 +141,97 @@ class LoanRecommendation:
         }
 
 
+class LoanAnalytics:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_loan_statistics(self):
+        """Get comprehensive loan statistics"""
+        # Get total loan count and amount
+        total_stats = self.db.execute(
+            select(
+                func.count(Loan.id).label("total_count"),
+                func.sum(Loan.amount).label("total_amount"),
+                func.avg(Loan.amount).label("avg_amount")
+            )
+        ).first()
+
+        # Get loan count by type
+        type_stats = self.db.execute(
+            select(
+                Loan.type,
+                func.count(Loan.id).label("count"),
+                func.sum(Loan.amount).label("total_amount"),
+                func.avg(Loan.amount).label("avg_amount"),
+                func.avg(Loan.nominal_interest_rate).label("avg_nominal_interest_rate"),
+                func.avg(Loan.repayment_period).label("avg_repayment_period")
+            )
+            .group_by(Loan.type)
+        ).all()
+
+        # Get loan count by status
+        status_stats = self.db.execute(
+            select(
+                Loan.status,
+                func.count(Loan.id).label("count"),
+                func.sum(Loan.amount).label("total_amount")
+            )
+            .group_by(Loan.status)
+        ).all()
+
+        # Get client loan statistics
+        client_stats = self.db.execute(
+            select(
+                Account.client_id,
+                func.count(Loan.id).label("loan_count"),
+                func.sum(Loan.amount).label("total_loan_amount"),
+                func.avg(Loan.amount).label("avg_loan_amount")
+            )
+            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .group_by(Account.client_id)
+        ).all()
+
+        # Calculate delinquency rate
+        delinquency_stats = self.db.execute(
+            select(
+                func.count(case((Loan.status == 'DELINQUENT', Loan.id))).label("delinquent_count"),
+                func.count(Loan.id).label("total_count")
+            )
+        ).first()
+
+        return {
+            "total_loans": {
+                "count": total_stats.total_count,
+                "total_amount": float(total_stats.total_amount) if total_stats.total_amount else 0,
+                "average_amount": float(total_stats.avg_amount) if total_stats.avg_amount else 0
+            },
+            "by_type": [
+                {
+                    "type": stat.type.value,
+                    "count": stat.count,
+                    "total_amount": float(stat.total_amount) if stat.total_amount else 0,
+                    "average_amount": float(stat.avg_amount) if stat.avg_amount else 0,
+                    "average_interest_rate": float(stat.avg_nominal_interest_rate) if stat.avg_nominal_interest_rate else 0,
+                    "average_repayment_period": float(stat.avg_repayment_period) if stat.avg_repayment_period else 0
+                }
+                for stat in type_stats
+            ],
+            "by_status": [
+                {
+                    "status": stat.status.value,
+                    "count": stat.count,
+                    "total_amount": float(stat.total_amount) if stat.total_amount else 0
+                }
+                for stat in status_stats
+            ],
+            "client_statistics": {
+                "total_clients_with_loans": len([s for s in client_stats if s.loan_count > 0]),
+                "average_loans_per_client": sum(s.loan_count for s in client_stats) / len(client_stats) if client_stats else 0,
+                "delinquency_rate": delinquency_stats.delinquent_count / delinquency_stats.total_count if delinquency_stats.total_count > 0 else 0
+            }
+        }
+
+
 class ProductUsageAnalytics:
     def __init__(self, db: Session):
         self.db = db
@@ -168,6 +260,10 @@ class ProductUsageAnalytics:
             )
         ).first()
 
+        # Get loan statistics
+        loan_analytics = LoanAnalytics(self.db)
+        loan_stats = loan_analytics.get_loan_statistics()
+
         return {
             'total_clients': total_clients,
             'card_usage': {
@@ -181,7 +277,8 @@ class ProductUsageAnalytics:
                 'total_payments': payment_stats.total_payments,
                 'avg_payment_amount': round(
                     float(payment_stats.avg_payment_amount) if payment_stats.avg_payment_amount else 0, 2)
-            }
+            },
+            'loan_activity': loan_stats
         }
 
     def get_product_combinations(self):
@@ -390,4 +487,162 @@ class CreditScoring:
             else 'Good' if credit_score >= 670
             else 'Fair' if credit_score >= 580
             else 'Poor'
+        }
+
+    def get_client_loan_stats(self) -> List[Dict[str, Any]]:
+        """Get loan statistics for each client."""
+        client_stats = self.db.execute(
+            select(
+                Account.client_id,
+                func.count(Loan.id).label("loan_count"),
+                func.sum(Loan.amount).label("total_loan_amount"),
+                func.avg(Loan.amount).label("avg_loan_amount")
+            )
+            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .group_by(Account.client_id)
+        ).all()
+
+        return [
+            {
+                "client_id": stat.client_id,
+                "loan_count": stat.loan_count or 0,
+                "total_loan_amount": float(stat.total_loan_amount or 0),
+                "avg_loan_amount": float(stat.avg_loan_amount or 0)
+            }
+            for stat in client_stats
+        ]
+
+    def get_loan_analysis(self) -> Dict[str, Any]:
+        """Get comprehensive loan analysis."""
+        # Total loans and amounts
+        loan_stats = self.db.execute(
+            select(
+                func.count(Loan.id).label("total_loans"),
+                func.sum(Loan.amount).label("total_amount"),
+                func.avg(Loan.amount).label("avg_amount"),
+                func.avg(Loan.nominal_interest_rate).label("avg_nominal_interest_rate"),
+                func.avg(Loan.effective_interest_rate).label("avg_effective_interest_rate")
+            )
+        ).first()
+
+        # Loans by type
+        loans_by_type = self.db.execute(
+            select(
+                Loan.type,
+                func.count(Loan.id).label("count"),
+                func.sum(Loan.amount).label("total_amount"),
+                func.avg(Loan.nominal_interest_rate).label("avg_nominal_interest_rate"),
+                func.avg(Loan.effective_interest_rate).label("avg_effective_interest_rate"),
+                func.avg(Loan.repayment_period).label("avg_repayment_period")
+            )
+            .group_by(Loan.type)
+        ).all()
+
+        # Loans by status
+        loans_by_status = self.db.execute(
+            select(
+                Loan.status,
+                func.count(Loan.id).label("count"),
+                func.sum(Loan.amount).label("total_amount")
+            )
+            .group_by(Loan.status)
+        ).all()
+
+        # Average loan amount by client segment
+        avg_loan_by_segment = self.db.execute(
+            select(
+                Account.client_id,
+                func.avg(Loan.amount).label("avg_loan_amount")
+            )
+            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .group_by(Account.client_id)
+        ).all()
+
+        return {
+            "total_loans": loan_stats.total_loans or 0,
+            "total_amount": float(loan_stats.total_amount or 0),
+            "avg_amount": float(loan_stats.avg_amount or 0),
+            "avg_nominal_interest_rate": float(loan_stats.avg_nominal_interest_rate or 0),
+            "avg_effective_interest_rate": float(loan_stats.avg_effective_interest_rate or 0),
+            "loans_by_type": [
+                {
+                    "type": loan_type.type.value,
+                    "count": loan_type.count,
+                    "total_amount": float(loan_type.total_amount or 0),
+                    "avg_nominal_interest_rate": float(loan_type.avg_nominal_interest_rate or 0),
+                    "avg_effective_interest_rate": float(loan_type.avg_effective_interest_rate or 0),
+                    "avg_repayment_period": float(loan_type.avg_repayment_period or 0)
+                }
+                for loan_type in loans_by_type
+            ],
+            "loans_by_status": [
+                {
+                    "status": loan_status.status.value,
+                    "count": loan_status.count,
+                    "total_amount": float(loan_status.total_amount or 0)
+                }
+                for loan_status in loans_by_status
+            ],
+            "avg_loan_by_segment": [
+                {
+                    "client_id": segment.client_id,
+                    "avg_loan_amount": float(segment.avg_loan_amount or 0)
+                }
+                for segment in avg_loan_by_segment
+            ]
+        }
+
+    def get_loan_recommendations(self, client_id: int) -> Dict[str, Any]:
+        """Get loan recommendations for a specific client."""
+        # Get client's financial profile
+        client_profile = self.db.execute(
+            select(
+                Account.client_id,
+                func.count(Loan.id).label("existing_loans"),
+                func.sum(Loan.amount).label("total_loan_amount"),
+                func.avg(Loan.amount).label("avg_loan_amount"),
+                func.avg(Account.balance).label("avg_balance"),
+                func.count(Payment.id).label("payment_count"),
+                func.avg(Payment.amount).label("avg_payment_amount")
+            )
+            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Payment, Account.account_number == Payment.sender_account_number)
+            .where(Account.client_id == client_id)
+            .group_by(Account.client_id)
+        ).first()
+
+        if not client_profile:
+            return {"error": "Client not found"}
+
+        # Calculate recommendation score
+        recommendation_score = 0
+        recommended_loan_types = []
+
+        # Check if client qualifies for premium loans
+        if (client_profile.avg_balance or 0) > 10000 and (client_profile.payment_count or 0) > 10:
+            recommendation_score += 2
+            recommended_loan_types.append("PREMIUM")
+
+        # Check if client qualifies for personal loans
+        if (client_profile.avg_balance or 0) > 5000 and (client_profile.payment_count or 0) > 5:
+            recommendation_score += 1
+            recommended_loan_types.append("PERSONAL")
+
+        # Check if client qualifies for credit card
+        if (client_profile.avg_balance or 0) > 2000 and (client_profile.payment_count or 0) > 3:
+            recommendation_score += 1
+            recommended_loan_types.append("CREDIT_CARD")
+
+        return {
+            "client_id": client_id,
+            "recommendation_score": recommendation_score,
+            "recommended_loan_types": recommended_loan_types,
+            "financial_profile": {
+                "existing_loans": client_profile.existing_loans or 0,
+                "total_loan_amount": float(client_profile.total_loan_amount or 0),
+                "avg_loan_amount": float(client_profile.avg_loan_amount or 0),
+                "avg_balance": float(client_profile.avg_balance or 0),
+                "payment_count": client_profile.payment_count or 0,
+                "avg_payment_amount": float(client_profile.avg_payment_amount or 0)
+            }
         }

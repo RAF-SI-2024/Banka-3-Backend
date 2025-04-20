@@ -5,7 +5,6 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.analysis.database import Base, engine
-from app.analysis.models import Currency, Account, Card, Payment, Payee
 
 
 def init_db():

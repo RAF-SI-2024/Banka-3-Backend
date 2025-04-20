@@ -32,11 +32,69 @@ def create_html_response(data, visualizations):
         <title>Analytics Dashboard</title>
         <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .container {{ display: flex; flex-wrap: wrap; gap: 20px; }}
-            .card {{ flex: 1; min-width: 300px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
-            .data-section {{ margin-top: 20px; }}
-            pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; }}
+            body {{ 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                background-color: #f5f5f5;
+            }}
+            .container {{ 
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                margin-bottom: 20px;
+                max-width: 1400px;
+                margin-left: auto;
+                margin-right: auto;
+            }}
+            .card {{ 
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                display: flex;
+                flex-direction: column;
+            }}
+            .card h2 {{ 
+                margin-top: 0;
+                margin-bottom: 15px;
+                color: #333;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+                font-size: 20px;
+            }}
+            .data-section {{ 
+                margin-top: 20px;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                max-width: 1400px;
+                margin-left: auto;
+                margin-right: auto;
+            }}
+            pre {{ 
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+                overflow-x: auto;
+            }}
+            .plotly-graph-div {{ 
+                width: 100% !important;
+                height: 350px !important;
+                margin: 0 auto;
+            }}
+            h1 {{
+                max-width: 1400px;
+                margin-left: auto;
+                margin-right: auto;
+                margin-bottom: 20px;
+                color: #333;
+            }}
+            @media (max-width: 1024px) {{
+                .container {{
+                    grid-template-columns: 1fr;
+                }}
+            }}
         </style>
     </head>
     <body>
@@ -65,12 +123,51 @@ def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
         if visualizations:
             viz_html = f"""
                 <div class="card">
+                    <h2>Client Segments Overview</h2>
+                    <p class="description">
+                        Client segmentation groups customers based on their financial behavior and characteristics.
+                        Each segment represents a distinct pattern in banking activity, helping us understand different
+                        client profiles and their needs.
+                    </p>
+                    <div class="segment-insights">
+                        <h3>Key Insights:</h3>
+                        <ul>
+                            <li><strong>Balance-based Groups:</strong> Segments show different levels of account balance maintenance</li>
+                            <li><strong>Transaction Patterns:</strong> Each group has distinct transaction frequencies and amounts</li>
+                            <li><strong>Product Usage:</strong> Different segments show varying levels of engagement with banking products</li>
+                            <li><strong>Activity Levels:</strong> Groups range from highly active to minimal engagement</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card">
                     <h2>Cluster Statistics</h2>
+                    <p class="description">
+                        The chart below shows key metrics for each client segment, including average balance,
+                        transaction frequency, and product usage. Higher values indicate stronger engagement
+                        in that particular aspect.
+                    </p>
                     {visualizations['clusters']}
                 </div>
                 <div class="card">
                     <h2>Segment Distribution</h2>
+                    <p class="description">
+                        This chart shows how clients are distributed across different segments.
+                        The size of each segment indicates the number of clients with similar banking behavior patterns.
+                    </p>
                     {visualizations['distribution']}
+                </div>
+                <div class="card">
+                    <h2>Segment Characteristics</h2>
+                    <div class="segment-details">
+                        <h3>Typical Segment Profiles:</h3>
+                        <ul>
+                            <li><strong>High-Value Segment:</strong> Clients with high balances, frequent transactions, and multiple products</li>
+                            <li><strong>Active Traders:</strong> Regular transaction activity but moderate balances</li>
+                            <li><strong>Stable Savers:</strong> High balances but lower transaction frequency</li>
+                            <li><strong>Basic Users:</strong> Lower balances and minimal product usage</li>
+                            <li><strong>Occasional Users:</strong> Infrequent activity across all metrics</li>
+                        </ul>
+                    </div>
                 </div>
             """
             return create_html_response(str(result), viz_html)
