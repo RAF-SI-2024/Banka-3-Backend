@@ -279,9 +279,10 @@ async def get_loan_recommendation(client_id: int, db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# DONE just refactor first box
 @router.get("/product-usage", response_class=HTMLResponse)
 def get_product_usage(db: Session = Depends(get_db)):
-    """Get product usage statistics with visualization"""
+    """Get product engagement analysis with visualization"""
     try:
         analytics = ProductUsageAnalytics(db)
         stats = analytics.get_product_usage_stats()
@@ -295,12 +296,36 @@ def get_product_usage(db: Session = Depends(get_db)):
         if visualizations:
             viz_html = f"""
                 <div class="card">
-                    <h2>Product Combinations</h2>
+                    <h2>Product Engagement Combinations</h2>
                     {visualizations['combinations']}
                 </div>
                 <div class="card">
-                    <h2>Usage Statistics</h2>
+                    <h2>Engagement Statistics</h2>
                     {visualizations['stats']}
+                </div>
+                <div class="card">
+                    <h2>Product Correlation Matrix</h2>
+                    {visualizations['heatmap']}
+                </div>
+                <div class="card">
+                    <h2>Product Adoption Trends</h2>
+                    {visualizations['adoption']}
+                </div>
+                <div class="card">
+                    <h2>Product Usage by Segment</h2>
+                    {visualizations['segment']}
+                </div>
+                <div class="card">
+                    <h2>Total Loan Statistics</h2>
+                    {visualizations['total_loans']}
+                </div>
+                <div class="card">
+                    <h2>Loans by Type</h2>
+                    {visualizations['loans_by_type']}
+                </div>
+                <div class="card">
+                    <h2>Loans by Status</h2>
+                    {visualizations['loans_by_status']}
                 </div>
             """
             return create_html_response(str(result), viz_html)
