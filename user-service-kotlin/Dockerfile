@@ -2,8 +2,8 @@ FROM maven:3.9.6 AS builder
 WORKDIR /app
 
 COPY pom.xml app/pom.xml
-COPY user-service/src app/service/src
-COPY user-service/pom.xml app/service/pom.xml
+COPY user-service-kotlin/src app/service/src
+COPY user-service-kotlin/pom.xml app/service/pom.xml
 
 RUN --mount=type=cache,target=/root/.m2 mvn -DfinalName=app -f app/service/pom.xml -Dmaven.test.skip clean package
 
