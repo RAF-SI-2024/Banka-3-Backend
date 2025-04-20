@@ -115,6 +115,15 @@ public class AccountService {
 
     }
 
+    public Account saveBank2Account(Bank2AccountDetailsDto bank2AccountDetailsDto) {
+        Account account = new PersonalAccount();
+        account.setAccountNumber(bank2AccountDetailsDto.getAccountNumber());
+        account.setCurrency(currencyRepository.findByCode(bank2AccountDetailsDto.getCurrency().getCode()).orElseThrow());
+        account.setExternalId(bank2AccountDetailsDto.getId());
+
+        return accountRepository.save(account);
+    }
+
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
