@@ -48,7 +48,6 @@ public class OtcService {
         OtcOption otcOption = otcOptionRepository.findById(otcOptionId)
                 .orElseThrow(() -> new OtcOptionNotFoundException(otcOptionId));
 
-
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
 
@@ -284,7 +283,12 @@ public class OtcService {
             options = otcOptionRepository.findAllInvalid(userId, today);
         }
 
-        return options.stream().map(otcOptionMapper::toDto).collect(Collectors.toList());
+        return options.stream()
+                .map(option -> {
+                    String ownerName = resolveUserName(option.getSellerId());
+                    return otcOptionMapper.toDto(option, ownerName);
+                })
+                .collect(Collectors.toList());
     }
 
 

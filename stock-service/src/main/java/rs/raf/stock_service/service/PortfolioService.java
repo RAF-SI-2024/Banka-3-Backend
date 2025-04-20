@@ -138,6 +138,11 @@ public class PortfolioService {
                 taxGetResponseDto.setPaidForThisYear(taxGetResponseDto.getPaidForThisYear().add(currOrder.getTaxAmount()));
             }
         }
+
+        taxGetResponseDto.setUnpaidForThisMonth(bankClient.convert(new ConvertDto("USD", "RSD", taxGetResponseDto.getUnpaidForThisMonth())));
+        taxGetResponseDto.setPaidForThisYear(bankClient.convert(new ConvertDto("USD", "RSD", taxGetResponseDto.getPaidForThisYear())));
+
+
         return taxGetResponseDto;
     }
 

@@ -13,12 +13,15 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.entity.Account;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
 import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.exceptions.*;
+import rs.raf.bank_service.repository.AccountRepository;
+import rs.raf.bank_service.repository.CompanyAccountRepository;
+import rs.raf.bank_service.service.AccountService;
 import rs.raf.bank_service.service.PaymentService;
 import rs.raf.bank_service.service.TransactionQueueService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
@@ -35,6 +38,9 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final TransactionQueueService transactionQueueService;
     private final JwtTokenUtil jwtTokenUtil;
+    private final AccountService accountService;
+    private final AccountRepository accountRepository;
+    private final CompanyAccountRepository companyAccountRepository;
 
     @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/transfer")
@@ -93,13 +99,19 @@ public class PaymentController {
         }
     }
 
-//    @PreAuthorize("hasRole('ADMIN')")
-//    @PostMapping("/tax")
-//    public ResponseEntity<?> handleTax(
-//            @Valid @RequestBody TaxDto taxDto) throws JsonProcessingException {
-//        paymentService.handleTax(taxDto);
-//        return ResponseEntity.status(HttpStatus.OK).build();
-//    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/tax")
+    public ResponseEntity<?> handleTax(
+            @RequestBody ExecutePaymentDto executePaymentDto) {
+        try {
+            Account stateAccount = companyAccountRepository.findByCompanyId(2L);
+            executePaymentDto.getCreatePaymentDto().setReceiverAccountNumber(stateAccount.getAccountNumber());
+            transactionQueueService.queueTransaction(TransactionType.SYSTEM_PAYMENT, executePaymentDto.getCreatePaymentDto(), executePaymentDto.getClientId());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
 
     // Metoda za potvrdu plaćanja
     @PreAuthorize("hasRole('ADMIN')")
