@@ -43,11 +43,30 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
   user-service:
     build:
       context: .
       dockerfile: user-service/Dockerfile
     image: user-service
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://main_db/main_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - main_db
+      - rabbitmq
+  user-service-kotlin:
+    build:
+      context: .
+      dockerfile: user-service-kotlin/Dockerfile
+    image: user-service-kotlin
     ports:
       - "8080:8080"
     environment:
@@ -102,6 +121,7 @@ services:
     depends_on:
       - stock_db
       - rabbitmq
+      - redis
 volumes:
   main_db_data:
   bank_db_data:
