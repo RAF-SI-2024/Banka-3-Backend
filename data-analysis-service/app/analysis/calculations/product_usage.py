@@ -11,6 +11,7 @@ class ProductUsageAnalytics:
 
     def get_product_usage_stats(self):
         """Get comprehensive product engagement analysis"""
+        
         # Get total number of clients
         total_clients = self.db.execute(
             select(func.count(func.distinct(Account.client_id)))
@@ -28,8 +29,21 @@ class ProductUsageAnalytics:
                 func.avg(Account.balance).label('avg_balance')
             )
         ).first()
-
-        # Get card usage statistics
+        
+        # First, check direct card count
+        direct_card_count = self.db.execute(
+            select(func.count(Card.id))
+            .select_from(Card)
+        ).scalar()
+        
+        # Then, check accounts with cards
+        accounts_with_cards = self.db.execute(
+            select(func.count(func.distinct(Account.account_number)))
+            .select_from(Account)
+            .join(Card)
+        ).scalar()
+        
+        # Get detailed card statistics
         card_stats = self.db.execute(
             select(
                 func.count(func.distinct(Account.client_id)).label('clients_with_cards'),
@@ -37,8 +51,15 @@ class ProductUsageAnalytics:
                 func.count(case((Card.type == CardType.CREDIT, Card.id))).label('credit_cards'),
                 func.count(case((Card.type == CardType.DEBIT, Card.id))).label('debit_cards'),
                 func.avg(case((Card.type == CardType.CREDIT, Card.card_limit))).label('avg_credit_limit')
-            ).outerjoin(Card, Account.account_number == Card.account_number)
+            )
+            .select_from(Account)
+            .join(Card, Account.account_number == Card.account_number)
         ).first()
+        
+        raw_cards = self.db.execute(
+            select(Card.id, Card.card_number, Card.account_number, Card.type)
+            .limit(5)
+        ).all()
 
         # Get payment statistics
         payment_stats = self.db.execute(
@@ -85,7 +106,7 @@ class ProductUsageAnalytics:
                     ), Account.client_id
                 )))).label('all_products')
             ).outerjoin(Card, Account.account_number == Card.account_number)
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
         ).first()
 
         # Calculate product adoption over time
@@ -96,7 +117,7 @@ class ProductUsageAnalytics:
                 func.count(func.distinct(case((Card.id.isnot(None), Account.client_id)))).label('new_card_users'),
                 func.count(func.distinct(case((Loan.id.isnot(None), Account.client_id)))).label('new_loan_users')
             ).outerjoin(Card, Account.account_number == Card.account_number)
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .group_by('month')
             .order_by('month')
         ).all()
@@ -115,7 +136,7 @@ class ProductUsageAnalytics:
                 func.avg(Account.balance).label('avg_balance'),
                 func.avg(case((Card.type == CardType.CREDIT, Card.card_limit))).label('avg_credit_limit')
             ).outerjoin(Card, Account.account_number == Card.account_number)
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .group_by('segment')
         ).all()
 
@@ -231,13 +252,5 @@ class ProductUsageAnalytics:
             'only_multiple_accounts': int(df[(df['has_multiple_accounts']) & (~df['has_large_transactions'])].shape[0]),
             'only_single_account': int(df[(~df['has_multiple_accounts']) & (~df['has_large_transactions'])].shape[0])
         }
-
-        # Add logging
-        print("Account activity patterns:")
-        print(f"Total clients analyzed: {len(df)}")
-        print(f"Clients with multiple accounts: {df['has_multiple_accounts'].sum()}")
-        print(f"Clients with foreign accounts: {df['has_foreign_account'].sum()}")
-        print(f"Clients with large transactions: {df['has_large_transactions'].sum()}")
-        print("Combinations breakdown:", combinations)
 
         return combinations

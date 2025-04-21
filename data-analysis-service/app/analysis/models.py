@@ -34,7 +34,7 @@ class PaymentStatus(enum.Enum):
     PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
+    CANCELED = "CANCELED"
 
 
 class CardType(enum.Enum):
@@ -84,8 +84,7 @@ class InstallmentStatus(enum.Enum):
 class Currency(Base):
     __tablename__ = "currencies"
 
-    id = Column(BigInteger, primary_key=True)
-    code = Column(String, unique=True)
+    code = Column(String, primary_key=True)  # e.g., EUR
     name = Column(String)
     symbol = Column(String)
     countries = Column(String)
@@ -93,7 +92,8 @@ class Currency(Base):
     active = Column(Boolean, default=True)
 
     # Relationships
-    accounts = relationship("Account", back_populates="currency", foreign_keys="[Account.currency_id]")
+    accounts = relationship("Account", back_populates="currency")
+    loans = relationship("Loan", back_populates="currency")
 
 
 class Account(Base):
@@ -103,9 +103,9 @@ class Account(Base):
     name = Column(String)
     client_id = Column(BigInteger)
     created_by_employee_id = Column(BigInteger)
-    creation_date = Column(DateTime)
-    expiration_date = Column(DateTime)
-    currency_id = Column(BigInteger, ForeignKey("currencies.id"))
+    creation_date = Column(Date)
+    expiration_date = Column(Date)
+    currency_code = Column(String, ForeignKey("currencies.code"))
     status = Column(Enum(AccountStatus))
     type = Column(Enum(AccountType))
     account_owner_type = Column(Enum(AccountOwnerType))
@@ -116,22 +116,11 @@ class Account(Base):
     daily_spending = Column(Numeric(20, 2))
     monthly_spending = Column(Numeric(20, 2))
 
-    # Relationships
-    @declared_attr
-    def currency(cls):
-        return relationship("Currency", back_populates="accounts", foreign_keys=[cls.currency_id])
-
-    @declared_attr
-    def cards(cls):
-        return relationship("Card", back_populates="account", cascade="all, delete-orphan")
-
-    @declared_attr
-    def loans(cls):
-        return relationship("Loan", back_populates="account")
-
-    @declared_attr
-    def payments_sent(cls):
-        return relationship("Payment", back_populates="sender_account", foreign_keys="[Payment.sender_account_number]")
+    # Relationships with eager loading to match Java's FetchType.EAGER
+    currency = relationship("Currency", back_populates="accounts")
+    cards = relationship("Card", back_populates="account", lazy='joined', cascade="all, delete-orphan")
+    loans = relationship("Loan", back_populates="account")
+    payments_sent = relationship("Payment", back_populates="sender_account", foreign_keys="[Payment.sender_account_number]")
 
     __mapper_args__ = {
         'polymorphic_on': account_owner_type,
@@ -170,14 +159,14 @@ class Card(Base):
     type = Column(Enum(CardType))
     issuer = Column(Enum(CardIssuer))
     name = Column(String)
-    creation_date = Column(DateTime)
-    expiration_date = Column(DateTime)
+    creation_date = Column(Date)
+    expiration_date = Column(Date)
     account_number = Column(String, ForeignKey("accounts.account_number"))
     status = Column(Enum(CardStatus))
     card_limit = Column(Numeric(20, 2))
 
-    # Relationships
-    account = relationship("Account", back_populates="cards")
+    # Relationship with eager loading to match Java's behavior
+    account = relationship("Account", back_populates="cards", lazy='joined')
     payments = relationship("Payment", back_populates="card")
 
 
@@ -213,13 +202,11 @@ class Payment(Base):
     status = Column(Enum(PaymentStatus))
     receiver_client_id = Column(BigInteger)
     exchange_profit = Column(Numeric(20, 2))
-    installment_id = Column(BigInteger, ForeignKey("installments.id"))
 
     # Relationships
     sender_account = relationship("Account", back_populates="payments_sent")
     card = relationship("Card", back_populates="payments")
     payee = relationship("Payee", back_populates="payments")
-    installment = relationship("Installment", back_populates="payments")
 
 
 class Installment(Base):
@@ -235,7 +222,6 @@ class Installment(Base):
 
     # Relationships
     loan = relationship("Loan", back_populates="installments")
-    payments = relationship("Payment", back_populates="installment")
 
 
 class Loan(Base):
@@ -253,13 +239,13 @@ class Loan(Base):
     next_installment_amount = Column(Numeric(20, 2))
     next_installment_date = Column(DateTime)
     remaining_debt = Column(Numeric(20, 2))
-    currency_id = Column(BigInteger, ForeignKey("currencies.id"))
+    currency_code = Column(String, ForeignKey("currencies.code"))
     status = Column(Enum(LoanStatus))
     interest_rate_type = Column(Enum(InterestRateType))
-    account_account_number = Column(String, ForeignKey("accounts.account_number"))
+    account_number = Column(String, ForeignKey("accounts.account_number"))
 
     # Relationships
-    currency = relationship("Currency")
+    currency = relationship("Currency", back_populates="loans")
     account = relationship("Account", back_populates="loans")
     installments = relationship("Installment", back_populates="loan")
 

@@ -77,7 +77,7 @@ class CreditScoring:
                 func.sum(Loan.amount).label("total_loan_amount"),
                 func.avg(Loan.amount).label("avg_loan_amount")
             )
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .group_by(Account.client_id)
         ).all()
 
@@ -133,7 +133,7 @@ class CreditScoring:
                 Account.client_id,
                 func.avg(Loan.amount).label("avg_loan_amount")
             )
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .group_by(Account.client_id)
         ).all()
 
@@ -184,7 +184,7 @@ class CreditScoring:
                 func.count(Payment.id).label("payment_count"),
                 func.avg(Payment.amount).label("avg_payment_amount")
             )
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .outerjoin(Payment, Account.account_number == Payment.sender_account_number)
             .where(Account.client_id == client_id)
             .group_by(Account.client_id)

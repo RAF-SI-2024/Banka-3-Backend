@@ -38,7 +38,7 @@ class LoanRecommendation:
             func.count(case((and_(Card.type == CardType.CREDIT, Account.balance < 0), Card.id))).label('overlimit_cards')
         ).outerjoin(Payment, Account.account_number == Payment.sender_account_number) \
             .outerjoin(Card, Account.account_number == Card.account_number) \
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number) \
+            .outerjoin(Loan, Account.account_number == Loan.account_number) \
             .where(Account.client_id == client_id) \
             .group_by(Account.balance, Account.type)
 
@@ -105,7 +105,7 @@ class LoanRecommendation:
                 func.count(func.distinct(Installment.id)).label('total_installments'),
                 func.count(func.distinct(case((Installment.installment_status == InstallmentStatus.PAID, Installment.id)))).label('paid_installments')
             )
-            .join(Account, Account.account_number == Loan.account_account_number)
+            .join(Account, Account.account_number == Loan.account_number)
             .outerjoin(Installment, Loan.id == Installment.loan_id)
             .where(Account.client_id == client_id)
         ).first()
@@ -308,7 +308,7 @@ class LoanAnalytics:
                 func.count(func.distinct(Installment.id)).label("total_installments"),
                 func.count(func.distinct(case((Installment.installment_status == InstallmentStatus.PAID, Installment.id)))).label("paid_installments")
             )
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number)
+            .outerjoin(Loan, Account.account_number == Loan.account_number)
             .outerjoin(Installment, Loan.id == Installment.loan_id)
             .group_by(Account.client_id)
         ).all()

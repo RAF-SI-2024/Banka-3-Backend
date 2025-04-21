@@ -25,7 +25,7 @@ import java.util.List;
 @AllArgsConstructor
 public abstract class Account {
     @Id
-    @Column(updatable = false)
+    @Column(name="account_number", updatable = false)
     private String accountNumber;
 
     private String name;

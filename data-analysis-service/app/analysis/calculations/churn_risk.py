@@ -37,7 +37,7 @@ class ChurnPrediction:
             func.count(func.distinct(Account.account_number)).label('total_accounts')
         ).outerjoin(Payment, Account.account_number == Payment.sender_account_number) \
             .outerjoin(Card, Account.account_number == Card.account_number) \
-            .outerjoin(Loan, Account.account_number == Loan.account_account_number) \
+            .outerjoin(Loan, Account.account_number == Loan.account_number) \
             .outerjoin(Installment, Loan.id == Installment.loan_id) \
             .where(Account.client_id == client_id) \
             .group_by(Account.balance, Account.creation_date)
