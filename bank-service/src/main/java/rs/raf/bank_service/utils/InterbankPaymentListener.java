@@ -1,4 +1,4 @@
-package rs.raf.bank_service.service;
+package rs.raf.bank_service.utils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
