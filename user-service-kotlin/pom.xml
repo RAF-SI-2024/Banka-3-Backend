@@ -247,6 +247,40 @@
 		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
 		<plugins>
 			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.11</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludes>
+						<exclude>**pack/userservicekotlin/domain/**</exclude>
+						<exclude>**pack/userservicekotlin/repository/**</exclude>
+						<exclude>**pack/userservicekotlin/external/**</exclude>
+						<exclude>**pack/userservicekotlin/configuration/**</exclude>
+						<exclude>**pack/userservicekotlin/bootstrap/**</exclude>
+						<exclude>**pack/userservicekotlin/arrow/**</exclude>
+						<exclude>**pack/userservicekotlin/controller/**</exclude>
+						<exclude>**pack/userservicekotlin/specification/**</exclude>
+						<exclude>**pack/userservicekotlin/swagger/**</exclude>
+						<exclude>**pack/userservicekotlin/utils/**</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>

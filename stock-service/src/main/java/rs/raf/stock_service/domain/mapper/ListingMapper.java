@@ -36,7 +36,8 @@ public class ListingMapper {
                 dailyInfo != null ? dailyInfo.getVolume() : null,
                 listing.getPrice().multiply(new java.math.BigDecimal("1.1")),
                 listing.getExchange() != null ? listing.getExchange().getMic() : null,
-                listing.getAsk()
+                listing.getAsk(),
+                listing.getType().equals(ListingType.FUTURES) ? ((FuturesContract)listing).getSettlementDate() : null
         );
     }
 
@@ -73,7 +74,8 @@ public class ListingMapper {
                 priceHistoryDtos,
                 contractSize,
                 contractUnit,
-                null
+                null,
+                listing.getType().equals(ListingType.FUTURES) ? ((FuturesContract)listing).getSettlementDate() : null
         );
     }
 }
