@@ -172,13 +172,6 @@
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
         </dependency>
-
-        <!-- Kafka Dependencies -->
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-            <version>2.9.0</version>
-        </dependency>
         
         <!-- JSON Processing -->
         <dependency>

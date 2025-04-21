@@ -10,7 +10,6 @@ pandas>=1.5.0
 scikit-learn>=1.0.0
 matplotlib>=3.5.0
 seaborn>=0.12.0
-kafka-python>=2.0.2
 python-jose>=3.3.0
 passlib>=1.7.4
 python-multipart>=0.0.5
