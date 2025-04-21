@@ -224,36 +224,54 @@ def create_product_usage_visualization(result):
         stats = result.get('usage_stats', {})
         combinations = result.get('product_combinations', {})
         
+        print("Creating product usage visualization")
+        print("Combinations data:", combinations)
+        
         # Create account engagement combinations chart
-        account_metrics = {
-            'Accounts with Large Transactions': stats.get('accounts_with_large_transactions', 0),
-            'Active Accounts': stats.get('active_accounts', 0),
-            'Foreign Currency Accounts': stats.get('foreign_currency_accounts', 0),
-            'Accounts with Regular Deposits': stats.get('accounts_with_regular_deposits', 0),
-            'Accounts with Multiple Products': stats.get('accounts_with_multiple_products', 0)
-        }
-        
-        combinations_fig = go.Figure(data=[go.Pie(
-            labels=list(account_metrics.keys()),
-            values=list(account_metrics.values()),
-            hole=0.3,
-            textinfo='label+percent',
-            insidetextorientation='radial'
-        )])
-        
-        combinations_fig.update_layout(
-            title='Account Engagement Distribution',
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
+        if not combinations:
+            print("Warning: No combinations data available")
+            combinations_html = "<p>No account activity data available</p>"
+        else:
+            combinations_fig = go.Figure(data=[go.Pie(
+                labels=[
+                    'Multiple Accounts & Large Trans',
+                    'Foreign & Large Trans',
+                    'Only Multiple Accounts',
+                    'Single Account Only'
+                ],
+                values=[
+                    combinations.get('multiple_accounts_and_large_trans', 0),
+                    combinations.get('foreign_and_large_trans', 0),
+                    combinations.get('only_multiple_accounts', 0),
+                    combinations.get('only_single_account', 0)
+                ],
+                hole=0.3,
+                textinfo='label+percent',
+                insidetextorientation='radial',
+                marker=dict(colors=['rgb(82, 106, 255)', 'rgb(55, 83, 109)', 
+                                  'rgb(26, 118, 255)', 'rgb(166, 189, 255)'])
+            )])
+            
+            combinations_fig.update_layout(
+                title={
+                    'text': 'Account Activity Patterns',
+                    'y': 0.95,
+                    'font': {'size': 24}
+                },
+                showlegend=True,
+                height=450,
+                margin=dict(t=80, b=20, l=20, r=20),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.15,
+                    xanchor="left",
+                    x=0.5,
+                    bgcolor='rgba(255, 255, 255, 0.8)'
+                )
             )
-        )
-        
-        combinations_html = combinations_fig.to_html(full_html=False)
+            
+            combinations_html = combinations_fig.to_html(full_html=False, config={'displayModeBar': False})
         
         # Create bar chart for usage stats
         stats_fig = go.Figure()

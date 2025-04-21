@@ -671,32 +671,42 @@ class ProductUsageAnalytics:
 
     def get_product_combinations(self):
         """Analyze which products are commonly used together"""
-        # Get clients with their products
+        # Get clients with their account activity patterns
         query = select(
             Account.client_id,
-            func.count(func.distinct(Card.id)).label('has_card'),
+            func.count(func.distinct(Account.account_number)).label('has_accounts'),
             func.count(func.distinct(case(
-                (Payment.amount > 1000, Payment.id),
-                else_=None
+                (Account.type == AccountType.FOREIGN, Account.account_number)
+            ))).label('has_foreign_account'),
+            func.count(func.distinct(case(
+                (and_(Payment.amount > 1000, Payment.status == PaymentStatus.COMPLETED), Payment.id)
             ))).label('has_large_transactions')
-        ).outerjoin(Card, Account.account_number == Card.account_number) \
-            .outerjoin(Payment, Account.account_number == Payment.sender_account_number) \
+        ).outerjoin(Payment, Account.account_number == Payment.sender_account_number) \
             .group_by(Account.client_id)
 
         result = self.db.execute(query).all()
 
         # Convert to DataFrame for analysis
-        df = pd.DataFrame(result, columns=['client_id', 'has_card', 'has_large_transactions'])
-        df['has_card'] = df['has_card'] > 0
+        df = pd.DataFrame(result, columns=['client_id', 'has_accounts', 'has_foreign_account', 'has_large_transactions'])
+        df['has_multiple_accounts'] = df['has_accounts'] > 1
+        df['has_foreign_account'] = df['has_foreign_account'] > 0
         df['has_large_transactions'] = df['has_large_transactions'] > 0
 
-        # Calculate product combinations
+        # Calculate account combinations
         combinations = {
-            'card_and_large_transactions': int(df[(df['has_card']) & (df['has_large_transactions'])].shape[0]),
-            'only_card': int(df[(df['has_card']) & (~df['has_large_transactions'])].shape[0]),
-            'only_large_transactions': int(df[(~df['has_card']) & (df['has_large_transactions'])].shape[0]),
-            'no_products': int(df[(~df['has_card']) & (~df['has_large_transactions'])].shape[0])
+            'multiple_accounts_and_large_trans': int(df[(df['has_multiple_accounts']) & (df['has_large_transactions'])].shape[0]),
+            'foreign_and_large_trans': int(df[(df['has_foreign_account']) & (df['has_large_transactions'])].shape[0]),
+            'only_multiple_accounts': int(df[(df['has_multiple_accounts']) & (~df['has_large_transactions'])].shape[0]),
+            'only_single_account': int(df[(~df['has_multiple_accounts']) & (~df['has_large_transactions'])].shape[0])
         }
+
+        # Add logging
+        print("Account activity patterns:")
+        print(f"Total clients analyzed: {len(df)}")
+        print(f"Clients with multiple accounts: {df['has_multiple_accounts'].sum()}")
+        print(f"Clients with foreign accounts: {df['has_foreign_account'].sum()}")
+        print(f"Clients with large transactions: {df['has_large_transactions'].sum()}")
+        print("Combinations breakdown:", combinations)
 
         return combinations
 
