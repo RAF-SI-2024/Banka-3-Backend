@@ -80,7 +80,7 @@ def create_html_response(data, visualizations):
     <html>
     <head>
         <title>Analytics Dashboard</title>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
         <style>
             body {{ 
                 font-family: Arial, sans-serif; 

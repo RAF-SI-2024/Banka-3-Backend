@@ -411,19 +411,6 @@ async def get_analytics_menu():
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">Loan Recommendations</h5>
-                            <p class="card-text">Get personalized loan recommendations for a specific client.</p>
-                            <form onsubmit="window.location.href='/analytics/loan-recommendation/' + document.getElementById('loan-rec-id').value; return false;" class="form-group">
-                                <input type="number" id="loan-rec-id" class="form-control" placeholder="Enter Client ID" required>
-                                <button type="submit" class="btn btn-primary mt-2">Get Recommendations</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
                             <h5 class="card-title">Product Usage</h5>
                             <p class="card-text">View analysis of product engagement and usage patterns across all clients.</p>
                             <a href="/analytics/product-usage" class="btn btn-primary">View Usage</a>
@@ -431,44 +418,6 @@ async def get_analytics_menu():
                     </div>
                 </div>
                 
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Client Value</h5>
-                            <p class="card-text">Analyze the lifetime value of a specific client.</p>
-                            <form onsubmit="window.location.href='/analytics/client-value/' + document.getElementById('client-value-id').value; return false;" class="form-group">
-                                <input type="number" id="client-value-id" class="form-control" placeholder="Enter Client ID" required>
-                                <button type="submit" class="btn btn-primary mt-2">View Value</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Churn Risk</h5>
-                            <p class="card-text">Assess the churn risk for a specific client.</p>
-                            <form onsubmit="window.location.href='/analytics/churn-risk/' + document.getElementById('churn-risk-id').value; return false;" class="form-group">
-                                <input type="number" id="churn-risk-id" class="form-control" placeholder="Enter Client ID" required>
-                                <button type="submit" class="btn btn-primary mt-2">View Risk</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Credit Score</h5>
-                            <p class="card-text">View the internal credit score for a specific client.</p>
-                            <form onsubmit="window.location.href='/analytics/credit-score/' + document.getElementById('credit-score-id').value; return false;" class="form-group">
-                                <input type="number" id="credit-score-id" class="form-control" placeholder="Enter Client ID" required>
-                                <button type="submit" class="btn btn-primary mt-2">View Score</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </body>

@@ -33,8 +33,14 @@ public class BootstrapData implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        initializeCurrencies();
+        initializeAccountsAndTransactions();
+        initializeExchangeRates();
+        initializeBankAccounts();
+    }
+
+    private void initializeCurrencies() {
         if (currencyRepository.count() == 0) {
-            // Kreiramo valute
             Currency currencyEUR = Currency.builder().code("EUR").name("Euro").symbol("€").countries("EU").description("Euro currency").active(true).build();
             Currency currencyRSD = Currency.builder().code("RSD").name("Dinar").symbol("RSD").countries("Serbia").description("Dinar currency").active(true).build();
             Currency currencyCHF = Currency.builder().code("CHF").name("Swiss Franc").symbol("CHF").countries("Switzerland").description("Swiss franc currency").active(true).build();
@@ -46,18 +52,10 @@ public class BootstrapData implements CommandLineRunner {
 
             currencyRepository.saveAll(java.util.List.of(currencyEUR, currencyRSD, currencyCHF, currencyUSD, currencyJPY, currencyGBP, currencyCAD, currencyAUD));
         }
+    }
 
-        Currency currencyEUR = currencyRepository.findByCode("EUR").get();
-        Currency currencyRSD = currencyRepository.findByCode("RSD").get();
-        Currency currencyCHF = currencyRepository.findByCode("CHF").get();
-        Currency currencyUSD = currencyRepository.findByCode("USD").get();
-        Currency currencyJPY = currencyRepository.findByCode("JPY").get();
-        Currency currencyGBP = currencyRepository.findByCode("GBP").get();
-        Currency currencyCAD = currencyRepository.findByCode("CAD").get();
-        Currency currencyAUD = currencyRepository.findByCode("AUD").get();
-
+    private void initializeAccountsAndTransactions() {
         if (accountRepository.count() == 0) {
-            // Get existing account numbers to avoid conflicts
             List<String> existingAccountNumbers = accountRepository.findAll()
                     .stream()
                     .map(Account::getAccountNumber)
@@ -65,13 +63,8 @@ public class BootstrapData implements CommandLineRunner {
 
             List<Card> newCards = new ArrayList<>();
             List<Payment> newPayments = new ArrayList<>();
-
-            // Client profiles with natural variations:
-            // - Mix of account balances (very low to very high)
-            // - Various transaction patterns (frequency, amounts, success rates)
-            // - Different card usage behaviors (no cards, debit only, credit, multiple cards)
-            // - Mix of activity levels and transaction types
-            // Let natural segments emerge from data
+            List<Loan> newLoans = new ArrayList<>();
+            List<Installment> newInstallments = new ArrayList<>();
 
             for (int i = 1; i <= 20; i++) {
                 // Generate unique account number
@@ -101,16 +94,14 @@ public class BootstrapData implements CommandLineRunner {
                 // Determine currency based on client number
                 int currencyType = (int)(i % 3);
                 Currency accountCurrency = switch (currencyType) {
-                    case 0 -> currencyUSD;
-                    case 1 -> currencyEUR;
-                    case 2 -> currencyRSD;
-                    default -> currencyRSD;
+                    case 0 -> currencyRepository.findByCode("USD").get();
+                    case 1 -> currencyRepository.findByCode("EUR").get();
+                    case 2 -> currencyRepository.findByCode("RSD").get();
+                    default -> currencyRepository.findByCode("RSD").get();
                 };
 
                 // Create naturally diverse base characteristics
                 double profileRandomizer = Math.random(); // Used for creating natural groupings
-                double activityLevel = Math.random(); // General activity level
-                double riskLevel = Math.random(); // Risk level affects decline rates and behaviors
 
                 // Set base values with high variability
                 BigDecimal baseBalance;
@@ -202,7 +193,7 @@ public class BootstrapData implements CommandLineRunner {
                             .createdByEmployeeId(3L)
                             .creationDate(LocalDate.now().minusMonths(3))
                             .expirationDate(LocalDate.now().plusYears(2))
-                            .currency(currencyEUR)
+                            .currency(currencyRepository.findByCode("EUR").get())
                             .status(AccountStatus.ACTIVE)
                             .balance(balance.multiply(BigDecimal.valueOf(0.4))) // 40% of main account
                             .availableBalance(balance.multiply(BigDecimal.valueOf(0.4)))
@@ -305,9 +296,6 @@ public class BootstrapData implements CommandLineRunner {
             }
 
             // Create loans with diverse characteristics
-            List<Loan> newLoans = new ArrayList<>();
-            List<Installment> newInstallments = new ArrayList<>();
-
             for (Account account : allAccounts) {
                 // Determine loan eligibility and patterns
                 double creditScore = Math.random(); // Random credit score for variety
@@ -442,7 +430,6 @@ public class BootstrapData implements CommandLineRunner {
                             Installment installment = Installment.builder()
                                     .loan(loan)
                                     .amount(monthlyPayment)
-//                                    .remainingDebt(remainingDebt)
                                     .actualDueDate(dueDate)
                                     .installmentStatus(installmentStatus)
                                     .expectedDueDate(actualPaymentDate)
@@ -481,12 +468,19 @@ public class BootstrapData implements CommandLineRunner {
             // Save all installments
             installmentRepository.saveAll(newInstallments);
         }
+    }
 
-        // Kreiranje kursne liste
-//        exchangeRateService.updateExchangeRates();
-
+    private void initializeExchangeRates() {
         if (exchangeRateRepository.count() == 0) {
-            // Test kursna lista da ne trosimo API pozive
+            Currency currencyRSD = currencyRepository.findByCode("RSD").get();
+            Currency currencyEUR = currencyRepository.findByCode("EUR").get();
+            Currency currencyUSD = currencyRepository.findByCode("USD").get();
+            Currency currencyCHF = currencyRepository.findByCode("CHF").get();
+            Currency currencyJPY = currencyRepository.findByCode("JPY").get();
+            Currency currencyGBP = currencyRepository.findByCode("GBP").get();
+            Currency currencyCAD = currencyRepository.findByCode("CAD").get();
+            Currency currencyAUD = currencyRepository.findByCode("AUD").get();
+
             ExchangeRate rsdToEur = ExchangeRate.builder()
                     .fromCurrency(currencyRSD)
                     .toCurrency(currencyEUR)
@@ -553,8 +547,18 @@ public class BootstrapData implements CommandLineRunner {
 
             exchangeRateRepository.saveAll(exchangeRates);
             exchangeRateRepository.saveAll(exchangeRates2);
-            // Test kursna lista da ne trosimo API pozive
         }
+    }
+
+    private void initializeBankAccounts() {
+        Currency currencyRSD = currencyRepository.findByCode("RSD").get();
+        Currency currencyEUR = currencyRepository.findByCode("EUR").get();
+        Currency currencyCHF = currencyRepository.findByCode("CHF").get();
+        Currency currencyUSD = currencyRepository.findByCode("USD").get();
+        Currency currencyJPY = currencyRepository.findByCode("JPY").get();
+        Currency currencyGBP = currencyRepository.findByCode("GBP").get();
+        Currency currencyCAD = currencyRepository.findByCode("CAD").get();
+        Currency currencyAUD = currencyRepository.findByCode("AUD").get();
 
         CompanyAccount bankAccountRSD = CompanyAccount.builder()
                 .name("Bank account for RSD")
@@ -676,7 +680,6 @@ public class BootstrapData implements CommandLineRunner {
                 .accountOwnerType(AccountOwnerType.COMPANY)
                 .build();
 
-
         CompanyAccount bankAccountCAD = CompanyAccount.builder()
                 .name("Bank account for CAD")
                 .accountNumber("333000188875885822")
@@ -763,7 +766,6 @@ public class BootstrapData implements CommandLineRunner {
                 bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState,
                 foreignAccount
         ));
-
     }
 
     private BigDecimal calculateMonthlyPayment(BigDecimal loanAmount, BigDecimal monthlyRate, int termMonths) {

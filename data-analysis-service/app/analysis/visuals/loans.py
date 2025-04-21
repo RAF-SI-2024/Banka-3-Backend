@@ -171,7 +171,7 @@ def create_loan_recommendation_visualization(recommendation_data):
         <head>
             <title>Loan Recommendation Dashboard</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
             <style>
                 .dashboard-container {{
                     padding: 20px;
