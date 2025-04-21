@@ -1,6 +1,5 @@
 package rs.raf.bank_service.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -202,6 +201,18 @@ public class PaymentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
+    }
+
+    @PostMapping("/interbank/confirm")
+    public ResponseEntity<String> confirmInterbankFromBank2(@RequestBody Bank2PaymentConfirmationDto dto) {
+        paymentService.finalizeInterbankPayment(dto);
+        return ResponseEntity.ok("Payment finalized successfully.");
+    }
+
+    @PostMapping("/interbank/cancel")
+    public ResponseEntity<String> cancelInterbankFromBank2(@RequestBody Bank2PaymentCancelDto dto) {
+        paymentService.rollbackInterbankPayment(dto.getPaymentId(), dto.getReason());
+        return ResponseEntity.ok("Payment rollback executed.");
     }
 
 

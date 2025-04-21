@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import rs.raf.bank_service.domain.entity.Payment;
+import rs.raf.bank_service.domain.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -13,5 +14,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     @Query("SELECT SUM(p.exchangeProfit) FROM payments p WHERE p.exchangeProfit IS NOT NULL AND p.status = 'COMPLETED'")
     BigDecimal getBankProfitFromExchange();
+
+    Optional<Payment> findFirstByAccountNumberReceiverAndReferenceNumberAndAmountAndStatus(
+            String accountNumber, String referenceNumber, BigDecimal amount, PaymentStatus status);
 
 }

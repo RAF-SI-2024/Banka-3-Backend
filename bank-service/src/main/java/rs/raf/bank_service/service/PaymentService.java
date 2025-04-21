@@ -4,12 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.client.Banka2Client;
 import rs.raf.bank_service.client.UserClient;
+import rs.raf.bank_service.configuration.RabbitMQConfig;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.PaymentStatus;
@@ -27,6 +32,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class PaymentService {
@@ -39,6 +45,11 @@ public class PaymentService {
     private final ExchangeRateService exchangeRateService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
+    private final Banka2Client bank2Client;
+    private static final String OWN_BANK_CODE = "333";
+    private final RabbitTemplate rabbitTemplate;
+    private InterbankPaymentSender interbankPaymentSender;
+
 
     // Dohvatanje svih transakcija za određenog klijenta sa filtriranjem
     public Page<PaymentOverviewDto> getPayments(
@@ -185,14 +196,26 @@ public class PaymentService {
             throw new RejectNonPendingRequestException();
 
         Account sender = payment.getSenderAccount();
-        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+        String receiverAccountNumber = payment.getAccountNumberReceiver();
+        String receiverBankCode = receiverAccountNumber.substring(0, 3);
 
+        // Ako je interbank saljemo u delay queue, ne izvrsavamo odmah
+        if (!receiverBankCode.equals(OWN_BANK_CODE)) {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.INTERBANK_DELAY_QUEUE,
+                    paymentId
+            );
+            return paymentMapper.toDetailsDto(payment); // Ostaje PENDING_CONFIRMATION
+        }
+
+        // Ako je interna transakcija onda izvrsi odmah
+        Account receiver = getReceiverAccount(receiverAccountNumber);
         processPaymentWithCurrencyHandling(payment, sender, receiver);
 
         payment.setStatus(PaymentStatus.COMPLETED);
-
         return paymentMapper.toDetailsDto(paymentRepository.save(payment));
     }
+
 
     private Payment getPaymentById(Long paymentId) {
         return paymentRepository.findById(paymentId)
@@ -338,4 +361,114 @@ public class PaymentService {
         return accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L)
                 .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + currency.getCode()));
     }
+
+    @Transactional
+    public PaymentDto createInterbankPayment(CreateInterbankPaymentDto dto, Long clientId) {
+        // 1. Provera da li postoji račun u banci 2
+        Bank2AccountDetailsDto receiverBankAccount = validateBank2Account(dto.getReceiverAccountNumber());
+
+        // 2. Dobavljanje sender računa
+        Account sender = accountRepository.findByAccountNumberAndClientId(dto.getSenderAccountNumber(), clientId)
+                .stream().findFirst()
+                .orElseThrow(() -> new SenderAccountNotFoundException(dto.getSenderAccountNumber()));
+
+        // 3. Provera da li ima dovoljno raspoloživih sredstava
+        if (sender.getAvailableBalance().compareTo(dto.getAmount()) < 0) {
+            throw new InsufficientFundsException(sender.getAvailableBalance(), dto.getAmount());
+        }
+
+        // 4. Rezervacija sredstava
+        sender.setAvailableBalance(sender.getAvailableBalance().subtract(dto.getAmount()));
+        accountRepository.save(sender);
+
+        // 5. Kreiranje Payment entiteta
+        Payment payment = new Payment();
+        payment.setSenderAccount(sender);
+        payment.setClientId(clientId);
+        payment.setAmount(dto.getAmount());
+        payment.setPaymentCode(dto.getPaymentCode());
+        payment.setPurposeOfPayment(dto.getPurposeOfPayment());
+        payment.setReferenceNumber(dto.getReferenceNumber());
+        payment.setAccountNumberReceiver(dto.getReceiverAccountNumber());
+        payment.setStatus(PaymentStatus.PENDING_CONFIRMATION);
+        payment.setDate(LocalDateTime.now());
+
+        // ReceiverClientId nije poznat za banku 2 → može null
+        payment.setReceiverClientId(null);
+
+        payment = paymentRepository.save(payment);
+
+        // 6. Kreiranje verifikacionog zahteva kod korisničkog servisa
+        PaymentVerificationDetailsDto verificationDetails = PaymentVerificationDetailsDto.builder()
+                .fromAccountNumber(dto.getSenderAccountNumber())
+                .toAccountNumber(dto.getReceiverAccountNumber())
+                .amount(dto.getAmount())
+                .build();
+
+        CreateVerificationRequestDto verificationRequest = null;
+        try {
+            verificationRequest = new CreateVerificationRequestDto(
+                    clientId,
+                    payment.getId(),
+                    VerificationType.PAYMENT,
+                    objectMapper.writeValueAsString(verificationDetails)
+            );
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        userClient.createVerificationRequest(verificationRequest);
+
+        return paymentMapper.toPaymentDto(payment, "Banka 2");
+    }
+
+    public Bank2AccountDetailsDto validateBank2Account(String receiverAccountNumber) {
+        String bankCode = receiverAccountNumber.substring(0, 3);
+        if (!bankCode.equals(OWN_BANK_CODE)) {
+            try {
+                return bank2Client.getAccountDetailsByNumber(receiverAccountNumber);
+            } catch (Exception e) {
+                throw new ReceiverAccountNotFoundException("Racun ne postoji u banci 2: " + receiverAccountNumber);
+            }
+        }
+        return null; // interni
+    }
+
+    @Transactional
+    public void finalizeInterbankPayment(Bank2PaymentConfirmationDto dto) {
+        Payment payment = paymentRepository.findFirstByAccountNumberReceiverAndReferenceNumberAndAmountAndStatus(
+                dto.getToAccountNumber(), dto.getReferenceNumber(), dto.getAmount(), PaymentStatus.PENDING_CONFIRMATION
+        ).orElseThrow(() -> new PaymentNotFoundException("Matching interbank payment not found."));
+
+        Account sender = payment.getSenderAccount();
+
+        // Finalno skidanje sa računa (skidamo sa balance jer su sredstva već rezervisana)
+        sender.setBalance(sender.getBalance().subtract(payment.getAmount()));
+        sender.setAvailableBalance(sender.getBalance());
+        accountRepository.save(sender);
+
+        payment.setStatus(PaymentStatus.COMPLETED);
+        paymentRepository.save(payment);
+    }
+
+    @Transactional
+    public void rollbackInterbankPayment(Long paymentId, String reason) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!payment.getStatus().equals(PaymentStatus.PENDING_CONFIRMATION)) {
+            log.warn("[Interbank-CANCEL] Payment {} is not in PENDING_CONFIRMATION state. Skipping rollback.", paymentId);
+            return;
+        }
+
+        Account sender = payment.getSenderAccount();
+        sender.setAvailableBalance(sender.getAvailableBalance().add(payment.getAmount()));
+        accountRepository.save(sender);
+
+        payment.setStatus(PaymentStatus.CANCELED);
+        paymentRepository.save(payment);
+
+        log.info("[Interbank-CANCEL] Payment {} rolled back. Reason: {}", paymentId, reason);
+    }
+
 }
