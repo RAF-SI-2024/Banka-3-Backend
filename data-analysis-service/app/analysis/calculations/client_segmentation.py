@@ -158,7 +158,7 @@ def generate_segment_insights(segments_data):
             </div>
             <p><strong>Recommendations:</strong></p>
             <ul>
-                {segments_data.generate_segment_recommendations(char)}
+                {generate_segment_recommendations(char)}
             </ul>
         </div>
         """

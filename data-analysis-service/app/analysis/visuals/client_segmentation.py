@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
+
 def create_client_segments_visualization(segments_data):
     """Create visualization for client segmentation analysis"""
     if not segments_data:

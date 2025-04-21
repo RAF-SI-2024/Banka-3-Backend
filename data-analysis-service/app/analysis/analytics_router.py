@@ -15,98 +15,9 @@ from .visuals.client_value import create_client_value_visualization
 from .visuals.credit_score import create_credit_score_visualization
 from .visuals.loans import create_loan_recommendation_visualization
 from .visuals.product_usage import create_product_usage_visualization
-from .visuals.visualizations import create_client_insights_visualization
+from .visuals.visualizations import create_client_insights_visualization, create_html_response
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
-
-
-def create_html_response(data, visualizations):
-    """Create an HTML response with data and visualizations"""
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Analytics Dashboard</title>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        <style>
-            body {{ 
-                font-family: Arial, sans-serif; 
-                margin: 20px; 
-                background-color: #f5f5f5;
-            }}
-            .container {{ 
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-                margin-bottom: 20px;
-                max-width: 1400px;
-                margin-left: auto;
-                margin-right: auto;
-            }}
-            .card {{ 
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                display: flex;
-                flex-direction: column;
-            }}
-            .card h2 {{ 
-                margin-top: 0;
-                margin-bottom: 15px;
-                color: #333;
-                border-bottom: 2px solid #eee;
-                padding-bottom: 10px;
-                font-size: 20px;
-            }}
-            .data-section {{ 
-                margin-top: 20px;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                max-width: 1400px;
-                margin-left: auto;
-                margin-right: auto;
-            }}
-            pre {{ 
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 5px;
-                overflow-x: auto;
-            }}
-            .plotly-graph-div {{ 
-                width: 100% !important;
-                height: 350px !important;
-                margin: 0 auto;
-            }}
-            h1 {{
-                max-width: 1400px;
-                margin-left: auto;
-                margin-right: auto;
-                margin-bottom: 20px;
-                color: #333;
-            }}
-            @media (max-width: 1024px) {{
-                .container {{
-                    grid-template-columns: 1fr;
-                }}
-            }}
-        </style>
-    </head>
-    <body>
-        <h1>Analytics Dashboard</h1>
-        <div class="container">
-            {visualizations}
-        </div>
-        <div class="data-section">
-            <h2>Raw Data</h2>
-            <pre>{data}</pre>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
 
 
 @router.get("/client-segments", response_class=HTMLResponse)

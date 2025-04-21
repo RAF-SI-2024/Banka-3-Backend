@@ -269,5 +269,6 @@ def create_loan_recommendation_visualization(recommendation_data):
     return {
         'dashboard_html': dashboard_html,
         'funnel': funnel.to_html(full_html=False),
-        'gauge': gauge.to_html(full_html=False)
+        'gauge': gauge.to_html(full_html=False),
+        'recommendations': recommendations_table
     }
