@@ -1,24 +1,21 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+
+from .calculations.churn_risk import ChurnPrediction
+from .calculations.client_segmentation import ClientSegmentation, generate_segment_insights
+from .calculations.client_value import ClientValueAnalysis
+from .calculations.credit_score import CreditScoring
+from .calculations.loans import LoanRecommendation
+from .calculations.product_usage import ProductUsageAnalytics
 from .database import get_db
-from .analytics import (
-    ClientSegmentation,
-    LoanRecommendation,
-    ProductUsageAnalytics,
-    ClientValueAnalysis,
-    ChurnPrediction,
-    CreditScoring
-)
-from .visualizations import (
-    create_credit_score_visualization,
-    create_client_value_visualization,
-    create_churn_risk_visualization,
-    create_product_usage_visualization,
-    create_client_segments_visualization,
-    create_loan_recommendation_visualization,
-    create_client_insights_visualization
-)
+from .visuals.churn_risk import create_churn_risk_visualization
+from .visuals.client_segmentation import create_client_segments_visualization
+from .visuals.client_value import create_client_value_visualization
+from .visuals.credit_score import create_credit_score_visualization
+from .visuals.loans import create_loan_recommendation_visualization
+from .visuals.product_usage import create_product_usage_visualization
+from .visuals.visualizations import create_client_insights_visualization
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -112,7 +109,6 @@ def create_html_response(data, visualizations):
     return HTMLResponse(content=html_content)
 
 
-# DONE
 @router.get("/client-segments", response_class=HTMLResponse)
 def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
     """Get client segmentation analysis with visualizations"""
@@ -192,69 +188,6 @@ def get_client_segments(n_clusters: int = 5, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def generate_segment_insights(segments_data):
-    """Generate insights for each segment based on their characteristics"""
-    characteristics = segments_data['segment_characteristics']
-    insights = []
-    
-    for segment_id, char in characteristics.items():
-        segment_insight = f"""
-        <div class="segment-description">
-            <h3>Segment {segment_id}</h3>
-            <p>This segment represents {char['size']} clients with the following characteristics:</p>
-            <div class="metrics">
-                <span class="metric">Balance Level: {char['balance_level']}</span>
-                <span class="metric">Activity Level: {char['activity_level']}</span>
-                <span class="metric">Card Usage: {char['card_usage']}</span>
-                <span class="metric">Credit Card Usage: {char['credit_card_usage']}</span>
-                <span class="metric">International Activity: {char['international_activity']}</span>
-            </div>
-            <p><strong>Recommendations:</strong></p>
-            <ul>
-                {generate_segment_recommendations(char)}
-            </ul>
-        </div>
-        """
-        insights.append(segment_insight)
-    
-    return "\n".join(insights)
-
-
-def generate_segment_recommendations(characteristics):
-    """Generate specific recommendations based on segment characteristics"""
-    recommendations = []
-    
-    # Balance-based recommendations
-    if characteristics['balance_level'] in ['High', 'Very High']:
-        recommendations.append("Offer premium investment products and wealth management services")
-    elif characteristics['balance_level'] in ['Low', 'Very Low']:
-        recommendations.append("Consider financial education programs and basic banking solutions")
-    
-    # Activity-based recommendations
-    if characteristics['activity_level'] == 'High':
-        recommendations.append("Introduce transaction fee packages and cashback rewards")
-    elif characteristics['activity_level'] == 'Low':
-        recommendations.append("Promote mobile banking features to increase engagement")
-    
-    # Card usage recommendations
-    if characteristics['card_usage'] == 'Multiple':
-        recommendations.append("Offer premium credit cards with rewards programs")
-    elif characteristics['card_usage'] == 'None':
-        recommendations.append("Promote card-based services and digital payment solutions")
-    
-    # International activity recommendations
-    if characteristics['international_activity'] == 'Yes':
-        recommendations.append("Offer foreign currency accounts and international transfer services")
-    
-    # Credit card specific recommendations
-    if characteristics['credit_card_usage'] == 'High':
-        recommendations.append("Consider card-based insurance products and travel benefits")
-    
-    # Format recommendations as list items
-    return "\n".join([f"<li>{rec}</li>" for rec in recommendations])
-
-
-# DONE
 @router.get("/loan-recommendation/{client_id}")
 async def get_loan_recommendation(client_id: int, db: Session = Depends(get_db)):
     """Get loan recommendations for a client with visualizations"""
@@ -279,7 +212,6 @@ async def get_loan_recommendation(client_id: int, db: Session = Depends(get_db))
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# DONE just refactor first box
 @router.get("/product-usage", response_class=HTMLResponse)
 def get_product_usage(db: Session = Depends(get_db)):
     """Get product engagement analysis with visualization"""
@@ -334,7 +266,6 @@ def get_product_usage(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# DONE
 @router.get("/client-value/{client_id}", response_class=HTMLResponse)
 def get_client_value(client_id: int, db: Session = Depends(get_db)):
     """Get client lifetime value analysis with visualization"""
@@ -393,7 +324,6 @@ def get_churn_risk(client_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# DONE
 @router.get("/credit-score/{client_id}", response_class=HTMLResponse)
 def get_credit_score(client_id: int, db: Session = Depends(get_db)):
     """Get internal credit score for a client with visualization"""
@@ -423,7 +353,6 @@ def get_credit_score(client_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# DONE WHEN EVERYTHING
 @router.get("/client-insights/{client_id}", response_class=HTMLResponse)
 async def get_client_insights(client_id: int, db: Session = Depends(get_db)):
     """Get comprehensive insights for a client with visualization"""
