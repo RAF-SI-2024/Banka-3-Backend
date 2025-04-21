@@ -4,11 +4,15 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Use the same database configuration as the Java application
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:lozinka@localhost:5433/bank_db")
+# Get DATABASE_URL from environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Validate required environment variable
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable must be set")
 
 # Create SQLAlchemy engine with echo=True for debugging
 engine = create_engine(DATABASE_URL, echo=True)
@@ -19,7 +23,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create Base class
 Base = declarative_base()
 
-# Dependency
+
 def get_db():
     """Get database session"""
     db = SessionLocal()

@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
 from app.analysis.models import Account, Payment, Card, Loan
-
 from .calculations.churn_risk import ChurnPrediction
 from .calculations.client_segmentation import ClientSegmentation, generate_segment_insights
 from .calculations.client_value import ClientValueAnalysis
