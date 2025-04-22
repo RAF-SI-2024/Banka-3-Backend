@@ -1,0 +1,23 @@
+postsubmits:
+  - name: post-banka-3-backend-deploy
+    branches:
+      - ^v1\.d+\.\d+.*
+    decorate: true
+    max_concurrency: 1
+    labels:
+      preset-harbor-robot-push: "true"
+      preset-k8s-banka-3: "true"
+    spec:
+      containers:
+        - image: harbor.k8s.elab.rs/base-images/base:java-17-node-18-docker
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              helm upgrade --namespace="banka-3" --create-namespace --atomic --install banka-3 oci://harbor.k8s.elab.rs/banka-3/helm/backend
+
+          securityContext:
+            privileged: true
+          imagePullPolicy: Always
