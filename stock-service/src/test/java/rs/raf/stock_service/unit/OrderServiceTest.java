@@ -9,12 +9,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.mockito.*;
+import org.springframework.http.ResponseEntity;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ActuaryLimitDto;
-import rs.raf.stock_service.domain.dto.CreateOrderDto;
-import rs.raf.stock_service.domain.dto.OrderDto;
-import rs.raf.stock_service.domain.dto.TransactionDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
@@ -23,7 +21,6 @@ import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.*;
-import rs.raf.stock_service.domain.dto.ListingDto;
 import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Order;
@@ -37,6 +34,7 @@ import rs.raf.stock_service.repository.ListingRepository;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.OrderService;
 import rs.raf.stock_service.service.PortfolioService;
+import rs.raf.stock_service.service.TrackedPaymentService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
@@ -86,6 +84,12 @@ public class OrderServiceTest {
     @Mock
     private PortfolioService portfolioService;
 
+    @Mock
+    private PortfolioEntryRepository portfolioEntryRepository;
+
+    @Mock
+    private TrackedPaymentService trackedPaymentService;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -96,6 +100,9 @@ public class OrderServiceTest {
 
     private Listing listing;
     private ActuaryLimitDto actuaryLimitDto;
+    private PortfolioEntry portfolioEntry;
+
+    private AccountDetailsDto accountDetailsDto;
 
     private CreateOrderDto createMarketOrderDto;
     private CreateOrderDto createStopOrderDto;
@@ -128,7 +135,14 @@ public class OrderServiceTest {
 
         actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000), new BigDecimal(100), true);
 
-        pendingOrder = Order.builder().id(3L).status(OrderStatus.PENDING).contractSize(1).quantity(5)
+        portfolioEntry = PortfolioEntry.builder().id(1L).listing(listing).amount(100).publicAmount(0).reservedAmount(0).build();
+
+        accountDetailsDto = new AccountDetailsDto();
+        accountDetailsDto.setAccountNumber("123");
+        accountDetailsDto.setAvailableBalance(new BigDecimal(999999));
+        accountDetailsDto.setCurrencyCode("USD");
+
+        pendingOrder = Order.builder().id(3L).status(OrderStatus.PENDING).direction(OrderDirection.SELL).contractSize(1).quantity(100)
                 .pricePerUnit(new BigDecimal(250)).lastModification(LocalDateTime.now().minusDays(2)).listing(listing).build();
 
         createMarketOrderDto = new CreateOrderDto(1L, OrderType.MARKET, 100, 1, OrderDirection.BUY,
@@ -140,8 +154,6 @@ public class OrderServiceTest {
         stopOrder = OrderMapper.toOrder(createStopOrderDto, userId, "ADMIN", listing);
         stopOrder.setId(1L);
         stopOrder.setStatus(OrderStatus.APPROVED);
-        stopOrder.setTotalPrice(stopOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(stopOrder.getContractSize())));
 
         createLimitOrderDto = new CreateOrderDto(1L, OrderType.LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100));
@@ -149,8 +161,6 @@ public class OrderServiceTest {
         limitOrder = OrderMapper.toOrder(createLimitOrderDto, userId, "ADMIN", listing);
         limitOrder.setId(2L);
         limitOrder.setStatus(OrderStatus.APPROVED);
-        limitOrder.setTotalPrice(limitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(limitOrder.getContractSize())));
 
         createStopLimitOrderDto = new CreateOrderDto(1L, OrderType.STOP_LIMIT, 100, 1, OrderDirection.BUY,
                 "123", false, new BigDecimal(100), new BigDecimal(200));
@@ -158,8 +168,6 @@ public class OrderServiceTest {
         stopLimitOrder = OrderMapper.toOrder(createStopLimitOrderDto, userId, "ADMIN", listing);
         stopLimitOrder.setId(3L);
         stopLimitOrder.setStatus(OrderStatus.APPROVED);
-        stopLimitOrder.setTotalPrice(stopLimitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopLimitOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(stopLimitOrder.getContractSize())));
     }
 
     @Test
@@ -208,11 +216,62 @@ public class OrderServiceTest {
     }
 
     @Test
+    void approveOrder_ShouldThrowException_WhenOrderIsNotPending() {
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(stopOrder));
+
+        CantApproveNonPendingOrder exception = assertThrows(CantApproveNonPendingOrder.class, () -> {
+            orderService.approveOrder(orderId, authHeader);
+        });
+
+        assertEquals("Order with ID "+orderId+" is not in pending status.", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void approveOrder_ShouldThrowPortfolioEntryNotFoundException_WhenPortfolioEntryDoesNotExist() {
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(pendingOrder));
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(portfolioEntryRepository.findByUserIdAndListing(pendingOrder.getUserId(), listing)).thenReturn(Optional.empty());
+
+        PortfolioEntryNotFoundException exception = assertThrows(PortfolioEntryNotFoundException.class, () -> {
+            orderService.approveOrder(orderId, authHeader);
+        });
+
+        assertEquals("Portfolio entry not found", exception.getMessage());
+        verify(orderRepository, times(1)).findById(orderId);
+        verify(portfolioEntryRepository, times(1)).findByUserIdAndListing(pendingOrder.getUserId(), listing);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void approveOrder_ShouldThrowPortfolioAmountNotEnoughException_WhenPortfolioAvailableAmountLessThanOrderAmount() {
+        portfolioEntry.setReservedAmount(1);
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(pendingOrder));
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(portfolioEntryRepository.findByUserIdAndListing(pendingOrder.getUserId(), listing)).thenReturn(Optional.ofNullable(portfolioEntry));
+
+        PortfolioAmountNotEnoughException exception = assertThrows(PortfolioAmountNotEnoughException.class, () -> {
+            orderService.approveOrder(orderId, authHeader);
+        });
+
+        assertEquals("Portfolio available amount of " + portfolioEntry.getAvailableAmount() +
+                " not enough to cover amount of " + pendingOrder.getContractSize() * pendingOrder.getQuantity() + ".", exception.getMessage());
+        verify(orderRepository, times(1)).findById(orderId);
+        verify(portfolioEntryRepository, times(1)).findByUserIdAndListing(pendingOrder.getUserId(), listing);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
     void approveOrder_ShouldApproveOrder_WhenOrderIsPending() {
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(pendingOrder));
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(portfolioEntryRepository.findByUserIdAndListing(pendingOrder.getUserId(), listing)).thenReturn(Optional.ofNullable(portfolioEntry));
 
         orderService.approveOrder(orderId, authHeader);
+
+        verify(portfolioEntryRepository, times(1)).save(portfolioEntry);
+        assertEquals(0, portfolioEntry.getAvailableAmount());
 
         assertEquals(OrderStatus.APPROVED, pendingOrder.getStatus());
         assertEquals(userId, pendingOrder.getApprovedBy());
@@ -220,11 +279,25 @@ public class OrderServiceTest {
     }
 
     @Test
-    void approveOrder_ShouldThrowException_WhenOrderIsNotPending() {
+    void declineOrder_ShouldThrowOrderNotFoundException_WhenOrderDoesNotExist() {
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        OrderNotFoundException exception = assertThrows(OrderNotFoundException.class, () -> {
+            orderService.declineOrder(orderId, authHeader);
+        });
+
+        assertEquals("Order with ID "+orderId+" not found.", exception.getMessage());
+        verify(orderRepository, times(1)).findById(orderId);
+        verify(jwtTokenUtil, never()).getUserIdFromAuthHeader(anyString());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void declineOrder_ShouldThrowException_WhenOrderIsNotPending() {
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(stopOrder));
 
         CantApproveNonPendingOrder exception = assertThrows(CantApproveNonPendingOrder.class, () -> {
-            orderService.approveOrder(orderId, authHeader);
+            orderService.declineOrder(orderId, authHeader);
         });
 
         assertEquals("Order with ID "+orderId+" is not in pending status.", exception.getMessage());
@@ -249,6 +322,7 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
 
         // Act
         orderService.createOrder(createStopOrderDto, authHeader);
@@ -267,6 +341,7 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("SUPERVISOR");
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
 
         // Act
         orderService.createOrder(createStopOrderDto, authHeader);
@@ -285,6 +360,7 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
 
         // Act
         orderService.createOrder(createStopOrderDto, authHeader);
@@ -304,6 +380,7 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("AGENT");
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
         when(userClient.getActuaryByEmployeeId(userId)).thenReturn(actuaryLimitDto);
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
 
         // Act
         orderService.createOrder(createStopOrderDto, authHeader);
@@ -314,66 +391,6 @@ public class OrderServiceTest {
                         order.getUserId().equals(userId) &&
                         order.getListing().getId().equals(listing.getId())
         ));
-    }
-
-    @Test
-    void createOrder_ShouldThrowListingNotFoundException_WhenListingDoesNotExist() {
-        // Arrange
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
-        when(listingRepository.findById(listingId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ListingNotFoundException exception = assertThrows(ListingNotFoundException.class, () -> {
-            orderService.createOrder(createStopOrderDto, authHeader);
-        });
-
-        assertEquals("Listing with ID 1 not found.", exception.getMessage());
-        verify(orderRepository, never()).save(any(Order.class));
-    }
-
-    @Test
-    void createOrder_ShouldThrowAccountNotFoundException() {
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
-        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
-        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
-        doThrow(new AccountNotFoundException(createStopOrderDto.getAccountNumber()))
-                .when(bankClient).updateAvailableBalance(anyString(), any(BigDecimal.class));
-
-        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class, () -> {
-            orderService.createOrder(createStopOrderDto, authHeader);
-        });
-
-        assertEquals("Account " + createStopOrderDto.getAccountNumber() + " not found", exception.getMessage());
-        verify(orderRepository, never()).save(any(Order.class));
-    }
-
-    @Test
-    void createOrder_ShouldDeclineOrder_WhenInsufficientFunds() {
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
-        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
-        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
-        doThrow(new InsufficientFundsException(BigDecimal.valueOf(100)))
-                .when(bankClient).updateAvailableBalance(anyString(), any(BigDecimal.class));
-
-        OrderDto orderDto = orderService.createOrder(createStopOrderDto, authHeader);
-
-        assertEquals(OrderStatus.DECLINED, orderDto.getStatus());
-        verify(orderRepository, times(1)).save(any());
-    }
-
-    @Test
-    void createOrder_ShouldThrowActuaryLimitNotFound() {
-        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
-        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("AGENT");
-        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
-        doThrow(new ActuaryLimitNotFoundException(userId)).when(userClient).getActuaryByEmployeeId(userId);
-
-        ActuaryLimitNotFoundException exception = assertThrows(ActuaryLimitNotFoundException.class, () -> {
-            orderService.createOrder(createStopOrderDto, authHeader);
-        });
-
-        assertEquals("Actuary limit with employeeId: " + userId + " is not found.", exception.getMessage());
-        verify(orderRepository, never()).save(any(Order.class));
     }
 
     @Test
@@ -398,32 +415,139 @@ public class OrderServiceTest {
     }
 
     @Test
-    void createAndExecuteMarketOrder() {
+    void createOrder_ShouldThrowListingNotFoundException_WhenListingDoesNotExist() {
+        // Arrange
+        when(listingRepository.findById(listingId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ListingNotFoundException exception = assertThrows(ListingNotFoundException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Listing with ID 1 not found.", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrder_ShouldThrowAccountNotFoundException_WhenAccountDoesNotExist() {
+        // Arrange
+        when(listingRepository.findById(listingId)).thenReturn(Optional.ofNullable(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(null);
+
+        // Act & Assert
+        AccountNotFoundException exception = assertThrows(AccountNotFoundException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Account " + createStopOrderDto.getAccountNumber() + " not found", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrder_ShouldThrowWrongCurrencyAccountException_WhenAccountIsNotUSD() {
+        // Arrange
+        accountDetailsDto.setCurrencyCode("RSD");
+        when(listingRepository.findById(listingId)).thenReturn(Optional.ofNullable(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+
+        // Act & Assert
+        WrongCurrencyAccountException exception = assertThrows(WrongCurrencyAccountException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Account not in USD.", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createBuyOrder_ShouldThrowInsufficientFundsException_WhenAvailableBalanceLessThanTotalPrice() {
+        accountDetailsDto.setAvailableBalance(new BigDecimal(100));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+
+
+        assertThrows(InsufficientFundsException.class, () -> orderService.createOrder(createStopOrderDto, authHeader));
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createSellOrder_ShouldThrowPortfolioNotFoundException_WhenPortfolioEntryDoesNotExist() {
+        createStopOrderDto.setOrderDirection(OrderDirection.SELL);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.empty());
+
+        PortfolioEntryNotFoundException exception = assertThrows(PortfolioEntryNotFoundException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Portfolio entry not found", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createSellOrder_ShouldThrowPortfolioAmountNotEnoughException_WhenPortfolioEntryDoesNotExist() {
+        createStopOrderDto.setOrderDirection(OrderDirection.SELL);
+        portfolioEntry.setAmount(90);
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.ofNullable(portfolioEntry));
+
+        PortfolioAmountNotEnoughException exception = assertThrows(PortfolioAmountNotEnoughException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Portfolio available amount of " + portfolioEntry.getAmount() + " not enough to cover amount of "
+                + createStopOrderDto.getContractSize() * createStopOrderDto.getQuantity() + ".", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createOrder_ShouldThrowActuaryLimitNotFound() {
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
+        when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("AGENT");
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+        doThrow(new ActuaryLimitNotFoundException(userId)).when(userClient).getActuaryByEmployeeId(userId);
+
+        ActuaryLimitNotFoundException exception = assertThrows(ActuaryLimitNotFoundException.class, () -> {
+            orderService.createOrder(createStopOrderDto, authHeader);
+        });
+
+        assertEquals("Actuary limit with employeeId: " + userId + " is not found.", exception.getMessage());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void createMarketOrderAndExecuteFirstTransaction() {
         // Arrange
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         // Act
         OrderDto orderDto = orderService.createOrder(createMarketOrderDto, authHeader);
 
         // Assert
-        verify(orderRepository, atLeast(4)).save(any(Order.class));
-        assertEquals(OrderStatus.DONE, orderDto.getStatus());
-        assertEquals(true, orderDto.getIsDone());
-        assertEquals(0, orderDto.getRemainingPortions());
+        verify(orderRepository, times(2)).save(any(Order.class));
+        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
-        BigDecimal price = BigDecimal.valueOf(orderDto.getContractSize()).multiply(BigDecimal.valueOf(orderDto.getQuantity()))
-                .multiply(orderDto.getPricePerUnit());
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        int quantity = 0;
-        for(TransactionDto transactionDto : orderDto.getTransactions()){
-            totalPrice = totalPrice.add(transactionDto.getTotalPrice());
-            quantity += transactionDto.getQuantity();
-        }
-        verify(transactionRepository, atLeast(orderDto.getTransactions().size())).save(any(Transaction.class));
-        assertEquals(orderDto.getQuantity(), quantity);
-        assertEquals(price, totalPrice);
+        assertEquals(OrderStatus.PROCESSING, orderDto.getStatus());
+        assertEquals(false, orderDto.getIsDone());
     }
 
     @Test
@@ -432,18 +556,21 @@ public class OrderServiceTest {
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
+        when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
+        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         // Act
-        createMarketOrderDto.setAllOrNone(true);
         OrderDto orderDto = orderService.createOrder(createMarketOrderDto, authHeader);
 
         // Assert
-        verify(orderRepository, atLeast(3)).save(any(Order.class));
-        assertEquals(OrderStatus.DONE, orderDto.getStatus());
-        assertEquals(true, orderDto.getIsDone());
-        assertEquals(0, orderDto.getRemainingPortions());
-        assertEquals(1, orderDto.getTransactions().size());
+        verify(orderRepository, times(2)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
+
+        assertEquals(OrderStatus.PROCESSING, orderDto.getStatus());
+        assertEquals(false, orderDto.getIsDone());
     }
 
 
@@ -451,73 +578,68 @@ public class OrderServiceTest {
     void executeStopOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP))
                 .thenReturn(Arrays.asList(stopOrder));
+        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
 
         verify(orderRepository, never()).save(stopOrder);
-        assertEquals(false, stopOrder.isStopFulfilled());
-        assertEquals(false, stopOrder.getIsDone());
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(bankClient, never()).getUSDAccountNumberByClientId(any());
+        verify(bankClient, never()).executeSystemPayment(any(ExecutePaymentDto.class));
 
-        //menjamo cenu da se uslov ispuni pri sledecoj proveri
+        assertEquals(false, stopOrder.getIsDone());
+        assertEquals(OrderStatus.APPROVED, stopOrder.getStatus());
+
         listing.setPrice(new BigDecimal(250));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(3)).save(stopOrder);
-        assertEquals(true, stopOrder.isStopFulfilled());
-        assertEquals(OrderStatus.DONE, stopOrder.getStatus());
-        assertEquals(true, stopOrder.getIsDone());
-        assertEquals(0, stopOrder.getRemainingPortions());
+        // Assert
+        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        int quantity = 0;
-        for(Transaction transaction : stopOrder.getTransactions()){
-            totalPrice = totalPrice.add(transaction.getTotalPrice());
-            quantity += transaction.getQuantity();
-        }
-
-        verify(transactionRepository, atLeast(stopOrder.getTransactions().size())).save(any(Transaction.class));
-        assertEquals(stopOrder.getQuantity(), quantity);
-        assertEquals(stopOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(limitOrder.getContractSize())), totalPrice);
+        assertEquals(OrderStatus.PROCESSING, stopOrder.getStatus());
+        assertEquals(false, stopOrder.getIsDone());
     }
 
     @Test
     void executeLimitOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.LIMIT))
                 .thenReturn(Arrays.asList(limitOrder));
+        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
 
         verify(orderRepository, never()).save(limitOrder);
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(bankClient, never()).getUSDAccountNumberByClientId(any());
+        verify(bankClient, never()).executeSystemPayment(any(ExecutePaymentDto.class));
+
         assertEquals(false, limitOrder.getIsDone());
+        assertEquals(OrderStatus.APPROVED, limitOrder.getStatus());
 
         //menjamo cenu da se uslov ispuni pri sledecoj proveri
         listing.setPrice(new BigDecimal(50));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(3)).save(limitOrder);
-        assertEquals(OrderStatus.DONE, limitOrder.getStatus());
-        assertEquals(true, limitOrder.getIsDone());
-        assertEquals(0, limitOrder.getRemainingPortions());
-        assertEquals(listing.getPrice(), limitOrder.getPricePerUnit());
+        verify(orderRepository, times(1)).save(any(Order.class));
+        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        int quantity = 0;
-        for(Transaction transaction : limitOrder.getTransactions()){
-            totalPrice = totalPrice.add(transaction.getTotalPrice());
-            quantity += transaction.getQuantity();
-        }
-
-        verify(transactionRepository, atLeast(limitOrder.getTransactions().size())).save(any(Transaction.class));
-        assertEquals(stopOrder.getQuantity(), quantity);
-        assertEquals(limitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(limitOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(limitOrder.getContractSize())), totalPrice);
+        assertEquals(OrderStatus.PROCESSING, limitOrder.getStatus());
+        assertEquals(false, limitOrder.getIsDone());
     }
 
     @Test
     void executeStopLimitOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP_LIMIT))
                 .thenReturn(Arrays.asList(stopLimitOrder));
+        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
 
@@ -537,23 +659,13 @@ public class OrderServiceTest {
         listing.setPrice(new BigDecimal(50));
         orderService.checkOrders();
 
-        verify(orderRepository, atLeast(3)).save(stopLimitOrder);
-        assertEquals(OrderStatus.DONE, stopLimitOrder.getStatus());
-        assertEquals(true, stopLimitOrder.getIsDone());
-        assertEquals(0, stopLimitOrder.getRemainingPortions());
-        assertEquals(listing.getPrice(), stopLimitOrder.getPricePerUnit());
+        verify(orderRepository, times(2)).save(any(Order.class));
+        verify(transactionRepository, times(1)).save(any(Transaction.class));
+        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        int quantity = 0;
-        for(Transaction transaction : stopLimitOrder.getTransactions()){
-            totalPrice = totalPrice.add(transaction.getTotalPrice());
-            quantity += transaction.getQuantity();
-        }
-
-        verify(transactionRepository, atLeast(stopLimitOrder.getTransactions().size())).save(any(Transaction.class));
-        assertEquals(stopLimitOrder.getQuantity(), quantity);
-        assertEquals(stopLimitOrder.getPricePerUnit().multiply(BigDecimal.valueOf(stopLimitOrder.getQuantity()))
-                .multiply(BigDecimal.valueOf(stopLimitOrder.getContractSize())), totalPrice);
+        assertEquals(OrderStatus.PROCESSING, stopLimitOrder.getStatus());
+        assertEquals(false, stopLimitOrder.getIsDone());
     }
 
     @Test
@@ -862,8 +974,7 @@ public class OrderServiceTest {
         Order order = new Order();
         order.setId(orderId);
         order.setUserId(userId);
-        order.setStatus(OrderStatus.APPROVED);
-        order.setIsDone(true);
+        order.setStatus(OrderStatus.DONE);
 
         when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(userId);
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("CLIENT");

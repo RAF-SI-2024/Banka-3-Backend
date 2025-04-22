@@ -59,29 +59,6 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
             public AccountDetailsDto getAccountDetails(String accountNumber) {
                 return null;
             }
-
-            @Override
-            public void updateAvailableBalance(String accountNumber, BigDecimal amount) {
-                if (cause instanceof FeignException.BadRequest) {
-                    throw new InsufficientFundsException(amount);
-                }
-                if (cause instanceof  FeignException.NotFound){
-                    System.out.println("Caught FeignException.NotFound: " + cause);
-                    throw new AccountNotFoundException(accountNumber);
-                }
-                throw new RuntimeException(cause);
-            }
-
-            @Override
-            public void updateBalance(String accountNumber, BigDecimal amount) {
-                if (cause instanceof FeignException.BadRequest) {
-                    throw new InsufficientFundsException(amount);
-                }
-                if (cause instanceof  FeignException.NotFound){
-                    throw new AccountNotFoundException(accountNumber);
-                }
-                throw new RuntimeException(cause);
-            }
         };
     }
 }

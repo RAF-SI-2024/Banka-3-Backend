@@ -317,10 +317,31 @@ public class BootstrapData implements CommandLineRunner {
                     .accountOwnerType(AccountOwnerType.COMPANY)
                     .build();
 
+            //Racun za Berzu
+            CompanyAccount stockMarketAccount = CompanyAccount.builder()
+                    .name("Stock market bank account")
+                    .accountNumber("333000156732897699")
+                    .clientId(null)
+                    .companyId(4L)
+                    .createdByEmployeeId(3L)
+                    .creationDate(LocalDate.now().minusMonths(2))
+                    .expirationDate(LocalDate.now().plusYears(3))
+                    .currency(currencyUSD)
+                    .status(AccountStatus.ACTIVE)
+                    .balance(BigDecimal.valueOf(99999999))
+                    .availableBalance(BigDecimal.valueOf(99999999))
+                    .dailyLimit(BigDecimal.valueOf(99999999))
+                    .monthlyLimit(BigDecimal.valueOf(99999999))
+                    .dailySpending(BigDecimal.ZERO)
+                    .monthlySpending(BigDecimal.ZERO)
+                    .type(AccountType.CURRENT)
+                    .accountOwnerType(AccountOwnerType.COMPANY)
+                    .build();
+
             accountRepository.saveAll(java.util.List.of(
                     currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
                     bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
-                    bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState
+                    bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState, stockMarketAccount
             ));
 
             // Kreiramo kartice

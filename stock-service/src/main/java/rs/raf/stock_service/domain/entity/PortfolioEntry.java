@@ -32,7 +32,7 @@ public class PortfolioEntry {
 
     private Integer publicAmount = 0;
 
-    private Integer reservedAmount;
+    private Integer reservedAmount = 0;
 
     private BigDecimal averagePrice;
 

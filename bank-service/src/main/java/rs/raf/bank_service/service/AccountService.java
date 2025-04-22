@@ -41,7 +41,6 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
     private final JwtTokenUtil jwtTokenUtil;
-    private final ExchangeRateService exchangeRateService;
     @Autowired
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
@@ -400,50 +399,5 @@ public class AccountService {
                 .stream()
                 .map(account -> AccountMapper.toDto(account, null))
                 .toList();
-    }
-
-
-    public void updateAvailableBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-            amount = convertToAccountCurrency(account.getCurrency().getCode(), amount);
-        }
-
-        BigDecimal newAvailableBalance = account.getAvailableBalance().add(amount);
-
-        if (newAvailableBalance.compareTo(BigDecimal.ZERO) < 0)
-            throw new InsufficientFundsException(account.getAvailableBalance(), amount.multiply(BigDecimal.valueOf(-1)));
-
-        account.setAvailableBalance(newAvailableBalance);
-        accountRepository.save(account);
-    }
-
-    public void updateBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-           amount = convertToAccountCurrency(account.getCurrency().getCode(), amount);
-        }
-
-        BigDecimal newBalance = account.getBalance().add(amount);
-
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0)
-            throw new InsufficientFundsException(account.getBalance(), amount.multiply(BigDecimal.valueOf(-1)));
-
-        account.setBalance(newBalance);
-        accountRepository.save(account);
-    }
-
-    private BigDecimal convertToAccountCurrency(String toCurrency, BigDecimal amount) {
-        ExchangeRateDto exchangeRateDto1 = exchangeRateService.getExchangeRate("USD", "RSD");
-        amount = amount.multiply(exchangeRateDto1.getExchangeRate());
-
-        if(!toCurrency.equals("RSD")){
-            ExchangeRateDto exchangeRateDto2 = exchangeRateService.getExchangeRate("USD", toCurrency);
-            amount = amount.multiply(exchangeRateDto2.getExchangeRate());
-        }
-
-        return amount;
     }
 }

@@ -179,7 +179,7 @@ public class OtcService {
     }
 
     @Transactional
-    public void acceptOffer(Long offerId, Long userId) {
+    public TrackedPaymentDto acceptOffer(Long offerId, Long userId) {
         OtcOffer offer = otcOfferRepository.findById(offerId)
                 .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
 
@@ -194,11 +194,57 @@ public class OtcService {
         if (portfolioEntry.getPublicAmount() < offer.getAmount())
             throw new PortfolioAmountNotEnoughException(portfolioEntry.getPublicAmount(), offer.getAmount());
 
-        //Dodati payment za premium, cekam izmene payment service-a, za sad nastavi kao da je payment prosao
-
         portfolioEntry.setPublicAmount(portfolioEntry.getPublicAmount() - offer.getAmount());
         portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + offer.getAmount());
         portfolioEntryRepository.save(portfolioEntry);
+
+        offer.setStatus(OtcOfferStatus.ACCEPTED);
+        offer.setLastModified(LocalDateTime.now());
+        offer.setLastModifiedById(userId);
+        otcOfferRepository.save(offer);
+
+        String senderAccount = bankClient.getUSDAccountNumberByClientId(offer.getBuyerId()).getBody();
+        String receiverAccount = bankClient.getUSDAccountNumberByClientId(offer.getSellerId()).getBody();
+
+        if (senderAccount == null)
+            throw new OtcAccountNotFoundForBuyerException();
+
+        if (receiverAccount == null)
+            throw new OtcAccountNotFoundForSellerException();
+
+        TrackedPayment trackedPayment = trackedPaymentService.createTrackedPayment(
+                offerId,
+                TrackedPaymentType.OTC_CREATE_OPTION
+        );
+
+        log.info("Created tracked payment {}", trackedPayment);
+
+        CreatePaymentDto createPaymentDto = CreatePaymentDto
+                .builder()
+                .amount(offer.getPremium())
+                .senderAccountNumber(senderAccount)
+                .receiverAccountNumber(receiverAccount)
+                .callbackId(trackedPayment.getId())
+                .purposeOfPayment("OTC Create Option")
+                .paymentCode("289")
+                .build();
+
+        bankClient.executeSystemPayment(
+                ExecutePaymentDto.builder()
+                        .clientId(userId)
+                        .createPaymentDto(createPaymentDto)
+                        .build()
+        );
+
+        return TrackedPaymentMapper.toDto(trackedPayment);
+    }
+
+    public void handleAcceptSuccessfulPayment(Long trackedPaymentId) {
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long offerId = trackedPayment.getTrackedEntityId();
+
+        OtcOffer offer = otcOfferRepository.findById(offerId)
+                .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
 
         OtcOption otcOption = OtcOption.builder()
                 .otcOffer(offer)
@@ -212,12 +258,30 @@ public class OtcService {
                 .status(OtcOptionStatus.VALID)
                 .build();
         otcOptionRepository.save(otcOption);
+    }
 
-        offer.setStatus(OtcOfferStatus.ACCEPTED);
+    public void handleAcceptFailedPayment(Long trackedPaymentId){
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long offerId = trackedPayment.getTrackedEntityId();
+
+        OtcOffer offer = otcOfferRepository.findById(offerId)
+                .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
+
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(),
+                offer.getStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (portfolioEntry.getPublicAmount() < offer.getAmount())
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getPublicAmount(), offer.getAmount());
+
+        portfolioEntry.setPublicAmount(portfolioEntry.getPublicAmount() + offer.getAmount());
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - offer.getAmount());
+        portfolioEntryRepository.save(portfolioEntry);
+
+        offer.setStatus(OtcOfferStatus.PENDING);
         offer.setLastModified(LocalDateTime.now());
-        offer.setLastModifiedById(userId);
         otcOfferRepository.save(offer);
     }
+
 
     @Transactional
     public void rejectOffer(Long offerId, Long userId) {

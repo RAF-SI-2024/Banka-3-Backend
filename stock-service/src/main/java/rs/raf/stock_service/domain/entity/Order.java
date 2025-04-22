@@ -110,7 +110,7 @@ public class Order {
         this.afterHours = afterHours;
 
         remainingPortions = quantity;
-        totalPrice = pricePerUnit.multiply(BigDecimal.valueOf(contractSize)).multiply(BigDecimal.valueOf(quantity));
+        totalPrice = BigDecimal.ZERO;
         commission = BigDecimal.ZERO;
         stopFulfilled = false;
         status = OrderStatus.PENDING;

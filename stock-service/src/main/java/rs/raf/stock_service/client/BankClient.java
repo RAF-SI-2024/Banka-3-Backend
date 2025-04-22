@@ -43,10 +43,4 @@ public interface BankClient {
 
     @GetMapping("api/account/details/{accountNumber}")
     AccountDetailsDto getAccountDetails(@PathVariable("accountNumber") String accountNumber);
-
-    @PutMapping("/api/account/{accountNumber}/reserve")
-    void updateAvailableBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
-
-    @PutMapping("/api/account/{accountNumber}/update-balance")
-    void updateBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
 }
