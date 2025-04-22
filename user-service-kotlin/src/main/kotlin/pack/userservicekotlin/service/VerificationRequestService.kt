@@ -83,27 +83,30 @@ class VerificationRequestService(
         request.status = VerificationStatus.APPROVED
         verificationRequestRepository.save(request)
 
-        return when (request.verificationType) {
-            VerificationType.CHANGE_LIMIT -> {
-                bankClient.changeAccountLimit(request.targetId)
-                true.right()
+        return try {
+            when (request.verificationType) {
+                VerificationType.CHANGE_LIMIT -> {
+                    bankClient.changeAccountLimit(request.targetId)
+                    true.right()
+                }
+                VerificationType.PAYMENT -> {
+                    bankClient.confirmPayment(request.targetId)
+                    true.right()
+                }
+                VerificationType.TRANSFER -> {
+                    bankClient.confirmTransfer(request.targetId)
+                    true.right()
+                }
+                VerificationType.CARD_REQUEST -> {
+                    bankClient.approveCardRequest(request.targetId)
+                    true.right()
+                }
+                VerificationType.LOGIN -> TODO()
+                VerificationType.LOAN -> TODO()
+                null -> TODO()
             }
-            VerificationType.PAYMENT -> {
-                bankClient.confirmPayment(request.targetId)
-                true.right()
-            }
-            VerificationType.TRANSFER -> {
-                bankClient.confirmTransfer(request.targetId)
-                true.right()
-            }
-            VerificationType.CARD_REQUEST -> {
-                bankClient.approveCardRequest(request.targetId)
-                true.right()
-            }
-
-            VerificationType.LOGIN -> TODO()
-            VerificationType.LOAN -> TODO()
-            null -> TODO()
+        } catch (e: Exception) {
+            VerificationServiceError.BankServiceError("Bank service error: ${e.message}").left()
         }
     }
 
@@ -124,27 +127,30 @@ class VerificationRequestService(
         request.status = VerificationStatus.DENIED
         verificationRequestRepository.save(request)
 
-        return when (request.verificationType) {
-            VerificationType.CHANGE_LIMIT -> {
-                bankClient.rejectChangeAccountLimit(request.targetId)
-                Unit.right()
+        return try {
+            when (request.verificationType) {
+                VerificationType.CHANGE_LIMIT -> {
+                    bankClient.rejectChangeAccountLimit(request.targetId)
+                    Unit.right()
+                }
+                VerificationType.PAYMENT -> {
+                    bankClient.rejectConfirmPayment(request.targetId)
+                    Unit.right()
+                }
+                VerificationType.TRANSFER -> {
+                    bankClient.rejectConfirmTransfer(request.targetId)
+                    Unit.right()
+                }
+                VerificationType.CARD_REQUEST -> {
+                    bankClient.rejectApproveCardRequest(request.targetId)
+                    Unit.right()
+                }
+                VerificationType.LOGIN -> TODO()
+                VerificationType.LOAN -> TODO()
+                null -> TODO()
             }
-            VerificationType.PAYMENT -> {
-                bankClient.rejectConfirmPayment(request.targetId)
-                Unit.right()
-            }
-            VerificationType.TRANSFER -> {
-                bankClient.rejectConfirmTransfer(request.targetId)
-                Unit.right()
-            }
-            VerificationType.CARD_REQUEST -> {
-                bankClient.rejectApproveCardRequest(request.targetId)
-                Unit.right()
-            }
-
-            VerificationType.LOGIN -> TODO()
-            VerificationType.LOAN -> TODO()
-            null -> TODO()
+        } catch (e: Exception) {
+            VerificationServiceError.BankServiceError("Bank service error: ${e.message}").left()
         }
     }
 

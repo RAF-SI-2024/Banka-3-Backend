@@ -9,8 +9,16 @@ sealed class ClientServiceError {
         val email: String,
     ) : ClientServiceError()
 
+    data class EmailAlreadyExists(
+        val email: String,
+    ) : ClientServiceError()
+
     data class RoleNotFound(
         val role: String,
+    ) : ClientServiceError()
+
+    data class NotAuthenticated(
+        val user: String,
     ) : ClientServiceError()
 
     data object InvalidInput : ClientServiceError()
