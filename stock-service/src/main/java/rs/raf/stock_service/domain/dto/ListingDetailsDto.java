@@ -21,11 +21,13 @@ public class ListingDetailsDto {
     private Integer contractSize;
     private String contractUnit;
     private List<LocalDate> optionSettlementDates;
+    private LocalDate settlementDate;
 
     public ListingDetailsDto() {}
 
     public ListingDetailsDto(Long id, ListingType listingType, String ticker, String name, BigDecimal currentPrice, String exchangeMic,
-                             List<PriceHistoryDto> priceHistory, Integer contractSize, String contractUnit,List<LocalDate> optionSettlementDates) {
+                             List<PriceHistoryDto> priceHistory, Integer contractSize, String contractUnit,List<LocalDate> optionSettlementDates,
+                             LocalDate settlementDate) {
         this.id = id;
         this.listingType = listingType;
         this.ticker = ticker;
@@ -36,6 +38,7 @@ public class ListingDetailsDto {
         this.contractSize = contractSize;
         this.contractUnit = contractUnit;
         this.optionSettlementDates = optionSettlementDates;
+        this.settlementDate = settlementDate;
     }
 
 }

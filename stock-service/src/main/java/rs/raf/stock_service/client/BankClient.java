@@ -21,7 +21,7 @@ public interface BankClient {
     BigDecimal getAccountBalance(@PathVariable("accountNumber") String accountNumber);
 
     @PostMapping("/api/payment/tax")
-    void handleTax(@RequestBody TaxDto taxDto);
+    void handleTax(@RequestBody ExecutePaymentDto executePaymentDto);
   
     @PostMapping("/api/payment")
     ResponseEntity<PaymentDto> createPayment(@RequestBody CreatePaymentDto dto);

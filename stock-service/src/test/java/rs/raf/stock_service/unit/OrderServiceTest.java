@@ -585,7 +585,8 @@ public class OrderServiceTest {
                 5000000L,
                 new BigDecimal("1000.00"),
                 "XNAS",
-                new BigDecimal("150.50")
+                new BigDecimal("150.50"),
+                null
         );
 
         OrderDto orderDto = new OrderDto();
@@ -646,7 +647,8 @@ public class OrderServiceTest {
                 5000000L,
                 new BigDecimal("1000.00"),
                 "XNAS",
-                new BigDecimal("150.50")
+                new BigDecimal("150.50"),
+                null
         );
 
         OrderDto orderDto = new OrderDto();
@@ -707,7 +709,8 @@ public class OrderServiceTest {
                 5000000L,
                 new BigDecimal("1000.00"),
                 "XNAS",
-                new BigDecimal("150.50")
+                new BigDecimal("150.50"),
+                null
         );
 
         OrderDto orderDto = new OrderDto();

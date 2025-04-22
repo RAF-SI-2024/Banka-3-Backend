@@ -18,6 +18,7 @@ import rs.raf.stock_service.repository.TrackedPaymentRepository;
 public class TrackedPaymentNotificationService {
     private final TrackedPaymentRepository trackedPaymentRepository;
     private final OtcService otcService;
+    private final TaxService taxService;
 
     public void markAsSuccess(Long id) {
         trackedPaymentRepository.findById(id).ifPresent(trackedPayment -> {
@@ -30,6 +31,7 @@ public class TrackedPaymentNotificationService {
                 case OTC_EXERCISE -> otcService.handleExerciseSuccessfulPayment(id);
                 case OTC_CREATE_OPTION -> {}
                 case ORDER_ALL_OR_NONE -> {}
+                case TAX_PAYMENT -> taxService.handleSuccessfulTaxPayment(id);
             }
         });
 
@@ -46,6 +48,7 @@ public class TrackedPaymentNotificationService {
                 case OTC_EXERCISE -> {}
                 case OTC_CREATE_OPTION -> {}
                 case ORDER_ALL_OR_NONE -> {}
+                case TAX_PAYMENT -> taxService.handleFailedTaxPayment(id);
             }
         });
     }

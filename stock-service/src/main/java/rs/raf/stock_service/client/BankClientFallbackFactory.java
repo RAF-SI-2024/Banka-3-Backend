@@ -46,7 +46,7 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
             }
 
             @Override
-            public void handleTax(TaxDto taxDto) {
+            public void handleTax(ExecutePaymentDto executePaymentDto) {
 
             }
 
