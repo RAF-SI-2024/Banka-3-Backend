@@ -657,7 +657,7 @@ public class BootstrapData implements CommandLineRunner {
                     .type("set-password")
                     .createdAt(1741631004271L)
                     .expiresAt(3000000000000L)
-                    .userId(6L)
+                    .userId(24L)
                     .build();
             authTokenRepository.save(authToken);
 
@@ -666,7 +666,7 @@ public class BootstrapData implements CommandLineRunner {
                     .type("request-card")
                     .createdAt(1741631004271L)
                     .expiresAt(3000000000000L)
-                    .userId(6L)
+                    .userId(24L)
                     .build();
             authTokenRepository.save(authToken1);
         }
