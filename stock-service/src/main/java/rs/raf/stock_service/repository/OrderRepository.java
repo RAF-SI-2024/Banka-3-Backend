@@ -23,7 +23,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     BigDecimal getBankProfitFromOrders();
 
     @Query("SELECT new rs.raf.stock_service.domain.dto.ActuaryProfitDto(o.userId, SUM(o.profit)) " +
-            "FROM Order o WHERE o.userRole = 'AGENT' GROUP BY o.userId")
+            "FROM Order o WHERE o.userRole IN ('AGENT', 'SUPERVISOR', 'ADMIN') GROUP BY o.userId")
     List<ActuaryProfitDto> getActuaryProfits();
 
 
