@@ -502,7 +502,71 @@ public class BootstrapData implements CommandLineRunner {
 
             // Save all installments
             installmentRepository.saveAll(newInstallments);
+            addInitialAccounts();
         }
+    }
+
+    private void addInitialAccounts(){
+        PersonalAccount currentAccount1 = PersonalAccount.builder()
+                .name("My RSD account")
+                .accountNumber("111111111111111111")
+                .clientId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(1))
+                .expirationDate(LocalDate.now().plusYears(5))
+                .currency(currencyRepository.findByCode("RSD").get())
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(10000))
+                .availableBalance(BigDecimal.valueOf(10000))
+                .dailyLimit(BigDecimal.valueOf(500))
+                .monthlyLimit(BigDecimal.valueOf(5000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.CURRENT)
+                .accountOwnerType(AccountOwnerType.PERSONAL)
+                .build();
+
+        // Kreiramo račune za klijente
+        PersonalAccount foreignAccount1 = PersonalAccount.builder()
+                .name("My USD account")
+                .accountNumber("311111111111111111")
+                .clientId(2L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(1))
+                .expirationDate(LocalDate.now().plusYears(5))
+                .currency(currencyRepository.findByCode("USD").get())
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(10000))
+                .availableBalance(BigDecimal.valueOf(10000))
+                .dailyLimit(BigDecimal.valueOf(500))
+                .monthlyLimit(BigDecimal.valueOf(5000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.FOREIGN)
+                .accountOwnerType(AccountOwnerType.PERSONAL)
+                .build();
+
+
+        PersonalAccount currentAccount2 = PersonalAccount.builder()
+                .name("My RSD account")
+                .accountNumber("211111111111111111")
+                .clientId(1L)
+                .createdByEmployeeId(3L)
+                .creationDate(LocalDate.now().minusMonths(1))
+                .expirationDate(LocalDate.now().plusYears(5))
+                .currency(currencyRepository.findByCode("RSD").get())
+                .status(AccountStatus.ACTIVE)
+                .balance(BigDecimal.valueOf(10000))
+                .availableBalance(BigDecimal.valueOf(10000))
+                .dailyLimit(BigDecimal.valueOf(500))
+                .monthlyLimit(BigDecimal.valueOf(5000))
+                .dailySpending(BigDecimal.ZERO)
+                .monthlySpending(BigDecimal.ZERO)
+                .type(AccountType.CURRENT)
+                .accountOwnerType(AccountOwnerType.PERSONAL)
+                .build();
+
+        accountRepository.saveAll(List.of(currentAccount1, currentAccount2, foreignAccount1));
     }
 
     private void initializeExchangeRates() {
