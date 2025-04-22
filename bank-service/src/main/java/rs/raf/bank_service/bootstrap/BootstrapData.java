@@ -34,8 +34,8 @@ public class BootstrapData implements CommandLineRunner {
     @Override
     public void run(String... args) {
         initializeCurrencies();
-        initializeAccountsAndTransactions();
         initializeExchangeRates();
+        initializeAccountsAndTransactions();
         initializeBankAccounts();
     }
 
@@ -210,41 +210,6 @@ public class BootstrapData implements CommandLineRunner {
                 }
             }
 
-            // Kreiranje primera zahteva za kredit
-            LoanRequest loanRequest = LoanRequest.builder()
-                    .type(LoanType.AUTO)
-                    .amount(new BigDecimal("500000"))
-                    .purpose("Kupovina automobila")
-                    .monthlyIncome(new BigDecimal("1000"))
-                    .employmentStatus(EmploymentStatus.PERMANENT)
-                    .employmentDuration(36)
-                    .repaymentPeriod(24)
-                    .contactPhone("+381641234567")
-                    .account(currentAccount1)
-                    .currency(currencyRSD)
-                    .status(LoanRequestStatus.APPROVED)
-                    .interestRateType(InterestRateType.FIXED)
-                    .build();
-
-            LoanRequest loanRequest2 = LoanRequest.builder()
-                    .type(LoanType.CASH)
-                    .amount(new BigDecimal("300000"))
-                    .purpose("Kupovina necega")
-                    .monthlyIncome(new BigDecimal("1000"))
-                    .employmentStatus(EmploymentStatus.PERMANENT)
-                    .employmentDuration(36)
-                    .repaymentPeriod(24)
-                    .contactPhone("+381641234567")
-                    .account(currentAccount1)
-                    .currency(currencyRSD)
-                    .status(LoanRequestStatus.PENDING)
-                    .interestRateType(InterestRateType.FIXED)
-                    .build();
-
-            loanRequestRepository.save(loanRequest);
-            loanRequestRepository.save(loanRequest2);
-
-
             // Create diverse transactions
             List<Account> allAccounts = accountRepository.findAll();
             for (Account senderAccount : allAccounts) {
@@ -330,9 +295,44 @@ public class BootstrapData implements CommandLineRunner {
                 }
             }
 
-            // Create loans with diverse characteristics
+            int x = 0;
             for (Account account : allAccounts) {
-                // Determine loan eligibility and patterns
+                // Kreiranje primera zahteva za kredit
+                if(x == 0) {
+                    LoanRequest loanRequest = LoanRequest.builder()
+                            .type(LoanType.AUTO)
+                            .amount(new BigDecimal("500000"))
+                            .purpose("Kupovina automobila")
+                            .monthlyIncome(new BigDecimal("1000"))
+                            .employmentStatus(EmploymentStatus.PERMANENT)
+                            .employmentDuration(36)
+                            .repaymentPeriod(24)
+                            .contactPhone("+381641234567")
+                            .account(account)
+                            .currency(currencyRepository.findByCode("RSD").get())
+                            .status(LoanRequestStatus.APPROVED)
+                            .interestRateType(InterestRateType.FIXED)
+                            .build();
+                    loanRequestRepository.save(loanRequest);
+                } else if (x == 1) {
+                    LoanRequest loanRequest2 = LoanRequest.builder()
+                            .type(LoanType.CASH)
+                            .amount(new BigDecimal("300000"))
+                            .purpose("Kupovina necega")
+                            .monthlyIncome(new BigDecimal("1000"))
+                            .employmentStatus(EmploymentStatus.PERMANENT)
+                            .employmentDuration(36)
+                            .repaymentPeriod(24)
+                            .contactPhone("+381641234567")
+                            .account(account)
+                            .currency(currencyRepository.findByCode("RSD").get())
+                            .status(LoanRequestStatus.PENDING)
+                            .interestRateType(InterestRateType.FIXED)
+                            .build();
+                    loanRequestRepository.save(loanRequest2);
+                }
+                x++;
+
                 double creditScore = Math.random(); // Random credit score for variety
                 double paymentReliability = Math.random(); // How reliable are they with payments
                 double riskAppetite = Math.random(); // How much they tend to borrow
