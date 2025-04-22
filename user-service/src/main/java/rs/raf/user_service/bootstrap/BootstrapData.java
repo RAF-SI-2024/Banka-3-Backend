@@ -59,8 +59,6 @@ public class BootstrapData implements CommandLineRunner {
         }
 
 
-
-
         if (clientRepository.count() == 0) {
 
             Role clientRole = roleRepository.findByName("CLIENT")
@@ -96,8 +94,80 @@ public class BootstrapData implements CommandLineRunner {
                     .role(clientRole)
                     .build();
 
+
+            clientRepository.saveAll(List.of(client, client2));
+
+
+            if (employeeRepository.count() == 0) {
+
+                Role adminRole = roleRepository.findByName("ADMIN")
+                        .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
+                Role employeeRole = roleRepository.findByName("EMPLOYEE")
+                        .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
+                Role agentRole = roleRepository.findByName("AGENT")
+                        .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
+                Role supervisorRole = roleRepository.findByName("SUPERVISOR")
+                        .orElseThrow(() -> new RuntimeException("Role SUPERVISOR not found"));
+
+                Employee employee = Employee.builder()
+                        .id(3L)
+                        .firstName("Petar")
+                        .lastName("Petrovic")
+                        .email("petar.p@example.com")
+                        .phone("0699998279")
+                        .address("Trg Republike 5, Beograd")
+                        .birthDate(dateFormat.parse("2000-02-19"))
+                        .gender("M")
+                        .username("petar90")
+                        .password(passwordEncoder.encode("petarpetar"))
+                        .position("Manager")
+                        .department("HR")
+                        .active(true)
+                        .role(adminRole)
+                        .jmbg("1503456789001")
+                        .build();
+
+                Employee employee2 = Employee.builder()
+                        .id(4L)
+                        .firstName("Jana")
+                        .lastName("Ivanovic")
+                        .email("jana.i@example.com")
+                        .phone("0666658276")
+                        .address("Palih Boraca 5")
+                        .birthDate(dateFormat.parse("1996-09-02"))
+                        .gender("F")
+                        .username("jana1")
+                        .password(passwordEncoder.encode("janajana"))
+                        .position("Manager")
+                        .department("Finance")
+                        .active(true)
+                        .jmbg("1503456789002")
+                        .role(supervisorRole)
+                        .build();
+
+                Employee employee3 = Employee.builder()
+                        .id(5L)
+                        .firstName("Zika")
+                        .lastName("Petrović")
+                        .email("zika.p@example.com")
+                        .phone("0641234567")
+                        .address("Kralja Petra 10")
+                        .birthDate(dateFormat.parse("1992-05-15"))
+                        .gender("M")
+                        .username("zika92")
+                        .password(passwordEncoder.encode("zikazika"))
+                        .position("")
+                        .department("IT")
+                        .active(true)
+                        .jmbg("1505923891234")
+                        .role(agentRole)
+                        .build();
+
+                employeeRepository.saveAll(List.of(employee, employee2,employee3));
+            }
+
             Client client3 = Client.builder()
-                    .id(3L)
+                    .id(6L)
                     .firstName("Ana")
                     .lastName("Anic")
                     .email("ana.a@example.com")
@@ -112,7 +182,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client4 = Client.builder()
-                    .id(4L)
+                    .id(7L)
                     .firstName("Milan")
                     .lastName("Milankovic")
                     .email("milan.m@example.com")
@@ -127,7 +197,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client5 = Client.builder()
-                    .id(5L)
+                    .id(8L)
                     .firstName("Jelena")
                     .lastName("Jelenic")
                     .email("jelena.j@example.com")
@@ -142,7 +212,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client6 = Client.builder()
-                    .id(6L)
+                    .id(9L)
                     .firstName("Stefan")
                     .lastName("Stefanovic")
                     .email("stefan.s@example.com")
@@ -157,7 +227,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client7 = Client.builder()
-                    .id(7L)
+                    .id(10L)
                     .firstName("Milica")
                     .lastName("Milic")
                     .email("milica.m@example.com")
@@ -172,7 +242,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client8 = Client.builder()
-                    .id(8L)
+                    .id(11L)
                     .firstName("Nikola")
                     .lastName("Nikolic")
                     .email("nikola.n@example.com")
@@ -187,7 +257,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client9 = Client.builder()
-                    .id(9L)
+                    .id(12L)
                     .firstName("Sofija")
                     .lastName("Sofijic")
                     .email("sofija.s@example.com")
@@ -202,7 +272,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client10 = Client.builder()
-                    .id(10L)
+                    .id(13L)
                     .firstName("Luka")
                     .lastName("Lukic")
                     .email("luka.l@example.com")
@@ -217,7 +287,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client11 = Client.builder()
-                    .id(11L)
+                    .id(14L)
                     .firstName("Ivana")
                     .lastName("Ivanovic")
                     .email("ivana.i@example.com")
@@ -232,7 +302,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client12 = Client.builder()
-                    .id(12L)
+                    .id(15L)
                     .firstName("Dusan")
                     .lastName("Dusanovic")
                     .email("dusan.d@example.com")
@@ -247,7 +317,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client13 = Client.builder()
-                    .id(13L)
+                    .id(16L)
                     .firstName("Marija")
                     .lastName("Maric")
                     .email("marija.m@example.com")
@@ -262,7 +332,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client14 = Client.builder()
-                    .id(14L)
+                    .id(17L)
                     .firstName("Aleksandar")
                     .lastName("Aleksic")
                     .email("aleksandar.a@example.com")
@@ -277,7 +347,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client15 = Client.builder()
-                    .id(15L)
+                    .id(18L)
                     .firstName("Jovana")
                     .lastName("Jovanovic")
                     .email("jovana.j@example.com")
@@ -292,7 +362,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client16 = Client.builder()
-                    .id(16L)
+                    .id(19L)
                     .firstName("Vladimir")
                     .lastName("Vladimirovic")
                     .email("vladimir.v@example.com")
@@ -307,7 +377,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client17 = Client.builder()
-                    .id(17L)
+                    .id(20L)
                     .firstName("Tamara")
                     .lastName("Tamaric")
                     .email("tamara.t@example.com")
@@ -322,7 +392,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client18 = Client.builder()
-                    .id(18L)
+                    .id(21L)
                     .firstName("Bojan")
                     .lastName("Bojanic")
                     .email("bojan.b@example.com")
@@ -337,7 +407,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client19 = Client.builder()
-                    .id(19L)
+                    .id(22L)
                     .firstName("Sanja")
                     .lastName("Sanjic")
                     .email("sanja.s@example.com")
@@ -352,7 +422,7 @@ public class BootstrapData implements CommandLineRunner {
                     .build();
 
             Client client20 = Client.builder()
-                    .id(20L)
+                    .id(23L)
                     .firstName("Dejan")
                     .lastName("Dejanovic")
                     .email("dejan.d@example.com")
@@ -366,74 +436,8 @@ public class BootstrapData implements CommandLineRunner {
                     .role(clientRole)
                     .build();
 
-            clientRepository.saveAll(List.of(client, client2, client3, client4, client5, client6, client7, client8, client9, client10,
+            clientRepository.saveAll(List.of(client3, client4, client5, client6, client7, client8, client9, client10,
                     client11, client12, client13, client14, client15, client16, client17, client18, client19, client20));
-        }
-
-        if (employeeRepository.count() == 0) {
-
-            Role adminRole = roleRepository.findByName("ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
-            Role employeeRole = roleRepository.findByName("EMPLOYEE")
-                    .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
-            Role agentRole = roleRepository.findByName("AGENT")
-                    .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
-
-            Employee employee = Employee.builder()
-                    .id(3L)
-                    .firstName("Petar")
-                    .lastName("Petrovic")
-                    .email("petar.p@example.com")
-                    .phone("0699998279")
-                    .address("Trg Republike 5, Beograd")
-                    .birthDate(dateFormat.parse("2000-02-19"))
-                    .gender("M")
-                    .username("petar90")
-                    .password(passwordEncoder.encode("petarpetar"))
-                    .position("Manager")
-                    .department("HR")
-                    .active(true)
-                    .role(adminRole)
-                    .jmbg("1503456789001")
-                    .build();
-
-            Employee employee2 = Employee.builder()
-                    .id(4L)
-                    .firstName("Jana")
-                    .lastName("Ivanovic")
-                    .email("jana.i@example.com")
-                    .phone("0666658276")
-                    .address("Palih Boraca 5")
-                    .birthDate(dateFormat.parse("1996-09-02"))
-                    .gender("F")
-                    .username("jana1")
-                    .password(passwordEncoder.encode("janajana"))
-                    .position("Manager")
-                    .department("Finance")
-                    .active(true)
-                    .jmbg("1503456789002")
-                    .role(employeeRole)
-                    .build();
-
-            Employee employee3 = Employee.builder()
-                    .id(5L)
-                    .firstName("Zika")
-                    .lastName("Petrović")
-                    .email("zika.p@example.com")
-                    .phone("0641234567")
-                    .address("Kralja Petra 10")
-                    .birthDate(dateFormat.parse("1992-05-15"))
-                    .gender("M")
-                    .username("zika92")
-                    .password(passwordEncoder.encode("zikazika"))
-                    .position("")
-                    .department("IT")
-                    .active(true)
-                    .jmbg("1505923891234")
-                    .role(agentRole)
-                    .build();
-
-            employeeRepository.saveAll(List.of(employee, employee2,employee3));
         }
 
         // CHATGPT CODE START 😊

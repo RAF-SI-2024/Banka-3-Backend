@@ -75,7 +75,7 @@ class VerificationRequestServiceTest {
         val result = service.updateRequestStatus(99L, VerificationStatus.APPROVED)
 
         assertTrue(result.isLeft())
-        assertTrue(result.swap().orNull() is VerificationServiceError.RequestNotFound)
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.RequestNotFound)
     }
 
     @Test
@@ -128,7 +128,7 @@ class VerificationRequestServiceTest {
         val result = service.denyVerificationRequest(20L, "token")
 
         assertTrue(result.isLeft())
-        assertTrue(result.swap().orNull() is VerificationServiceError.InvalidRequestStatus)
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.InvalidRequestStatus)
     }
 
     @Test
