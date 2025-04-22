@@ -34,11 +34,12 @@ public class BootstrapData implements CommandLineRunner {
     private final PayeeRepository payeeRepository;
 
     @Override
-    @Transactional
+//    @Transactional
     public void run(String... args) {
         try {
             initializeCurrencies();
             initializeExchangeRates();
+            addInitialAccounts();
             initializeAccountsAndTransactions();
             initializeBankAccounts();
         } catch (Exception e) {
@@ -62,7 +63,7 @@ public class BootstrapData implements CommandLineRunner {
         }
     }
 
-    @Transactional
+//    @Transactional
     public void initializeAccountsAndTransactions() {
         if (accountRepository.count() == 0) {
             List<String> existingAccountNumbers = accountRepository.findAll()
@@ -470,7 +471,7 @@ public class BootstrapData implements CommandLineRunner {
     }
 
     private void addInitialAccounts(){
-        PersonalAccount currentAccount1 = PersonalAccount.builder()
+        Account currentAccount1 = PersonalAccount.builder()
                 .name("My RSD account")
                 .accountNumber("111111111111111111")
                 .clientId(2L)
@@ -490,7 +491,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
         // Kreiramo račune za klijente
-        PersonalAccount foreignAccount1 = PersonalAccount.builder()
+        Account foreignAccount1 = PersonalAccount.builder()
                 .name("My USD account")
                 .accountNumber("311111111111111111")
                 .clientId(2L)
@@ -510,7 +511,7 @@ public class BootstrapData implements CommandLineRunner {
                 .build();
 
 
-        PersonalAccount currentAccount2 = PersonalAccount.builder()
+        Account currentAccount2 = PersonalAccount.builder()
                 .name("My RSD account")
                 .accountNumber("211111111111111111")
                 .clientId(1L)
