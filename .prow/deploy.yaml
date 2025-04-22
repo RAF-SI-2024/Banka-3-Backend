@@ -20,7 +20,7 @@ postsubmits:
               apt install -y skopeo
               
               image_exists() {
-                skopeo inspect "docker://$1" --no-tags > /dev/null 2>&1
+                skopeo inspect "docker://$1" > /dev/null 2>&1
               }
               
               TEAM_NAME="banka-3"
