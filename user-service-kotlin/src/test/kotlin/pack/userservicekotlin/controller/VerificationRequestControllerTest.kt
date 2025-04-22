@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.*
+import pack.userservicekotlin.arrow.ClientServiceError
 import pack.userservicekotlin.arrow.VerificationServiceError
 import pack.userservicekotlin.domain.dto.client.ClientResponseDto
 import pack.userservicekotlin.domain.dto.verification.CreateVerificationRequestDto
@@ -150,6 +151,109 @@ class VerificationRequestControllerTest {
         mockMvc
             .get("/api/verification/active-requests") {
                 header("User-Agent", "Chrome")
+            }.andExpect {
+                status { isUnauthorized() }
+            }
+    }
+
+    @Test
+    fun `getActiveRequests should return 404 if client not found`() {
+        `when`(verificationRequestService.calledFromMobile(mobileHeader)).thenReturn(true)
+        `when`(clientService.getCurrentClient()).thenReturn(Either.Left(ClientServiceError.EmailNotFound("test@example.com")))
+
+        mockMvc
+            .get("/api/verification/active-requests") {
+                header("User-Agent", mobileHeader)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Client not found: EmailNotFound(email=test@example.com)") }
+            }
+    }
+
+    @Test
+    fun `getRequestHistory should return 404 if client not found`() {
+        `when`(verificationRequestService.calledFromMobile(mobileHeader)).thenReturn(true)
+        `when`(clientService.getCurrentClient()).thenReturn(Either.Left(ClientServiceError.EmailNotFound("test@example.com")))
+
+        mockMvc
+            .get("/api/verification/history") {
+                header("User-Agent", mobileHeader)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Client not found: EmailNotFound(email=test@example.com)") }
+            }
+    }
+
+    @Test
+    fun `getRequestHistory returns 401 if not mobile`() {
+        mockMvc
+            .get("/api/verification/history") {
+                header("User-Agent", "Chrome")
+            }.andExpect {
+                status { isUnauthorized() }
+            }
+    }
+
+    @Test
+    fun `createVerificationRequest should return 500 if service returns error`() {
+        val dto = CreateVerificationRequestDto(1L, 2L, VerificationType.PAYMENT, "test")
+        `when`(verificationRequestService.createVerificationRequest(dto))
+            .thenReturn(Either.Left(VerificationServiceError.InvalidRequestStatus("Invalid request")))
+
+        mockMvc
+            .post("/api/verification/request") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isInternalServerError() }
+                content { string("InvalidRequestStatus(message=Invalid request)") }
+            }
+    }
+
+    @Test
+    fun `createVerificationRequest should return 400 if invalid request body`() {
+        mockMvc
+            .post("/api/verification/request") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `approveRequest should return 400 if service returns error`() {
+        `when`(verificationRequestService.calledFromMobile(mobileHeader)).thenReturn(true)
+        `when`(verificationRequestService.processApproval(1L, "auth"))
+            .thenReturn(Either.Left(VerificationServiceError.InvalidRequestStatus("Already approved")))
+
+        mockMvc
+            .post("/api/verification/approve/1") {
+                header("User-Agent", mobileHeader)
+                header("Authorization", "auth")
+            }.andExpect {
+                status { isBadRequest() }
+                content { string("InvalidRequestStatus(message=Already approved)") }
+            }
+    }
+
+    @Test
+    fun `approveRequest returns 401 if not mobile`() {
+        mockMvc
+            .post("/api/verification/approve/1") {
+                header("User-Agent", "Chrome")
+                header("Authorization", "auth")
+            }.andExpect {
+                status { isUnauthorized() }
+            }
+    }
+
+    @Test
+    fun `denyRequest returns 401 if not mobile`() {
+        mockMvc
+            .post("/api/verification/deny/1") {
+                header("User-Agent", "Chrome")
+                header("Authorization", "auth")
             }.andExpect {
                 status { isUnauthorized() }
             }

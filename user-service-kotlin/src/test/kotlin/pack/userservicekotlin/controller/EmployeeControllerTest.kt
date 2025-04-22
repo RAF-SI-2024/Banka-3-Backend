@@ -152,7 +152,7 @@ class EmployeeControllerTest {
     }
 
     @Test
-    fun `getCurrentEmployee should return 404`() {
+    fun `getCurrentEmployee should return 404 if employee not found`() {
         val email = "nonexistent@example.com"
         val auth = mock(org.springframework.security.core.Authentication::class.java)
         `when`(auth.name).thenReturn(email)
@@ -167,6 +167,120 @@ class EmployeeControllerTest {
             .andExpect {
                 status { isNotFound() }
                 content { string("Employee not found") }
+            }
+    }
+
+    @Test
+    fun `createEmployee should return 404 if role not found`() {
+        val dto = validCreateEmployeeDto()
+        `when`(employeeService.createEmployee(anyNonNull())).thenReturn(EmployeeServiceError.RoleNotFound.left())
+
+        mockMvc
+            .post("/api/admin/employees") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Role not found") }
+            }
+    }
+
+    @Test
+    fun `createEmployee should return 500 if email already exists`() {
+        val dto = validCreateEmployeeDto()
+        `when`(employeeService.createEmployee(anyNonNull())).thenReturn(EmployeeServiceError.EmailAlreadyExists.left())
+
+        mockMvc
+            .post("/api/admin/employees") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isInternalServerError() }
+            }
+    }
+
+    @Test
+    fun `createEmployee should return 400 if invalid request body`() {
+        mockMvc
+            .post("/api/admin/employees") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `updateEmployee should return 404 if employee not found`() {
+        val dto = validUpdateEmployeeDto()
+        `when`(employeeService.updateEmployee(eq(1L), anyNonNull())).thenReturn(EmployeeServiceError.NotFound.left())
+
+        mockMvc
+            .put("/api/admin/employees/1") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Employee not found") }
+            }
+    }
+
+    @Test
+    fun `updateEmployee should return 404 if role not found`() {
+        val dto = validUpdateEmployeeDto()
+        `when`(employeeService.updateEmployee(eq(1L), anyNonNull())).thenReturn(EmployeeServiceError.RoleNotFound.left())
+
+        mockMvc
+            .put("/api/admin/employees/1") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Role not found") }
+            }
+    }
+
+    @Test
+    fun `updateEmployee should return 400 if invalid request body`() {
+        mockMvc
+            .put("/api/admin/employees/1") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `deleteEmployee should return 404 if not found`() {
+        `when`(employeeService.deleteEmployee(1L)).thenReturn(EmployeeServiceError.NotFound.left())
+
+        mockMvc
+            .delete("/api/admin/employees/1")
+            .andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `deactivateEmployee should return 404 if not found`() {
+        `when`(employeeService.deactivateEmployee(1L)).thenReturn(EmployeeServiceError.NotFound.left())
+
+        mockMvc
+            .patch("/api/admin/employees/1/deactivate")
+            .andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `getCurrentEmployee should return 401 if not authenticated`() {
+        SecurityContextHolder.clearContext()
+
+        mockMvc
+            .get("/api/admin/employees/me")
+            .andExpect {
+                status { isUnauthorized() }
             }
     }
 

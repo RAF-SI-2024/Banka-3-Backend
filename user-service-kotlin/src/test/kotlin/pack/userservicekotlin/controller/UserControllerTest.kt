@@ -49,6 +49,29 @@ class UserControllerTest {
     }
 
     @Test
+    fun `getAllUsers should return empty page when no users exist`() {
+        val emptyPage = PageImpl<UserResponseDto>(emptyList())
+        `when`(userService.listUsers(PageRequest.of(0, 10))).thenReturn(emptyPage)
+
+        mockMvc
+            .get("/api/admin/users?page=0&size=10")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.content") { isArray() }
+                jsonPath("$.content.length()") { value(0) }
+            }
+    }
+
+    @Test
+    fun `getAllUsers should handle invalid page parameters`() {
+        mockMvc
+            .get("/api/admin/users?page=-1&size=0")
+            .andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
     fun `getUserRole should return role name`() {
         `when`(userService.getUserRole(1L)).thenReturn("AGENT".right())
 
@@ -69,6 +92,18 @@ class UserControllerTest {
             .andExpect {
                 status { isNotFound() }
                 content { string("User not found") }
+            }
+    }
+
+    @Test
+    fun `getUserRole should return 400 if role not found`() {
+        `when`(userService.getUserRole(1L)).thenReturn(UserServiceError.RoleNotAssigned.left())
+
+        mockMvc
+            .get("/api/admin/users/1/role")
+            .andExpect {
+                status { isBadRequest() }
+                content { string("Role not assigned to user") }
             }
     }
 
@@ -105,6 +140,49 @@ class UserControllerTest {
     }
 
     @Test
+    fun `addRoleToUser should return 404 if user not found`() {
+        val dto = RoleRequestDto(id = 1L)
+
+        `when`(userService.addRoleToUser(Mockito.eq(1L), anyNonNull<RoleRequestDto>()))
+            .thenReturn(UserServiceError.UserNotFound.left())
+
+        mockMvc
+            .post("/api/admin/users/1/role") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `addRoleToUser should return 404 if role not found`() {
+        val dto = RoleRequestDto(id = 1L)
+
+        `when`(userService.addRoleToUser(Mockito.eq(1L), anyNonNull<RoleRequestDto>()))
+            .thenReturn(UserServiceError.RoleNotFound.left())
+
+        mockMvc
+            .post("/api/admin/users/1/role") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(dto)
+            }.andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `addRoleToUser should return 400 if invalid request body`() {
+        mockMvc
+            .post("/api/admin/users/1/role") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
     fun `removeRoleFromUser should return 200 on success`() {
         `when`(userService.removeRoleFromUser(1L, 1L)).thenReturn(Unit.right())
 
@@ -121,6 +199,37 @@ class UserControllerTest {
 
         mockMvc
             .delete("/api/admin/users/1/role/1")
+            .andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `removeRoleFromUser should return 404 if user not found`() {
+        `when`(userService.removeRoleFromUser(1L, 1L)).thenReturn(UserServiceError.UserNotFound.left())
+
+        mockMvc
+            .delete("/api/admin/users/1/role/1")
+            .andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `removeRoleFromUser should return 404 if role not found`() {
+        `when`(userService.removeRoleFromUser(1L, 1L)).thenReturn(UserServiceError.RoleNotFound.left())
+
+        mockMvc
+            .delete("/api/admin/users/1/role/1")
+            .andExpect {
+                status { isNotFound() }
+            }
+    }
+
+    @Test
+    fun `removeRoleFromUser should return 400 if invalid path variables`() {
+        mockMvc
+            .delete("/api/admin/users/invalid/role/invalid")
             .andExpect {
                 status { isBadRequest() }
             }
