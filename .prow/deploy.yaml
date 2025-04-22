@@ -1,7 +1,7 @@
 postsubmits:
   - name: post-banka-3-backend-deploy
     branches:
-      - ^v1\.d+\.\d+.*
+      - ^v\d+\.\d+\.\d+.*
     decorate: true
     max_concurrency: 1
     labels:
