@@ -135,9 +135,9 @@ public class OrderController {
             @Valid @RequestBody CreateOrderDto createOrderDto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(createOrderDto, authHeader));
-        } catch (ListingNotFoundException | AccountNotFoundException | ActuaryLimitNotFoundException e) {
+        } catch (ListingNotFoundException | ActuaryLimitNotFoundException | PortfolioEntryNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (StopPriceMissingException | LimitPriceMissingException e){
+        } catch (StopPriceMissingException | LimitPriceMissingException | PortfolioAmountNotEnoughException e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
