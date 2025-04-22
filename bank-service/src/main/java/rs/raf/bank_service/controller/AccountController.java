@@ -282,6 +282,18 @@ public class AccountController {
         return ResponseEntity.ok(account.getAccountNumber());
     }
 
+    //Za Cto
+    @GetMapping("/company/{companyId}/usd-account-number")
+    public ResponseEntity<?> getAccountNumberByCompanyId(@PathVariable Long companyId) {
+        AccountDto account = accountService.getUSDAccountForCompany(companyId);
+
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(account.getAccountNumber());
+    }
+
     // Globalni Exception Handleri
 
     @ExceptionHandler(IllegalStateException.class)

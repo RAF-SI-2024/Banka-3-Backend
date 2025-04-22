@@ -2,6 +2,7 @@ package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
@@ -17,10 +18,7 @@ import rs.raf.bank_service.domain.enums.TransactionType;
 import rs.raf.bank_service.domain.enums.VerificationType;
 import rs.raf.bank_service.domain.mapper.PaymentMapper;
 import rs.raf.bank_service.exceptions.*;
-import rs.raf.bank_service.repository.AccountRepository;
-import rs.raf.bank_service.repository.CardRepository;
-import rs.raf.bank_service.repository.CompanyAccountRepository;
-import rs.raf.bank_service.repository.PaymentRepository;
+import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.specification.PaymentSpecification;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
@@ -37,6 +35,7 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private final CurrencyRepository currencyRepository;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
 
@@ -113,7 +112,9 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentDetailsDto createAndExecuteSystemPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
+    public PaymentDetailsDto createAndExecuteSystemPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException, AgentLimitExceededException, UpdateUsedLimitException {
+        checkAndUpdateLimit(paymentDto, clientId);
+
         Payment payment = createPayment(paymentDto, clientId);
         return confirmPayment(payment.getId());
     }
@@ -200,6 +201,11 @@ public class PaymentService {
     }
 
     private Account getSenderAccount(String accountNumber, Long clientId) {
+        CompanyAccount companyAccount = getBankCompanyAccount(currencyRepository.findByCode("USD").orElseThrow());
+        if (accountNumber.equals(companyAccount.getAccountNumber())) {
+            return companyAccount;
+        }
+
         return accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
@@ -224,6 +230,28 @@ public class PaymentService {
 
         if (paymentDto.getPurposeOfPayment() == null || paymentDto.getPurposeOfPayment().isEmpty()) {
             throw new PurposeOfPaymentNotProvidedException();
+        }
+    }
+
+    private void checkAndUpdateLimit(CreatePaymentDto paymentDto, Long clientId) {
+        ActuaryLimitDto actuaryLimitDto = userClient.getAgentLimit(clientId);
+        if (actuaryLimitDto == null) {
+            System.out.println("no limit needeed");
+            return; // nema limit, user je client / supervisor / admin
+        }
+        // ako ima limit znaci da je sender 100% USD bank racun, jer sa drugih agent ne moze ni da se salje
+
+        BigDecimal newUsedLimit = actuaryLimitDto.getUsedLimit().add(paymentDto.getAmount());
+
+        if (newUsedLimit.compareTo(actuaryLimitDto.getLimitAmount()) > 0) {
+            System.out.println("limit exceeded");
+            throw new AgentLimitExceededException();
+        }
+
+        ActuaryLimitDto newLimitDto = userClient.updateUsedLimit(clientId, new ChangeAgentLimitDto(newUsedLimit));
+        if (newLimitDto == null) {
+            System.out.println("failed to update limit");
+            throw new UpdateUsedLimitException();
         }
     }
 

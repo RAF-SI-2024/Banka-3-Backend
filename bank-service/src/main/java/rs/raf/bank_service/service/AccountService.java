@@ -114,6 +114,15 @@ public class AccountService {
 
     }
 
+    public AccountDto getUSDAccountForCompany(Long companyId) {
+        List<CompanyAccount> account = companyAccountRepository.findByCompanyIdAndCurrency_Code(
+                companyId, "USD"
+        );
+
+        return AccountMapper.toDto(account.get(0), null);
+
+    }
+
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);

@@ -184,7 +184,7 @@ public class OrderService {
         if (accountDetailsDto == null)
             throw new AccountNotFoundException(createOrderDto.getAccountNumber());
 
-        if (accountDetailsDto.getCurrencyCode() != "USD")
+        if (!accountDetailsDto.getCurrencyCode().equals("USD"))
             throw new WrongCurrencyAccountException("USD");
 
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
@@ -215,9 +215,14 @@ public class OrderService {
         if(order.getUserRole().equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(order.getUserId());
 
-            if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
-                    getUsedLimit()).compareTo(expectedTotalPrice) >= 0)
-                order.setStatus(OrderStatus.APPROVED);
+            if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(expectedTotalPrice) < 0) {
+                order.setStatus(OrderStatus.CANCELLED);
+            } else {
+                if (!actuaryLimitDto.isNeedsApproval())
+                    order.setStatus(OrderStatus.APPROVED);
+            }
+
+
         } else {
             order.setStatus(OrderStatus.APPROVED);
         }
@@ -266,8 +271,12 @@ public class OrderService {
         long volume = order.getListing() instanceof Stock ? Math.max(200000, ((Stock) order.getListing()).getVolume()) : 1000000;
 
         try {
-            Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
-            Thread.sleep(randomTime.longValue() + extraTime);
+            if (!order.isAllOrNone() && order.getRemainingPortions() < order.getQuantity()) {
+                Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
+                System.out.println("Sleeping for " + randomTime);
+                Thread.sleep(randomTime.longValue() + extraTime);
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -283,7 +292,7 @@ public class OrderService {
 
         String stockMarketAccount;
         try{
-            stockMarketAccount = bankClient.getUSDAccountNumberByClientId(4L).getBody();
+            stockMarketAccount = bankClient.getUSDAccountNumberByCompanyId(4L).getBody();
         } catch (Exception e){
             e.printStackTrace();
             finaliseExecution(order);
@@ -314,6 +323,9 @@ public class OrderService {
                 .purposeOfPayment("Order Transaction")
                 .paymentCode("289")
                 .build();
+
+        System.out.println("receiver stock");
+        System.out.println(receiverAccount);
 
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                         .clientId(order.getUserId())
@@ -362,7 +374,7 @@ public class OrderService {
 
         String bankAccount;
         try{
-            bankAccount = bankClient.getUSDAccountNumberByClientId(1L).getBody();
+            bankAccount = bankClient.getUSDAccountNumberByCompanyId(1L).getBody();
         } catch (Exception e){
             e.printStackTrace();
             return;
@@ -383,6 +395,9 @@ public class OrderService {
                 .purposeOfPayment("Order Commission")
                 .paymentCode("289")
                 .build();
+
+        System.out.println("receiver bank");
+        System.out.println(bankAccount);
 
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                 .clientId(order.getUserId())
