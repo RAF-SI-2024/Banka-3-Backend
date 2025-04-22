@@ -2,7 +2,9 @@ package rs.raf.bank_service.bootstrap;
 
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import rs.raf.bank_service.domain.entity.*;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.repository.*;
@@ -32,11 +34,17 @@ public class BootstrapData implements CommandLineRunner {
     private final PayeeRepository payeeRepository;
 
     @Override
+    @Transactional
     public void run(String... args) {
-        initializeCurrencies();
-        initializeExchangeRates();
-        initializeAccountsAndTransactions();
-        initializeBankAccounts();
+        try {
+            initializeCurrencies();
+            initializeExchangeRates();
+            initializeAccountsAndTransactions();
+            initializeBankAccounts();
+        } catch (Exception e) {
+            // Log the error but don't throw it to prevent application shutdown
+            e.printStackTrace();
+        }
     }
 
     private void initializeCurrencies() {
@@ -54,7 +62,8 @@ public class BootstrapData implements CommandLineRunner {
         }
     }
 
-    private void initializeAccountsAndTransactions() {
+    @Transactional
+    public void initializeAccountsAndTransactions() {
         if (accountRepository.count() == 0) {
             List<String> existingAccountNumbers = accountRepository.findAll()
                     .stream()
@@ -210,25 +219,11 @@ public class BootstrapData implements CommandLineRunner {
                 }
             }
 
-            // Create diverse transactions
+            // Create diverse transactions with reduced volume
             List<Account> allAccounts = accountRepository.findAll();
             for (Account senderAccount : allAccounts) {
-                // Determine transaction patterns
-                double activityLevel = Math.random(); // Overall activity level
-                double consistencyLevel = Math.random(); // How consistent are their transactions
-                double riskLevel = Math.random(); // Affects failure rates
-
-                // Base number of transactions varies greatly
-                int baseTransactions;
-                if (activityLevel < 0.2) { // Very low activity
-                    baseTransactions = 1 + (int)(Math.random() * 5); // 1-5 transactions
-                } else if (activityLevel < 0.5) { // Low activity
-                    baseTransactions = 5 + (int)(Math.random() * 10); // 5-15 transactions
-                } else if (activityLevel < 0.8) { // Moderate activity
-                    baseTransactions = 15 + (int)(Math.random() * 20); // 15-35 transactions
-                } else { // High activity
-                    baseTransactions = 35 + (int)(Math.random() * 30); // 35-65 transactions
-                }
+                // Reduce the number of transactions per account
+                int baseTransactions = 1 + (int)(Math.random() * 3); // 1-3 transactions per account
 
                 for (int i = 0; i < baseTransactions; i++) {
                     // Select random receiver
@@ -237,64 +232,33 @@ public class BootstrapData implements CommandLineRunner {
                         receiverAccount = allAccounts.get((int)(Math.random() * allAccounts.size()));
                     } while (receiverAccount.getAccountNumber().equals(senderAccount.getAccountNumber()));
 
-                    // Transaction timing varies by consistency level
-                    long daysAgo;
-                    if (consistencyLevel < 0.3) { // Irregular activity
-                        daysAgo = (long)(Math.random() * 90); // 0-90 days
-                    } else if (consistencyLevel < 0.7) { // Somewhat regular
-                        daysAgo = (long)(Math.random() * 45); // 0-45 days
-                    } else { // Regular activity
-                        daysAgo = (long)(Math.random() * 30); // 0-30 days
-                    }
-
-                    // Transaction amounts vary by account balance and activity pattern
-                    double baseAmount;
-                    double randomFactor = Math.random();
-                    if (randomFactor < 0.6) { // 60% normal transactions
-                        baseAmount = 50 + Math.random() * 950; // 50-1000
-                    } else if (randomFactor < 0.9) { // 30% larger transactions
-                        baseAmount = 1000 + Math.random() * 4000; // 1000-5000
-                    } else { // 10% very large transactions
-                        baseAmount = 5000 + Math.random() * 15000; // 5000-20000
-                    }
-
-                    // Adjust amount based on account balance (can't send more than they have)
-                    baseAmount = Math.min(baseAmount, senderAccount.getBalance().doubleValue() * 0.9);
-
-                    // Calculate failure chance based on risk level and amount
-                    double failureChance = 0.05 + (riskLevel * 0.15); // Base 5-20% failure rate
-                    failureChance += (baseAmount / senderAccount.getBalance().doubleValue()) * 0.1; // Higher chance for larger relative amounts
-
                     // Create payment with natural variations
                     Payment payment = Payment.builder()
                             .senderName("Sender " + senderAccount.getClientId())
                             .clientId(senderAccount.getClientId())
                             .senderAccount(senderAccount)
-                            .amount(BigDecimal.valueOf(baseAmount).setScale(2, RoundingMode.HALF_UP))
-                            .date(LocalDateTime.now().minusDays(daysAgo))
-                            .status(Math.random() > failureChance ? PaymentStatus.COMPLETED : PaymentStatus.CANCELED)
-                            .purposeOfPayment("Payment " + i)
+                            .amount(BigDecimal.valueOf(1000).setScale(2, RoundingMode.HALF_UP)) // Fixed amount for testing
+                            .date(LocalDateTime.now().minusDays(1))
+                            .status(PaymentStatus.COMPLETED)
+                            .purposeOfPayment("Test Payment " + i)
                             .referenceNumber(String.format("REF%08d", i))
                             .accountNumberReceiver(receiverAccount.getAccountNumber())
                             .receiverClientId(receiverAccount.getClientId())
                             .build();
 
-                    // Card usage varies by availability and preference
-                    if (!senderAccount.getCards().isEmpty() && Math.random() > 0.3) { // 70% card usage if available
-                        payment.setCard(senderAccount.getCards().get(0));
-                    }
-
-                    // Handle currency exchange if needed
-                    if (!senderAccount.getCurrency().equals(receiverAccount.getCurrency())) {
-                        payment.setOutAmount(payment.getAmount().multiply(BigDecimal.valueOf(0.95)));
-                        payment.setExchangeProfit(payment.getAmount().multiply(BigDecimal.valueOf(0.05)));
-                    }
-
-                    payment = paymentRepository.save(payment);
                     newPayments.add(payment);
                 }
             }
 
+            // Save payments in batches
+            int batchSize = 10;
+            for (int i = 0; i < newPayments.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, newPayments.size());
+                List<Payment> batch = newPayments.subList(i, end);
+                paymentRepository.saveAll(batch);
+            }
+
+//          addInitialAccounts();
             int x = 0;
             for (Account account : allAccounts) {
                 // Kreiranje primera zahteva za kredit
@@ -502,7 +466,6 @@ public class BootstrapData implements CommandLineRunner {
 
             // Save all installments
             installmentRepository.saveAll(newInstallments);
-            addInitialAccounts();
         }
     }
 
