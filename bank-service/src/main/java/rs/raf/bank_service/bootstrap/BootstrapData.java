@@ -210,6 +210,41 @@ public class BootstrapData implements CommandLineRunner {
                 }
             }
 
+            // Kreiranje primera zahteva za kredit
+            LoanRequest loanRequest = LoanRequest.builder()
+                    .type(LoanType.AUTO)
+                    .amount(new BigDecimal("500000"))
+                    .purpose("Kupovina automobila")
+                    .monthlyIncome(new BigDecimal("1000"))
+                    .employmentStatus(EmploymentStatus.PERMANENT)
+                    .employmentDuration(36)
+                    .repaymentPeriod(24)
+                    .contactPhone("+381641234567")
+                    .account(currentAccount1)
+                    .currency(currencyRSD)
+                    .status(LoanRequestStatus.APPROVED)
+                    .interestRateType(InterestRateType.FIXED)
+                    .build();
+
+            LoanRequest loanRequest2 = LoanRequest.builder()
+                    .type(LoanType.CASH)
+                    .amount(new BigDecimal("300000"))
+                    .purpose("Kupovina necega")
+                    .monthlyIncome(new BigDecimal("1000"))
+                    .employmentStatus(EmploymentStatus.PERMANENT)
+                    .employmentDuration(36)
+                    .repaymentPeriod(24)
+                    .contactPhone("+381641234567")
+                    .account(currentAccount1)
+                    .currency(currencyRSD)
+                    .status(LoanRequestStatus.PENDING)
+                    .interestRateType(InterestRateType.FIXED)
+                    .build();
+
+            loanRequestRepository.save(loanRequest);
+            loanRequestRepository.save(loanRequest2);
+
+
             // Create diverse transactions
             List<Account> allAccounts = accountRepository.findAll();
             for (Account senderAccount : allAccounts) {

@@ -638,7 +638,17 @@ public class BootstrapData implements CommandLineRunner {
                     .majorityOwner(clientRepository.findById(1L).get())
                     .build();
 
-            companyRepository.saveAll(List.of(bank, state, company1));
+            Company stockMarket = Company.builder()
+                    .id(4L)
+                    .address("Adresa berze")
+                    .name("Berza")
+                    .activityCode("10.02")
+                    .registrationNumber("2")
+                    .taxId("2")
+                    .majorityOwner(null)
+                    .build();
+
+            companyRepository.saveAll(List.of(bank, state, company1, stockMarket));
         }
 
         if (authTokenRepository.count() == 0){

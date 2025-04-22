@@ -27,11 +27,14 @@ public class PortfolioEntry {
     @Enumerated(EnumType.STRING)
     private ListingType type;
 
+    @Column(nullable = false)
     private Integer amount;
 
-    private BigDecimal averagePrice;
-
     private Integer publicAmount = 0;
+
+    private Integer reservedAmount = 0;
+
+    private BigDecimal averagePrice;
 
     private Boolean inTheMoney = false;    // Za opcije
 
@@ -40,4 +43,9 @@ public class PortfolioEntry {
     private LocalDateTime lastModified;
 
     // moze se npr i dodati i currentProfit, ali bolje ga izračunavati na getPortfolio pozivu
+
+    //Za order i Option (ne otc) prodaju je slobodno samo sto nije public i rezervisano
+    public Integer getAvailableAmount(){
+        return amount - publicAmount - reservedAmount;
+    }
 }
