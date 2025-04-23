@@ -756,18 +756,10 @@ public class AccountServiceTest {
         acc.setCurrency(usd);
 
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
-        when(accountRepository.findFirstByCurrencyAndCompanyId(usd, companyId)).thenReturn(Optional.of(acc));
+        when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of(acc));
 
         String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
         assertEquals("usdCompanyAcc", result);
-    }
-
-    @Test void getUSDAccountForCompany_CurrencyNotFound_ReturnsNull() {
-        Long companyId = 10L;
-        when(currencyRepository.findByCode("USD")).thenReturn(Optional.empty());
-
-        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
-        assertNull(result);
     }
 
     @Test void getUSDAccountForCompany_AccountNotFound_ReturnsNull() {
@@ -775,9 +767,9 @@ public class AccountServiceTest {
         Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
 
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
-        when(accountRepository.findFirstByCurrencyAndCompanyId(usd, companyId)).thenReturn(Optional.empty());
+        when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of());
 
-        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
+        AccountDto result = accountService.getUSDAccountForCompany(companyId);
         assertNull(result);
     }
 }

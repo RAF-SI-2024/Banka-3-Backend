@@ -123,6 +123,8 @@ public class AccountService {
                 companyId, "USD"
         );
 
+        if (account.isEmpty()) return null;
+
         return AccountMapper.toDto(account.get(0), null);
     }
 
