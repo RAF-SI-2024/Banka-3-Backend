@@ -148,8 +148,6 @@ public class PortfolioService {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public void updateHoldingsOnOrderExecution(Order order) {
-        if (!order.getIsDone()) return;
-
         PortfolioEntry entry = portfolioEntryRepository
                 .findByUserIdAndListing(order.getUserId(), order.getListing())
                 .orElse(null);
