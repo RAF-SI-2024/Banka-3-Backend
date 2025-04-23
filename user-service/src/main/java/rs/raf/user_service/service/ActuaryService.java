@@ -127,6 +127,17 @@ public class ActuaryService {
         return actuaryLimitDto;
     }
 
+    public ActuaryLimitDto updateUsedLimit(Long id, BigDecimal newLimit) {
+        ActuaryLimit actuaryLimit = actuaryLimitRepository.findByEmployeeId(id).orElseThrow(() -> new ActuaryLimitNotFoundException(id));
+        actuaryLimit.setUsedLimit(newLimit);
+        ActuaryLimitDto actuaryLimitDto = new ActuaryLimitDto();
+        actuaryLimitDto.setLimitAmount(actuaryLimit.getLimitAmount());
+        actuaryLimitDto.setUsedLimit(actuaryLimit.getUsedLimit());
+        actuaryLimitDto.setNeedsApproval(actuaryLimit.isNeedsApproval());
+        actuaryLimitRepository.save(actuaryLimit);
+        return actuaryLimitDto;
+    }
+
     //Na svakih 15 sekundi
     //@Scheduled(cron = "*/15 * * * * *")
 

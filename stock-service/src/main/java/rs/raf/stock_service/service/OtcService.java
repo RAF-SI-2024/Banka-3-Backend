@@ -257,7 +257,9 @@ public class OtcService {
                 .premium(offer.getPremium())
                 .status(OtcOptionStatus.VALID)
                 .build();
-        otcOptionRepository.save(otcOption);
+
+        offer.setOtcOption(otcOptionRepository.save(otcOption));
+        otcOfferRepository.save(offer);
     }
 
     public void handleAcceptFailedPayment(Long trackedPaymentId){

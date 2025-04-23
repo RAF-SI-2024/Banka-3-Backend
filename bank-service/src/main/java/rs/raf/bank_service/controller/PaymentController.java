@@ -152,7 +152,7 @@ public class PaymentController {
         }
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
     @GetMapping
     @Operation(summary = "Get payments page filtered", description = "Get filtered page of payments.")
     @ApiResponses(value = {
@@ -175,7 +175,7 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasRole('CLIENT') or hasRole('EMPLOYEE')")
     @GetMapping("/{id}")
     @Operation(summary = "Get payment details", description = "Get payment details.")
     @ApiResponses(value = {

@@ -87,7 +87,7 @@ interface EmployeeApiDoc {
     )
     @PatchMapping("/{id}/activate")
     fun activateEmployee(
-        @Parameter(description = "Employee ID") @PathVariable id: Long,
+        @Parameter(description = "Employee ID", required = true, example = "1") @PathVariable id: Long,
     ): ResponseEntity<Void>
 
     @Operation(summary = "Get current employee", description = "Returns the currently authenticated employee's details")

@@ -52,6 +52,10 @@ class AuthService(
             employeeRepository.findByEmail(email!!).orElse(null)
                 ?: return AuthServiceError.InvalidCredentials.left()
 
+        if (!user.active) {
+            return AuthServiceError.UserNotActive.left()
+        }
+
         return if (!passwordEncoder.matches(password, user.password)) {
             AuthServiceError.InvalidCredentials.left()
         } else {

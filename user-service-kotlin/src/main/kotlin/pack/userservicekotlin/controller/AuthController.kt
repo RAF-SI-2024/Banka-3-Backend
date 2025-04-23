@@ -1,6 +1,5 @@
 package pack.userservicekotlin.controller
 
-import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -13,7 +12,6 @@ import pack.userservicekotlin.domain.dto.login.LoginResponseDto
 import pack.userservicekotlin.service.AuthService
 import pack.userservicekotlin.swagger.AuthApiDoc
 
-@Tag(name = "Authentication Controller", description = "API for authenticating users")
 @RestController
 @RequestMapping("/api/auth")
 class AuthController(

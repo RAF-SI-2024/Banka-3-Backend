@@ -28,7 +28,7 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private Long userId;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String userRole;
 
     @ManyToOne
@@ -55,7 +55,7 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal pricePerUnit;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private BigDecimal totalPrice;
 
     @Column(nullable = false)

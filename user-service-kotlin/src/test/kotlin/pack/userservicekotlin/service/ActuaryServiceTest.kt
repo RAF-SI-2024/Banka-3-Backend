@@ -9,8 +9,11 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.domain.Specification
 import pack.userservicekotlin.arrow.ActuaryServiceError
 import pack.userservicekotlin.domain.TestDataFactory
+import pack.userservicekotlin.domain.entities.Client
+import pack.userservicekotlin.domain.entities.Employee
 import pack.userservicekotlin.external.StockClient
 import pack.userservicekotlin.repository.ActuaryLimitRepository
 import pack.userservicekotlin.repository.ClientRepository
@@ -43,7 +46,14 @@ class ActuaryServiceTest {
         val employee = TestDataFactory.employee()
         val employeePage = PageImpl(listOf(employee))
 
-        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(employeePage)
+        `when`(
+            employeeRepository.findAll(
+                argThat<Specification<Employee>> {
+                    it is Specification<Employee>
+                },
+                eq(pageable),
+            ),
+        ).thenReturn(employeePage)
 
         val result = actuaryService.findAll("a", "b", "c", "d", pageable)
 
@@ -164,7 +174,14 @@ class ActuaryServiceTest {
         val employeePage = PageImpl(listOf(employee))
         val order = TestDataFactory.orderDto(userId = 1L, profit = BigDecimal(100))
 
-        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(employeePage)
+        `when`(
+            employeeRepository.findAll(
+                argThat<Specification<Employee>> {
+                    it is Specification<Employee>
+                },
+                eq(pageable),
+            ),
+        ).thenReturn(employeePage)
         `when`(stockClient.getAll()).thenReturn(listOf(order))
 
         val result = actuaryService.findActuaries(pageable)
@@ -180,7 +197,14 @@ class ActuaryServiceTest {
         val employee = TestDataFactory.employee(id = 1L)
         val employeePage = PageImpl(listOf(employee))
 
-        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(employeePage)
+        `when`(
+            employeeRepository.findAll(
+                argThat<Specification<Employee>> {
+                    it is Specification<Employee>
+                },
+                eq(pageable),
+            ),
+        ).thenReturn(employeePage)
         `when`(stockClient.getAll()).thenThrow(RuntimeException("Stock service down"))
 
         val result = actuaryService.findActuaries(pageable)
@@ -188,5 +212,158 @@ class ActuaryServiceTest {
         assertTrue(result.isLeft())
         val error = result.swap().getOrNull()
         assertTrue(error is ActuaryServiceError.ExternalServiceError)
+    }
+
+    @Test
+    fun `findAgents returns page of AgentDto`() {
+        val employee = TestDataFactory.employee(id = 1L)
+        val employeePage = PageImpl(listOf(employee))
+        val limit = TestDataFactory.actuaryLimit()
+
+        `when`(
+            employeeRepository.findAll(
+                argThat<Specification<Employee>> {
+                    it is Specification<Employee>
+                },
+                eq(pageable),
+            ),
+        ).thenReturn(employeePage)
+        `when`(actuaryLimitRepository.findByEmployeeId(1L)).thenReturn(Optional.of(limit))
+
+        val result = actuaryService.findAgents("a", "b", "c", "d", pageable)
+
+        assertTrue(result.isRight())
+        val page = result.getOrNull()
+        assertEquals(1, page?.totalElements)
+        assertEquals(limit.limitAmount, page?.content?.get(0)?.limitAmount)
+        assertEquals(limit.usedLimit, page?.content?.get(0)?.usedLimit)
+        assertEquals(limit.needsApproval, page?.content?.get(0)?.needsApproval)
+    }
+
+    @Test
+    fun `findAgents fails when actuary limit not found`() {
+        val employee = TestDataFactory.employee(id = 1L)
+        val employeePage = PageImpl(listOf(employee))
+
+        `when`(
+            employeeRepository.findAll(
+                argThat<Specification<Employee>> {
+                    it is Specification<Employee>
+                },
+                eq(pageable),
+            ),
+        ).thenReturn(
+            @Suppress("ktlint:standard:max-line-length")
+            employeePage,
+        )
+        `when`(actuaryLimitRepository.findByEmployeeId(1L)).thenReturn(Optional.empty())
+
+        val result = actuaryService.findAgents("a", "b", "c", "d", pageable)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.ActuaryLimitNotFound)
+    }
+
+    @Test
+    fun `getAllAgentsAndClients returns combined list with role filter`() {
+        val employee = TestDataFactory.employee(id = 1L, role = TestDataFactory.role("AGENT"))
+        val client = TestDataFactory.client(id = 2L)
+
+        `when`(employeeRepository.findAll(argThat<Specification<Employee>> { it is Specification<Employee> })).thenReturn(listOf(employee))
+        `when`(clientRepository.findAll(argThat<Specification<Client>> { it is Specification<Client> })).thenReturn(emptyList())
+
+        val result = actuaryService.getAllAgentsAndClients("", "", "AGENT")
+
+        assertTrue(result.isRight())
+        val list = result.getOrNull()
+        assertEquals(1, list?.size)
+        assertEquals("AGENT", list?.get(0)?.role)
+    }
+
+    @Test
+    fun `getAllAgentsAndClients returns combined list with name filter`() {
+        val employee = TestDataFactory.employee(id = 1L, firstName = "John")
+        val client = TestDataFactory.client(id = 2L, firstName = "John")
+
+        `when`(employeeRepository.findAll(argThat<Specification<Employee>> { it is Specification<Employee> })).thenReturn(listOf(employee))
+        `when`(clientRepository.findAll(argThat<Specification<Client>> { it is Specification<Client> })).thenReturn(listOf(client))
+
+        val result = actuaryService.getAllAgentsAndClients("John", "", "")
+
+        assertTrue(result.isRight())
+        val list = result.getOrNull()
+        assertEquals(2, list?.size)
+        assertTrue(list?.all { it.firstName == "John" } ?: false)
+    }
+
+    @Test
+    fun `updateUsedLimit succeeds`() {
+        val limit = TestDataFactory.actuaryLimit()
+        val newLimit = BigDecimal(5000)
+
+        `when`(actuaryLimitRepository.findByEmployeeId(1L)).thenReturn(Optional.of(limit))
+
+        val result = actuaryService.updateUsedLimit(1L, newLimit)
+
+        assertTrue(result.isRight())
+        val dto = result.getOrNull()
+        assertEquals(newLimit, dto?.usedLimit)
+        assertEquals(limit.limitAmount, dto?.limitAmount)
+        assertEquals(limit.needsApproval, dto?.needsApproval)
+        verify(actuaryLimitRepository).save(limit)
+    }
+
+    @Test
+    fun `updateUsedLimit fails when limit not found`() {
+        `when`(actuaryLimitRepository.findByEmployeeId(1L)).thenReturn(Optional.empty())
+
+        val result = actuaryService.updateUsedLimit(1L, BigDecimal(5000))
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.ActuaryLimitNotFound)
+    }
+
+    @Test
+    fun `changeAgentLimit fails when employee is not an agent`() {
+        val employee = TestDataFactory.employee(id = 1L, role = TestDataFactory.role("ADMIN"))
+
+        `when`(employeeRepository.findById(1L)).thenReturn(Optional.of(employee))
+
+        val result = actuaryService.changeAgentLimit(1L, BigDecimal(9000))
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.NotAnAgent)
+    }
+
+    @Test
+    fun `resetDailyLimit fails when employee is not an agent`() {
+        val employee = TestDataFactory.employee(id = 1L, role = TestDataFactory.role("ADMIN"))
+
+        `when`(employeeRepository.findById(1L)).thenReturn(Optional.of(employee))
+
+        val result = actuaryService.resetDailyLimit(1L)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.NotAnAgent)
+    }
+
+    @Test
+    fun `setApproval fails when employee is not an agent`() {
+        val employee = TestDataFactory.employee(id = 1L, role = TestDataFactory.role("ADMIN"))
+
+        `when`(employeeRepository.findById(1L)).thenReturn(Optional.of(employee))
+
+        val result = actuaryService.setApproval(1L, true)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.NotAnAgent)
+    }
+
+    @Test
+    fun `findActuaries fails when pageable is null`() {
+        val result = actuaryService.findActuaries(null)
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is ActuaryServiceError.NotAnAgent)
     }
 }

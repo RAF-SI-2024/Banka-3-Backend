@@ -10,10 +10,12 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import pack.userservicekotlin.arrow.EmployeeServiceError
 import pack.userservicekotlin.domain.TestDataFactory
 import pack.userservicekotlin.domain.dto.employee.CreateEmployeeDto
 import pack.userservicekotlin.domain.dto.employee.UpdateEmployeeDto
 import pack.userservicekotlin.domain.dto.external.EmailRequestDto
+import pack.userservicekotlin.domain.mapper.toEntity
 import pack.userservicekotlin.repository.*
 import java.util.*
 
@@ -59,6 +61,16 @@ class EmployeeServiceTest {
     }
 
     @Test
+    fun `findById returns error if not found`() {
+        `when`(employeeRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = employeeService.findById(99L)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.NotFound, result.swap().getOrNull())
+    }
+
+    @Test
     fun `deleteEmployee removes employee`() {
         val employee = TestDataFactory.employee(id = 11L)
         `when`(employeeRepository.findById(11L)).thenReturn(Optional.of(employee))
@@ -67,6 +79,16 @@ class EmployeeServiceTest {
 
         assertTrue(result.isRight())
         verify(employeeRepository).delete(employee)
+    }
+
+    @Test
+    fun `deleteEmployee returns error if not found`() {
+        `when`(employeeRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = employeeService.deleteEmployee(99L)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.NotFound, result.swap().getOrNull())
     }
 
     @Test
@@ -82,6 +104,16 @@ class EmployeeServiceTest {
     }
 
     @Test
+    fun `deactivateEmployee returns error if not found`() {
+        `when`(employeeRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = employeeService.deactivateEmployee(99L)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.NotFound, result.swap().getOrNull())
+    }
+
+    @Test
     fun `activateEmployee sets active to true`() {
         val employee = TestDataFactory.employee(id = 13L, active = false)
         `when`(employeeRepository.findById(13L)).thenReturn(Optional.of(employee))
@@ -94,29 +126,133 @@ class EmployeeServiceTest {
     }
 
     @Test
-    fun `createEmployee saves employee and sends email`() {
-        val dto =
-            CreateEmployeeDto(
-                firstName = "Jane",
-                lastName = "Doe",
-                email = "jane@example.com",
-                gender = "F",
-                phone = "999999999",
-                address = "Street 12",
-                position = "Agent",
-                department = "Sales",
-                role = "AGENT",
-            )
-        val role = TestDataFactory.role("AGENT")
+    fun `activateEmployee returns error if not found`() {
+        `when`(employeeRepository.findById(99L)).thenReturn(Optional.empty())
 
-        `when`(roleRepository.findByName("AGENT")).thenReturn(Optional.of(role))
-        `when`(employeeRepository.save(any())).thenAnswer { it.arguments[0] }
+        val result = employeeService.activateEmployee(99L)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.NotFound, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `createEmployee creates and saves employee`() {
+        val dto = CreateEmployeeDto(
+            firstName = "John",
+            lastName = "Doe",
+            email = "john@example.com",
+            gender = "M",
+            phone = "1234",
+            address = "Street 1",
+            position = "Developer",
+            department = "IT",
+            jmbg = "123",
+            birthDate = Date(),
+            role = "EMPLOYEE"
+        )
+        val role = TestDataFactory.role("EMPLOYEE")
+        val employee = dto.toEntity()!!
+        employee.role = role
+
+        `when`(employeeRepository.findByEmail("john@example.com")).thenReturn(Optional.empty())
+        `when`(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.of(role))
+        `when`(employeeRepository.save(any())).thenReturn(employee)
 
         val result = employeeService.createEmployee(dto)
 
         assertTrue(result.isRight())
-        verify(rabbitTemplate).convertAndSend(eq("set-password"), any<EmailRequestDto>())
-        verify(authTokenRepository).save(any())
+        assertEquals("John", result.getOrNull()?.firstName)
+    }
+
+    @Test
+    fun `createEmployee returns error if role not found`() {
+        val dto = CreateEmployeeDto(
+            firstName = "John",
+            lastName = "Doe",
+            email = "john@example.com",
+            gender = "M",
+            phone = "1234",
+            address = "Street 1",
+            position = "Developer",
+            department = "IT",
+            jmbg = "123",
+            birthDate = Date(),
+            role = "EMPLOYEE"
+        )
+
+        `when`(employeeRepository.findByEmail("john@example.com")).thenReturn(Optional.empty())
+        `when`(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.empty())
+
+        val result = employeeService.createEmployee(dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.RoleNotFound, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `createEmployee returns error if email already exists`() {
+        val dto = CreateEmployeeDto(
+            firstName = "John",
+            lastName = "Doe",
+            email = "existing@example.com",
+            gender = "M",
+            phone = "1234",
+            address = "Street 1",
+            position = "Developer",
+            department = "IT",
+            jmbg = "123",
+            birthDate = Date(),
+            role = "EMPLOYEE"
+        )
+
+        `when`(employeeRepository.findByEmail("existing@example.com")).thenReturn(Optional.of(TestDataFactory.employee()))
+
+        val result = employeeService.createEmployee(dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.EmailAlreadyExists, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `updateEmployee updates existing employee`() {
+        val employee = TestDataFactory.employee(id = 2L)
+        val dto = UpdateEmployeeDto(
+            lastName = "Updated",
+            phone = "5678",
+            address = "New St",
+            gender = "F",
+            position = "Manager",
+            department = "HR",
+            role = "EMPLOYEE"
+        )
+        val role = TestDataFactory.role("EMPLOYEE")
+        
+        `when`(employeeRepository.findById(2L)).thenReturn(Optional.of(employee))
+        `when`(roleRepository.findByName("EMPLOYEE")).thenReturn(Optional.of(role))
+        `when`(employeeRepository.save(employee)).thenReturn(employee)
+
+        val result = employeeService.updateEmployee(2L, dto)
+
+        assertTrue(result.isRight())
+        assertEquals("Updated", result.getOrNull()?.lastName)
+    }
+
+    @Test
+    fun `updateEmployee returns error if employee not found`() {
+        val dto = UpdateEmployeeDto(
+            lastName = "Updated",
+            phone = "5678",
+            address = "New St",
+            gender = "F",
+            position = "Manager",
+            department = "HR",
+        )
+        `when`(employeeRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = employeeService.updateEmployee(99L, dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(EmployeeServiceError.NotFound, result.swap().getOrNull())
     }
 
     @Test
@@ -182,5 +318,15 @@ class EmployeeServiceTest {
 
         assertTrue(result.isRight())
         assertEquals(employee.email, result.getOrNull()?.email)
+    }
+
+    @Test
+    fun `listEmployees returns page of employees`() {
+        val employees = listOf(TestDataFactory.employee(id = 1L))
+        `when`(employeeRepository.findAll(any(), eq(pageable))).thenReturn(PageImpl(employees))
+
+        val result = employeeService.findAll("", "", "", "", pageable)
+
+        assertEquals(1, result.totalElements)
     }
 }

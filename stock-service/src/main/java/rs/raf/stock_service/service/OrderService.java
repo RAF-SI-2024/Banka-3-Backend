@@ -220,9 +220,14 @@ public class OrderService {
         if(order.getUserRole().equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(order.getUserId());
 
-            if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
-                    getUsedLimit()).compareTo(expectedTotalPrice) >= 0)
-                order.setStatus(OrderStatus.APPROVED);
+            if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(expectedTotalPrice) < 0) {
+                order.setStatus(OrderStatus.CANCELLED);
+            } else {
+                if (!actuaryLimitDto.isNeedsApproval())
+                    order.setStatus(OrderStatus.APPROVED);
+            }
+
+
         } else {
             order.setStatus(OrderStatus.APPROVED);
         }
@@ -271,14 +276,18 @@ public class OrderService {
         long volume = order.getListing() instanceof Stock ? Math.max(200000, ((Stock) order.getListing()).getVolume()) : 1000000;
 
         try {
-            Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
-            Thread.sleep(randomTime.longValue() + extraTime);
+            if (!order.isAllOrNone() && order.getRemainingPortions() < order.getQuantity()) {
+                Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
+                System.out.println("Sleeping for " + randomTime);
+                Thread.sleep(randomTime.longValue() + extraTime);
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         int batchSize = order.isAllOrNone() ? order.getRemainingPortions()
-                : random.nextInt(1, order.getRemainingPortions() + 1);
+                : random.nextInt(1, Math.min(Math.max(order.getQuantity() / 10, 1), order.getRemainingPortions() + 1));
 
         BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
                 .multiply(BigDecimal.valueOf(order.getContractSize()));
@@ -326,6 +335,9 @@ public class OrderService {
                 .paymentCode("289")
                 .build();
 
+        System.out.println("receiver stock");
+        System.out.println(receiverAccount);
+
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                 .clientId(order.getUserId())
                 .createPaymentDto(createPaymentDto)
@@ -345,6 +357,8 @@ public class OrderService {
         order.setTotalPrice(order.getTotalPrice().add(transaction.getTotalPrice()));
         order.setRemainingPortions(order.getRemainingPortions() - transaction.getQuantity());
         order.setLastModification(LocalDateTime.now());
+
+        portfolioService.updateHoldingsOnOrderExecution(transaction);
 
         if(order.getRemainingPortions() == 0)
             finaliseExecution(order);
@@ -403,6 +417,9 @@ public class OrderService {
                 .paymentCode("289")
                 .build();
 
+        System.out.println("receiver bank");
+        System.out.println(bankAccount);
+
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                 .clientId(order.getUserId())
                 .createPaymentDto(createPaymentDto)
@@ -430,7 +447,7 @@ public class OrderService {
         setOrderProfitAndTax(order);
         orderRepository.save(order);
 
-        portfolioService.updateHoldingsOnOrderExecution(order);
+//        portfolioService.updateHoldingsOnOrderExecution(order);
     }
 
     private void setOrderProfitAndTax(Order order){
@@ -531,6 +548,8 @@ public class OrderService {
     }
 
     public BigDecimal getCommissionProfit() {
-        return orderRepository.getBankProfitFromOrders();
+        return bankClient.convert(
+                new ConvertDto("USD", "RSD", orderRepository.getBankProfitFromOrders())
+        );
     }
 }
