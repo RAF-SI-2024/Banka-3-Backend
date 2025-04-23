@@ -52,10 +52,13 @@ class JwtTokenUtil {
             throw SecurityException("Invalid or missing Authorization header")
         }
 
-        val token = authHeader.replace("Bearer ", "").trim { it <= ' ' }
+        val token = authHeader.removePrefix("Bearer ").trim()
+        val claims = getClaimsFromToken(token)
 
-        // Parsiramo token i vadimo userId
-        return getClaimsFromToken(token).get("userId", Int::class.java).toLong()
+        val userId = claims["userId"] as? Number
+            ?: throw SecurityException("userId claim is missing or not a number")
+
+        return userId.toLong()
     }
 
     companion object {

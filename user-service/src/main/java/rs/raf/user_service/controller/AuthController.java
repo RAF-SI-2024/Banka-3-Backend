@@ -70,6 +70,7 @@ public class AuthController {
     })
     public ResponseEntity<Void> requestPasswordReset(@RequestBody RequestPasswordResetDto requestPasswordResetDTO) {
         try {
+            System.out.println("Ovde");
             this.authService.requestPasswordReset(requestPasswordResetDTO.getEmail());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {

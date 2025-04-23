@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pack.userservicekotlin.domain.dto.activity_code.SetApprovalDto
+import pack.userservicekotlin.domain.dto.actuary_limit.ActuaryResponseDto
 import pack.userservicekotlin.domain.dto.actuary_limit.UpdateActuaryLimitDto
 import pack.userservicekotlin.domain.dto.employee.AgentDto
 
@@ -46,11 +47,23 @@ interface ActuaryApiDoc {
         @Valid @RequestBody setApprovalDto: SetApprovalDto,
     ): ResponseEntity<*>
 
+    @Operation(summary = "Update used limit.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Agent limit changed successfully."),
+        ApiResponse(responseCode = "404", description = "Agent not found"),
+        ApiResponse(responseCode = "400", description = "Invalid input data"),
+    )
+    @PutMapping("update-used-limit/{id}")
+    fun updateUsedLimit(
+        @Parameter(description = "Agent ID", required = true) @PathVariable id: Long,
+        @Valid @RequestBody changeActuaryLimitDto: UpdateActuaryLimitDto,
+    ): ResponseEntity<*>
+
     @Operation(summary = "Get all agents with filtering.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Agents retrieved successfully"),
     )
-    @GetMapping
+    @GetMapping("/agents")
     fun getAllAgents(
         @RequestParam(required = false) email: String?,
         @RequestParam(required = false) firstName: String?,
@@ -69,4 +82,26 @@ interface ActuaryApiDoc {
     fun getAgentLimit(
         @Parameter(description = "Agent ID", required = true) @PathVariable agentId: Long,
     ): ResponseEntity<*>
+
+    @Operation(summary = "Get all actuaries.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Actuaries retrieved successfully"),
+    )
+    @GetMapping
+    fun getAllActuaries(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): ResponseEntity<Page<ActuaryResponseDto>>
+
+    @Operation(summary = "Get all agents and clients by name, surname and role.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Agents and clients retrieved successfully"),
+        ApiResponse(responseCode = "500", description = "Internal server error"),
+    )
+    @GetMapping("/all")
+    fun getAllAgentsAndClients(
+        @RequestParam(defaultValue = "") name: String,
+        @RequestParam(defaultValue = "") surname: String,
+        @RequestParam(defaultValue = "") role: String,
+    ): ResponseEntity<Any>
 }
