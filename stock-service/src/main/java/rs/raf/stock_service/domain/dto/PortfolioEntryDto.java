@@ -28,6 +28,7 @@ public class PortfolioEntryDto {
     private LocalDateTime lastModified;
 
     private Integer publicAmount;
+    private Integer reservedAmount;
     private Boolean inTheMoney;      // samo za opcije
     private Boolean used;// samo za opcije
 

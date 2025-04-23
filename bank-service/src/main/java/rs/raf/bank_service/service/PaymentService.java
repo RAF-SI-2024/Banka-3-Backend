@@ -129,7 +129,7 @@ public class PaymentService {
     }
 
     private Payment createPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
-        Account sender = getSenderAccount(paymentDto.getSenderAccountNumber(), clientId);
+        Account sender = getSenderAccount(paymentDto.getSenderAccountNumber());
         Account receiver = getReceiverAccount(paymentDto.getReceiverAccountNumber());
 
         validateSufficientFunds(sender, paymentDto.getAmount());
@@ -199,8 +199,8 @@ public class PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
     }
 
-    private Account getSenderAccount(String accountNumber, Long clientId) {
-        return accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
+    private Account getSenderAccount(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
     }

@@ -79,7 +79,7 @@ public class PortfolioService {
 
 
         if (dto.getPublicAmount() > entry.getAmount() - entry.getReservedAmount()) {
-            throw new InvalidPublicAmountException("Public amount cannot exceed owned amount.");
+            throw new InvalidPublicAmountException("Public amount cannot exceed available amount.");
         }
 
         entry.setPublicAmount(dto.getPublicAmount());
@@ -166,7 +166,7 @@ public class PortfolioService {
                         .type(order.getListing().getType())
                         .amount(totalQuantity)
                         .averagePrice(price)
-                        .publicAmount(0) // privremeno 0 moze neka logika kasnije kad bude bilo potrebno
+                        .publicAmount(0)
                         .reservedAmount(0)
                         .inTheMoney(false)
                         .used(false)
@@ -202,8 +202,6 @@ public class PortfolioService {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findByUserIdAndListing(fromUserId, stock)
                 .orElseThrow(() -> new PortfolioEntryNotFoundException()); //ne sme da se desi ovaj exception
 
-        // @todo update ako treba jos nesto, nisam siguran,
-        // @todo zbog onih novih varijabli za rezervisane, i public mozda treba itd
         sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
         sellerEntry.setReservedAmount(sellerEntry.getReservedAmount() - quantity);
         sellerEntry.setLastModified(LocalDateTime.now());

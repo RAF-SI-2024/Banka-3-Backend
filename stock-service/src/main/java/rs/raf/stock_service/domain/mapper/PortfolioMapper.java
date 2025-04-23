@@ -19,7 +19,8 @@ public class PortfolioMapper {
                 .publicAmount(entry.getPublicAmount())
                 .inTheMoney(entry.getInTheMoney())
                 .used(entry.getUsed())
-                .currentPrice(entry.getListing() != null ? entry.getListing().getPrice() : null) // dodatak ovde
+                .currentPrice(entry.getListing() != null ? entry.getListing().getPrice() : null)
+                .reservedAmount(entry.getReservedAmount())
                 .build();
     }
 }
