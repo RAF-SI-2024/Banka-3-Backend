@@ -26,7 +26,7 @@ postsubmits:
               TEAM_NAME="banka-3"
               commit_hash=$(git rev-parse HEAD)
               
-              for serviceName in email-service user-service bank-service stock-service user-service-kotlin; do
+              for serviceName in user-service bank-service email-service stock-service user-service-kotlin; do
                 while true; do
                   if image_exists "harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:${commit_hash}"; then
                     break
