@@ -46,7 +46,11 @@ public class AccountService {
     private final ObjectMapper objectMapper;
 
     public Page<AccountDto> getBankAccounts(Pageable pageable) {
-        return companyAccountRepository.findByCompanyId(1L, pageable).map((account) -> AccountMapper.toDto(account, null));
+        CompanyAccount stateAccount = companyAccountRepository.findByCompanyId(2L);
+        Page<CompanyAccount> bankAccounts = companyAccountRepository.findByCompanyId(1L, pageable);
+        List<CompanyAccount> content = new ArrayList<>(bankAccounts.getContent().stream().toList());
+        content.add(stateAccount);
+        return new PageImpl<>(content, pageable, content.size()).map((account) -> AccountMapper.toDto(account, null));
     }
 
     public Page<AccountDto> getAccounts(String accountNumber, String firstName, String lastName, Pageable pageable) {
@@ -114,6 +118,14 @@ public class AccountService {
 
     }
 
+    public AccountDto getUSDAccountForCompany(Long companyId) {
+        List<CompanyAccount> account = companyAccountRepository.findByCompanyIdAndCurrency_Code(
+                companyId, "USD"
+        );
+
+        return AccountMapper.toDto(account.get(0), null);
+    }
+
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
@@ -122,7 +134,7 @@ public class AccountService {
         if (clientDto == null)
             throw new ClientNotFoundException(userId);
         Account newAccount;
-        if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
+        if (newBankAccountDto.getAccountOwnerType().equals(AccountOwnerType.COMPANY.toString())) {
             newAccount = new CompanyAccount();
             ((CompanyAccount) newAccount).setCompanyId(newBankAccountDto.getCompanyId());
             ((CompanyAccount) newAccount).setAuthorizedPersonId(newBankAccountDto.getAuthorizedPersonId());

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import pack.userservicekotlin.arrow.ClientServiceError
 import pack.userservicekotlin.domain.dto.client.ClientResponseDto
@@ -29,6 +30,9 @@ class ClientController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<ClientResponseDto>> {
+        if (page < 0 || size <= 0) {
+            return ResponseEntity.badRequest().build()
+        }
         val pageable = PageRequest.of(page, size, Sort.by("lastName").ascending())
         return ResponseEntity.ok(clientService.listClientsWithFilters(firstName, lastName, email, pageable))
     }
@@ -93,8 +97,11 @@ class ClientController(
 
     @PreAuthorize("hasRole('CLIENT')")
     @GetMapping("/me")
-    override fun getCurrentClient(): ResponseEntity<Any> =
-        clientService.getCurrentClient().fold(
+    override fun getCurrentClient(): ResponseEntity<Any> {
+        val auth = SecurityContextHolder.getContext().authentication
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            
+        return clientService.getCurrentClient().fold(
             ifLeft = {
                 when (it) {
                     is ClientServiceError.EmailNotFound ->
@@ -102,9 +109,12 @@ class ClientController(
                             .status(
                                 HttpStatus.NOT_FOUND,
                             ).body("Client not found with email: ${it.email}")
+                    is ClientServiceError.NotAuthenticated ->
+                        ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
                     else -> ResponseEntity.internalServerError().build()
                 }
             },
             ifRight = { ResponseEntity.ok(it) },
         )
+    }
 }

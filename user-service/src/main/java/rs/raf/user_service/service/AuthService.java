@@ -5,6 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.raf.user_service.domain.dto.EmailRequestDto;
 import rs.raf.user_service.domain.entity.*;
+import rs.raf.user_service.exceptions.EmployeeNotActive;
 import rs.raf.user_service.repository.AuthTokenRepository;
 import rs.raf.user_service.repository.ClientRepository;
 import rs.raf.user_service.repository.EmployeeRepository;
@@ -49,8 +50,12 @@ public class AuthService {
 
     public String authenticateEmployee(String email, String password) {
         Employee user = employeeRepository.findByEmail(email).orElse(null);
-        if (user == null || !passwordEncoder.matches(password, user.getPassword()) || !user.isActive()) {
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             return null;
+        }
+
+        if (!user.isActive()) {
+            throw new EmployeeNotActive();
         }
 
         return jwtTokenUtil.generateToken(user.getEmail(), user.getId(), user.getRole().getName());

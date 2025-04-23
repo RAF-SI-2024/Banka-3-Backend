@@ -55,7 +55,7 @@ class JwtTokenUtil {
         val token = authHeader.replace("Bearer ", "").trim { it <= ' ' }
 
         // Parsiramo token i vadimo userId
-        return getClaimsFromToken(token).get("userId", Long::class.java)
+        return getClaimsFromToken(token).get("userId", Int::class.java).toLong()
     }
 
     companion object {

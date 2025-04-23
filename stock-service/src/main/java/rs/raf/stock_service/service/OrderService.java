@@ -179,12 +179,17 @@ public class OrderService {
         Listing listing = listingRepository.findById(createOrderDto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(createOrderDto.getListingId()));
 
-        AccountDetailsDto accountDetailsDto = bankClient.getAccountDetails(createOrderDto.getAccountNumber());
+        AccountDetailsDto accountDetailsDto;
+        try {
+            accountDetailsDto = bankClient.getAccountDetails(createOrderDto.getAccountNumber());
+        } catch (Exception e){
+            throw new AccountNotFoundException(createOrderDto.getAccountNumber());
+        }
 
         if (accountDetailsDto == null)
             throw new AccountNotFoundException(createOrderDto.getAccountNumber());
 
-        if (accountDetailsDto.getCurrencyCode() != "USD")
+        if (!accountDetailsDto.getCurrencyCode().equals("USD"))
             throw new WrongCurrencyAccountException("USD");
 
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
@@ -197,27 +202,32 @@ public class OrderService {
                 .multiply(BigDecimal.valueOf(order.getQuantity()));
 
         PortfolioEntry portfolioEntry = null;
-        if (order.getDirection() == OrderDirection.BUY){
-            BigDecimal price =  expectedTotalPrice.add(getCommission(order.getOrderType(), expectedTotalPrice));
-
-            if (price.compareTo(accountDetailsDto.getAvailableBalance()) > 0)
-                throw new InsufficientFundsException(price);
-        } else {
+        if (order.getDirection() == OrderDirection.SELL) {
             portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
                     orElseThrow(PortfolioEntryNotFoundException::new);
 
             Integer amount = order.getContractSize() * order.getQuantity();
 
             if (portfolioEntry.getAvailableAmount() < amount)
-                throw new PortfolioAmountNotEnoughException(portfolioEntry.getAmount(), amount);
+                throw new PortfolioAmountNotEnoughException(portfolioEntry.getAvailableAmount(), amount);
+        } else if (order.getUserRole().equals("CLIENT")) {
+            BigDecimal price =  expectedTotalPrice.add(getCommission(order.getOrderType(), expectedTotalPrice));
+
+            if (price.compareTo(accountDetailsDto.getAvailableBalance()) > 0)
+                throw new InsufficientFundsException(price);
         }
 
         if(order.getUserRole().equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(order.getUserId());
 
-            if (!actuaryLimitDto.isNeedsApproval() && actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.
-                    getUsedLimit()).compareTo(expectedTotalPrice) >= 0)
-                order.setStatus(OrderStatus.APPROVED);
+            if (actuaryLimitDto.getLimitAmount().subtract(actuaryLimitDto.getUsedLimit()).compareTo(expectedTotalPrice) < 0) {
+                order.setStatus(OrderStatus.CANCELLED);
+            } else {
+                if (!actuaryLimitDto.isNeedsApproval())
+                    order.setStatus(OrderStatus.APPROVED);
+            }
+
+
         } else {
             order.setStatus(OrderStatus.APPROVED);
         }
@@ -266,14 +276,18 @@ public class OrderService {
         long volume = order.getListing() instanceof Stock ? Math.max(200000, ((Stock) order.getListing()).getVolume()) : 1000000;
 
         try {
-            Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
-            Thread.sleep(randomTime.longValue() + extraTime);
+            if (!order.isAllOrNone() && order.getRemainingPortions() < order.getQuantity()) {
+                Double randomTime = random.nextDouble(0, 1440.0 * order.getRemainingPortions() / volume) * 1000;
+                System.out.println("Sleeping for " + randomTime);
+                Thread.sleep(randomTime.longValue() + extraTime);
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         int batchSize = order.isAllOrNone() ? order.getRemainingPortions()
-                : random.nextInt(1, order.getRemainingPortions() + 1);
+                : random.nextInt(1, Math.min(Math.max(order.getQuantity() / 10, 1), order.getRemainingPortions() + 1));
 
         BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
                 .multiply(BigDecimal.valueOf(order.getContractSize()));
@@ -281,9 +295,15 @@ public class OrderService {
         Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
         transactionRepository.save(transaction);
 
+        transferMoney(transaction);
+    }
+
+    private void transferMoney(Transaction transaction){
+        Order order = transaction.getOrder();
+
         String stockMarketAccount;
         try{
-            stockMarketAccount = bankClient.getUSDAccountNumberByClientId(4L).getBody();
+            stockMarketAccount = bankClient.getUSDAccountNumberByCompanyId(4L).getBody();
         } catch (Exception e){
             e.printStackTrace();
             finaliseExecution(order);
@@ -307,7 +327,7 @@ public class OrderService {
         log.info("Created tracked payment {}", trackedPayment);
 
         CreatePaymentDto createPaymentDto = CreatePaymentDto.builder()
-                .amount(totalPrice)
+                .amount(transaction.getTotalPrice())
                 .senderAccountNumber(senderAccount)
                 .receiverAccountNumber(receiverAccount)
                 .callbackId(trackedPayment.getId())
@@ -315,10 +335,13 @@ public class OrderService {
                 .paymentCode("289")
                 .build();
 
+        System.out.println("receiver stock");
+        System.out.println(receiverAccount);
+
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
-                        .clientId(order.getUserId())
-                        .createPaymentDto(createPaymentDto)
-                        .build()
+                .clientId(order.getUserId())
+                .createPaymentDto(createPaymentDto)
+                .build()
         );
     }
 
@@ -335,6 +358,8 @@ public class OrderService {
         order.setRemainingPortions(order.getRemainingPortions() - transaction.getQuantity());
         order.setLastModification(LocalDateTime.now());
 
+        portfolioService.updateHoldingsOnOrderExecution(transaction);
+
         if(order.getRemainingPortions() == 0)
             finaliseExecution(order);
         else {
@@ -349,20 +374,28 @@ public class OrderService {
 
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+
+        transaction.getOrder().getTransactions().remove(transaction);
+        transactionRepository.delete(transaction);
+
         finaliseExecution(transaction.getOrder());
     }
 
     private void finaliseExecution(Order order){
-        order.setCommission(order.getUserRole() == "CLIENT" ? getCommission(order.getOrderType(), order.getTotalPrice())
-                : BigDecimal.ZERO);
-        setOrderProfitAndTax(order);
-        portfolioService.updateHoldingsOnOrderExecution(order);
+        if (!order.getUserRole().equals("CLIENT") || order.getRemainingPortions() == order.getQuantity())
+            finaliseOrder(order);
+        else
+            payCommission(order);
+    }
+
+    private void payCommission(Order order){
+        order.setCommission(getCommission(order.getOrderType(), order.getTotalPrice()));
         order.setStatus(OrderStatus.COMMISSION_PAYMENT_FAILED);
         orderRepository.save(order);
 
         String bankAccount;
         try{
-            bankAccount = bankClient.getUSDAccountNumberByClientId(1L).getBody();
+            bankAccount = bankClient.getUSDAccountNumberByCompanyId(1L).getBody();
         } catch (Exception e){
             e.printStackTrace();
             return;
@@ -384,6 +417,9 @@ public class OrderService {
                 .paymentCode("289")
                 .build();
 
+        System.out.println("receiver bank");
+        System.out.println(bankAccount);
+
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                 .clientId(order.getUserId())
                 .createPaymentDto(createPaymentDto)
@@ -394,11 +430,24 @@ public class OrderService {
     public void handleCommissionSuccessfulPayment(Long trackedPaymentId){
         TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
         Long orderId = trackedPayment.getTrackedEntityId();
-
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        order.setStatus(order.getRemainingPortions() == 0? OrderStatus.DONE : OrderStatus.PARTIAL);
+        finaliseOrder(order);
+    }
+
+    private void finaliseOrder(Order order){
+        if (order.getRemainingPortions() == order.getQuantity())
+            order.setStatus(OrderStatus.FAILED);
+        else if (order.getRemainingPortions() == 0)
+            order.setStatus(OrderStatus.DONE);
+        else
+            order.setStatus(OrderStatus.PARTIAL);
+
+        order.setIsDone(true);
+        setOrderProfitAndTax(order);
         orderRepository.save(order);
+
+//        portfolioService.updateHoldingsOnOrderExecution(order);
     }
 
     private void setOrderProfitAndTax(Order order){
@@ -411,8 +460,9 @@ public class OrderService {
         PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
                 orElseThrow(PortfolioEntryNotFoundException::new);
 
-        BigDecimal buyingPrice = portfolioEntry.getAveragePrice()
-                .multiply(BigDecimal.valueOf(order.getQuantity() * order.getContractSize()));
+        BigDecimal buyingPrice = BigDecimal.valueOf(order.getQuantity() * order.getContractSize() - order.getRemainingPortions())
+                .multiply(portfolioEntry.getAveragePrice());
+
         BigDecimal potentialProfit = order.getTotalPrice().subtract(buyingPrice);
 
         //profit je uvek iz usd u rsd jer su stocks uvek u dolarima, a drzavni racun u rsd
@@ -498,6 +548,8 @@ public class OrderService {
     }
 
     public BigDecimal getCommissionProfit() {
-        return orderRepository.getBankProfitFromOrders();
+        return bankClient.convert(
+                new ConvertDto("USD", "RSD", orderRepository.getBankProfitFromOrders())
+        );
     }
 }

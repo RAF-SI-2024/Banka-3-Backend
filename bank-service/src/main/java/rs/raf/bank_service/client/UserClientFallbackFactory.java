@@ -73,6 +73,15 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
             }
 
 
+            @Override
+            public ActuaryLimitDto getAgentLimit(Long id) {
+                return null;
+            }
+
+            @Override
+            public ActuaryLimitDto updateUsedLimit(Long id, ChangeAgentLimitDto changeLimitRequest) {
+                return null;
+            }
         };
     }
 }

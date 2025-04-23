@@ -133,7 +133,7 @@ public class OrderServiceTest {
         listing.setExchange(exchange);
         listing.setPrice(new BigDecimal(150));
 
-        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000), new BigDecimal(100), true);
+        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(100000000), new BigDecimal(100), true);
 
         portfolioEntry = PortfolioEntry.builder().id(1L).listing(listing).amount(100).publicAmount(0).reservedAmount(0).build();
 
@@ -534,7 +534,7 @@ public class OrderServiceTest {
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
         when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
-        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(bankClient.getUSDAccountNumberByCompanyId(4L)).thenReturn(ResponseEntity.ok("1"));
         when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         // Act
@@ -543,7 +543,7 @@ public class OrderServiceTest {
         // Assert
         verify(orderRepository, times(2)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).getUSDAccountNumberByCompanyId(4L);
         verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
         assertEquals(OrderStatus.PROCESSING, orderDto.getStatus());
@@ -557,7 +557,7 @@ public class OrderServiceTest {
         when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
         when(jwtTokenUtil.getUserRoleFromAuthHeader(authHeader)).thenReturn("ADMIN");
         when(bankClient.getAccountDetails(createStopOrderDto.getAccountNumber())).thenReturn(accountDetailsDto);
-        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(bankClient.getUSDAccountNumberByCompanyId(4L)).thenReturn(ResponseEntity.ok("1"));
         when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         // Act
@@ -566,7 +566,7 @@ public class OrderServiceTest {
         // Assert
         verify(orderRepository, times(2)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).getUSDAccountNumberByCompanyId(4L);
         verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
         assertEquals(OrderStatus.PROCESSING, orderDto.getStatus());
@@ -578,7 +578,7 @@ public class OrderServiceTest {
     void executeStopOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP))
                 .thenReturn(Arrays.asList(stopOrder));
-        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(bankClient.getUSDAccountNumberByCompanyId(4L)).thenReturn(ResponseEntity.ok("1"));
         when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
@@ -597,7 +597,7 @@ public class OrderServiceTest {
         // Assert
         verify(orderRepository, times(1)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).getUSDAccountNumberByCompanyId(4L);
         verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
         assertEquals(OrderStatus.PROCESSING, stopOrder.getStatus());
@@ -608,7 +608,7 @@ public class OrderServiceTest {
     void executeLimitOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.LIMIT))
                 .thenReturn(Arrays.asList(limitOrder));
-        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(bankClient.getUSDAccountNumberByCompanyId(4L)).thenReturn(ResponseEntity.ok("1"));
         when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
@@ -627,7 +627,7 @@ public class OrderServiceTest {
 
         verify(orderRepository, times(1)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).getUSDAccountNumberByCompanyId(4L);
         verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
         assertEquals(OrderStatus.PROCESSING, limitOrder.getStatus());
@@ -638,7 +638,7 @@ public class OrderServiceTest {
     void executeStopLimitOrder() {
         when(orderRepository.findByIsDoneAndStatusAndOrderType(false, OrderStatus.APPROVED, OrderType.STOP_LIMIT))
                 .thenReturn(Arrays.asList(stopLimitOrder));
-        when(bankClient.getUSDAccountNumberByClientId(4L)).thenReturn(ResponseEntity.ok("1"));
+        when(bankClient.getUSDAccountNumberByCompanyId(4L)).thenReturn(ResponseEntity.ok("1"));
         when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         orderService.checkOrders();
@@ -661,7 +661,7 @@ public class OrderServiceTest {
 
         verify(orderRepository, times(2)).save(any(Order.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
-        verify(bankClient, times(1)).getUSDAccountNumberByClientId(4L);
+        verify(bankClient, times(1)).getUSDAccountNumberByCompanyId(4L);
         verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
 
         assertEquals(OrderStatus.PROCESSING, stopLimitOrder.getStatus());

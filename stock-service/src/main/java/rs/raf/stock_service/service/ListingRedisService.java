@@ -27,6 +27,13 @@ public class ListingRedisService {
 
     private static final String PREFIX = "listing:";
 
+    public void clear() {
+        Set<String> keys = redisTemplate.keys("*");
+        for (String key : keys) {
+            redisTemplate.delete(key);
+        }
+    }
+
     public void save(Listing listing) {
         ListingDto dto = listingMapper.toDto(listing, priceHistoryRepository.findTopByListingOrderByDateDesc(listing));
         saveByTicker(dto);

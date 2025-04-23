@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.*;
+import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -51,6 +52,12 @@ public interface UserClient {
 
     @GetMapping("/api/authorized-personnel/{id}")
     AuthorizedPersonelDto getAuthorizedPersonnelById(@PathVariable("id") Long id);
+
+    @GetMapping("/api/admin/actuaries/{id}")
+    ActuaryLimitDto getAgentLimit(@PathVariable("id") Long id);
+
+    @PutMapping("/api/admin/actuaries/update-used-limit/{id}")
+    ActuaryLimitDto updateUsedLimit(@PathVariable("id") Long id, @RequestBody ChangeAgentLimitDto changeLimitRequest);
 
 }
 

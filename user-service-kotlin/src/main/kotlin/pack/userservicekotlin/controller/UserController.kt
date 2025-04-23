@@ -25,6 +25,9 @@ class UserController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<UserResponseDto>> {
+        if (page < 0 || size <= 0) {
+            return ResponseEntity.badRequest().build()
+        }
         val pageable: Pageable = PageRequest.of(page, size)
         return ResponseEntity.ok(userService.listUsers(pageable))
     }

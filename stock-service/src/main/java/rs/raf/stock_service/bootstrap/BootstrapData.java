@@ -72,6 +72,8 @@ public class BootstrapData implements CommandLineRunner {
             addFutures();
         }
 
+        listingRedisService.clear();
+
         List<ListingDto> dtos = listingRepository.findAll().stream()
                 .map(listing -> listingMapper.toDto(listing, priceHistoryRepository.findTopByListingOrderByDateDesc(listing)))
                 .toList();
@@ -167,9 +169,9 @@ public class BootstrapData implements CommandLineRunner {
 
     private void importForexPairs() {
         List<String[]> pairs = List.of(
-                new String[]{"USD", "EUR"}, new String[]{"USD", "GBP"}, new String[]{"USD", "JPY"},
-                new String[]{"USD", "CAD"}, new String[]{"USD", "AUD"}, new String[]{"EUR", "GBP"},
-                new String[]{"EUR", "JPY"}, new String[]{"EUR", "CHF"}, new String[]{"GBP", "JPY"}, new String[]{"AUD", "NZD"}
+                new String[]{"EUR", "USD"}, new String[]{"GBP", "USD"}, new String[]{"JPY", "USD"},
+                new String[]{"CAD", "USD"}, new String[]{"RSD", "USD"}, new String[]{"NZD", "USD"},
+                new String[]{"CHF", "USD"}
         );
         Exchange exchange = exchangeRepository.findByMic("NASDAQ");
         List<ForexPair> list = refreshInParallel(pairs, pair -> {
@@ -478,11 +480,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(BigDecimal.ZERO)
                 .taxStatus(TaxStatus.TAXFREE)
                 .userId(1L)
+                .userRole("CLIENT")
                 .quantity(10)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(500))
+                .commission(new BigDecimal(7))
                 .build();
 
         Order user2Pending = Order.builder()
@@ -494,15 +499,17 @@ public class BootstrapData implements CommandLineRunner {
                 .isDone(false)
                 .direction(OrderDirection.BUY)
                 .pricePerUnit(new BigDecimal("140"))
-                .remainingPortions(0)
+                .remainingPortions(20)
                 .taxAmount(BigDecimal.ZERO)
                 .taxStatus(TaxStatus.TAXFREE)
-                .userId(2L)
+                .userId(5L)
+                .userRole("AGENT")
                 .quantity(20)
                 .approvedBy(null)
                 .status(OrderStatus.PENDING)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(BigDecimal.ZERO)
                 .build();
 
         Order user1DoneSell = Order.builder()
@@ -518,11 +525,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(new BigDecimal("15"))
                 .taxStatus(TaxStatus.PENDING)
                 .userId(1L)
+                .userRole("CLIENT")
                 .quantity(10)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(600))
+                .commission(new BigDecimal(7))
                 .profit(new BigDecimal("100"))
                 .build();
 
@@ -539,11 +549,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(BigDecimal.ZERO)
                 .taxStatus(TaxStatus.TAXFREE)
                 .userId(1L)
+                .userRole("CLIENT")
                 .quantity(10)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(500))
+                .commission(new BigDecimal(7))
                 .build();
 
         Order user1DoneSell2 = Order.builder()
@@ -559,11 +572,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(new BigDecimal("7.5"))
                 .taxStatus(TaxStatus.PAID)
                 .userId(1L)
+                .userRole("CLIENT")
                 .quantity(10)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(550))
+                .commission(new BigDecimal(7))
                 .profit(new BigDecimal("50"))
                 .build();
 
@@ -580,11 +596,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(BigDecimal.ZERO)
                 .taxStatus(TaxStatus.TAXFREE)
                 .userId(3L)
+                .userRole("ADMIN")
                 .quantity(100)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(1000))
+                .commission(new BigDecimal(0))
                 .build();
 
         Order user3DoneSell = Order.builder()
@@ -600,11 +619,14 @@ public class BootstrapData implements CommandLineRunner {
                 .taxAmount(new BigDecimal("30"))
                 .taxStatus(TaxStatus.PAID)
                 .userId(3L)
+                .userRole("ADMIN")
                 .quantity(100)
                 .approvedBy(null)
-                .status(OrderStatus.APPROVED)
+                .status(OrderStatus.DONE)
                 .lastModification(LocalDateTime.now())
                 .listing(stock)
+                .totalPrice(new BigDecimal(3000))
+                .commission(new BigDecimal(0))
                 .profit(new BigDecimal("200"))
                 .build();
 

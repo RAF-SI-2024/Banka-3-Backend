@@ -42,12 +42,16 @@ class ClientService(
             ?: ClientServiceError.NotFound(id).left()
 
     fun addClient(dto: CreateClientDto): Either<ClientServiceError, ClientResponseDto> {
+        if (clientRepository.findByEmail(dto.email!!).isPresent) {
+            return ClientServiceError.EmailAlreadyExists(dto.email).left()
+        }
+
         val client = dto.toEntity() ?: return ClientServiceError.InvalidInput.left()
         client.password = ""
 
         val role =
             roleRepository.findByName("CLIENT").orElse(null)
-                ?: return ClientServiceError.RoleNotFound("CLIENT").left()
+                ?: return ClientServiceError.RoleNotFound("Unknown Role").left()
 
         client.role = role
 
@@ -128,7 +132,10 @@ class ClientService(
             ?: ClientServiceError.EmailNotFound(email).left()
 
     fun getCurrentClient(): Either<ClientServiceError, ClientResponseDto> {
-        val email = SecurityContextHolder.getContext().authentication.name
+        val auth = SecurityContextHolder.getContext().authentication
+            ?: return ClientServiceError.NotAuthenticated("User not authenticated").left()
+        
+        val email = auth.name
         return findByEmail(email)
     }
 }

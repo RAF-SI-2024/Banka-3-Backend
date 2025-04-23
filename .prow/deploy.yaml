@@ -1,0 +1,42 @@
+postsubmits:
+  - name: post-banka-3-backend-deploy
+    branches:
+      - ^v\d+\.\d+\.\d+.*
+    decorate: true
+    max_concurrency: 1
+    labels:
+      preset-harbor-robot-push: "true"
+      preset-k8s-banka-3: "true"
+    spec:
+      containers:
+        - image: harbor.k8s.elab.rs/base-images/base:java-17-node-18-docker
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              
+              apt update
+              apt install -y skopeo
+              
+              image_exists() {
+                skopeo inspect "docker://$1" > /dev/null 2>&1
+              }
+              
+              TEAM_NAME="banka-3"
+              commit_hash=$(git rev-parse HEAD)
+              
+              for serviceName in user-service bank-service email-service stock-service user-service-kotlin; do
+                while true; do
+                  if image_exists "harbor.k8s.elab.rs/${TEAM_NAME}/${serviceName}:${commit_hash}"; then
+                    break
+                  fi
+                  sleep 10
+                done
+              done
+
+              helm upgrade --namespace="banka-3" --create-namespace --set imageTag="${commit_hash}" --timeout=1h --atomic --install banka-3 oci://harbor.k8s.elab.rs/banka-3/helm/backend
+
+          securityContext:
+            privileged: true
+          imagePullPolicy: Always

@@ -41,7 +41,7 @@ class ClientServiceTest {
     lateinit var clientService: ClientService
 
     @Test
-    fun `listClients returns client DTOs`() {
+    fun `listClients returns page of clients`() {
         val clients = listOf(TestDataFactory.client(id = 1L))
         `when`(clientRepository.findAll(pageable)).thenReturn(PageImpl(clients))
 
@@ -99,6 +99,48 @@ class ClientServiceTest {
     }
 
     @Test
+    fun `addClient returns error if role not found`() {
+        val dto = CreateClientDto(
+            firstName = "Anna",
+            lastName = "Smith",
+            email = "anna@example.com",
+            gender = "F",
+            phone = "5555",
+            address = "Street 5",
+            jmbg = "555",
+            birthDate = Date(),
+        )
+
+        `when`(roleRepository.findByName("CLIENT")).thenReturn(Optional.empty())
+
+        val result = clientService.addClient(dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(ClientServiceError.RoleNotFound("Unknown Role"), result.swap().getOrNull())
+    }
+
+    @Test
+    fun `addClient returns error if email already exists`() {
+        val dto = CreateClientDto(
+            firstName = "Anna",
+            lastName = "Smith",
+            email = "existing@example.com",
+            gender = "F",
+            phone = "5555",
+            address = "Street 5",
+            jmbg = "555",
+            birthDate = Date(),
+        )
+
+        `when`(clientRepository.findByEmail("existing@example.com")).thenReturn(Optional.of(TestDataFactory.client()))
+
+        val result = clientService.addClient(dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(ClientServiceError.EmailAlreadyExists("existing@example.com"), result.swap().getOrNull())
+    }
+
+    @Test
     fun `updateClient modifies existing client`() {
         val client = TestDataFactory.client(id = 3L)
         val dto =
@@ -115,6 +157,22 @@ class ClientServiceTest {
 
         assertTrue(result.isRight())
         assertEquals("Updated", result.getOrNull()?.lastName)
+    }
+
+    @Test
+    fun `updateClient returns error if client not found`() {
+        val dto = UpdateClientDto(
+            lastName = "Updated",
+            phone = "9999",
+            address = "Updated St",
+            gender = "M",
+        )
+        `when`(clientRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = clientService.updateClient(99L, dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(ClientServiceError.NotFound(99L), result.swap().getOrNull())
     }
 
     @Test
@@ -186,5 +244,17 @@ class ClientServiceTest {
 
         assertTrue(result.isRight())
         assertEquals(email, result.getOrNull()?.email)
+    }
+
+    @Test
+    fun `getCurrentClient returns error if not authenticated`() {
+        val context: SecurityContext = mock(SecurityContext::class.java)
+        `when`(context.authentication).thenReturn(null)
+        SecurityContextHolder.setContext(context)
+
+        val result = clientService.getCurrentClient()
+
+        assertTrue(result.isLeft())
+        assertEquals(ClientServiceError.NotAuthenticated("User not authenticated"), result.swap().getOrNull())
     }
 }

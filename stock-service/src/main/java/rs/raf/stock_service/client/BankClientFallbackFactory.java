@@ -59,6 +59,11 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
             public AccountDetailsDto getAccountDetails(String accountNumber) {
                 return null;
             }
+
+            @Override
+            public ResponseEntity<String> getUSDAccountNumberByCompanyId(Long companyId) {
+                return null;
+            }
         };
     }
 }
