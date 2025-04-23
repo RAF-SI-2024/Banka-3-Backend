@@ -153,12 +153,14 @@ public class PortfolioService {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void updateHoldingsOnOrderExecution(Order order) {
+    public void updateHoldingsOnOrderExecution(Transaction transaction) {
+        Order order = transaction.getOrder();
+
         PortfolioEntry entry = portfolioEntryRepository
                 .findByUserIdAndListing(order.getUserId(), order.getListing())
                 .orElse(null);
 
-        int totalQuantity = order.getQuantity() * order.getContractSize() - order.getRemainingPortions();
+        int totalQuantity = transaction.getQuantity() * order.getContractSize();
         BigDecimal price = order.getPricePerUnit();
 
         if (order.getDirection() == OrderDirection.BUY) {

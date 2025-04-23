@@ -30,7 +30,10 @@ public abstract class Listing {
     private Exchange exchange;
 
     private LocalDateTime lastRefresh;
+
+    @Column(precision = 10, scale = 6)
     private BigDecimal price;
+    @Column(precision = 10, scale = 6)
     private BigDecimal ask;
 
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
