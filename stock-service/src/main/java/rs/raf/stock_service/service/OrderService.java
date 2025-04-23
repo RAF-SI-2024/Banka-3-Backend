@@ -358,11 +358,12 @@ public class OrderService {
         order.setRemainingPortions(order.getRemainingPortions() - transaction.getQuantity());
         order.setLastModification(LocalDateTime.now());
 
+        portfolioService.updateHoldingsOnOrderExecution(transaction);
+
         if(order.getRemainingPortions() == 0)
             finaliseExecution(order);
         else {
             orderRepository.save(order);
-            portfolioService.updateHoldingsOnOrderExecution(order);
             executeTransaction(order);
         }
     }
@@ -446,7 +447,7 @@ public class OrderService {
         setOrderProfitAndTax(order);
         orderRepository.save(order);
 
-        portfolioService.updateHoldingsOnOrderExecution(order);
+//        portfolioService.updateHoldingsOnOrderExecution(order);
     }
 
     private void setOrderProfitAndTax(Order order){
