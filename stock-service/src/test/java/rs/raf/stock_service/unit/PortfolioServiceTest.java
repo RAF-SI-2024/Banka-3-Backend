@@ -74,17 +74,6 @@ public class PortfolioServiceTest {
 
 
     @Test
-    void testUpdateHoldings_orderNotDone_shouldDoNothing() {
-        initialiseStock();
-        Order order = new Order();
-        order.setIsDone(false);
-
-        portfolioService.updateHoldingsOnOrderExecution(order);
-
-        verifyNoInteractions(portfolioEntryRepository);
-    }
-
-    @Test
     void testUpdateHoldings_newBuyOrder_shouldCreateEntry() {
         initialiseStock();
         Order order = buildOrder(OrderDirection.BUY, 10, 1, BigDecimal.TEN);

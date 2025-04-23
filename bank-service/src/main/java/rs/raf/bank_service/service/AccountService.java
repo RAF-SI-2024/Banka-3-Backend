@@ -130,7 +130,7 @@ public class AccountService {
         if (clientDto == null)
             throw new ClientNotFoundException(userId);
         Account newAccount;
-        if (newBankAccountDto.getAccountType().equals(AccountOwnerType.COMPANY.toString())) {
+        if (newBankAccountDto.getAccountOwnerType().equals(AccountOwnerType.COMPANY.toString())) {
             newAccount = new CompanyAccount();
             ((CompanyAccount) newAccount).setCompanyId(newBankAccountDto.getCompanyId());
             ((CompanyAccount) newAccount).setAuthorizedPersonId(newBankAccountDto.getAuthorizedPersonId());

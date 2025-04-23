@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import rs.raf.user_service.domain.dto.*;
+import rs.raf.user_service.exceptions.EmployeeNotActive;
 import rs.raf.user_service.service.AuthService;
 
 @Tag(name = "Authentication Controller", description = "API for authenticating users")
@@ -47,13 +48,18 @@ public class AuthController {
     })
     @PostMapping("/login/employee")
     public ResponseEntity<?> employeeLogin(@RequestBody LoginRequestDto request) {
-        String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
-        if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
+        try {
+            String token = authService.authenticateEmployee(request.getEmail(), request.getPassword());
+            if (token == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorMessageDto("Bad credentials."));
+            }
+            LoginResponseDto response = new LoginResponseDto();
+            response.setToken(token);
+            return ResponseEntity.ok(response);
+        } catch (EmployeeNotActive e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorMessageDto(e.getMessage()));
         }
-        LoginResponseDto response = new LoginResponseDto();
-        response.setToken(token);
-        return ResponseEntity.ok(response);
+
     }
 
     @PostMapping("/request-password-reset")
