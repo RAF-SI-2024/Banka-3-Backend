@@ -1,6 +1,5 @@
 package pack.userservicekotlin.controller
 
-import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -13,7 +12,6 @@ import pack.userservicekotlin.swagger.AuthorizedPersonnelApiDoc
 
 @RestController
 @RequestMapping("/api/authorized-personnel")
-@Tag(name = "Authorized Personnel Management", description = "API for managing authorized personnel for companies")
 class AuthorizedPersonnelController(
     private val authorizedPersonnelService: AuthorizedPersonnelService,
 ) : AuthorizedPersonnelApiDoc {

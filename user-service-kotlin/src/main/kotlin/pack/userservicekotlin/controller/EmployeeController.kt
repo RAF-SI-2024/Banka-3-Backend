@@ -1,6 +1,5 @@
 package pack.userservicekotlin.controller
 
-import io.swagger.v3.oas.annotations.Parameter
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -106,7 +105,6 @@ class EmployeeController(
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/activate")
     override fun activateEmployee(
-        @Parameter(description = "Employee ID", required = true, example = "1")
         @PathVariable id: Long,
     ): ResponseEntity<Void> =
         employeeService.activateEmployee(id).fold(
@@ -117,9 +115,10 @@ class EmployeeController(
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/me")
     override fun getCurrentEmployee(): ResponseEntity<Any> {
-        val auth = SecurityContextHolder.getContext().authentication
-            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-            
+        val auth =
+            SecurityContextHolder.getContext().authentication
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+
         val email = auth.name
         return employeeService.findByEmail(email).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found") },

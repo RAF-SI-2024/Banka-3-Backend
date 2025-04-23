@@ -91,12 +91,25 @@ class EmployeeService(
             return EmployeeServiceError.EmailAlreadyExists.left()
         }
 
-        val role = roleRepository.findByName(dto.role!!).orElse(null)
-            ?: return EmployeeServiceError.RoleNotFound.left()
+        val role =
+            roleRepository.findByName(dto.role!!).orElse(null)
+                ?: return EmployeeServiceError.RoleNotFound.left()
 
         val employee = dto.toEntity() ?: return EmployeeServiceError.Unknown(NullPointerException("Invalid entity")).left()
         employee.role = role
         employeeRepository.save(employee)
+
+        if (role.name.equals("AGENT")) {
+            actuaryLimitRepository.save(
+                ActuaryLimit(
+                    null,
+                    BigDecimal(1000),
+                    BigDecimal(0),
+                    true,
+                    employee,
+                ),
+            )
+        }
 
         val token = UUID.randomUUID().toString()
         rabbitTemplate.convertAndSend("set-password", EmailRequestDto(token, employee.email!!))
@@ -120,11 +133,13 @@ class EmployeeService(
         id: Long,
         dto: UpdateEmployeeDto,
     ): Either<EmployeeServiceError, EmployeeResponseDto> {
-        val employee = employeeRepository.findById(id).orElse(null)
-            ?: return EmployeeServiceError.NotFound.left()
+        val employee =
+            employeeRepository.findById(id).orElse(null)
+                ?: return EmployeeServiceError.NotFound.left()
 
-        val role = roleRepository.findByName(dto.role!!).orElse(null)
-            ?: return EmployeeServiceError.RoleNotFound.left()
+        val role =
+            roleRepository.findByName(dto.role!!).orElse(null)
+                ?: return EmployeeServiceError.RoleNotFound.left()
 
         if (role.name == "AGENT" && employee.role?.name != "AGENT") {
             if (!actuaryLimitRepository.findByEmployeeId(id).isPresent) {

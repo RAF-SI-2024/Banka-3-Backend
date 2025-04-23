@@ -37,7 +37,7 @@ class ActuaryControllerTest {
     @Test
     fun `changeAgentLimit should return 200 when successful`() {
         val request = UpdateActuaryLimitDto(BigDecimal(500.0))
-        `when`(actuaryService.changeAgentLimit(1L, request.newLimit!!)).thenReturn(Either.Right(Unit))
+        `when`(actuaryService.changeAgentLimit(1L, request.newLimit)).thenReturn(Either.Right(Unit))
 
         mockMvc
             .put("/api/admin/actuaries/change-limit/1") {
