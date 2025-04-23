@@ -10,11 +10,16 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import rs.raf.stock_service.client.BankClient;
+import rs.raf.stock_service.client.UserClient;
+import rs.raf.stock_service.domain.dto.ClientDto;
 import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOfferDto;
+import rs.raf.stock_service.domain.dto.OtcOptionDto;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
+import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedActionException;
@@ -56,8 +61,14 @@ public class OtcOfferServiceTest {
     @Mock
     private TrackedPaymentService trackedPaymentService;
 
+    @Mock
+    private UserClient userClient;
+
     @InjectMocks
     private OtcService otcService;
+
+    @Mock
+    private OtcOptionMapper otcOptionMapper;
 
     private final Long buyerId = 10L;
     private final Long sellerId = 20L;
@@ -296,4 +307,129 @@ public class OtcOfferServiceTest {
         assertTrue(result.get(1).getCanInteract());
         assertTrue(result.get(2).getCanInteract());
     }
+
+    @Test
+    public void testHandleAcceptSuccessfulPayment_createsOtcOptionAndSavesIt() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        // Simulirani TrackedPayment
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setId(trackedPaymentId);
+        trackedPayment.setTrackedEntityId(offerId);
+
+        // Simulirani OtcOffer
+        Stock stock = new Stock();
+        stock.setTicker("AAPL");
+        stock.setName("Apple Inc.");
+        Exchange exchange = Exchange.builder()
+                .name("NASDAQ")
+                .build();
+        stock.setExchange(exchange);
+
+        OtcOffer offer = OtcOffer.builder()
+                .id(offerId)
+                .stock(stock)
+                .sellerId(20L)
+                .buyerId(10L)
+                .pricePerStock(BigDecimal.valueOf(150))
+                .amount(10)
+                .premium(BigDecimal.valueOf(5))
+                .settlementDate(LocalDate.now().plusDays(5))
+                .status(OtcOfferStatus.ACCEPTED)
+                .build();
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+
+        otcService.handleAcceptSuccessfulPayment(trackedPaymentId);
+
+        // Proveravamo da se OtcOption sačuvao
+        verify(otcOptionRepository).save(argThat(option ->
+                option.getOtcOffer().equals(offer) &&
+                        option.getSellerId().equals(offer.getSellerId()) &&
+                        option.getBuyerId().equals(offer.getBuyerId()) &&
+                        option.getUnderlyingStock().equals(offer.getStock()) &&
+                        option.getStrikePrice().equals(offer.getPricePerStock()) &&
+                        option.getAmount() == offer.getAmount() &&
+                        option.getPremium().equals(offer.getPremium()) &&
+                        option.getSettlementDate().equals(offer.getSettlementDate()) &&
+                        option.getStatus() == OtcOptionStatus.VALID
+        ));
+    }
+
+    @Test
+    void testGetOtcOptionsForUser_validOptionsOnly() {
+        Long userId = 1L;
+        OtcOption option = new OtcOption();
+        option.setBuyerId(userId);
+        option.setSellerId(2L);
+        option.setSettlementDate(LocalDate.now().plusDays(1));
+        OtcOptionDto dto = new OtcOptionDto();
+        when(otcOptionMapper.toDto(eq(option), eq("John Doe"))).thenReturn(dto);
+
+        when(otcOptionRepository.findAllValid(eq(userId), any(LocalDate.class)))
+                .thenReturn(List.of(option));
+        when(userClient.getClientById(2L)).thenReturn(new ClientDto(2L, "John", "Doe","john@doe.com"));
+        List<OtcOptionDto> result = otcService.getOtcOptionsForUser(true, userId);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void testCancelOffer_authorized() {
+        Long offerId = 1L;
+        Long userId = 5L;
+        OtcOffer offer = OtcOffer.builder()
+                .id(offerId)
+                .lastModifiedById(userId)
+                .status(OtcOfferStatus.PENDING)
+                .build();
+
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+
+        otcService.cancelOffer(offerId, userId);
+
+        assertEquals(OtcOfferStatus.CANCELLED, offer.getStatus());
+        verify(otcOfferRepository).save(offer);
+    }
+
+    @Test
+    void testCancelOffer_unauthorized() {
+        Long offerId = 1L;
+        OtcOffer offer = OtcOffer.builder()
+                .id(offerId)
+                .lastModifiedById(99L)
+                .status(OtcOfferStatus.PENDING)
+                .build();
+
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+
+        assertThrows(UnauthorizedActionException.class, () -> otcService.cancelOffer(offerId, 1L));
+    }
+
+    @Test
+    void testCheckOtcOptionExpiration_expiresCorrectly() {
+        OtcOption option = new OtcOption();
+        option.setAmount(10);
+        option.setUnderlyingStock(new Stock());
+        option.setSellerId(1L);
+
+        PortfolioEntry entry = new PortfolioEntry();
+        entry.setAmount(0);
+        entry.setReservedAmount(10);
+        entry.setListing(option.getUnderlyingStock());
+
+        when(otcOptionRepository.findAllValidButExpired(any(LocalDate.class)))
+                .thenReturn(List.of(option));
+        when(portfolioEntryRepository.findByUserIdAndListing(eq(1L), any()))
+                .thenReturn(Optional.of(entry));
+
+        otcService.checkOtcOptionExpiration();
+
+        assertEquals(OtcOptionStatus.EXPIRED, option.getStatus());
+        assertEquals(10, entry.getAmount());
+        assertEquals(0, entry.getReservedAmount());
+    }
+
 }

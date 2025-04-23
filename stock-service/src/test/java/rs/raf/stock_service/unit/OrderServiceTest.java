@@ -14,9 +14,7 @@ import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
-import rs.raf.stock_service.domain.enums.OrderDirection;
-import rs.raf.stock_service.domain.enums.OrderStatus;
-import rs.raf.stock_service.domain.enums.OrderType;
+import rs.raf.stock_service.domain.enums.*;
 import rs.raf.stock_service.domain.mapper.ListingMapper;
 import rs.raf.stock_service.domain.mapper.OrderMapper;
 import rs.raf.stock_service.exceptions.*;
@@ -25,7 +23,6 @@ import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.Stock;
-import rs.raf.stock_service.domain.enums.ListingType;
 import rs.raf.stock_service.exceptions.CantCancelOrderInCurrentOrderState;
 import rs.raf.stock_service.exceptions.OrderNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedException;
@@ -37,6 +34,7 @@ import rs.raf.stock_service.service.PortfolioService;
 import rs.raf.stock_service.service.TrackedPaymentService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -132,6 +130,7 @@ public class OrderServiceTest {
         listing.setId(1L);
         listing.setExchange(exchange);
         listing.setPrice(new BigDecimal(150));
+
 
         actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000), new BigDecimal(100), true);
 
@@ -1018,5 +1017,222 @@ public class OrderServiceTest {
                 () -> orderService.cancelOrder(orderId, authHeader));
 
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void handleCommissionSuccessfulPayment_ShouldFinalizeOrder() {
+        Long trackedPaymentId = 1L;
+        Long orderId = 2L;
+        Long userId = 3L;
+
+        // Set up Order and related objects
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setUserRole("CLIENT"); // Bitno zbog logike u finaliseExecution
+        order.setQuantity(10);
+        order.setRemainingPortions(0); // Da bi ispunio uslov za DONE
+        order.setTotalPrice(BigDecimal.valueOf(1000));
+        order.setListing(listing);
+        order.setTransactions(new ArrayList<>());
+        order.setContractSize(1);
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setId(trackedPaymentId);
+        trackedPayment.setTrackedEntityId(orderId);
+
+        PortfolioEntry portfolioEntry = new PortfolioEntry();
+        portfolioEntry.setId(1L);
+        portfolioEntry.setUserId(userId);
+        portfolioEntry.setListing(listing);
+        portfolioEntry.setAveragePrice(new BigDecimal("50"));
+
+        // Mockovi
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.of(portfolioEntry));
+        when(bankClient.convert(any(ConvertDto.class))).thenReturn(BigDecimal.valueOf(1500)); // simulate RSD profit
+
+        // Poziv
+        orderService.handleCommissionSuccessfulPayment(trackedPaymentId);
+
+        // Verifikacije
+        verify(orderRepository, times(1)).save(order);
+        verify(portfolioService, times(1)).updateHoldingsOnOrderExecution(order);
+
+        // Asercije
+        assertEquals(OrderStatus.DONE, order.getStatus());
+        assertTrue(order.getIsDone());
+        assertEquals(TaxStatus.PENDING, order.getTaxStatus());
+        assertEquals(0, BigDecimal.valueOf(75.00).compareTo(order.getTaxAmount()));
+    }
+
+    @Test
+    void handleTransactionSuccessfulPayment_ShouldFinalizeOrContinueExecution() {
+        Order order = Order.builder()
+                .id(1L)
+                .userId(userId)
+                .status(OrderStatus.PROCESSING)
+                .userRole("CLIENT")
+                .contractSize(1)
+                .quantity(10)
+                .remainingPortions(5)
+                .totalPrice(BigDecimal.ZERO)
+                .listing(listing)
+                .transactions(new ArrayList<>())
+                .build();
+
+        Transaction transaction = new Transaction(5, new BigDecimal("100"), new BigDecimal("500"), order);
+        transaction.setId(100L);
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(transaction.getId());
+
+        when(trackedPaymentService.getTrackedPayment(anyLong())).thenReturn(trackedPayment);
+        when(transactionRepository.findById(transaction.getId())).thenReturn(Optional.of(transaction));
+        when(orderRepository.save(any())).thenReturn(order);
+
+        orderService.handleTransactionSuccessfulPayment(1L);
+
+        verify(orderRepository).save(any(Order.class));
+        verify(transactionRepository).findById(transaction.getId());
+    }
+
+    @Test
+    void getCommissionProfit_ShouldReturnExpectedProfit() {
+        BigDecimal expectedProfit = new BigDecimal("1234.56");
+
+        when(orderRepository.getBankProfitFromOrders()).thenReturn(expectedProfit);
+
+        BigDecimal result = orderService.getCommissionProfit();
+
+        assertEquals(expectedProfit, result);
+        verify(orderRepository, times(1)).getBankProfitFromOrders();
+    }
+
+    @Test
+    void payCommission_ShouldCalculateCommissionCorrectly() {
+        // Arrange
+        Long userId = 1L;
+        String accountNumber = "123-456";
+        Order order = new Order();
+        order.setId(1L);
+        order.setUserId(userId);
+        order.setUserRole("CLIENT");
+        order.setAccountNumber(accountNumber);
+        order.setOrderType(OrderType.MARKET);
+        order.setDirection(OrderDirection.BUY);
+        order.setQuantity(10);
+        order.setContractSize(1);
+        order.setPricePerUnit(new BigDecimal("100"));
+        order.setStatus(OrderStatus.PROCESSING);
+        order.setTotalPrice(new BigDecimal("500")); // cena transakcije
+
+        // Očekivana provizija za MARKET order je: 500 * 0.14 = 70, ali min(70, 7) = 7.00
+        String expectedCommission = "7";
+
+        // Mock - da ne poziva pravi bankClient i trackedPaymentService
+        when(bankClient.getUSDAccountNumberByCompanyId(1L)).thenReturn(ResponseEntity.ok("bank-account-USD"));
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setId(1L);
+        trackedPayment.setType(TrackedPaymentType.ORDER_COMMISSION);
+        trackedPayment.setTrackedEntityId(order.getId());
+        trackedPayment.setCreatedAt(LocalDateTime.now());
+        when(trackedPaymentService.createTrackedPayment(order.getId(), TrackedPaymentType.ORDER_COMMISSION)).thenReturn(trackedPayment);
+
+        // Act - direktno pozivamo privatnu metodu preko refleksije
+        try {
+            Method method = OrderService.class.getDeclaredMethod("payCommission", Order.class);
+            method.setAccessible(true);
+            method.invoke(orderService, order);
+        } catch (Exception e) {
+            fail("Reflection error: " + e.getMessage());
+        }
+
+        // Assert - proveravamo da je komisija postavljena kako treba
+        assertEquals(new BigDecimal(expectedCommission), order.getCommission());
+        assertEquals(OrderStatus.COMMISSION_PAYMENT_FAILED, order.getStatus());
+
+        // Provera da je pozvan bankClient za slanje provizije
+        verify(bankClient, times(1)).executeSystemPayment(any(ExecutePaymentDto.class));
+        verify(orderRepository, times(1)).save(order);
+    }
+
+
+    @Test
+    void setOrderProfitAndTax_shouldSetTaxFreeForBuyOrder() throws Exception {
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setListing(listing);
+        order.setDirection(OrderDirection.BUY);
+
+        Method method = OrderService.class.getDeclaredMethod("setOrderProfitAndTax", Order.class);
+        method.setAccessible(true);
+        method.invoke(orderService, order);
+
+        assertEquals(TaxStatus.TAXFREE, order.getTaxStatus());
+        assertEquals(BigDecimal.ZERO, order.getTaxAmount());
+    }
+
+    @Test
+    void setOrderProfitAndTax_shouldSetTaxFreeWhenProfitZeroOrNegative() throws Exception {
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setListing(listing);
+        order.setDirection(OrderDirection.SELL);
+        order.setContractSize(1);
+        order.setQuantity(10);
+        order.setRemainingPortions(0);
+        order.setTotalPrice(new BigDecimal("500"));
+
+        PortfolioEntry portfolioEntry = new PortfolioEntry();
+        portfolioEntry.setAveragePrice(new BigDecimal("90"));
+
+        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.of(portfolioEntry));
+        when(bankClient.convert(any())).thenReturn(new BigDecimal("-100")); // negative profit
+
+        Method method = OrderService.class.getDeclaredMethod("setOrderProfitAndTax", Order.class);
+        method.setAccessible(true);
+        method.invoke(orderService, order);
+
+        assertEquals(TaxStatus.TAXFREE, order.getTaxStatus());
+        assertEquals(BigDecimal.ZERO, order.getTaxAmount());
+    }
+
+    @Test
+    void handleCommissionSuccessfulPayment_shouldCalculateTaxCorrectly() {
+        // Arrange
+        Long trackedPaymentId = 1L;
+        Long orderId = 2L;
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(100L);
+        order.setDirection(OrderDirection.SELL);
+        order.setQuantity(10);
+        order.setContractSize(1);
+        order.setRemainingPortions(0);
+        order.setTotalPrice(new BigDecimal("3000"));
+        order.setTransactions(new ArrayList<>());
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(orderId);
+
+        PortfolioEntry entry = new PortfolioEntry();
+        entry.setAveragePrice(new BigDecimal("200")); // total cost = 2000
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()))
+                .thenReturn(Optional.of(entry));
+        when(bankClient.convert(any(ConvertDto.class))).thenReturn(new BigDecimal("1000"));
+
+        // Act
+        orderService.handleCommissionSuccessfulPayment(trackedPaymentId);
+
+        // Assert
+        assertEquals(new BigDecimal("150.00"), order.getTaxAmount());
+        assertEquals(TaxStatus.PENDING, order.getTaxStatus());
     }
 }
