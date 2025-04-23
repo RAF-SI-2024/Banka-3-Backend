@@ -548,6 +548,8 @@ public class OrderService {
     }
 
     public BigDecimal getCommissionProfit() {
-        return orderRepository.getBankProfitFromOrders();
+        return bankClient.convert(
+                new ConvertDto("USD", "RSD", orderRepository.getBankProfitFromOrders())
+        );
     }
 }
