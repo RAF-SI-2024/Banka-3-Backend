@@ -130,7 +130,7 @@ public class PaymentService {
     }
 
     private Payment createPayment(CreatePaymentDto paymentDto, Long clientId) throws JsonProcessingException {
-        Account sender = getSenderAccount(paymentDto.getSenderAccountNumber());
+        Account sender = getSenderAccount(paymentDto.getSenderAccountNumber(), clientId);
         Account receiver = getReceiverAccount(paymentDto.getReceiverAccountNumber());
 
         validateSufficientFunds(sender, paymentDto.getAmount());

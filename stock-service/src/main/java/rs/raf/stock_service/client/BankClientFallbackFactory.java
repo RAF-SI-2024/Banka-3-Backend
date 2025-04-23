@@ -26,11 +26,6 @@ public class BankClientFallbackFactory implements FallbackFactory<BankClient> {
             }
 
             @Override
-            public ResponseEntity<String> getUSDAccountNumberByCompanyId(Long companyId) {
-                return null;
-            }
-
-            @Override
             public void rejectPayment(Long paymentId) {
 
             }
