@@ -758,7 +758,7 @@ public class AccountServiceTest {
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
         when(accountRepository.findFirstByCurrencyAndCompanyId(usd, companyId)).thenReturn(Optional.of(acc));
 
-        String result = accountService.getUSDAccountForCompany(companyId);
+        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
         assertEquals("usdCompanyAcc", result);
     }
 
@@ -766,7 +766,7 @@ public class AccountServiceTest {
         Long companyId = 10L;
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.empty());
 
-        String result = accountService.getUSDAccountForCompany(companyId);
+        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
         assertNull(result);
     }
 
@@ -777,7 +777,7 @@ public class AccountServiceTest {
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
         when(accountRepository.findFirstByCurrencyAndCompanyId(usd, companyId)).thenReturn(Optional.empty());
 
-        String result = accountService.getUSDAccountForCompany(companyId);
+        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
         assertNull(result);
     }
 }
