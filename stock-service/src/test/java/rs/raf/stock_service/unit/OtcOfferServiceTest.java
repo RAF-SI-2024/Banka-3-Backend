@@ -21,6 +21,7 @@ import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
+import rs.raf.stock_service.exceptions.PortfolioAmountNotEnoughException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedActionException;
 import rs.raf.stock_service.repository.OtcOfferRepository;
@@ -29,6 +30,7 @@ import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.OtcService;
 import rs.raf.stock_service.service.TrackedPaymentService;
 
+import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -430,6 +432,131 @@ public class OtcOfferServiceTest {
         assertEquals(OtcOptionStatus.EXPIRED, option.getStatus());
         assertEquals(10, entry.getAmount());
         assertEquals(0, entry.getReservedAmount());
+    }
+
+    @Test
+    public void handleAcceptSuccessfulPayment_CreatesOtcOption() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(offerId);
+
+        OtcOffer offer = new OtcOffer();
+        offer.setSellerId(3L);
+        offer.setBuyerId(4L);
+        offer.setStock(new Stock());
+        offer.setPricePerStock(BigDecimal.valueOf(100.0));
+        offer.setAmount(10);
+        offer.setSettlementDate(LocalDate.from(LocalDateTime.now().plusDays(1)));
+        offer.setPremium(BigDecimal.valueOf(50.0));
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+        when(otcOptionRepository.save(any(OtcOption.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        otcService.handleAcceptSuccessfulPayment(trackedPaymentId);
+
+        verify(otcOptionRepository).save(any(OtcOption.class));
+        verify(otcOfferRepository).save(offer);
+        assertNotNull(offer.getOtcOption());
+        assertEquals(OtcOptionStatus.VALID, offer.getOtcOption().getStatus());
+    }
+
+    @Test
+    public void handleAcceptSuccessfulPayment_OfferNotFound_ThrowsException() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(offerId);
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () ->
+                otcService.handleAcceptSuccessfulPayment(trackedPaymentId));
+    }
+
+    @Test
+    public void handleAcceptFailedPayment_UpdatesPortfolioAndOffer() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(offerId);
+
+        OtcOffer offer = new OtcOffer();
+        offer.setSellerId(3L);
+        offer.setAmount(10);
+        offer.setStock(new Stock());
+        offer.setStatus(OtcOfferStatus.ACCEPTED);
+
+        PortfolioEntry portfolioEntry = new PortfolioEntry();
+        portfolioEntry.setPublicAmount(15); // Must be >= offer amount (10)
+        portfolioEntry.setReservedAmount(10); // Must match offer amount
+        portfolioEntry.setAmount(25); // Total amount
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+        when(portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(), offer.getStock()))
+                .thenReturn(Optional.of(portfolioEntry));
+
+        otcService.handleAcceptFailedPayment(trackedPaymentId);
+
+        assertEquals(25, portfolioEntry.getPublicAmount()); // 15 (public) + 10 (reserved)
+        assertEquals(0, portfolioEntry.getReservedAmount()); // reserved should be reduced by offer amount
+        assertEquals(OtcOfferStatus.PENDING, offer.getStatus());
+        assertNotNull(offer.getLastModified());
+        verify(portfolioEntryRepository).save(portfolioEntry);
+        verify(otcOfferRepository).save(offer);
+    }
+
+    @Test
+    public void handleAcceptFailedPayment_PortfolioEntryNotFound_ThrowsException() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(offerId);
+
+        OtcOffer offer = new OtcOffer();
+        offer.setSellerId(3L);
+        offer.setStock(new Stock());
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+        when(portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(), offer.getStock()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(PortfolioEntryNotFoundException.class, () ->
+                otcService.handleAcceptFailedPayment(trackedPaymentId));
+    }
+
+    @Test
+    public void handleAcceptFailedPayment_InsufficientPortfolioAmount_ThrowsException() {
+        Long trackedPaymentId = 1L;
+        Long offerId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(offerId);
+
+        OtcOffer offer = new OtcOffer();
+        offer.setSellerId(3L);
+        offer.setAmount(10);
+        offer.setStock(new Stock());
+
+        PortfolioEntry portfolioEntry = new PortfolioEntry();
+        portfolioEntry.setPublicAmount(5);
+        portfolioEntry.setReservedAmount(5);
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
+        when(portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(), offer.getStock()))
+                .thenReturn(Optional.of(portfolioEntry));
+
+        assertThrows(PortfolioAmountNotEnoughException.class, () ->
+                otcService.handleAcceptFailedPayment(trackedPaymentId));
     }
 
 }
