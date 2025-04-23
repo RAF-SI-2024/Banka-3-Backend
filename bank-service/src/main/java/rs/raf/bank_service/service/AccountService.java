@@ -120,7 +120,6 @@ public class AccountService {
         );
 
         return AccountMapper.toDto(account.get(0), null);
-
     }
 
 

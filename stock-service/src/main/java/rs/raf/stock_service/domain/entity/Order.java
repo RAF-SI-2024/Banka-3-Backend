@@ -111,7 +111,6 @@ public class Order {
 
         remainingPortions = quantity;
         totalPrice = BigDecimal.ZERO;
-        commission = BigDecimal.ZERO;
         stopFulfilled = false;
         status = OrderStatus.PENDING;
         isDone = false;

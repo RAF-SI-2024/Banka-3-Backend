@@ -384,7 +384,7 @@ public class OtcService {
                     otcOption.getUnderlyingStock()).orElseThrow(PortfolioEntryNotFoundException::new);
 
             portfolioEntry.setAmount(portfolioEntry.getAmount() + otcOption.getAmount());
-
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - otcOption.getAmount());
             otcOption.setStatus(OtcOptionStatus.EXPIRED);
             otcOptionRepository.save(otcOption);
         }
