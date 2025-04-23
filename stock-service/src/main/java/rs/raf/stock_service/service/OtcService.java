@@ -375,8 +375,8 @@ public class OtcService {
         return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
     }
 
-    @Scheduled()
-    private void checkOtcOptionExpiration(){
+    @Scheduled(cron = "0 0 0 * * *")
+    public void checkOtcOptionExpiration(){
         List<OtcOption> otcOptions =  otcOptionRepository.findAllValidButExpired(LocalDate.now());
 
         for (OtcOption otcOption : otcOptions){

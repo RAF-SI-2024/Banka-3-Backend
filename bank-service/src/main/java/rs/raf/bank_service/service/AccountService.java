@@ -114,6 +114,19 @@ public class AccountService {
 
     }
 
+    // Za Order
+    public String getUSDAccountForCompany(Long companyId) {
+        Currency currency = currencyRepository.findByCode("USD").orElse(null);
+        if (currency == null)
+            return null;
+
+        CompanyAccount companyAccount = accountRepository.findFirstByCurrencyAndCompanyId(currency, companyId).orElse(null);
+        if(companyAccount == null)
+            return null;
+
+        return companyAccount.getAccountNumber();
+    }
+
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);

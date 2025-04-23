@@ -166,7 +166,7 @@ public class PortfolioService {
                         .type(order.getListing().getType())
                         .amount(totalQuantity)
                         .averagePrice(price)
-                        .publicAmount(0) // privremeno 0 moze neka logika kasnije kad bude bilo potrebno
+                        .publicAmount(0)
                         .reservedAmount(0)
                         .inTheMoney(false)
                         .used(false)
