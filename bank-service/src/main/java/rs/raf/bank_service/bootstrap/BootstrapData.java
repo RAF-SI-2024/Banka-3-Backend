@@ -93,6 +93,24 @@ public class BootstrapData implements CommandLineRunner {
                     .accountOwnerType(AccountOwnerType.PERSONAL)
                     .build();
 
+            PersonalAccount foreignAccount2 = PersonalAccount.builder()
+                    .name("My USD account")
+                    .accountNumber("311111111111111112")
+                    .clientId(1L)
+                    .createdByEmployeeId(3L)
+                    .creationDate(LocalDate.now().minusMonths(1))
+                    .expirationDate(LocalDate.now().plusYears(5))
+                    .currency(currencyUSD)
+                    .status(AccountStatus.ACTIVE)
+                    .balance(BigDecimal.valueOf(10000))
+                    .availableBalance(BigDecimal.valueOf(10000))
+                    .dailyLimit(BigDecimal.valueOf(500))
+                    .monthlyLimit(BigDecimal.valueOf(5000))
+                    .dailySpending(BigDecimal.ZERO)
+                    .monthlySpending(BigDecimal.ZERO)
+                    .type(AccountType.FOREIGN)
+                    .accountOwnerType(AccountOwnerType.PERSONAL)
+                    .build();
 
             PersonalAccount currentAccount2 = PersonalAccount.builder()
                     .name("My RSD account")
@@ -340,7 +358,7 @@ public class BootstrapData implements CommandLineRunner {
 
             accountRepository.saveAll(java.util.List.of(
                     currentAccount1, currentAccount2, foreignAccount, foreignAccount1,
-                    bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
+                    foreignAccount2, bankAccountRSD, bankAccountEUR, bankAccountCHF, bankAccountUSD, bankAccountJPY,
                     bankAccountGBP, bankAccountCAD, bankAccountAUD, bankAccountState, stockMarketAccount
             ));
 

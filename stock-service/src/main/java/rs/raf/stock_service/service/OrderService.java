@@ -267,7 +267,7 @@ public class OrderService {
 
     private void executeTransaction(Order order){
         Random random = new Random();
-        long extraTime = 0L;//order.getAfterHours() ? 300000L : 0L;
+        long extraTime = order.getAfterHours() ? 300000L : 0L;
         long volume = order.getListing() instanceof Stock ? Math.max(200000, ((Stock) order.getListing()).getVolume()) : 1000000;
 
         try {
