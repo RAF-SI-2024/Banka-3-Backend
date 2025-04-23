@@ -117,7 +117,10 @@ class EmployeeController(
     @PreAuthorize("hasRole('EMPLOYEE')")
     @GetMapping("/me")
     override fun getCurrentEmployee(): ResponseEntity<Any> {
-        val email = SecurityContextHolder.getContext().authentication.name
+        val auth = SecurityContextHolder.getContext().authentication
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            
+        val email = auth.name
         return employeeService.findByEmail(email).fold(
             ifLeft = { ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found") },
             ifRight = { ResponseEntity.ok(it) },

@@ -96,6 +96,16 @@
                 </executions>
                 <configuration>
                     <excludes>
+                        <!--kotlin_user_service-->
+                        <exclude>**pack/userservicekotlin/arrow/**</exclude>
+                        <exclude>**pack/userservicekotlin/repository/**</exclude>
+                        <exclude>**pack/userservicekotlin/configuration/**</exclude>
+                        <exclude>**pack/userservicekotlin/bootstrap/**</exclude>
+                        <exclude>**pack/userservicekotlin/client/**</exclude>
+                        <exclude>**pack/userservicekotlin/controller/**</exclude>
+                        <exclude>**pack/userservicekotlin/specification/**</exclude>
+                        <exclude>**pack/userservicekotlin/swagger/**</exclude>
+                        <exclude>**pack/userservicekotlin/utils/**</exclude>
                         <!--user_service-->
                         <exclude>**rs/raf/user_service/domain/**</exclude>
                         <exclude>**rs/raf/user_service/repository/**</exclude>

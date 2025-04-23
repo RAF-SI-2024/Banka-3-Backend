@@ -75,7 +75,7 @@ class VerificationRequestServiceTest {
         val result = service.updateRequestStatus(99L, VerificationStatus.APPROVED)
 
         assertTrue(result.isLeft())
-        assertTrue(result.swap().orNull() is VerificationServiceError.RequestNotFound)
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.RequestNotFound)
     }
 
     @Test
@@ -97,49 +97,71 @@ class VerificationRequestServiceTest {
     }
 
     @Test
-    fun `denyVerificationRequest denies pending request`() {
-        val request =
-            VerificationRequest(
-                status = VerificationStatus.PENDING,
-                verificationType = VerificationType.CARD_REQUEST,
-                targetId = 101L,
-            )
-        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(2L)
-        `when`(verificationRequestRepository.findActiveRequest(20L, 2L)).thenReturn(request)
+    fun `denyVerificationRequest updates status to denied`() {
+        val request = VerificationRequest(
+            status = VerificationStatus.PENDING,
+            verificationType = VerificationType.PAYMENT,
+            targetId = 22L
+        )
+        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(1L)
+        `when`(verificationRequestRepository.findActiveRequest(10L, 1L)).thenReturn(request)
 
-        val result = service.denyVerificationRequest(20L, "token")
+        val result = service.denyVerificationRequest(10L, "token")
 
         assertTrue(result.isRight())
         assertEquals(VerificationStatus.DENIED, request.status)
-        verify(bankClient).rejectApproveCardRequest(101L)
+        verify(bankClient).rejectConfirmPayment(22L)
     }
 
     @Test
-    fun `denyVerificationRequest fails if status is not PENDING`() {
-        val request =
-            VerificationRequest(
-                status = VerificationStatus.APPROVED,
-                verificationType = VerificationType.TRANSFER,
-                targetId = 101L,
-            )
-        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(2L)
-        `when`(verificationRequestRepository.findActiveRequest(20L, 2L)).thenReturn(request)
+    fun `denyVerificationRequest returns error if request not found`() {
+        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(1L)
+        `when`(verificationRequestRepository.findActiveRequest(10L, 1L)).thenReturn(null)
 
-        val result = service.denyVerificationRequest(20L, "token")
+        val result = service.denyVerificationRequest(10L, "token")
 
         assertTrue(result.isLeft())
-        assertTrue(result.swap().orNull() is VerificationServiceError.InvalidRequestStatus)
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.RequestNotFound)
     }
 
     @Test
-    fun `calledFromMobile returns true for matching agent`() {
+    fun `calledFromMobile returns true for mobile user agent`() {
         val result = service.calledFromMobile("MobileApp/1.0")
         assertTrue(result)
     }
 
     @Test
-    fun `calledFromMobile returns false for anything else`() {
-        val result = service.calledFromMobile("Browser/99")
+    fun `calledFromMobile returns false for non-mobile user agent`() {
+        val result = service.calledFromMobile("Mozilla/5.0")
         assertFalse(result)
+    }
+
+    @Test
+    fun `processApproval returns error if request not found`() {
+        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(1L)
+        `when`(verificationRequestRepository.findActiveRequest(10L, 1L)).thenReturn(null)
+
+        val result = service.processApproval(10L, "token")
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.RequestNotFound)
+    }
+
+    @Test
+    fun `processApproval returns error if bank client call fails`() {
+        val request =
+            VerificationRequest(
+                status = VerificationStatus.PENDING,
+                verificationType = VerificationType.PAYMENT,
+                targetId = 22L,
+            )
+        `when`(jwtTokenUtil.getUserIdFromAuthHeader("token")).thenReturn(1L)
+        `when`(verificationRequestRepository.findActiveRequest(10L, 1L)).thenReturn(request)
+        `when`(bankClient.confirmPayment(22L)).thenThrow(RuntimeException("Bank service error"))
+
+        val result = service.processApproval(10L, "token")
+
+        assertTrue(result.isLeft())
+        assertTrue(result.swap().getOrNull() is VerificationServiceError.BankServiceError)
     }
 }

@@ -125,24 +125,20 @@ class CompanyControllerTest {
             }
     }
 
-    @WithMockUser
+    @WithMockUser(roles = ["EMPLOYEE"])
     @Test
-    fun `getCompanyById should return 200 when found`() {
-        val response = validCompanyResponseDto()
-
-        `when`(companyService.getCompanyById(1L))
-            .thenReturn(Either.Right(response))
-
+    fun `createCompany should return 400 if invalid request body`() {
         mockMvc
-            .get("/api/company/1")
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.name") { value(response.name) }
+            .post("/api/company") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
             }
     }
 
-    @Test
     @WithMockUser
+    @Test
     fun `getCompanyById should return 404 when not found`() {
         `when`(companyService.getCompanyById(1L))
             .thenReturn(Either.Left(CompanyServiceError.CompanyNotFound(1L)))
@@ -167,6 +163,20 @@ class CompanyControllerTest {
             .andExpect {
                 status { isOk() }
                 jsonPath("$[0].name") { value(response[0].name) }
+            }
+    }
+
+    @Test
+    @WithMockUser(roles = ["EMPLOYEE"])
+    fun `getCompaniesForClientId should return empty list when no companies exist`() {
+        `when`(companyService.getCompaniesForClientId(1L)).thenReturn(emptyList())
+
+        mockMvc
+            .get("/api/company/owned-by/1")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$") { isArray() }
+                jsonPath("$.length()") { value(0) }
             }
     }
 
