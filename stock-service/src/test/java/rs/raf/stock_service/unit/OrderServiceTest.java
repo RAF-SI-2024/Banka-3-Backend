@@ -133,7 +133,7 @@ public class OrderServiceTest {
         listing.setExchange(exchange);
         listing.setPrice(new BigDecimal(150));
 
-        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000), new BigDecimal(100), true);
+        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(100000000), new BigDecimal(100), true);
 
         portfolioEntry = PortfolioEntry.builder().id(1L).listing(listing).amount(100).publicAmount(0).reservedAmount(0).build();
 

@@ -131,4 +131,20 @@ public class ActuaryController {
     ){
         return ResponseEntity.ok().body(actuaryService.getAllAgentsAndClients(name,surname,role));
     }
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PutMapping("update-used-limit/{id}")
+    @Operation(summary = "Update used limit.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent limit changed successfully."),
+            @ApiResponse(responseCode = "404", description = "Agent not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<?> updateUsedLimit(@PathVariable Long id, @Valid @RequestBody ChangeAgentLimitDto changeAgentLimitDto) {
+        try {
+            return ResponseEntity.ok().body(actuaryService.updateUsedLimit(id, changeAgentLimitDto.getNewLimit()));
+        } catch (ActuaryLimitNotFoundException | EmployeeNotFoundException | UserNotAgentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }
