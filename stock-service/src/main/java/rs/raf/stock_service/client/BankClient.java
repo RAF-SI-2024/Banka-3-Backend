@@ -29,6 +29,9 @@ public interface BankClient {
     @GetMapping("/api/account/client/{clientId}/usd-account-number")
     ResponseEntity<String> getUSDAccountNumberByClientId(@PathVariable("clientId") Long clientId);
 
+    @GetMapping("/api/account/company/{companyId}/usd-account-number")
+    ResponseEntity<String> getUSDAccountNumberByCompanyId(@PathVariable("companyId") Long companyId);
+
     @PostMapping("/api/payment/reject-payment/{paymentId}")
     void rejectPayment(@PathVariable("paymentId") Long paymentId);
 
@@ -43,10 +46,4 @@ public interface BankClient {
 
     @GetMapping("api/account/details/{accountNumber}")
     AccountDetailsDto getAccountDetails(@PathVariable("accountNumber") String accountNumber);
-
-    @PutMapping("/api/account/{accountNumber}/reserve")
-    void updateAvailableBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
-
-    @PutMapping("/api/account/{accountNumber}/update-balance")
-    void updateBalance(@PathVariable("accountNumber") String accountNumber, @RequestParam BigDecimal amount);
 }

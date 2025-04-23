@@ -3,12 +3,7 @@ package rs.raf.stock_service.service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import rs.raf.stock_service.domain.dto.TrackedPaymentDto;
-import rs.raf.stock_service.domain.entity.TrackedPayment;
 import rs.raf.stock_service.domain.enums.TrackedPaymentStatus;
-import rs.raf.stock_service.domain.enums.TrackedPaymentType;
-import rs.raf.stock_service.domain.mapper.TrackedPaymentMapper;
-import rs.raf.stock_service.exceptions.TrackedPaymentNotFoundException;
 import rs.raf.stock_service.repository.TrackedPaymentRepository;
 
 
@@ -19,6 +14,7 @@ public class TrackedPaymentNotificationService {
     private final TrackedPaymentRepository trackedPaymentRepository;
     private final OtcService otcService;
     private final TaxService taxService;
+    private final OrderService orderService;
 
     public void markAsSuccess(Long id) {
         trackedPaymentRepository.findById(id).ifPresent(trackedPayment -> {
@@ -29,9 +25,10 @@ public class TrackedPaymentNotificationService {
 
             switch (trackedPayment.getType()) {
                 case OTC_EXERCISE -> otcService.handleExerciseSuccessfulPayment(id);
-                case OTC_CREATE_OPTION -> {}
-                case ORDER_ALL_OR_NONE -> {}
+                case OTC_CREATE_OPTION -> otcService.handleAcceptSuccessfulPayment(id);
+                case ORDER_TRANSACTION -> orderService.handleTransactionSuccessfulPayment(id);
                 case TAX_PAYMENT -> taxService.handleSuccessfulTaxPayment(id);
+                case ORDER_COMMISSION -> orderService.handleCommissionSuccessfulPayment(id);
             }
         });
 
@@ -46,8 +43,8 @@ public class TrackedPaymentNotificationService {
 
             switch (trackedPayment.getType()) {
                 case OTC_EXERCISE -> {}
-                case OTC_CREATE_OPTION -> {}
-                case ORDER_ALL_OR_NONE -> {}
+                case OTC_CREATE_OPTION -> otcService.handleAcceptFailedPayment(id);
+                case ORDER_TRANSACTION -> orderService.handleTransactionFailedPayment(id);
                 case TAX_PAYMENT -> taxService.handleFailedTaxPayment(id);
             }
         });

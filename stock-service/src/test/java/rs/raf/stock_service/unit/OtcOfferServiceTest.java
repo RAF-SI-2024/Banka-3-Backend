@@ -1,4 +1,4 @@
-package unit;
+package rs.raf.stock_service.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,19 +8,21 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
 import rs.raf.stock_service.domain.dto.OtcOfferDto;
-import rs.raf.stock_service.domain.entity.OtcOffer;
-import rs.raf.stock_service.domain.entity.PortfolioEntry;
-import rs.raf.stock_service.domain.entity.Stock;
+import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.exceptions.UnauthorizedActionException;
 import rs.raf.stock_service.repository.OtcOfferRepository;
+import rs.raf.stock_service.repository.OtcOptionRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.OtcService;
+import rs.raf.stock_service.service.TrackedPaymentService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,6 +47,15 @@ public class OtcOfferServiceTest {
     @Mock
     private OtcOfferMapper otcOfferMapper;
 
+    @Mock
+    private OtcOptionRepository otcOptionRepository;
+
+    @Mock
+    private BankClient bankClient;
+
+    @Mock
+    private TrackedPaymentService trackedPaymentService;
+
     @InjectMocks
     private OtcService otcService;
 
@@ -62,6 +73,8 @@ public class OtcOfferServiceTest {
 
         entry = new PortfolioEntry();
         entry.setId(1L);
+        entry.setAmount(10);
+        entry.setReservedAmount(0);
         entry.setListing(stock);
         entry.setUserId(sellerId);
         entry.setPublicAmount(100);
@@ -108,22 +121,32 @@ public class OtcOfferServiceTest {
 
     @Test
     public void testAcceptOffer_authorized() {
+        Stock stock = Stock.builder().build();
+
         OtcOffer offer = OtcOffer.builder()
                 .id(1L)
                 .buyerId(buyerId)
                 .sellerId(sellerId)
                 .lastModifiedById(sellerId)
                 .status(OtcOfferStatus.PENDING)
+                .amount(5)
+                .stock(stock)
                 .build();
 
         when(otcOfferRepository.findById(1L)).thenReturn(Optional.of(offer));
+        when(portfolioEntryRepository.findByUserIdAndListing (sellerId, stock)).thenReturn(Optional.of(entry));
+        when(bankClient.getUSDAccountNumberByClientId(any())).thenReturn(ResponseEntity.ok("1"));
+        when(trackedPaymentService.createTrackedPayment(any(), any())).thenReturn(new TrackedPayment());
 
         otcService.acceptOffer(1L, buyerId);
+
+        verify(otcOfferRepository).save(offer);
+        verify(portfolioEntryRepository).save(entry);
+        verify(bankClient).executeSystemPayment(any());
 
         assertEquals(OtcOfferStatus.ACCEPTED, offer.getStatus());
         assertEquals(buyerId, offer.getLastModifiedById());
         assertNotNull(offer.getLastModified());
-        verify(otcOfferRepository).save(offer);
     }
 
     @Test

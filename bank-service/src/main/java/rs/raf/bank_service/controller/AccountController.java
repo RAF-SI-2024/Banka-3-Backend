@@ -281,46 +281,16 @@ public class AccountController {
 
         return ResponseEntity.ok(account.getAccountNumber());
     }
-    // interni endpoint
-    @Operation(summary = "Update account available balance")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Account available balance updated successfully"),
-            @ApiResponse(responseCode = "404", description = "Account not found")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{accountNumber}/reserve")
-    public ResponseEntity<?> updateAvailableBalance(
-            @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount) {
-        try {
-            accountService.updateAvailableBalance(accountNumber, amount);
-            return ResponseEntity.ok("Account available balance updated successfully");
-        } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (InsufficientFundsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
 
-    // interni endpoint
-    @Operation(summary = "Update account balance")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Account balance updated successfully"),
-            @ApiResponse(responseCode = "404", description = "Account not found")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{accountNumber}/update-balance")
-    public ResponseEntity<?> updateBalance(
-            @PathVariable String accountNumber,
-            @RequestParam BigDecimal amount) {
-        try {
-            accountService.updateBalance(accountNumber, amount);
-            return ResponseEntity.ok("Account balance updated successfully");
-        } catch (AccountNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (InsufficientFundsException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+    //Za Order
+    @GetMapping("/company/{companyId}/usd-account-number")
+    public ResponseEntity<?> getAccountNumberByCompanyId(@PathVariable Long companyId) {
+        String accountNumber = accountService.getUSDAccountForCompany(companyId);
+
+        if (accountNumber == null)
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(accountNumber);
     }
 
     // Globalni Exception Handleri

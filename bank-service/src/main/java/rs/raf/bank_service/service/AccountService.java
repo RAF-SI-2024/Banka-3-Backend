@@ -41,7 +41,6 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final ChangeLimitRequestRepository changeLimitRequestRepository;
     private final JwtTokenUtil jwtTokenUtil;
-    private final ExchangeRateService exchangeRateService;
     @Autowired
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
@@ -113,6 +112,19 @@ public class AccountService {
 
         return highestBalance.map(account -> AccountMapper.toDto(account, client)).orElse(null);
 
+    }
+
+    // Za Order
+    public String getUSDAccountForCompany(Long companyId) {
+        Currency currency = currencyRepository.findByCode("USD").orElse(null);
+        if (currency == null)
+            return null;
+
+        CompanyAccount companyAccount = accountRepository.findFirstByCurrencyAndCompanyId(currency, companyId).orElse(null);
+        if(companyAccount == null)
+            return null;
+
+        return companyAccount.getAccountNumber();
     }
 
 
@@ -400,36 +412,5 @@ public class AccountService {
                 .stream()
                 .map(account -> AccountMapper.toDto(account, null))
                 .toList();
-    }
-
-
-    public void updateAvailableBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
-        }
-
-        if (account.getAvailableBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getAvailableBalance(), amount);
-
-        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
-        accountRepository.save(account);
-    }
-
-    public void updateBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
-        }
-
-        if (account.getBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getBalance(), amount);
-
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
     }
 }

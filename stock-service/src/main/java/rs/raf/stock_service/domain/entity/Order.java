@@ -1,7 +1,6 @@
 package rs.raf.stock_service.domain.entity;
 
 import lombok.*;
-import org.hibernate.annotations.BatchSize;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.domain.enums.OrderStatus;
 import rs.raf.stock_service.domain.enums.OrderType;
@@ -27,7 +26,10 @@ public class Order {
     private Long id;
 
     @Column(nullable = false, updatable = false)
-    private Long userId; // aktuar
+    private Long userId;
+
+    @Column(nullable = false)
+    private String userRole;
 
     @ManyToOne
     @JoinColumn(name = "listing_id", nullable = false, updatable = false)
@@ -37,22 +39,34 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private OrderType orderType; // market, limit, stop, stop_limit
 
-    @Column(nullable = false, updatable = false)
-    private Integer quantity;
-
-    @Column(nullable = false, updatable = false)
-    private Integer contractSize;
-
-    @Column(nullable = false)
-    private BigDecimal pricePerUnit;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false)
     private OrderDirection direction; // buy, sell
 
+    @Column(nullable = false, updatable = false)
+    private boolean allOrNone;
+
+    @Column(nullable = false, updatable = false)
+    private Integer contractSize;
+
+    @Column(nullable = false, updatable = false)
+    private Integer quantity;
+
+    @Column(nullable = false)
+    private BigDecimal pricePerUnit;
+
+    @Column(nullable = false)
+    private BigDecimal totalPrice;
+
+    @Column(nullable = false)
+    private String accountNumber;
+
+    @Column
+    private BigDecimal commission;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status; // pending, approved, declined, done, cancelled
+    private OrderStatus status; // pending, approved, declined, partial, done, cancelled
 
     private Long approvedBy;
 
@@ -62,28 +76,14 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime lastModification;
 
-    @Column(nullable = false)
-    private Integer remainingPortions;
-
     @Column(updatable = false)
     private Boolean afterHours;
 
-    @Column(nullable = false)
-    private String accountNumber;
-
-    @Column(updatable = false)
     private BigDecimal stopPrice;
-
     private boolean stopFulfilled;
 
-    @Column(nullable = false, updatable = false)
-    private boolean allOrNone;
-
-    @Column
-    private BigDecimal commission;
-
-
-    private BigDecimal reservedAmount;
+    @Column(nullable = false)
+    private Integer remainingPortions;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Transaction> transactions;
@@ -93,29 +93,29 @@ public class Order {
     private BigDecimal taxAmount;
     private BigDecimal profit;
 
-    private String role;
-
-    public Order(Long userId, Listing listing, OrderType orderType, Integer quantity, Integer contractSize, BigDecimal pricePerUnit,
-                 OrderDirection direction, boolean afterHours, String accountNumber, BigDecimal stopPrice, boolean allOrNone,
-                 String role) {
+    public Order(Long userId, String userRole, Listing listing, OrderType orderType, OrderDirection direction, boolean allOrNone,
+                 Integer contractSize, Integer quantity, BigDecimal pricePerUnit, String accountNumber, BigDecimal stopPrice,
+                 boolean afterHours) {
         this.userId = userId;
+        this.userRole = userRole;
         this.listing = listing;
         this.orderType = orderType;
-        this.quantity = quantity;
-        this.contractSize = contractSize;
         this.direction = direction;
-        this.afterHours = afterHours;
-        this.accountNumber = accountNumber;
-        this.remainingPortions = quantity;
-        this.pricePerUnit = pricePerUnit;
-        this.stopPrice = stopPrice;
         this.allOrNone = allOrNone;
-        this.status = OrderStatus.PENDING;
-        this.isDone = false;
-        this.lastModification = LocalDateTime.now();
-        this.stopFulfilled = false;
-        this.transactions = new ArrayList<>();
-        this.role = role;
+        this.contractSize = contractSize;
+        this.quantity = quantity;
+        this.pricePerUnit = pricePerUnit;
+        this.accountNumber = accountNumber;
+        this.stopPrice = stopPrice;
+        this.afterHours = afterHours;
+
+        remainingPortions = quantity;
+        totalPrice = BigDecimal.ZERO;
+        stopFulfilled = false;
+        status = OrderStatus.PENDING;
+        isDone = false;
+        lastModification = LocalDateTime.now();
+        transactions = new ArrayList<>();
     }
 }
 

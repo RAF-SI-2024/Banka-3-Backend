@@ -2,12 +2,14 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
+import rs.raf.stock_service.domain.enums.OtcOptionStatus;
 import rs.raf.stock_service.domain.enums.TrackedPaymentType;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
@@ -35,7 +37,6 @@ public class OtcService {
     private final PortfolioEntryRepository portfolioEntryRepository;
     private final OtcOfferMapper otcOfferMapper;
     private final UserClient userClient;
-    private final OtcOptionRepository optionRepository;
     private final OtcOptionRepository otcOptionRepository;
     private final OtcOptionMapper otcOptionMapper;
     private final PortfolioService portfolioService;
@@ -50,10 +51,10 @@ public class OtcService {
         if (!otcOption.getBuyerId().equals(userId))
             throw new UnauthorizedOtcAccessException();
 
-        if (otcOption.isUsed())
+        if (otcOption.getStatus() == OtcOptionStatus.USED)
             throw new OtcOptionAlreadyExercisedException();
 
-        if (otcOption.getSettlementDate().isBefore(LocalDate.now()))
+        if (otcOption.getStatus() == OtcOptionStatus.EXPIRED || otcOption.getSettlementDate().isBefore(LocalDate.now()))
             throw new OtcOptionSettlementExpiredException();
 
         BigDecimal totalAmount = otcOption.getStrikePrice().multiply(BigDecimal.valueOf(otcOption.getAmount()));
@@ -105,11 +106,13 @@ public class OtcService {
 
         Stock stock = otcOption.getUnderlyingStock();
 
-        if (otcOption.isUsed()) {
+        if (otcOption.getStatus() == OtcOptionStatus.USED)
             throw new OtcOptionAlreadyExercisedException();
-        }
 
-        portfolioService.transferStockOwnership(
+        if (otcOption.getStatus() == OtcOptionStatus.EXPIRED || otcOption.getSettlementDate().isBefore(LocalDate.now()))
+            throw new OtcOptionSettlementExpiredException();
+
+        portfolioService.updateHoldingsOnOtcOptionExecution(
                 otcOption.getSellerId(),
                 otcOption.getBuyerId(),
                 stock,
@@ -121,7 +124,7 @@ public class OtcService {
         offer.setStatus(OtcOfferStatus.EXERCISED);
         otcOfferRepository.save(offer);
 
-        otcOption.setUsed(true);
+        otcOption.setStatus(OtcOptionStatus.USED);
         otcOptionRepository.save(otcOption);
     }
 
@@ -176,7 +179,7 @@ public class OtcService {
     }
 
     @Transactional
-    public void acceptOffer(Long offerId, Long userId) {
+    public TrackedPaymentDto acceptOffer(Long offerId, Long userId) {
         OtcOffer offer = otcOfferRepository.findById(offerId)
                 .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
 
@@ -185,11 +188,100 @@ public class OtcService {
             throw new UnauthorizedActionException("Not allowed to update this offer");
         }
 
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(),
+                offer.getStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (portfolioEntry.getPublicAmount() < offer.getAmount())
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getPublicAmount(), offer.getAmount());
+
+        portfolioEntry.setPublicAmount(portfolioEntry.getPublicAmount() - offer.getAmount());
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + offer.getAmount());
+        portfolioEntryRepository.save(portfolioEntry);
+
         offer.setStatus(OtcOfferStatus.ACCEPTED);
         offer.setLastModified(LocalDateTime.now());
         offer.setLastModifiedById(userId);
         otcOfferRepository.save(offer);
+
+        String senderAccount = bankClient.getUSDAccountNumberByClientId(offer.getBuyerId()).getBody();
+        String receiverAccount = bankClient.getUSDAccountNumberByClientId(offer.getSellerId()).getBody();
+
+        if (senderAccount == null)
+            throw new OtcAccountNotFoundForBuyerException();
+
+        if (receiverAccount == null)
+            throw new OtcAccountNotFoundForSellerException();
+
+        TrackedPayment trackedPayment = trackedPaymentService.createTrackedPayment(
+                offerId,
+                TrackedPaymentType.OTC_CREATE_OPTION
+        );
+
+        log.info("Created tracked payment {}", trackedPayment);
+
+        CreatePaymentDto createPaymentDto = CreatePaymentDto
+                .builder()
+                .amount(offer.getPremium())
+                .senderAccountNumber(senderAccount)
+                .receiverAccountNumber(receiverAccount)
+                .callbackId(trackedPayment.getId())
+                .purposeOfPayment("OTC Create Option")
+                .paymentCode("289")
+                .build();
+
+        bankClient.executeSystemPayment(
+                ExecutePaymentDto.builder()
+                        .clientId(userId)
+                        .createPaymentDto(createPaymentDto)
+                        .build()
+        );
+
+        return TrackedPaymentMapper.toDto(trackedPayment);
     }
+
+    public void handleAcceptSuccessfulPayment(Long trackedPaymentId) {
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long offerId = trackedPayment.getTrackedEntityId();
+
+        OtcOffer offer = otcOfferRepository.findById(offerId)
+                .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
+
+        OtcOption otcOption = OtcOption.builder()
+                .otcOffer(offer)
+                .sellerId(offer.getSellerId())
+                .buyerId(offer.getBuyerId())
+                .underlyingStock(offer.getStock())
+                .strikePrice(offer.getPricePerStock())
+                .amount(offer.getAmount())
+                .settlementDate(offer.getSettlementDate())
+                .premium(offer.getPremium())
+                .status(OtcOptionStatus.VALID)
+                .build();
+        otcOptionRepository.save(otcOption);
+    }
+
+    public void handleAcceptFailedPayment(Long trackedPaymentId){
+        TrackedPayment trackedPayment = trackedPaymentService.getTrackedPayment(trackedPaymentId);
+        Long offerId = trackedPayment.getTrackedEntityId();
+
+        OtcOffer offer = otcOfferRepository.findById(offerId)
+                .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
+
+        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(),
+                offer.getStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (portfolioEntry.getPublicAmount() < offer.getAmount())
+            throw new PortfolioAmountNotEnoughException(portfolioEntry.getPublicAmount(), offer.getAmount());
+
+        portfolioEntry.setPublicAmount(portfolioEntry.getPublicAmount() + offer.getAmount());
+        portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - offer.getAmount());
+        portfolioEntryRepository.save(portfolioEntry);
+
+        offer.setStatus(OtcOfferStatus.PENDING);
+        offer.setLastModified(LocalDateTime.now());
+        otcOfferRepository.save(offer);
+    }
+
 
     @Transactional
     public void rejectOffer(Long offerId, Long userId) {
@@ -281,5 +373,20 @@ public class OtcService {
     private String formatName(String firstName, String lastName) {
         if (firstName == null && lastName == null) return "Unknown User";
         return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+    }
+
+    @Scheduled(cron = "0 0 0 * * *")
+    public void checkOtcOptionExpiration(){
+        List<OtcOption> otcOptions =  otcOptionRepository.findAllValidButExpired(LocalDate.now());
+
+        for (OtcOption otcOption : otcOptions){
+            PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(otcOption.getSellerId(),
+                    otcOption.getUnderlyingStock()).orElseThrow(PortfolioEntryNotFoundException::new);
+
+            portfolioEntry.setAmount(portfolioEntry.getAmount() + otcOption.getAmount());
+            portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() - otcOption.getAmount());
+            otcOption.setStatus(OtcOptionStatus.EXPIRED);
+            otcOptionRepository.save(otcOption);
+        }
     }
 }

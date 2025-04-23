@@ -13,19 +13,18 @@ import java.util.List;
 public interface OtcOptionRepository extends JpaRepository<OtcOption, Long> {
     List<OtcOption> findAllByBuyerId(Long buyerId);
 
-    @Query("SELECT o FROM OtcOption o WHERE " +
-            "o.buyerId = :buyerId AND " +
-            "(o.used = true OR o.settlementDate < :currentDate)")
+    @Query("SELECT o FROM OtcOption o WHERE o.buyerId = :buyerId AND (o.status = 'USED' OR o.settlementDate < :currentDate)")
     List<OtcOption> findAllInvalid(
             @Param("buyerId") Long buyerId,
             @Param("currentDate") LocalDate currentDate
     );
 
-    @Query("SELECT o FROM OtcOption o WHERE " +
-            "o.buyerId = :buyerId AND " +
-            "o.used = false AND o.settlementDate > :currentDate")
+    @Query("SELECT o FROM OtcOption o WHERE o.buyerId = :buyerId AND o.status = 'VALID' AND o.settlementDate >= :currentDate")
     List<OtcOption> findAllValid(
             @Param("buyerId") Long buyerId,
             @Param("currentDate") LocalDate currentDate
     );
+
+    @Query("SELECT o FROM OtcOption o WHERE o.status = 'VALID' AND o.settlementDate < :currentDate")
+    List<OtcOption> findAllValidButExpired(@Param("currentDate") LocalDate currentDate);
 }

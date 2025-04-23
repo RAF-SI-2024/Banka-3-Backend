@@ -19,16 +19,20 @@ import java.util.stream.Collectors;
 @Component
 public class OrderMapper {
 
-    public static OrderDto toDto(Order order, ListingDto listingDto, String clientName, String accountNumber) {
+    public static OrderDto toDto(Order order, ListingDto listingDto, String userName, String accountNumber) {
         return new OrderDto(
                 order.getId(),
                 order.getUserId(),
+                userName,
                 listingDto,
+                accountNumber,
                 order.getOrderType(),
-                order.getQuantity(),
-                order.getContractSize(),
-                order.getPricePerUnit(),
                 order.getDirection(),
+                order.getContractSize(),
+                order.getQuantity(),
+                order.getPricePerUnit(),
+                order.getTotalPrice(),
+                order.getCommission(),
                 order.getStatus(),
                 order.getApprovedBy(),
                 order.getIsDone(),
@@ -37,15 +41,13 @@ public class OrderMapper {
                 order.getStopPrice(),
                 order.isStopFulfilled(),
                 order.getAfterHours(),
-                order.getTransactions() == null ? null :
-                        order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList()),
                 order.getProfit(),
-                clientName,
-                accountNumber
+                order.getTransactions() == null ? null :
+                        order.getTransactions().stream().map(TransactionMapper::toDto).collect(Collectors.toList())
         );
     }
 
-    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, Listing listing, String role) {
+    public static Order toOrder(CreateOrderDto createOrderDto, Long userId, String role, Listing listing) {
         BigDecimal pricePerUnit = null;
         BigDecimal stopPrice = null;
 
@@ -71,17 +73,17 @@ public class OrderMapper {
 
         return new Order(
                 userId,
+                role,
                 listing,
                 createOrderDto.getOrderType(),
-                createOrderDto.getQuantity(),
-                createOrderDto.getContractSize(),
-                pricePerUnit,
                 createOrderDto.getOrderDirection(),
-                afterHours(listing.getExchange()),
+                createOrderDto.isAllOrNone(),
+                createOrderDto.getContractSize(),
+                createOrderDto.getQuantity(),
+                pricePerUnit,
                 createOrderDto.getAccountNumber(),
                 stopPrice,
-                createOrderDto.isAllOrNone(),
-                role
+                afterHours(listing.getExchange())
         );
     }
 
