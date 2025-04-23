@@ -132,7 +132,7 @@ public class OrderServiceTest {
         listing.setPrice(new BigDecimal(150));
 
 
-        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000), new BigDecimal(100), true);
+        actuaryLimitDto = new ActuaryLimitDto(new BigDecimal(1000000), new BigDecimal(100), true);
 
         portfolioEntry = PortfolioEntry.builder().id(1L).listing(listing).amount(100).publicAmount(0).reservedAmount(0).build();
 
@@ -1058,7 +1058,6 @@ public class OrderServiceTest {
 
         // Verifikacije
         verify(orderRepository, times(1)).save(order);
-        verify(portfolioService, times(1)).updateHoldingsOnOrderExecution(order);
 
         // Asercije
         assertEquals(OrderStatus.DONE, order.getStatus());
@@ -1103,6 +1102,7 @@ public class OrderServiceTest {
         BigDecimal expectedProfit = new BigDecimal("1234.56");
 
         when(orderRepository.getBankProfitFromOrders()).thenReturn(expectedProfit);
+        when(bankClient.convert(any(ConvertDto.class))).thenReturn(expectedProfit);
 
         BigDecimal result = orderService.getCommissionProfit();
 

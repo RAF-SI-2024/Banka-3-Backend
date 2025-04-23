@@ -117,5 +117,36 @@ public class Order {
         lastModification = LocalDateTime.now();
         transactions = new ArrayList<>();
     }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", userRole='" + userRole + '\'' +
+                ", listing=" + listing +
+                ", orderType=" + orderType +
+                ", direction=" + direction +
+                ", allOrNone=" + allOrNone +
+                ", contractSize=" + contractSize +
+                ", quantity=" + quantity +
+                ", pricePerUnit=" + pricePerUnit +
+                ", totalPrice=" + totalPrice +
+                ", accountNumber='" + accountNumber + '\'' +
+                ", commission=" + commission +
+                ", status=" + status +
+                ", approvedBy=" + approvedBy +
+                ", isDone=" + isDone +
+                ", lastModification=" + lastModification +
+                ", afterHours=" + afterHours +
+                ", stopPrice=" + stopPrice +
+                ", stopFulfilled=" + stopFulfilled +
+                ", remainingPortions=" + remainingPortions +
+                ", transactions=" + transactions +
+                ", taxStatus=" + taxStatus +
+                ", taxAmount=" + taxAmount +
+                ", profit=" + profit +
+                '}';
+    }
 }
 
