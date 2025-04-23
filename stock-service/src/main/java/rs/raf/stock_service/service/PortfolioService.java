@@ -27,8 +27,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import rs.raf.stock_service.utils.JwtTokenUtil;
@@ -87,13 +89,16 @@ public class PortfolioService {
         portfolioEntryRepository.save(entry);
     }
 
+    public List<PublicStockDto> getAllPublicStocks(Long userId, String role) {
+        if (!role.equals("CLIENT")) {
+            return Collections.emptyList();
+        }
 
-    public List<PublicStockDto> getAllPublicStocks() {
         List<PortfolioEntry> publicEntries = portfolioEntryRepository
                 .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
 
 
-        return publicEntries.stream().map(entry -> {
+        return publicEntries.stream().filter(entry -> !Objects.equals(entry.getUserId(), userId)).map(entry -> {
             Listing listing = entry.getListing();
 
             String ownerName;
@@ -103,6 +108,7 @@ public class PortfolioService {
             } catch (Exception e) {
                 ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
                 ownerName = actuary.getFirstName() + " " + actuary.getLastName();
+                return null; // skip actuary otc for now
             }
 
             BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
@@ -117,7 +123,7 @@ public class PortfolioService {
                     .owner(ownerName)
                     .build();
 
-        }).collect(Collectors.toList());
+        }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public TaxGetResponseDto getUserTaxes(Long userId) {

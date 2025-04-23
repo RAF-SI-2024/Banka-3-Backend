@@ -334,7 +334,7 @@ public class PortfolioServiceTest {
 
         when(userClient.getClientById(userId)).thenReturn(clientDto);
 
-        List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+        List<PublicStockDto> result = portfolioService.getAllPublicStocks(55L, "CLIENT");
 
         assertEquals(1, result.size());
         PublicStockDto dto = result.get(0);

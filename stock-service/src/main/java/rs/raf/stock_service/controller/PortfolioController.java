@@ -83,9 +83,12 @@ public class PortfolioController {
     })
     @PreAuthorize("hasAnyRole('CLIENT', 'AGENT', 'SUPERVISOR', 'ADMIN')")
     @GetMapping("/public-stocks")
-    public ResponseEntity<?> getAllPublicStocks() {
+    public ResponseEntity<?> getAllPublicStocks(@RequestHeader("Authorization") String authHeader) {
         try {
-            List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+
+            List<PublicStockDto> result = portfolioService.getAllPublicStocks(userId, role);
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
