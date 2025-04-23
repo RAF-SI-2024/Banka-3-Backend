@@ -3,6 +3,7 @@ package rs.raf.bank_service.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
+import feign.codec.DecodeException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
@@ -230,24 +231,29 @@ public class PaymentService {
     }
 
     private void checkAndUpdateLimit(CreatePaymentDto paymentDto, Long clientId) {
-        ActuaryLimitDto actuaryLimitDto = userClient.getAgentLimit(clientId);
-        if (actuaryLimitDto == null) {
-            System.out.println("no limit needeed");
+        try {
+            ActuaryLimitDto actuaryLimitDto = userClient.getAgentLimit(clientId);
+            if (actuaryLimitDto == null) {
+                System.out.println("no limit needeed");
+                return;
+            }
+            // ako ima limit znaci da je sender 100% USD bank racun, jer sa drugih agent ne moze ni da se salje
+
+            BigDecimal newUsedLimit = actuaryLimitDto.getUsedLimit().add(paymentDto.getAmount());
+
+            if (newUsedLimit.compareTo(actuaryLimitDto.getLimitAmount()) > 0) {
+                System.out.println("limit exceeded");
+                throw new AgentLimitExceededException();
+            }
+
+            ActuaryLimitDto newLimitDto = userClient.updateUsedLimit(clientId, new ChangeAgentLimitDto(newUsedLimit));
+            if (newLimitDto == null) {
+                System.out.println("failed to update limit");
+                throw new UpdateUsedLimitException();
+            }
+        } catch (DecodeException e) {
+            System.out.println("no limit needeed, catch");
             return; // nema limit, user je client / supervisor / admin
-        }
-        // ako ima limit znaci da je sender 100% USD bank racun, jer sa drugih agent ne moze ni da se salje
-
-        BigDecimal newUsedLimit = actuaryLimitDto.getUsedLimit().add(paymentDto.getAmount());
-
-        if (newUsedLimit.compareTo(actuaryLimitDto.getLimitAmount()) > 0) {
-            System.out.println("limit exceeded");
-            throw new AgentLimitExceededException();
-        }
-
-        ActuaryLimitDto newLimitDto = userClient.updateUsedLimit(clientId, new ChangeAgentLimitDto(newUsedLimit));
-        if (newLimitDto == null) {
-            System.out.println("failed to update limit");
-            throw new UpdateUsedLimitException();
         }
     }
 
