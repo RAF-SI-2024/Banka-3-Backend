@@ -686,5 +686,91 @@ public class AccountServiceTest {
         assertEquals("888", result.get(0).getAccountNumber());
         assertEquals("999", result.get(1).getAccountNumber());
     }
+
+    @Test void getMyUSDAccounts_Success() {
+        Long clientId = 1L;
+
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "United States Dollar", true);
+
+        PersonalAccount acc = new PersonalAccount();
+        acc.setAccountNumber("usd123");
+        acc.setClientId(clientId);
+        acc.setAvailableBalance(BigDecimal.valueOf(500));
+        acc.setCurrency(usd);
+
+        when(userClient.getClientById(clientId)).thenReturn(new ClientDto(clientId, "John", "Doe"));
+        when(accountRepository.findAllByClientIdAndCurrency_Code(clientId, "USD")).thenReturn(List.of(acc));
+
+        List<AccountDto> result = accountService.getMyUSDAccounts(clientId);
+
+        assertEquals(1, result.size());
+        assertEquals("usd123", result.get(0).getAccountNumber());
+    }
+
+    @Test void getMyUSDAccounts_ClientNotFound_ThrowsException() {
+        Long clientId = 1L;
+        when(userClient.getClientById(clientId)).thenThrow(FeignException.NotFound.class);
+        assertThrows(UserNotAClientException.class, () -> {
+            accountService.getMyUSDAccounts(clientId);
+        });
+    }
+
+    @Test void getUSDAccountForClient_Success() {
+        Long clientId = 5L; Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+
+        PersonalAccount acc1 = new PersonalAccount();
+        acc1.setAccountNumber("acc1");
+        acc1.setClientId(clientId);
+        acc1.setAvailableBalance(BigDecimal.valueOf(200));
+        acc1.setCurrency(usd);
+
+        PersonalAccount acc2 = new PersonalAccount();
+        acc2.setAccountNumber("acc2");
+        acc2.setClientId(clientId);
+        acc2.setAvailableBalance(BigDecimal.valueOf(300));
+        acc2.setCurrency(usd);
+
+        when(userClient.getClientById(clientId)).thenReturn(new ClientDto(clientId, "Test", "User"));
+        when(accountRepository.findAllByClientIdAndCurrency_Code(clientId, "USD"))
+                .thenReturn(List.of(acc1, acc2));
+
+        AccountDto result = accountService.getUSDAccountForClient(clientId);
+        assertNotNull(result);
+        assertEquals("acc2", result.getAccountNumber()); // higher balance
+    }
+
+    @Test void getUSDAccountForClient_NoUSDAccount_ReturnsNull() {
+        Long clientId = 5L;
+        when(userClient.getClientById(clientId)).thenReturn(new ClientDto(clientId, "Test", "User"));
+        when(accountRepository.findAllByClientIdAndCurrency_Code(clientId, "USD")).thenReturn(List.of());
+        AccountDto result = accountService.getUSDAccountForClient(clientId);
+        assertNull(result);
+    }
+
+    @Test void getUSDAccountForCompany_Success() {
+        Long companyId = 10L;
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+
+        CompanyAccount acc = new CompanyAccount();
+        acc.setAccountNumber("usdCompanyAcc");
+        acc.setCurrency(usd);
+
+        when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
+        when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of(acc));
+
+        String result = accountService.getUSDAccountForCompany(companyId).getAccountNumber();
+        assertEquals("usdCompanyAcc", result);
+    }
+
+    @Test void getUSDAccountForCompany_AccountNotFound_ReturnsNull() {
+        Long companyId = 10L;
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+
+        when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
+        when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of());
+
+        AccountDto result = accountService.getUSDAccountForCompany(companyId);
+        assertNull(result);
+    }
 }
 

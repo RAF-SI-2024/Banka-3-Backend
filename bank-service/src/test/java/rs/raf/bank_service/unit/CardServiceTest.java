@@ -23,6 +23,7 @@ import rs.raf.bank_service.service.CardService;
 import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import javax.persistence.EntityNotFoundException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -228,6 +229,91 @@ public class CardServiceTest {
         when(accountRepository.findByAccountNumberAndClientId(anyString(), anyLong())).thenReturn(Optional.empty());
 
         assertThrows(AccNotFoundException.class, () -> cardService.approveCardRequest(1L));
+    }
+
+    @Test
+    void testGenerateMIIandIIN() throws Exception {
+        // Pristupamo privatnoj metodi putem refleksije
+        Method method = CardService.class.getDeclaredMethod("generateMIIandIIN", CardIssuer.class);
+        method.setAccessible(true);
+
+        // VISA
+        String visa = (String) method.invoke(cardService, CardIssuer.VISA);
+        assertEquals("433333", visa);
+
+        // DINA
+        String dina = (String) method.invoke(cardService, CardIssuer.DINA);
+        assertEquals("989133", dina);
+
+        // AMEX (može biti 343333 ili 373333)
+        String amex = (String) method.invoke(cardService, CardIssuer.AMERICAN_EXPRESS);
+        assertTrue(amex.equals("343333") || amex.equals("373333"));
+
+        // MASTERCARD (može biti 513333, 523333, itd ili 222133-271933)
+        String master = (String) method.invoke(cardService, CardIssuer.MASTERCARD);
+        assertTrue(master.matches("(5[1-5]3333)|(22[2-9][0-9]33|2[3-6][0-9]{2}33|27[01][0-9]33|2720[0-9]33)"));
+    }
+
+    @Test
+    void testRejectCardRequest_success() {
+        CardRequest req = new CardRequest();
+        req.setId(1L);
+        req.setStatus(RequestStatus.PENDING);
+
+        when(cardRequestRepository.findById(1L)).thenReturn(Optional.of(req));
+
+        cardService.rejectCardRequest(1L);
+
+        assertEquals(RequestStatus.REJECTED, req.getStatus());
+        verify(cardRequestRepository).save(req);
+    }
+
+    @Test
+    void testRejectCardRequest_nonPending() {
+        CardRequest req = new CardRequest();
+        req.setId(1L);
+        req.setStatus(RequestStatus.APPROVED);
+
+        when(cardRequestRepository.findById(1L)).thenReturn(Optional.of(req));
+
+        assertThrows(RejectNonPendingRequestException.class, () -> cardService.rejectCardRequest(1L));
+    }
+
+    @Test
+    void testGetCardsByAccount_success() {
+        Card card = new Card();
+        card.setAccount(account);
+        card.setStatus(CardStatus.ACTIVE);
+
+        when(cardRepository.findByAccount_AccountNumber(account.getAccountNumber()))
+                .thenReturn(List.of(card));
+        when(userClient.getClientById(account.getClientId()))
+                .thenReturn(client);
+
+        List<CardDto> result = cardService.getCardsByAccount(account.getAccountNumber());
+
+        assertEquals(1, result.size());
+        assertEquals(CardStatus.ACTIVE, result.get(0).getStatus());
+    }
+
+    @Test
+    void testGetUserCardsForAccount_success() {
+        Card card = new Card();
+        card.setAccount(account);
+        account.setCards(List.of(card));
+
+        when(jwtTokenUtil.getUserIdFromAuthHeader(authHeader)).thenReturn(account.getClientId());
+        when(accountRepository.findByAccountNumberAndClientId(account.getAccountNumber(), account.getClientId()))
+                .thenReturn(Optional.of(account));
+        when(cardRepository.findByAccount_AccountNumber(account.getAccountNumber()))
+                .thenReturn(List.of(card));
+        when(userClient.getClientById(account.getClientId()))
+                .thenReturn(client);
+
+        List<CardDto> result = cardService.getUserCardsForAccount(account.getAccountNumber(), authHeader);
+
+        assertEquals(1, result.size());
+        assertEquals(account.getAccountNumber(), result.get(0).getAccountNumber());
     }
 
 }
