@@ -77,7 +77,6 @@ public class PortfolioService {
             throw new InvalidListingTypeException("Only STOCK type can be made public.");
         }
 
-
         if (dto.getPublicAmount() > entry.getAmount() - entry.getReservedAmount()) {
             throw new InvalidPublicAmountException("Public amount cannot exceed available amount.");
         }
@@ -130,6 +129,7 @@ public class PortfolioService {
         LocalDateTime oneMonthAgo = now.minus(1, ChronoUnit.MONTHS);
 
         for (Order currOrder : orders) {
+            if (currOrder.getTaxStatus() == null) continue;
             LocalDateTime currOrderDate = currOrder.getLastModification();
             if (currOrderDate.isAfter(oneMonthAgo) && currOrderDate.isBefore(now) && currOrder.getTaxStatus().equals(TaxStatus.PENDING)) {
                 taxGetResponseDto.setUnpaidForThisMonth(taxGetResponseDto.getUnpaidForThisMonth().add(currOrder.getTaxAmount()));
@@ -141,7 +141,6 @@ public class PortfolioService {
 
         taxGetResponseDto.setUnpaidForThisMonth(bankClient.convert(new ConvertDto("USD", "RSD", taxGetResponseDto.getUnpaidForThisMonth())));
         taxGetResponseDto.setPaidForThisYear(bankClient.convert(new ConvertDto("USD", "RSD", taxGetResponseDto.getPaidForThisYear())));
-
 
         return taxGetResponseDto;
     }
@@ -200,7 +199,7 @@ public class PortfolioService {
     @Transactional
     public void updateHoldingsOnOtcOptionExecution(Long fromUserId, Long toUserId, Stock stock, int quantity, BigDecimal pricePerStock) {
         PortfolioEntry sellerEntry = portfolioEntryRepository.findByUserIdAndListing(fromUserId, stock)
-                .orElseThrow(() -> new PortfolioEntryNotFoundException()); //ne sme da se desi ovaj exception
+                .orElseThrow(PortfolioEntryNotFoundException::new); //ne sme da se desi ovaj exception
 
         sellerEntry.setAmount(sellerEntry.getAmount() - quantity);
         sellerEntry.setReservedAmount(sellerEntry.getReservedAmount() - quantity);
@@ -242,71 +241,5 @@ public class PortfolioService {
         }
 
         portfolioEntryRepository.save(buyerEntry);
-    }
-
-
-    @Transactional
-    public void updateHoldingsOnOptionExecution(Long userId, UseOptionDto dto) {
-        PortfolioEntry entry = portfolioEntryRepository.findByUserIdAndId(userId, dto.getPortfolioEntryId())
-                .orElseThrow(PortfolioEntryNotFoundException::new);
-
-        if (entry.getUsed())
-            throw new OptionNotEligibleException("Option is already used.");
-
-        if (!(entry.getListing() instanceof Option))
-            throw new OptionNotEligibleException("Listing is not an Option.");
-
-        Option option = (Option) entry.getListing();
-
-        if (option.getSettlementDate().isBefore(LocalDate.now()))
-            throw new OptionNotEligibleException("Option settlement date has passed.");
-
-        Listing underlying = option.getUnderlyingStock();
-        BigDecimal currentPrice = underlying.getPrice();
-        BigDecimal strikePrice = option.getStrikePrice();
-
-        boolean isCall = option.getOptionType() == OptionType.CALL;
-        boolean isPut = option.getOptionType() == OptionType.PUT;
-
-        boolean isInTheMoney =
-                (isCall && currentPrice.compareTo(strikePrice) > 0) ||
-                        (isPut && currentPrice.compareTo(strikePrice) < 0);
-
-        if (!isInTheMoney)
-            throw new OptionNotEligibleException("Option is not in the money.");
-
-        int amount = BigDecimal.valueOf(entry.getAmount())
-                .multiply(option.getContractSize())
-                .intValue();
-        BigDecimal totalCost = strikePrice.multiply(BigDecimal.valueOf(amount));
-
-        PortfolioEntry underlyingEntry = portfolioEntryRepository
-                .findByUserIdAndListing(userId, underlying)
-                .orElse(PortfolioEntry.builder()
-                        .userId(userId)
-                        .listing(underlying)
-                        .type(underlying.getType())
-                        .amount(0)
-                        .averagePrice(strikePrice)
-                        .publicAmount(0)
-                        .lastModified(LocalDateTime.now())
-                        .build());
-
-        // Ažuriranje postojećeg ili kreiranje novog entry-ja
-        int newAmount = underlyingEntry.getAmount() + amount;
-        BigDecimal oldTotal = underlyingEntry.getAveragePrice().multiply(BigDecimal.valueOf(underlyingEntry.getAmount()));
-        BigDecimal newTotal = strikePrice.multiply(BigDecimal.valueOf(amount));
-        BigDecimal newAvg = oldTotal.add(newTotal).divide(BigDecimal.valueOf(newAmount), RoundingMode.HALF_UP);
-
-        underlyingEntry.setAmount(newAmount);
-        underlyingEntry.setAveragePrice(newAvg);
-        underlyingEntry.setLastModified(LocalDateTime.now());
-
-        // Označi opciju kao iskorišćenu
-        entry.setUsed(true);
-        entry.setLastModified(LocalDateTime.now());
-
-        portfolioEntryRepository.save(entry);
-        portfolioEntryRepository.save(underlyingEntry);
     }
 }

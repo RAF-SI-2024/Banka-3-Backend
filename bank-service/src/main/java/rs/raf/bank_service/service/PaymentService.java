@@ -201,12 +201,8 @@ public class PaymentService {
     }
 
     private Account getSenderAccount(String accountNumber, Long clientId) {
-        CompanyAccount companyAccount = getBankCompanyAccount(currencyRepository.findByCode("USD").orElseThrow());
-        if (accountNumber.equals(companyAccount.getAccountNumber())) {
-            return companyAccount;
-        }
 
-        return accountRepository.findByAccountNumberAndClientId(accountNumber, clientId)
+        return accountRepository.findByAccountNumber(accountNumber)
                 .stream().findFirst()
                 .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
     }
