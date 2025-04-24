@@ -135,7 +135,7 @@ public class ListingService {
         return mapAlphaVantageResponseToDto(response, symbol, interval);
     }
 
-    private TimeSeriesDto mapAlphaVantageResponseToDto(String response, String symbol, String interval) {
+    public TimeSeriesDto mapAlphaVantageResponseToDto(String response, String symbol, String interval) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response);

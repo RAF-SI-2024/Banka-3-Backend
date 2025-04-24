@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
+import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
@@ -66,6 +67,8 @@ class ListingServiceTest {
 
     @Mock
     private ListingPriceHistoryRepository dailyPriceInfoRepository;
+    @Mock
+    private AlphavantageClient alphavantageClient;
 
     @BeforeEach
     void setUp() {
@@ -431,6 +434,58 @@ class ListingServiceTest {
         assertSame(expectedDto, result);
         verify(listingMapper, times(1)).toDto(listing, null);
         verify(listingRedisService, times(1)).saveByTicker(expectedDto);
+    }
+
+    @Test
+    void testMapAlphaVantageResponseToDto_ValidResponse() throws Exception {
+        // Arrange
+        String validResponse = """
+        {
+            "Meta Data": {
+                "1. Information": "Intraday (1min) prices and volumes",
+                "2. Symbol": "AAPL",
+                "3. Last Refreshed": "2025-04-23 16:00:00",
+                "4. Interval": "1min",
+                "5. Output Size": "Compact",
+                "6. Time Zone": "US/Eastern"
+            },
+            "Time Series (1min)": {
+                "2025-04-23 16:00:00": {
+                    "1. open": "150.10",
+                    "2. high": "150.20",
+                    "3. low": "149.90",
+                    "4. close": "150.00",
+                    "5. volume": "1200"
+                },
+                "2025-04-23 15:59:00": {
+                    "1. open": "150.05",
+                    "2. high": "150.15",
+                    "3. low": "149.85",
+                    "4. close": "150.00",
+                    "5. volume": "1000"
+                }
+            }
+        }
+        """;
+
+        // Mockiranje zavisnosti, ako su potrebne, kao što su servisi koji pozivaju Alpha Vantage API.
+
+        // Act
+        TimeSeriesDto result = listingService.mapAlphaVantageResponseToDto(validResponse, "AAPL", "1min");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("AAPL", result.getMeta().getSymbol());
+        assertEquals("1min", result.getMeta().getInterval());
+        assertEquals(2, result.getValues().size());
+
+        TimeSeriesDto.TimeSeriesValueDto firstValue = result.getValues().get(0);
+        assertEquals("2025-04-23 16:00:00", firstValue.getDatetime());
+        assertEquals(new BigDecimal("150.10"), firstValue.getOpen());
+        assertEquals(new BigDecimal("150.20"), firstValue.getHigh());
+        assertEquals(new BigDecimal("149.90"), firstValue.getLow());
+        assertEquals(new BigDecimal("150.00"), firstValue.getClose());
+        assertEquals(1200L, firstValue.getVolume());
     }
 
 }
