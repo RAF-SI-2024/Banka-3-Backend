@@ -27,8 +27,10 @@ public class OtcOption {
     private Stock underlyingStock;
 
     private Integer amount;
+    @Column(precision = 10, scale = 6)
     private BigDecimal strikePrice;
     private LocalDate settlementDate;
+    @Column(precision = 10, scale = 6)
     private BigDecimal premium;
 
     @Enumerated(EnumType.STRING)

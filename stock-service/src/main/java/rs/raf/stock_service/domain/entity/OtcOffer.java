@@ -28,7 +28,9 @@ public class OtcOffer {
     private Long sellerId;
 
     private Integer amount;
+    @Column(precision = 10, scale = 6)
     private BigDecimal pricePerStock;
+    @Column(precision = 10, scale = 6)
     private BigDecimal premium;
     private LocalDate settlementDate;
 
