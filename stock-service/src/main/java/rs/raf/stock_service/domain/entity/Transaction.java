@@ -24,8 +24,10 @@ public class Transaction {
 
     private Integer quantity;
 
+    @Column(precision = 10, scale = 6)
     private BigDecimal pricePerUnit;
 
+    @Column(precision = 10, scale = 6)
     private BigDecimal totalPrice;
 
     private LocalDateTime timestamp;

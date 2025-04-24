@@ -34,6 +34,7 @@ public class PortfolioEntry {
 
     private Integer reservedAmount = 0;
 
+    @Column(precision = 10, scale = 6)
     private BigDecimal averagePrice;
 
     private Boolean inTheMoney = false;    // Za opcije
