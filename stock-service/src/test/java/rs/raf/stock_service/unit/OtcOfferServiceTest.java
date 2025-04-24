@@ -214,6 +214,7 @@ public class OtcOfferServiceTest {
         dto.setPremium(new BigDecimal("5"));
         dto.setSettlementDate(LocalDate.now().plusDays(7));
 
+        when(portfolioEntryRepository.findByUserIdAndListing(sellerId, null)).thenReturn(Optional.of(entry));
         when(otcOfferRepository.findById(offerId)).thenReturn(Optional.of(offer));
 
         otcService.updateOffer(offerId, buyerId, dto);
