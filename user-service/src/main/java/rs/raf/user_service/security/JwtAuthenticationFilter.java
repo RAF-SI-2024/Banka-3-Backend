@@ -50,10 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            System.out.println(">>> AUTH HEADER TOKEN: " + token);
-            System.out.println(">>> JWT email: " + email);
-            System.out.println(">>> ROLES: " + authorities);
         }
 
         filterChain.doFilter(request, response);

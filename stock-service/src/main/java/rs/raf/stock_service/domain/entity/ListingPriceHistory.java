@@ -22,10 +22,15 @@ public class ListingPriceHistory {
     @ManyToOne(optional = false)
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
+    @Column(precision = 10, scale = 6)
     private BigDecimal open;
+    @Column(precision = 10, scale = 6)
     private BigDecimal close;
+    @Column(precision = 10, scale = 6)
     private BigDecimal high;
+    @Column(precision = 10, scale = 6)
     private BigDecimal low;
+    @Column(precision = 10, scale = 6)
     private BigDecimal change;
     private Long volume;
 }

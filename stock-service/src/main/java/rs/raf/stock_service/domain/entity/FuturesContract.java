@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ import java.time.LocalDate;
 public class FuturesContract extends Listing {
     private Integer contractSize;
     private String ticker;
+    @Column(precision = 10, scale = 6)
     private BigDecimal maintenanceMargin;
     private String contractUnit;
     private LocalDate settlementDate;
