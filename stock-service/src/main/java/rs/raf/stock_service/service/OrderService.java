@@ -79,7 +79,7 @@ public class OrderService {
     }
 
     public List<OrderDto> getAllOrders() {
-        List<Order> orders = orderRepository.findAllByDirection(OrderDirection.SELL);
+        List<Order> orders = orderRepository.findAllByDirectionAndStatus(OrderDirection.SELL, OrderStatus.DONE);
 
         return orders.stream().map(order -> {
             ListingDto listingDto = listingMapper.toDto(order.getListing(),
