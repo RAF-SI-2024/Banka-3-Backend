@@ -26,4 +26,4 @@
 ### Šta je potrebno?
 
 Trenutno zbog baze je potrebno instalirati [Docker Desktop](https://www.docker.com/products/docker-desktop/) i pokrenuti
-je sa `docker compose up --build`
+je sa `docker compose up --build` 
