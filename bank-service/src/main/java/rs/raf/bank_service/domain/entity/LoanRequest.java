@@ -37,6 +37,7 @@ public class LoanRequest {
     private Integer repaymentPeriod;
     private String contactPhone;
     @ManyToOne
+    @JoinColumn(name = "account_number")
     private Account account;
     @ManyToOne
     private Currency currency;

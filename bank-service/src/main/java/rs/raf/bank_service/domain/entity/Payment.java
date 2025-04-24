@@ -31,7 +31,7 @@ public class Payment {
     private Long clientId;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "senderAccountNumber", referencedColumnName = "accountNumber", nullable = false)
+    @JoinColumn(name = "senderAccountNumber", referencedColumnName = "account_number", nullable = false)
     private Account senderAccount;
 
     @ManyToOne(fetch = FetchType.EAGER)
