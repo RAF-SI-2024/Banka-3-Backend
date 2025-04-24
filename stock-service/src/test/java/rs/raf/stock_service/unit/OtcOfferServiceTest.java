@@ -11,23 +11,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import rs.raf.stock_service.client.BankClient;
 import rs.raf.stock_service.client.UserClient;
-import rs.raf.stock_service.domain.dto.ClientDto;
-import rs.raf.stock_service.domain.dto.CreateOtcOfferDto;
-import rs.raf.stock_service.domain.dto.OtcOfferDto;
-import rs.raf.stock_service.domain.dto.OtcOptionDto;
+import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.OtcOfferStatus;
 import rs.raf.stock_service.domain.enums.OtcOptionStatus;
+import rs.raf.stock_service.domain.enums.TrackedPaymentType;
 import rs.raf.stock_service.domain.mapper.OtcOfferMapper;
 import rs.raf.stock_service.domain.mapper.OtcOptionMapper;
-import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
-import rs.raf.stock_service.exceptions.PortfolioAmountNotEnoughException;
-import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
-import rs.raf.stock_service.exceptions.UnauthorizedActionException;
+import rs.raf.stock_service.exceptions.*;
 import rs.raf.stock_service.repository.OtcOfferRepository;
 import rs.raf.stock_service.repository.OtcOptionRepository;
 import rs.raf.stock_service.repository.PortfolioEntryRepository;
 import rs.raf.stock_service.service.OtcService;
+import rs.raf.stock_service.service.PortfolioService;
 import rs.raf.stock_service.service.TrackedPaymentService;
 
 import javax.persistence.EntityNotFoundException;
@@ -71,6 +67,9 @@ public class OtcOfferServiceTest {
 
     @Mock
     private OtcOptionMapper otcOptionMapper;
+
+    @Mock
+    private PortfolioService portfolioService;
 
     private final Long buyerId = 10L;
     private final Long sellerId = 20L;
@@ -557,6 +556,164 @@ public class OtcOfferServiceTest {
 
         assertThrows(PortfolioAmountNotEnoughException.class, () ->
                 otcService.handleAcceptFailedPayment(trackedPaymentId));
+    }
+
+    @Test
+    void exerciseOption_successfulExecution() {
+        Long otcOptionId = 1L;
+        BigDecimal strikePrice = new BigDecimal("100");
+        int amount = 2;
+        BigDecimal total = strikePrice.multiply(BigDecimal.valueOf(amount));
+
+        OtcOption option = new OtcOption();
+        option.setId(otcOptionId);
+        option.setBuyerId(buyerId);
+        option.setSellerId(sellerId);
+        option.setAmount(amount);
+        option.setStrikePrice(strikePrice);
+        option.setStatus(OtcOptionStatus.VALID);
+        option.setSettlementDate(LocalDate.now().plusDays(1));
+
+        when(otcOptionRepository.findById(otcOptionId)).thenReturn(Optional.of(option));
+        when(bankClient.getUSDAccountNumberByClientId(buyerId)).thenReturn(ResponseEntity.ok("sender123"));
+        when(bankClient.getUSDAccountNumberByClientId(sellerId)).thenReturn(ResponseEntity.ok("receiver456"));
+
+        TrackedPayment payment = new TrackedPayment();
+        payment.setId(999L);
+        payment.setTrackedEntityId(otcOptionId);
+
+        when(trackedPaymentService.createTrackedPayment(otcOptionId, TrackedPaymentType.OTC_EXERCISE)).thenReturn(payment);
+
+        TrackedPaymentDto result = otcService.exerciseOption(otcOptionId, buyerId);
+
+        assertNotNull(result);
+        verify(bankClient).executeSystemPayment(any());
+    }
+
+    @Test
+    void exerciseOption_shouldThrow_whenOtcOptionNotFound() {
+        when(otcOptionRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(OtcOptionNotFoundException.class, () -> otcService.exerciseOption(1L, buyerId));
+    }
+
+    @Test
+    void exerciseOption_shouldThrow_whenUserIsNotBuyer() {
+        OtcOption option = new OtcOption();
+        option.setBuyerId(999L); // nije isti kao buyerId
+        when(otcOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+
+        assertThrows(UnauthorizedOtcAccessException.class, () -> otcService.exerciseOption(1L, buyerId));
+    }
+
+    @Test
+    void exerciseOption_shouldThrow_whenOptionAlreadyUsed() {
+        OtcOption option = new OtcOption();
+        option.setBuyerId(buyerId);
+        option.setStatus(OtcOptionStatus.USED);
+        when(otcOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+
+        assertThrows(OtcOptionAlreadyExercisedException.class, () -> otcService.exerciseOption(1L, buyerId));
+    }
+
+    @Test
+    void exerciseOption_shouldThrow_whenOptionExpiredOrDatePassed() {
+        OtcOption option = new OtcOption();
+        option.setBuyerId(buyerId);
+        option.setStatus(OtcOptionStatus.EXPIRED);
+        option.setSettlementDate(LocalDate.now().minusDays(1));
+        when(otcOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+
+        assertThrows(OtcOptionSettlementExpiredException.class, () -> otcService.exerciseOption(1L, buyerId));
+    }
+
+    @Test
+    void exerciseOption_shouldThrow_whenReceiverAccountIsNull() {
+        OtcOption option = new OtcOption();
+        option.setBuyerId(buyerId);
+        option.setSellerId(sellerId);
+        option.setStatus(OtcOptionStatus.VALID);
+        option.setSettlementDate(LocalDate.now().plusDays(1));
+        option.setStrikePrice(BigDecimal.TEN);
+        option.setAmount(1);
+
+        when(otcOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(bankClient.getUSDAccountNumberByClientId(buyerId)).thenReturn(ResponseEntity.ok("sender123"));
+        when(bankClient.getUSDAccountNumberByClientId(sellerId)).thenReturn(ResponseEntity.ok(null));
+
+        assertThrows(OtcAccountNotFoundForSellerException.class, () -> otcService.exerciseOption(1L, buyerId));
+    }
+
+    @Test
+    void handleExerciseSuccessfulPayment_shouldUpdatePortfolioAndSaveEntities() {
+        Long trackedPaymentId = 1L;
+        Long otcOptionId = 2L;
+
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setId(trackedPaymentId);
+        trackedPayment.setTrackedEntityId(otcOptionId);
+
+        OtcOption otcOption = new OtcOption();
+        otcOption.setId(otcOptionId);
+        otcOption.setStatus(OtcOptionStatus.VALID);
+        otcOption.setSettlementDate(LocalDate.now().plusDays(1));
+        otcOption.setSellerId(20L);
+        otcOption.setBuyerId(10L);
+        otcOption.setAmount(5);
+        otcOption.setStrikePrice(BigDecimal.valueOf(100));
+        Stock stock = new Stock();
+        otcOption.setUnderlyingStock(stock);
+        OtcOffer offer = new OtcOffer();
+        otcOption.setOtcOffer(offer);
+
+        when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
+        when(otcOptionRepository.findById(otcOptionId)).thenReturn(Optional.of(otcOption));
+
+        otcService.handleExerciseSuccessfulPayment(trackedPaymentId);
+
+        verify(portfolioService).updateHoldingsOnOtcOptionExecution(
+                otcOption.getSellerId(),
+                otcOption.getBuyerId(),
+                stock,
+                otcOption.getAmount(),
+                otcOption.getStrikePrice()
+        );
+        verify(otcOfferRepository).save(offer);
+        verify(otcOptionRepository).save(otcOption);
+        assertEquals(OtcOfferStatus.EXERCISED, offer.getStatus());
+        assertEquals(OtcOptionStatus.USED, otcOption.getStatus());
+    }
+
+    @Test
+    void handleExerciseSuccessfulPayment_shouldThrowIfAlreadyUsed() {
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(2L);
+
+        OtcOption otcOption = new OtcOption();
+        otcOption.setStatus(OtcOptionStatus.USED);
+
+        when(trackedPaymentService.getTrackedPayment(anyLong())).thenReturn(trackedPayment);
+        when(otcOptionRepository.findById(anyLong())).thenReturn(Optional.of(otcOption));
+
+        assertThrows(OtcOptionAlreadyExercisedException.class, () -> {
+            otcService.handleExerciseSuccessfulPayment(1L);
+        });
+    }
+
+    @Test
+    void handleExerciseSuccessfulPayment_shouldThrowIfExpired() {
+        TrackedPayment trackedPayment = new TrackedPayment();
+        trackedPayment.setTrackedEntityId(2L);
+
+        OtcOption otcOption = new OtcOption();
+        otcOption.setStatus(OtcOptionStatus.EXPIRED);
+        otcOption.setSettlementDate(LocalDate.now().minusDays(1));
+
+        when(trackedPaymentService.getTrackedPayment(anyLong())).thenReturn(trackedPayment);
+        when(otcOptionRepository.findById(anyLong())).thenReturn(Optional.of(otcOption));
+
+        assertThrows(OtcOptionSettlementExpiredException.class, () -> {
+            otcService.handleExerciseSuccessfulPayment(1L);
+        });
     }
 
 }
