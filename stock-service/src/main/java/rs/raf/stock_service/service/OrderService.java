@@ -287,7 +287,7 @@ public class OrderService {
         }
 
         int batchSize = order.isAllOrNone() ? order.getRemainingPortions()
-                : random.nextInt(1, Math.min(Math.max(order.getQuantity() / 10, 1), order.getRemainingPortions() + 1));
+                : random.nextInt(1, Math.min(Math.max(order.getQuantity() / 10, 2), order.getRemainingPortions() + 1));
 
         BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
                 .multiply(BigDecimal.valueOf(order.getContractSize()));
