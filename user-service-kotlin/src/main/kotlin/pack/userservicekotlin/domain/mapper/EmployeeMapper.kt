@@ -65,21 +65,7 @@ fun EmployeeResponseDto?.toAgentDto(
     usedLimit: BigDecimal,
     needsApproval: Boolean,
 ): AgentDto? {
-    if (this == null ||
-        id == null ||
-        email == null ||
-        firstName == null ||
-        lastName == null ||
-        address == null ||
-        phone == null ||
-        gender == null ||
-        birthDate == null ||
-        position == null ||
-        department == null ||
-        username == null ||
-        jmbg == null ||
-        role == null
-    ) {
+    if (this == null) {
         return null
     }
 

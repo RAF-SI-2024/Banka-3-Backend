@@ -119,10 +119,14 @@ class ActuaryService(
                 .and(EmployeeSearchSpecification.startsWithPosition(position))
                 .and(EmployeeSearchSpecification.hasRole("AGENT"))
 
+        println(spec)
+
         val employeeDtoPage =
             employeeRepository
                 .findAll(spec, pageable)
                 .map { it.toDto() }
+
+        println(employeeDtoPage)
 
         val agentList = mutableListOf<AgentDto>()
 
@@ -133,6 +137,10 @@ class ActuaryService(
                     .orElse(null)
                     ?: return ActuaryServiceError.ActuaryLimitNotFound(employeeDto.id).left()
 
+            println(actuaryLimit.limitAmount)
+            println(actuaryLimit.usedLimit)
+            println(actuaryLimit.needsApproval)
+
             val agentDto =
                 employeeDto.toAgentDto(
                     actuaryLimit.limitAmount!!,
@@ -140,6 +148,8 @@ class ActuaryService(
                     actuaryLimit.needsApproval,
                 )
 
+            println(agentDto)
+            println(agentList)
             agentList.add(agentDto!!)
         }
 
