@@ -95,6 +95,8 @@ public class Order {
     private BigDecimal taxAmount;
     @Column(precision = 10, scale = 6)
     private BigDecimal profit;
+    @Column(precision = 10, scale = 6)
+    private BigDecimal averageBuyingPrice;
 
     public Order(Long userId, String userRole, Listing listing, OrderType orderType, OrderDirection direction, boolean allOrNone,
                  Integer contractSize, Integer quantity, BigDecimal pricePerUnit, String accountNumber, BigDecimal stopPrice,

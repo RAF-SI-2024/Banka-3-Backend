@@ -255,7 +255,7 @@ public class OrderServiceTest {
         });
 
         assertEquals("Portfolio available amount of " + portfolioEntry.getAvailableAmount() +
-                " not enough to cover amount of " + pendingOrder.getContractSize() * pendingOrder.getQuantity() + ".", exception.getMessage());
+                " not enough to cover amount of " +  pendingOrder.getQuantity() + ".", exception.getMessage());
         verify(orderRepository, times(1)).findById(orderId);
         verify(portfolioEntryRepository, times(1)).findByUserIdAndListing(pendingOrder.getUserId(), listing);
         verify(orderRepository, never()).save(any(Order.class));
@@ -506,7 +506,7 @@ public class OrderServiceTest {
         });
 
         assertEquals("Portfolio available amount of " + portfolioEntry.getAmount() + " not enough to cover amount of "
-                + createStopOrderDto.getContractSize() * createStopOrderDto.getQuantity() + ".", exception.getMessage());
+                + createStopOrderDto.getQuantity() + ".", exception.getMessage());
         verify(orderRepository, never()).save(any(Order.class));
     }
 
@@ -1036,21 +1036,15 @@ public class OrderServiceTest {
         order.setListing(listing);
         order.setTransactions(new ArrayList<>());
         order.setContractSize(1);
+        order.setAverageBuyingPrice(new BigDecimal("50"));
 
         TrackedPayment trackedPayment = new TrackedPayment();
         trackedPayment.setId(trackedPaymentId);
         trackedPayment.setTrackedEntityId(orderId);
 
-        PortfolioEntry portfolioEntry = new PortfolioEntry();
-        portfolioEntry.setId(1L);
-        portfolioEntry.setUserId(userId);
-        portfolioEntry.setListing(listing);
-        portfolioEntry.setAveragePrice(new BigDecimal("50"));
-
         // Mockovi
         when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.of(portfolioEntry));
         when(bankClient.convert(any(ConvertDto.class))).thenReturn(BigDecimal.valueOf(1500)); // simulate RSD profit
 
         // Poziv
@@ -1185,11 +1179,8 @@ public class OrderServiceTest {
         order.setQuantity(10);
         order.setRemainingPortions(0);
         order.setTotalPrice(new BigDecimal("500"));
+        order.setAverageBuyingPrice(new BigDecimal("90"));
 
-        PortfolioEntry portfolioEntry = new PortfolioEntry();
-        portfolioEntry.setAveragePrice(new BigDecimal("90"));
-
-        when(portfolioEntryRepository.findByUserIdAndListing(userId, listing)).thenReturn(Optional.of(portfolioEntry));
         when(bankClient.convert(any())).thenReturn(new BigDecimal("-100")); // negative profit
 
         Method method = OrderService.class.getDeclaredMethod("setOrderProfitAndTax", Order.class);
@@ -1215,17 +1206,13 @@ public class OrderServiceTest {
         order.setRemainingPortions(0);
         order.setTotalPrice(new BigDecimal("3000"));
         order.setTransactions(new ArrayList<>());
+        order.setAverageBuyingPrice(new BigDecimal("200"));// total cost = 2000
 
         TrackedPayment trackedPayment = new TrackedPayment();
         trackedPayment.setTrackedEntityId(orderId);
 
-        PortfolioEntry entry = new PortfolioEntry();
-        entry.setAveragePrice(new BigDecimal("200")); // total cost = 2000
-
         when(trackedPaymentService.getTrackedPayment(trackedPaymentId)).thenReturn(trackedPayment);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()))
-                .thenReturn(Optional.of(entry));
         when(bankClient.convert(any(ConvertDto.class))).thenReturn(new BigDecimal("1000"));
 
         // Act
