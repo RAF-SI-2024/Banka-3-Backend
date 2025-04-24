@@ -10,6 +10,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
+import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
@@ -31,8 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ListingServiceTest {
@@ -63,6 +63,9 @@ class ListingServiceTest {
 
     @Mock
     private ListingRedisService listingRedisService;
+
+    @Mock
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
 
     @BeforeEach
     void setUp() {
@@ -372,5 +375,62 @@ class ListingServiceTest {
         verify(timeSeriesMapper, times(1)).mapJsonToCustomTimeSeries(invalidApiResponse, stock);
     }
 
+    private final String TEST_TICKER = "AAPL";
+
+    @Test
+    void getByTicker_whenInCache_shouldReturnCachedValue() {
+        // Arrange
+        ListingDto cachedDto = new ListingDto();
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(cachedDto);
+
+        // Act
+        ListingDto result = listingService.getByTicker(TEST_TICKER);
+
+        // Assert
+        assertSame(cachedDto, result);
+        verify(listingRedisService, times(1)).getByTicker(TEST_TICKER);
+        verifyNoInteractions(listingRepository, dailyPriceInfoRepository, listingMapper);
+    }
+
+
+
+    @Test
+    void getByTicker_whenListingNotFound_shouldThrowException() {
+        // Arrange
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(null);
+        when(listingRepository.findByTicker(TEST_TICKER)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(ListingNotFoundException.class, () -> {
+            listingService.getByTicker(TEST_TICKER);
+        });
+
+        verify(listingRedisService, times(1)).getByTicker(TEST_TICKER);
+        verify(listingRepository, times(1)).findByTicker(TEST_TICKER);
+        verifyNoInteractions(dailyPriceInfoRepository, listingMapper);
+        verify(listingRedisService, never()).saveByTicker(any());
+    }
+
+    @Test
+    void getByTicker_whenNoPriceHistory_shouldStillReturnDto() {
+        // Arrange
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(null);
+
+        Listing listing = new Stock();
+        when(listingRepository.findByTicker(TEST_TICKER)).thenReturn(Optional.of(listing));
+
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(null);
+
+        ListingDto expectedDto = new ListingDto();
+        when(listingMapper.toDto(listing, null)).thenReturn(expectedDto);
+
+        // Act
+        ListingDto result = listingService.getByTicker(TEST_TICKER);
+
+        // Assert
+        assertSame(expectedDto, result);
+        verify(listingMapper, times(1)).toDto(listing, null);
+        verify(listingRedisService, times(1)).saveByTicker(expectedDto);
+    }
 
 }
