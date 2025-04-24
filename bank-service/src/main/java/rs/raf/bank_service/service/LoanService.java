@@ -144,8 +144,8 @@ public class LoanService {
         loanRepository.save(loan);
     }
 
-    @Scheduled(cron = "*/15 * * * * *")
-    //@Scheduled(cron = "0 0 2 * * *") ovako je svaki dan u 02:00h ali zbog testiranja koristimo ovo gore koje radi na 15sec
+//    @Scheduled(cron = "*/15 * * * * *")
+    @Scheduled(cron = "0 0 2 * * *")
     public void queueDueInstallments() {
         LocalDate today = LocalDate.now();
 
