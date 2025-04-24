@@ -134,7 +134,7 @@ public class OrderService {
             PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing())
                     .orElseThrow(PortfolioEntryNotFoundException::new);
 
-            Integer amount = order.getContractSize() * order.getQuantity();
+            Integer amount = order.getQuantity();
 
             if (portfolioEntry.getAvailableAmount() < amount)
                 throw new PortfolioAmountNotEnoughException(portfolioEntry.getAvailableAmount(), amount);
@@ -198,7 +198,7 @@ public class OrderService {
         Order order = OrderMapper.toOrder(createOrderDto, userId, role, listing);
 
         //Ako kupuje provera da li klijent ima sredstva, ako prodaje provera da li ima dovoljno listing-a u vlasnistvu
-        BigDecimal expectedTotalPrice = order.getPricePerUnit().multiply(BigDecimal.valueOf(order.getContractSize()))
+        BigDecimal expectedTotalPrice = order.getPricePerUnit()
                 .multiply(BigDecimal.valueOf(order.getQuantity()));
 
         PortfolioEntry portfolioEntry = null;
@@ -206,7 +206,9 @@ public class OrderService {
             portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(userId, listing).
                     orElseThrow(PortfolioEntryNotFoundException::new);
 
-            Integer amount = order.getContractSize() * order.getQuantity();
+            Integer amount = order.getQuantity();
+
+            order.setAverageBuyingPrice(portfolioEntry.getAveragePrice());
 
             if (portfolioEntry.getAvailableAmount() < amount)
                 throw new PortfolioAmountNotEnoughException(portfolioEntry.getAvailableAmount(), amount);
@@ -216,6 +218,7 @@ public class OrderService {
             if (price.compareTo(accountDetailsDto.getAvailableBalance()) > 0)
                 throw new InsufficientFundsException(price);
         }
+
 
         if(order.getUserRole().equals("AGENT")) {
             ActuaryLimitDto actuaryLimitDto = userClient.getActuaryByEmployeeId(order.getUserId());
@@ -236,7 +239,7 @@ public class OrderService {
 
         if (order.getStatus() == OrderStatus.APPROVED){
             if (order.getDirection() == OrderDirection.SELL){
-                portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + order.getContractSize() * order.getQuantity());
+                portfolioEntry.setReservedAmount(portfolioEntry.getReservedAmount() + order.getQuantity());
                 portfolioEntryRepository.save(portfolioEntry);
             }
 
@@ -289,8 +292,7 @@ public class OrderService {
         int batchSize = order.isAllOrNone() ? order.getRemainingPortions()
                 : random.nextInt(1, Math.min(Math.max(order.getQuantity() / 10, 2), order.getRemainingPortions() + 1));
 
-        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit())
-                .multiply(BigDecimal.valueOf(order.getContractSize()));
+        BigDecimal totalPrice = BigDecimal.valueOf(batchSize).multiply(order.getPricePerUnit());
 
         Transaction transaction = new Transaction(batchSize, order.getPricePerUnit(), totalPrice, order);
         transactionRepository.save(transaction);
@@ -456,12 +458,8 @@ public class OrderService {
             order.setTaxAmount(BigDecimal.ZERO);
             return;
         }
-
-        PortfolioEntry portfolioEntry = portfolioEntryRepository.findByUserIdAndListing(order.getUserId(), order.getListing()).
-                orElseThrow(PortfolioEntryNotFoundException::new);
-
-        BigDecimal buyingPrice = BigDecimal.valueOf(order.getQuantity() * order.getContractSize() - order.getRemainingPortions())
-                .multiply(portfolioEntry.getAveragePrice());
+        BigDecimal buyingPrice = BigDecimal.valueOf(order.getQuantity() - order.getRemainingPortions())
+                .multiply(order.getAverageBuyingPrice());
 
         BigDecimal potentialProfit = order.getTotalPrice().subtract(buyingPrice);
 
