@@ -1,5 +1,6 @@
 package rs.raf.stock_service.unit;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import rs.raf.stock_service.service.ExchangeService;
 import rs.raf.stock_service.service.StocksService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,7 +40,6 @@ public class StocksServiceTest {
     private StocksService stockService;
     @Mock
     private ExchangeService exchangeService;
-
     @BeforeEach
     void setUp() {
         // Po potrebi podesite inicijalne vrednosti.
@@ -149,5 +150,52 @@ public class StocksServiceTest {
         assertThrows(SymbolSearchException.class, () -> stockService.searchByTicker("INVALID"));
     }
 
+    @Test
+    void testGetRealtimeBulkStockData() throws Exception {
+        // Arrange
+        List<String> symbols = List.of("AAPL");
+
+        String quoteResponseJson = """
+            {
+              "data": [
+                {
+                  "symbol": "AAPL",
+                  "close": "150.00",
+                  "volume": 1000000,
+                  "change": "1.50"
+                }
+              ]
+            }
+        """;
+
+        String overviewResponseJson = """
+            {
+              "Name": "Apple Inc.",
+              "SharesOutstanding": "16000000000",
+              "DividendYield": "0.006",
+              "Exchange": "XNAS"
+            }
+        """;
+
+        when(alphavantageClient.getRealtimeBulkQuotes("AAPL")).thenReturn(quoteResponseJson);
+        when(alphavantageClient.getCompanyOverview("AAPL")).thenReturn(overviewResponseJson);
+
+        Exchange nasdaqExchange = new Exchange();
+        nasdaqExchange.setMic("XNAS");
+
+        when(exchangeService.getAvailableExchanges()).thenReturn(List.of(nasdaqExchange));
+
+        // Act
+        List<StockDto> result = stockService.getRealtimeBulkStockData(symbols);
+
+        // Assert
+        assertEquals(1, result.size());
+        StockDto dto = result.get(0);
+        assertEquals("AAPL", dto.getTicker());
+        assertEquals("Apple Inc.", dto.getName());
+        assertEquals(new BigDecimal("150.00").setScale(2, RoundingMode.HALF_UP), dto.getPrice());
+        assertEquals(1000000, dto.getVolume());
+        assertEquals(BigDecimal.valueOf(0.006), dto.getDividendYield());
+    }
 
 }

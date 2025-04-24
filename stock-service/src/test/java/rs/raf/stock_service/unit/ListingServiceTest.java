@@ -7,9 +7,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
+import rs.raf.stock_service.client.AlphavantageClient;
 import rs.raf.stock_service.client.TwelveDataClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.Exchange;
+import rs.raf.stock_service.domain.entity.Listing;
 import rs.raf.stock_service.domain.entity.ListingPriceHistory;
 import rs.raf.stock_service.domain.entity.Stock;
 import rs.raf.stock_service.domain.enums.ListingType;
@@ -31,8 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ListingServiceTest {
@@ -63,6 +64,11 @@ class ListingServiceTest {
 
     @Mock
     private ListingRedisService listingRedisService;
+
+    @Mock
+    private ListingPriceHistoryRepository dailyPriceInfoRepository;
+    @Mock
+    private AlphavantageClient alphavantageClient;
 
     @BeforeEach
     void setUp() {
@@ -372,5 +378,114 @@ class ListingServiceTest {
         verify(timeSeriesMapper, times(1)).mapJsonToCustomTimeSeries(invalidApiResponse, stock);
     }
 
+    private final String TEST_TICKER = "AAPL";
+
+    @Test
+    void getByTicker_whenInCache_shouldReturnCachedValue() {
+        // Arrange
+        ListingDto cachedDto = new ListingDto();
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(cachedDto);
+
+        // Act
+        ListingDto result = listingService.getByTicker(TEST_TICKER);
+
+        // Assert
+        assertSame(cachedDto, result);
+        verify(listingRedisService, times(1)).getByTicker(TEST_TICKER);
+        verifyNoInteractions(listingRepository, dailyPriceInfoRepository, listingMapper);
+    }
+
+
+
+    @Test
+    void getByTicker_whenListingNotFound_shouldThrowException() {
+        // Arrange
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(null);
+        when(listingRepository.findByTicker(TEST_TICKER)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(ListingNotFoundException.class, () -> {
+            listingService.getByTicker(TEST_TICKER);
+        });
+
+        verify(listingRedisService, times(1)).getByTicker(TEST_TICKER);
+        verify(listingRepository, times(1)).findByTicker(TEST_TICKER);
+        verifyNoInteractions(dailyPriceInfoRepository, listingMapper);
+        verify(listingRedisService, never()).saveByTicker(any());
+    }
+
+    @Test
+    void getByTicker_whenNoPriceHistory_shouldStillReturnDto() {
+        // Arrange
+        when(listingRedisService.getByTicker(TEST_TICKER)).thenReturn(null);
+
+        Listing listing = new Stock();
+        when(listingRepository.findByTicker(TEST_TICKER)).thenReturn(Optional.of(listing));
+
+        when(dailyPriceInfoRepository.findTopByListingOrderByDateDesc(listing)).thenReturn(null);
+
+        ListingDto expectedDto = new ListingDto();
+        when(listingMapper.toDto(listing, null)).thenReturn(expectedDto);
+
+        // Act
+        ListingDto result = listingService.getByTicker(TEST_TICKER);
+
+        // Assert
+        assertSame(expectedDto, result);
+        verify(listingMapper, times(1)).toDto(listing, null);
+        verify(listingRedisService, times(1)).saveByTicker(expectedDto);
+    }
+
+    @Test
+    void testMapAlphaVantageResponseToDto_ValidResponse() throws Exception {
+        // Arrange
+        String validResponse = """
+        {
+            "Meta Data": {
+                "1. Information": "Intraday (1min) prices and volumes",
+                "2. Symbol": "AAPL",
+                "3. Last Refreshed": "2025-04-23 16:00:00",
+                "4. Interval": "1min",
+                "5. Output Size": "Compact",
+                "6. Time Zone": "US/Eastern"
+            },
+            "Time Series (1min)": {
+                "2025-04-23 16:00:00": {
+                    "1. open": "150.10",
+                    "2. high": "150.20",
+                    "3. low": "149.90",
+                    "4. close": "150.00",
+                    "5. volume": "1200"
+                },
+                "2025-04-23 15:59:00": {
+                    "1. open": "150.05",
+                    "2. high": "150.15",
+                    "3. low": "149.85",
+                    "4. close": "150.00",
+                    "5. volume": "1000"
+                }
+            }
+        }
+        """;
+
+        // Mockiranje zavisnosti, ako su potrebne, kao što su servisi koji pozivaju Alpha Vantage API.
+
+        // Act
+        TimeSeriesDto result = listingService.mapAlphaVantageResponseToDto(validResponse, "AAPL", "1min");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("AAPL", result.getMeta().getSymbol());
+        assertEquals("1min", result.getMeta().getInterval());
+        assertEquals(2, result.getValues().size());
+
+        TimeSeriesDto.TimeSeriesValueDto firstValue = result.getValues().get(0);
+        assertEquals("2025-04-23 16:00:00", firstValue.getDatetime());
+        assertEquals(new BigDecimal("150.10"), firstValue.getOpen());
+        assertEquals(new BigDecimal("150.20"), firstValue.getHigh());
+        assertEquals(new BigDecimal("149.90"), firstValue.getLow());
+        assertEquals(new BigDecimal("150.00"), firstValue.getClose());
+        assertEquals(1200L, firstValue.getVolume());
+    }
 
 }

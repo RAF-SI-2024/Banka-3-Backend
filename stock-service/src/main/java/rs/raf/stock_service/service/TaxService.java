@@ -98,7 +98,7 @@ public class TaxService {
         return TrackedPaymentMapper.toDto(mainTrackedPayment);
     }
 
-    private BigDecimal convertTaxAmountIfNeeded(BigDecimal taxAmount, String currencyCode) {
+    public BigDecimal convertTaxAmountIfNeeded(BigDecimal taxAmount, String currencyCode) {
         if (!currencyCode.equals("USD")) {
             ConvertDto convertDto = new ConvertDto("USD", currencyCode, taxAmount);
             return bankClient.convert(convertDto);
