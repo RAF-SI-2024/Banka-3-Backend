@@ -17,7 +17,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByStatus(OrderStatus status, Pageable pageable);
     List<Order> findByIsDoneAndStatusAndOrderType(boolean isDone, OrderStatus orderStatus, OrderType orderType);
     List<Order> findAllByUserId(Long userId);
-    List<Order> findAllByDirection(OrderDirection orderDirection);
+    List<Order> findAllByDirectionAndStatus(OrderDirection orderDirection, OrderStatus status);
 
     @Query("SELECT SUM(o.commission) FROM Order o WHERE o.commission IS NOT NULL")
     BigDecimal getBankProfitFromOrders();
