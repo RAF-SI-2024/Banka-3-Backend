@@ -28,7 +28,7 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private Long userId;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String userRole;
 
     @ManyToOne
@@ -55,7 +55,7 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal pricePerUnit;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private BigDecimal totalPrice;
 
     @Column(nullable = false)
@@ -116,6 +116,37 @@ public class Order {
         isDone = false;
         lastModification = LocalDateTime.now();
         transactions = new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", userRole='" + userRole + '\'' +
+                ", listing=" + listing +
+                ", orderType=" + orderType +
+                ", direction=" + direction +
+                ", allOrNone=" + allOrNone +
+                ", contractSize=" + contractSize +
+                ", quantity=" + quantity +
+                ", pricePerUnit=" + pricePerUnit +
+                ", totalPrice=" + totalPrice +
+                ", accountNumber='" + accountNumber + '\'' +
+                ", commission=" + commission +
+                ", status=" + status +
+                ", approvedBy=" + approvedBy +
+                ", isDone=" + isDone +
+                ", lastModification=" + lastModification +
+                ", afterHours=" + afterHours +
+                ", stopPrice=" + stopPrice +
+                ", stopFulfilled=" + stopFulfilled +
+                ", remainingPortions=" + remainingPortions +
+                ", transactions=" + transactions +
+                ", taxStatus=" + taxStatus +
+                ", taxAmount=" + taxAmount +
+                ", profit=" + profit +
+                '}';
     }
 }
 

@@ -1,8 +1,5 @@
 package pack.userservicekotlin.controller
 
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -31,7 +28,7 @@ class ActuaryController(
         @PathVariable id: Long,
         @Valid @RequestBody changeActuaryLimitDto: UpdateActuaryLimitDto,
     ): ResponseEntity<Any> =
-        actuaryService.changeAgentLimit(id, changeActuaryLimitDto.newLimit!!).fold(
+        actuaryService.changeAgentLimit(id, changeActuaryLimitDto.newLimit).fold(
             ifLeft = {
                 when (it) {
                     is ActuaryServiceError.EmployeeNotFound ->
@@ -92,6 +89,42 @@ class ActuaryController(
             ifRight = { ResponseEntity.ok().build() },
         )
 
+    @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")
+    @GetMapping("{agentId}")
+    override fun getAgentLimit(
+        @PathVariable agentId: Long,
+    ): ResponseEntity<Any> =
+        actuaryService.getAgentLimit(agentId).fold(
+            ifLeft = {
+                when (it) {
+                    is ActuaryServiceError.ActuaryLimitNotFound ->
+                        ResponseEntity.status(HttpStatus.NOT_FOUND).body("Limit not found for agent ${it.employeeId}")
+                    else -> ResponseEntity.internalServerError().build()
+                }
+            },
+            ifRight = { ResponseEntity.ok(it) },
+        )
+
+    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PutMapping("update-used-limit/{id}")
+    override fun updateUsedLimit(
+        @PathVariable id: Long,
+        @Valid @RequestBody changeActuaryLimitDto: UpdateActuaryLimitDto,
+    ): ResponseEntity<*> =
+        actuaryService.updateUsedLimit(id, changeActuaryLimitDto.newLimit).fold(
+            ifLeft = { error ->
+                when (error) {
+                    is ActuaryServiceError.ActuaryLimitNotFound,
+                    is ActuaryServiceError.EmployeeNotFound,
+                    is ActuaryServiceError.NotAnAgent,
+                    -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
+                    is ActuaryServiceError.ExternalServiceError -> TODO()
+                    ActuaryServiceError.InvalidPageRequest -> TODO()
+                }
+            },
+            ifRight = { dto -> ResponseEntity.ok(dto) },
+        )
+
     @PreAuthorize("hasRole('SUPERVISOR')")
     @GetMapping("/agents")
     override fun getAllAgents(
@@ -119,11 +152,7 @@ class ActuaryController(
 
     @PreAuthorize("hasRole('SUPERVISOR')")
     @GetMapping
-    @Operation(summary = "Get all actuaries.")
-    @ApiResponses(
-        ApiResponse(responseCode = "200", description = "Actuaries retrieved successfully"),
-    )
-    fun getAllActuaries(
+    override fun getAllActuaries(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
     ): ResponseEntity<Page<ActuaryResponseDto>> {
@@ -134,25 +163,9 @@ class ActuaryController(
         )
     }
 
-    @PreAuthorize("hasAnyRole('SUPERVISOR','AGENT')")
-    @GetMapping("{agentId}")
-    override fun getAgentLimit(
-        @PathVariable agentId: Long,
-    ): ResponseEntity<Any> =
-        actuaryService.getAgentLimit(agentId).fold(
-            ifLeft = {
-                when (it) {
-                    is ActuaryServiceError.ActuaryLimitNotFound ->
-                        ResponseEntity.status(HttpStatus.NOT_FOUND).body("Limit not found for agent ${it.employeeId}")
-                    else -> ResponseEntity.internalServerError().build()
-                }
-            },
-            ifRight = { ResponseEntity.ok(it) },
-        )
-
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
-    fun getAllAgentsAndClients(
+    override fun getAllAgentsAndClients(
         @RequestParam(defaultValue = "") name: String,
         @RequestParam(defaultValue = "") surname: String,
         @RequestParam(defaultValue = "") role: String,

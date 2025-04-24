@@ -15,6 +15,7 @@ import rs.raf.bank_service.domain.entity.Currency;
 import rs.raf.bank_service.domain.enums.*;
 import rs.raf.bank_service.domain.mapper.InstallmentMapper;
 import rs.raf.bank_service.domain.mapper.LoanMapper;
+import rs.raf.bank_service.exceptions.InsufficientFundsException;
 import rs.raf.bank_service.repository.*;
 import rs.raf.bank_service.service.LoanService;
 import rs.raf.bank_service.service.TransactionQueueService;
@@ -42,6 +43,7 @@ public class LoanServiceTest {
     @Mock private InstallmentRepository installmentRepository;
     @Mock private InstallmentMapper installmentMapper;
     @Mock private TransactionQueueService transactionQueueService;
+    @Mock private LoanRequestRepository loanRequestRepository;
 
     @InjectMocks private LoanService loanService;
 
@@ -272,5 +274,73 @@ public class LoanServiceTest {
         verify(loanRepository).save(loan);
         verify(scheduledExecutorService).schedule(any(Runnable.class), eq(72L), eq(TimeUnit.HOURS));
         assertEquals(loan.getNominalInterestRate(), BigDecimal.valueOf(5.55));
+    }
+
+    @Test
+    void testPayInstallment_Success() {
+        account.setCurrency(currency); // ← ključni deo da izbegneš null
+
+        CompanyAccount bankAccount = new CompanyAccount();
+        bankAccount.setCurrency(currency);
+        bankAccount.setBalance(BigDecimal.valueOf(1000000));
+        bankAccount.setAvailableBalance(BigDecimal.valueOf(1000000));
+
+        loan.setInstallments(new ArrayList<>(List.of(installment)));
+        loan.setStatus(LoanStatus.APPROVED);
+
+        when(loanRepository.findById(loan.getId())).thenReturn(Optional.of(loan));
+        when(accountRepository.findFirstByCurrencyAndCompanyId(any(), eq(1L))).thenReturn(Optional.of(bankAccount));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(installmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(loanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertDoesNotThrow(() -> loanService.payInstallment(loan.getId()));
+
+        verify(accountRepository, atLeastOnce()).save(any());
+        verify(installmentRepository, times(2)).save(any());
+        verify(loanRepository).save(any());
+    }
+
+    @Test
+    void testPayInstallment_InsufficientFunds_Throws() {
+        loan.setNextInstallmentAmount(BigDecimal.valueOf(100000));
+        account.setBalance(BigDecimal.valueOf(1000));
+        account.setAvailableBalance(BigDecimal.valueOf(1000));
+        loan.setStatus(LoanStatus.APPROVED);
+
+        when(loanRepository.findById(loan.getId())).thenReturn(Optional.of(loan));
+
+        assertThrows(InsufficientFundsException.class, () -> loanService.payInstallment(loan.getId()));
+    }
+
+    @Test
+    void testFindLoanIdByLoanRequestId_Success() {
+        LoanRequest loanRequest = new LoanRequest();
+        loanRequest.setAccount(account);
+
+        Loan recentLoan = Loan.builder()
+                .id(99L)
+                .account(account)
+                .startDate(LocalDate.now())
+                .build();
+
+        when(loanRequestRepository.findById(10L)).thenReturn(Optional.of(loanRequest));
+        when(loanRepository.findAll()).thenReturn(List.of(loan, recentLoan));
+
+        Long result = loanService.findLoanIdByLoanRequestId(10L);
+
+        assertEquals(recentLoan.getId(), result);
+    }
+
+    @Test
+    void testFindLoanIdByLoanRequestId_LoanNotFound() {
+        LoanRequest loanRequest = new LoanRequest();
+        loanRequest.setAccount(account);
+
+        lenient().when(loanRequestRepository.findById(10L)).thenReturn(Optional.of(loanRequest));
+        when(loanRepository.findAll()).thenReturn(Collections.emptyList());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> loanService.findLoanIdByLoanRequestId(10L));
+        assertTrue(ex.getMessage().contains("No loan found"));
     }
 }

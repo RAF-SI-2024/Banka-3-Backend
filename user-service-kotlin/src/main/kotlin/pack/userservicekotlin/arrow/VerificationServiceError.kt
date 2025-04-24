@@ -12,4 +12,8 @@ sealed class VerificationServiceError {
     data class DatabaseError(
         val message: String,
     ) : VerificationServiceError()
+
+    data class BankServiceError(
+        val message: String,
+    ) : VerificationServiceError()
 }

@@ -72,6 +72,8 @@ public class BootstrapData implements CommandLineRunner {
             addFutures();
         }
 
+        listingRedisService.clear();
+
         List<ListingDto> dtos = listingRepository.findAll().stream()
                 .map(listing -> listingMapper.toDto(listing, priceHistoryRepository.findTopByListingOrderByDateDesc(listing)))
                 .toList();
@@ -167,9 +169,9 @@ public class BootstrapData implements CommandLineRunner {
 
     private void importForexPairs() {
         List<String[]> pairs = List.of(
-                new String[]{"USD", "EUR"}, new String[]{"USD", "GBP"}, new String[]{"USD", "JPY"},
-                new String[]{"USD", "CAD"}, new String[]{"USD", "AUD"}, new String[]{"EUR", "GBP"},
-                new String[]{"EUR", "JPY"}, new String[]{"EUR", "CHF"}, new String[]{"GBP", "JPY"}, new String[]{"AUD", "NZD"}
+                new String[]{"EUR", "USD"}, new String[]{"GBP", "USD"}, new String[]{"JPY", "USD"},
+                new String[]{"CAD", "USD"}, new String[]{"RSD", "USD"}, new String[]{"NZD", "USD"},
+                new String[]{"CHF", "USD"}
         );
         Exchange exchange = exchangeRepository.findByMic("NASDAQ");
         List<ForexPair> list = refreshInParallel(pairs, pair -> {

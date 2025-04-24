@@ -87,6 +87,10 @@ class EmployeeService(
             } ?: EmployeeServiceError.NotFound.left()
 
     fun createEmployee(dto: CreateEmployeeDto): Either<EmployeeServiceError, EmployeeResponseDto> {
+        if (employeeRepository.findByEmail(dto.email!!).isPresent) {
+            return EmployeeServiceError.EmailAlreadyExists.left()
+        }
+
         val role =
             roleRepository.findByName(dto.role!!).orElse(null)
                 ?: return EmployeeServiceError.RoleNotFound.left()
@@ -94,6 +98,18 @@ class EmployeeService(
         val employee = dto.toEntity() ?: return EmployeeServiceError.Unknown(NullPointerException("Invalid entity")).left()
         employee.role = role
         employeeRepository.save(employee)
+
+        if (role.name.equals("AGENT")) {
+            actuaryLimitRepository.save(
+                ActuaryLimit(
+                    null,
+                    BigDecimal(1000),
+                    BigDecimal(0),
+                    true,
+                    employee,
+                ),
+            )
+        }
 
         val token = UUID.randomUUID().toString()
         rabbitTemplate.convertAndSend("set-password", EmailRequestDto(token, employee.email!!))
@@ -125,6 +141,23 @@ class EmployeeService(
             roleRepository.findByName(dto.role!!).orElse(null)
                 ?: return EmployeeServiceError.RoleNotFound.left()
 
+        if (role.name == "AGENT" && employee.role?.name != "AGENT") {
+            if (!actuaryLimitRepository.findByEmployeeId(id).isPresent) {
+                actuaryLimitRepository.save(
+                    ActuaryLimit(
+                        limitAmount = BigDecimal(100000),
+                        usedLimit = BigDecimal.ZERO,
+                        needsApproval = true,
+                        employee = employee,
+                    ),
+                )
+            }
+        } else if (role.name != "AGENT" && employee.role?.name == "AGENT") {
+            actuaryLimitRepository.findByEmployeeId(id).ifPresent { limit ->
+                actuaryLimitRepository.delete(limit)
+            }
+        }
+
         employee.apply {
             lastName = dto.lastName
             gender = dto.gender
@@ -132,28 +165,9 @@ class EmployeeService(
             address = dto.address
             position = dto.position
             department = dto.department
+            this.role = role
         }
 
-        if (role.name == "AGENT" && employee.role?.name != "AGENT") {
-            actuaryLimitRepository.save(
-                ActuaryLimit(
-                    limitAmount = BigDecimal(100000),
-                    usedLimit = BigDecimal.ZERO,
-                    needsApproval = true,
-                    employee = employee,
-                ),
-            )
-        }
-
-        if (role.name != "AGENT" && employee.role?.name == "AGENT") {
-            val limit =
-                actuaryLimitRepository
-                    .findByEmployeeId(id)
-                    .orElse(null) ?: return EmployeeServiceError.LimitNotFound.left()
-            actuaryLimitRepository.delete(limit)
-        }
-
-        employee.role = role
         return employeeRepository.save(employee).toDto()!!.right()
     }
 

@@ -124,6 +124,11 @@ public class EmployeeService {
         employee.setRole(role);
         employeeRepository.save(employee);
 
+        if (role.getName().equals("AGENT")) {
+            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(1000), new BigDecimal(0), true, employee);
+            actuaryLimitRepository.save(actuaryLimit);
+        }
+
         UUID token = UUID.fromString(UUID.randomUUID().toString());
         EmailRequestDto emailRequestDto = new EmailRequestDto(token.toString(), employee.getEmail());
 
@@ -157,7 +162,7 @@ public class EmployeeService {
         employee.setDepartment(updateEmployeeDTO.getDepartment());
 
         if (role.getName().equals("AGENT") && !Objects.equals(employee.getRole().getName(), "AGENT")) {
-            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(100000), new BigDecimal(0), true, employee);
+            ActuaryLimit actuaryLimit = new ActuaryLimit(new BigDecimal(1000), new BigDecimal(0), true, employee);
             actuaryLimitRepository.save(actuaryLimit);
         }
         if (!role.getName().equals("AGENT") && employee.getRole().getName().equals("AGENT")) {

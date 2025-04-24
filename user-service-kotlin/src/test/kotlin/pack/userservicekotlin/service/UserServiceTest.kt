@@ -104,6 +104,32 @@ class UserServiceTest {
     }
 
     @Test
+    fun `addRoleToUser returns UserNotFound if user not found`() {
+        val dto = RoleRequestDto(id = 1L)
+
+        `when`(userRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = userService.addRoleToUser(99L, dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(UserServiceError.UserNotFound, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `addRoleToUser returns RoleNotFound if role not found`() {
+        val user = TestDataFactory.employee(id = 6L)
+        val dto = RoleRequestDto(id = 99L)
+
+        `when`(userRepository.findById(6L)).thenReturn(Optional.of(user))
+        `when`(roleRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = userService.addRoleToUser(6L, dto)
+
+        assertTrue(result.isLeft())
+        assertEquals(UserServiceError.RoleNotFound, result.swap().getOrNull())
+    }
+
+    @Test
     fun `removeRoleFromUser removes role successfully`() {
         val role = TestDataFactory.role("AGENT").apply { id = 6L }
         val user = TestDataFactory.employee(id = 6L)
@@ -133,6 +159,30 @@ class UserServiceTest {
 
         assertTrue(result.isLeft())
         assertEquals(UserServiceError.RoleNotAssigned, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `removeRoleFromUser returns UserNotFound if user not found`() {
+        `when`(userRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = userService.removeRoleFromUser(99L, 1L)
+
+        assertTrue(result.isLeft())
+        assertEquals(UserServiceError.UserNotFound, result.swap().getOrNull())
+    }
+
+    @Test
+    fun `removeRoleFromUser returns RoleNotFound if role not found`() {
+        val user = TestDataFactory.employee(id = 8L)
+        user.role = TestDataFactory.role("AGENT")
+
+        `when`(userRepository.findById(8L)).thenReturn(Optional.of(user))
+        `when`(roleRepository.findById(99L)).thenReturn(Optional.empty())
+
+        val result = userService.removeRoleFromUser(8L, 99L)
+
+        assertTrue(result.isLeft())
+        assertEquals(UserServiceError.RoleNotFound, result.swap().getOrNull())
     }
 
     @Test

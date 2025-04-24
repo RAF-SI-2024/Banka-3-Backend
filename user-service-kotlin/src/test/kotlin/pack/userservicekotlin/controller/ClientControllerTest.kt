@@ -4,12 +4,14 @@ import arrow.core.Either
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.*
@@ -23,6 +25,9 @@ import pack.userservicekotlin.domain.dto.client.UpdateClientDto
 import pack.userservicekotlin.service.ClientService
 import pack.userservicekotlin.utils.JwtTokenUtil
 import java.sql.Date
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.context.SecurityContext
 
 @WebMvcTest(ClientController::class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -186,6 +191,111 @@ class ClientControllerTest {
         mockMvc
             .delete("/api/admin/clients/1")
             .andExpect { status { isNotFound() } }
+    }
+
+    @Test
+    fun `getAllClients should handle invalid page parameters`() {
+        mockMvc
+            .get("/api/admin/clients?page=-1&size=0")
+            .andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `getAllClients should return empty page when no clients exist`() {
+        val emptyPage = PageImpl<ClientResponseDto>(emptyList())
+        `when`(clientService.listClientsWithFilters(null, null, null, PageRequest.of(0, 10, Sort.by("lastName").ascending())))
+            .thenReturn(emptyPage)
+
+        mockMvc
+            .get("/api/admin/clients")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.content") { isArray() }
+                jsonPath("$.content.length()") { value(0) }
+            }
+    }
+
+    @Test
+    fun `addClient should return 404 if role not found`() {
+        val request = validCreateClientDto()
+        `when`(clientService.addClient(anyNonNull())).thenReturn(Either.Left(ClientServiceError.RoleNotFound("Unknown Role")))
+
+        mockMvc
+            .post("/api/admin/clients") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(request)
+            }.andExpect {
+                status { isNotFound() }
+                content { string("Client role not found") }
+            }
+    }
+
+    @Test
+    fun `addClient should return 400 if email already exists`() {
+        val request = validCreateClientDto()
+        `when`(clientService.addClient(anyNonNull())).thenReturn(Either.Left(ClientServiceError.EmailAlreadyExists("test@example.com")))
+
+        mockMvc
+            .post("/api/admin/clients") {
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(request)
+            }.andExpect {
+                status { isInternalServerError() }
+            }
+    }
+
+    @Test
+    fun `addClient should return 400 if invalid request body`() {
+        mockMvc
+            .post("/api/admin/clients") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `updateClient should return 400 if invalid request body`() {
+        mockMvc
+            .put("/api/admin/clients/1") {
+                contentType = MediaType.APPLICATION_JSON
+                content = "invalid json"
+            }.andExpect {
+                status { isBadRequest() }
+            }
+    }
+
+    @Test
+    fun `getCurrentClient should return 401 if not authenticated`() {
+        SecurityContextHolder.clearContext()
+
+        mockMvc
+            .get("/api/admin/clients/me")
+            .andExpect {
+                status { isUnauthorized() }
+            }
+    }
+
+    @Test
+    fun `getCurrentClient should return 404 if client not found`() {
+        val email = "nonexistent@example.com"
+        val auth = mock(Authentication::class.java)
+        `when`(auth.name).thenReturn(email)
+        val context = mock(SecurityContext::class.java)
+        `when`(context.authentication).thenReturn(auth)
+        SecurityContextHolder.setContext(context)
+
+        `when`(clientService.getCurrentClient()).thenReturn(Either.Left(ClientServiceError.EmailNotFound(email)))
+
+        mockMvc
+            .get("/api/admin/clients/me")
+            .andExpect {
+                status { isNotFound() }
+                content { string("Client not found with email: $email") }
+            }
     }
 
     inline fun <reified T> anyNonNull(): T {

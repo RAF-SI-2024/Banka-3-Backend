@@ -83,9 +83,12 @@ public class PortfolioController {
     })
     @PreAuthorize("hasAnyRole('CLIENT', 'AGENT', 'SUPERVISOR', 'ADMIN')")
     @GetMapping("/public-stocks")
-    public ResponseEntity<?> getAllPublicStocks() {
+    public ResponseEntity<?> getAllPublicStocks(@RequestHeader("Authorization") String authHeader) {
         try {
-            List<PublicStockDto> result = portfolioService.getAllPublicStocks();
+            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+
+            List<PublicStockDto> result = portfolioService.getAllPublicStocks(userId, role);
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
@@ -103,26 +106,5 @@ public class PortfolioController {
         Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
         return ResponseEntity.ok().body(portfolioService.getUserTaxes(userId));
 
-    }
-
-    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
-    @PostMapping("/use-option")
-    @Operation(summary = "Use option (CALL/PUT) if eligible")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Option used successfully"),
-            @ApiResponse(responseCode = "400", description = "Option not eligible or invalid request"),
-            @ApiResponse(responseCode = "500", description = "Unexpected server error")
-    })
-    public ResponseEntity<?> useOption(@RequestHeader("Authorization") String authHeader,
-                                       @RequestBody UseOptionDto dto) {
-        try {
-            Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            portfolioService.updateHoldingsOnOptionExecution(userId, dto);
-            return ResponseEntity.ok().build();
-        } catch (OptionNotEligibleException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
     }
 }
