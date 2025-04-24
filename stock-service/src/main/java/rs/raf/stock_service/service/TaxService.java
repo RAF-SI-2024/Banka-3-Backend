@@ -2,6 +2,7 @@ package rs.raf.stock_service.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +49,7 @@ public class TaxService {
         return userTaxDtos;
     }
 
-    //@Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 1 * *")
     public TrackedPaymentDto processTaxes() {
         List<Order> eligibleOrders = orderRepository.findAll().stream()
                 .filter(order -> order.getTaxAmount() != null && order.getTaxStatus().equals(TaxStatus.PENDING))
