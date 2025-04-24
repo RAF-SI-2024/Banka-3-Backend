@@ -258,8 +258,12 @@ public class PaymentService {
     }
 
     private String getSenderName(Account sender) {
-        if (sender instanceof CompanyAccount && ((CompanyAccount) sender).getCompanyId() == 1) {
-            return "Banka 2";
+        if (sender instanceof CompanyAccount) {
+            if (((CompanyAccount) sender).getCompanyId() == 1) {
+                return "Banka 2";
+            } else {
+                return "Berza";
+            }
         } else {
             ClientDto clientDto = userClient.getClientById(sender.getClientId());
             return clientDto.getFirstName() + " " + clientDto.getLastName();
