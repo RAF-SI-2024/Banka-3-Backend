@@ -311,6 +311,13 @@ public class OtcService {
             throw new UnauthorizedActionException("Not allowed to update this offer");
         }
 
+        PortfolioEntry sellerEntry = portfolioEntryRepository.findByUserIdAndListing(offer.getSellerId(), offer.getStock())
+                .orElseThrow(PortfolioEntryNotFoundException::new);
+
+        if (dto.getAmount().compareTo(BigDecimal.valueOf(sellerEntry.getPublicAmount())) > 0) {
+            throw new InvalidPublicAmountException("Not enough public shares to fulfill the offer");
+        }
+
         offer.setAmount(dto.getAmount().intValue());
         offer.setPricePerStock(dto.getPricePerStock());
         offer.setPremium(dto.getPremium());

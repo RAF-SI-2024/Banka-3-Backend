@@ -56,6 +56,7 @@ public class Loan {
     private InterestRateType interestRateType;
 
     @ManyToOne
+    @JoinColumn(name = "account_number")
     private Account account;
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL)

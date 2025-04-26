@@ -38,6 +38,7 @@ public class Card {
     private LocalDate expirationDate;
 
     @ManyToOne
+    @JoinColumn(name = "account_number")
     private Account account;
 
     @Enumerated(EnumType.STRING)

@@ -52,16 +52,17 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
+    @Column(precision = 10, scale = 6, nullable = false)
     private BigDecimal pricePerUnit;
 
 //    @Column(nullable = false)
+    @Column(precision = 10, scale = 6)
     private BigDecimal totalPrice;
 
     @Column(nullable = false)
     private String accountNumber;
 
-    @Column
+    @Column(precision = 10, scale = 6)
     private BigDecimal commission;
 
     @Enumerated(EnumType.STRING)
@@ -90,8 +91,12 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private TaxStatus taxStatus;
+    @Column(precision = 10, scale = 6)
     private BigDecimal taxAmount;
+    @Column(precision = 10, scale = 6)
     private BigDecimal profit;
+    @Column(precision = 10, scale = 6)
+    private BigDecimal averageBuyingPrice;
 
     public Order(Long userId, String userRole, Listing listing, OrderType orderType, OrderDirection direction, boolean allOrNone,
                  Integer contractSize, Integer quantity, BigDecimal pricePerUnit, String accountNumber, BigDecimal stopPrice,

@@ -1,7 +1,6 @@
 package rs.raf.bank_service.domain.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -9,6 +8,9 @@ import javax.persistence.*;
 @Setter
 @Entity
 @Table(name = "payees")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Payee {
 
     @Id
@@ -18,7 +20,7 @@ public class Payee {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "account_number", nullable = false, unique = true)
     private String accountNumber;
 
     @Column(nullable = false)

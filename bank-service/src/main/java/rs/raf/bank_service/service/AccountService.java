@@ -215,13 +215,18 @@ public class AccountService {
                     throw new ClientNotAccountOwnerException();
             }
 
-            ClientDto clientDto = userClient.getClientById(account.getClientId());
+            ClientDto clientDto = null;
+            if (account.getClientId() != null) {
+                clientDto = userClient.getClientById(account.getClientId());
+            } // @todo maybe needs changes when we add external bank accounts with null client id
 
             AccountDetailsDto accountDetailsDto;
 
             if (account.getAccountOwnerType() != AccountOwnerType.COMPANY) {
                 accountDetailsDto = AccountMapper.toDetailsDto(account);
-                accountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
+                if (clientDto != null) {
+                    accountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
+                }
             } else {
                 CompanyAccount companyAccount = (CompanyAccount) account;
                 CompanyDto companyDto = userClient.getCompanyById(companyAccount.getCompanyId());
@@ -239,7 +244,13 @@ public class AccountService {
                         authorizedPersonnelDto
                 );
 
-                companyAccountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
+                if (clientDto == null) {
+                    companyAccountDetailsDto.setAccountOwner(companyAccountDetailsDto.getCompanyName());
+                }
+                else {
+                    companyAccountDetailsDto.setAccountOwner(clientDto.getFirstName() + " " + clientDto.getLastName());
+                }
+
                 companyAccountDetailsDto.setCompanyName(companyDto.getName());
                 companyAccountDetailsDto.setRegistrationNumber(companyDto.getRegistrationNumber());
                 companyAccountDetailsDto.setTaxId(companyDto.getTaxId());

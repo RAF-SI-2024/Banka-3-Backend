@@ -59,8 +59,6 @@ public class BootstrapData implements CommandLineRunner {
         }
 
 
-
-
         if (clientRepository.count() == 0) {
 
             Role clientRole = roleRepository.findByName("CLIENT")
@@ -96,73 +94,350 @@ public class BootstrapData implements CommandLineRunner {
                     .role(clientRole)
                     .build();
 
+
             clientRepository.saveAll(List.of(client, client2));
-        }
 
-        if (employeeRepository.count() == 0) {
 
-            Role adminRole = roleRepository.findByName("ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
-            Role employeeRole = roleRepository.findByName("EMPLOYEE")
-                    .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
-            Role agentRole = roleRepository.findByName("AGENT")
-                    .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
+            if (employeeRepository.count() == 0) {
 
-            Employee employee = Employee.builder()
-                    .id(3L)
-                    .firstName("Petar")
-                    .lastName("Petrovic")
-                    .email("petar.p@example.com")
-                    .phone("0699998279")
-                    .address("Trg Republike 5, Beograd")
-                    .birthDate(dateFormat.parse("2000-02-19"))
-                    .gender("M")
-                    .username("petar90")
-                    .password(passwordEncoder.encode("petarpetar"))
-                    .position("Manager")
-                    .department("HR")
-                    .active(true)
-                    .role(adminRole)
-                    .jmbg("0123456789123")
-                    .build();
+                Role adminRole = roleRepository.findByName("ADMIN")
+                        .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
+                Role employeeRole = roleRepository.findByName("EMPLOYEE")
+                        .orElseThrow(() -> new RuntimeException("Role EMPLOYEE not found"));
+                Role agentRole = roleRepository.findByName("AGENT")
+                        .orElseThrow(() -> new RuntimeException("Role AGENT not found"));
+                Role supervisorRole = roleRepository.findByName("SUPERVISOR")
+                        .orElseThrow(() -> new RuntimeException("Role SUPERVISOR not found"));
 
-            Employee employee2 = Employee.builder()
-                    .id(4L)
-                    .firstName("Jana")
-                    .lastName("Ivanovic")
-                    .email("jana.i@example.com")
-                    .phone("0666658276")
-                    .address("Palih Boraca 5")
-                    .birthDate(dateFormat.parse("1996-09-02"))
+                Employee employee = Employee.builder()
+                        .id(3L)
+                        .firstName("Petar")
+                        .lastName("Petrovic")
+                        .email("petar.p@example.com")
+                        .phone("0699998279")
+                        .address("Trg Republike 5, Beograd")
+                        .birthDate(dateFormat.parse("2000-02-19"))
+                        .gender("M")
+                        .username("petar90")
+                        .password(passwordEncoder.encode("petarpetar"))
+                        .position("Manager")
+                        .department("HR")
+                        .active(true)
+                        .role(adminRole)
+                        .jmbg("1503456789001")
+                        .build();
+
+                Employee employee2 = Employee.builder()
+                        .id(4L)
+                        .firstName("Jana")
+                        .lastName("Ivanovic")
+                        .email("jana.i@example.com")
+                        .phone("0666658276")
+                        .address("Palih Boraca 5")
+                        .birthDate(dateFormat.parse("1996-09-02"))
+                        .gender("F")
+                        .username("jana1")
+                        .password(passwordEncoder.encode("janajana"))
+                        .position("Manager")
+                        .department("Finance")
+                        .active(true)
+                        .jmbg("1503456789002")
+                        .role(supervisorRole)
+                        .build();
+
+                Employee employee3 = Employee.builder()
+                        .id(5L)
+                        .firstName("Zika")
+                        .lastName("Petrović")
+                        .email("zika.p@example.com")
+                        .phone("0641234567")
+                        .address("Kralja Petra 10")
+                        .birthDate(dateFormat.parse("1992-05-15"))
+                        .gender("M")
+                        .username("zika92")
+                        .password(passwordEncoder.encode("zikazika"))
+                        .position("")
+                        .department("IT")
+                        .active(true)
+                        .jmbg("1505923891234")
+                        .role(agentRole)
+                        .build();
+
+                employeeRepository.saveAll(List.of(employee, employee2,employee3));
+            }
+
+            Client client3 = Client.builder()
+                    .id(6L)
+                    .firstName("Ana")
+                    .lastName("Anic")
+                    .email("ana.a@example.com")
+                    .phone("0634567890")
+                    .address("Knez Mihailova 15")
+                    .birthDate(dateFormat.parse("1985-07-12"))
                     .gender("F")
-                    .username("jana1")
-                    .password(passwordEncoder.encode("janajana"))
-                    .position("Manager")
-                    .department("Finance")
-                    .active(true)
+                    .password(passwordEncoder.encode("anaana"))
                     .jmbg("0123456789124")
-                    .role(employeeRole)
+                    .username("ana1")
+                    .role(clientRole)
                     .build();
 
-            Employee employee3 = Employee.builder()
-                    .id(5L)
-                    .firstName("Zika")
-                    .lastName("Petrović")
-                    .email("zika.p@example.com")
+            Client client4 = Client.builder()
+                    .id(7L)
+                    .firstName("Milan")
+                    .lastName("Milankovic")
+                    .email("milan.m@example.com")
                     .phone("0641234567")
-                    .address("Kralja Petra 10")
-                    .birthDate(dateFormat.parse("1992-05-15"))
+                    .address("Bulevar Oslobodjenja 25")
+                    .birthDate(dateFormat.parse("1978-03-30"))
                     .gender("M")
-                    .username("zika92")
-                    .password(passwordEncoder.encode("zikazika"))
-                    .position("")
-                    .department("IT")
-                    .active(true)
-                    .jmbg("1505923891234")
-                    .role(agentRole)
+                    .password(passwordEncoder.encode("milanmilan"))
+                    .jmbg("0123456789123")
+                    .username("milan1")
+                    .role(clientRole)
                     .build();
 
-            employeeRepository.saveAll(List.of(employee, employee2,employee3));
+            Client client5 = Client.builder()
+                    .id(8L)
+                    .firstName("Jelena")
+                    .lastName("Jelenic")
+                    .email("jelena.j@example.com")
+                    .phone("0659876543")
+                    .address("Futoska 10")
+                    .birthDate(dateFormat.parse("1995-11-05"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("jelenajelena"))
+                    .jmbg("0123456789122")
+                    .username("jelena1")
+                    .role(clientRole)
+                    .build();
+
+            Client client6 = Client.builder()
+                    .id(9L)
+                    .firstName("Stefan")
+                    .lastName("Stefanovic")
+                    .email("stefan.s@example.com")
+                    .phone("0661234567")
+                    .address("Bulevar Cara Lazara 45")
+                    .birthDate(dateFormat.parse("1982-09-18"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("stefanstefan"))
+                    .jmbg("0123456789121")
+                    .username("stefan1")
+                    .role(clientRole)
+                    .build();
+
+            Client client7 = Client.builder()
+                    .id(10L)
+                    .firstName("Milica")
+                    .lastName("Milic")
+                    .email("milica.m@example.com")
+                    .phone("0679876543")
+                    .address("Zmaj Jovina 8")
+                    .birthDate(dateFormat.parse("1992-04-22"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("milica"))
+                    .jmbg("0123456789120")
+                    .username("milica1")
+                    .role(clientRole)
+                    .build();
+
+            Client client8 = Client.builder()
+                    .id(11L)
+                    .firstName("Nikola")
+                    .lastName("Nikolic")
+                    .email("nikola.n@example.com")
+                    .phone("0681234567")
+                    .address("Bulevar Mihajla Pupina 12")
+                    .birthDate(dateFormat.parse("1988-12-10"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("nikolanikola"))
+                    .jmbg("0123456789119")
+                    .username("nikola1")
+                    .role(clientRole)
+                    .build();
+
+            Client client9 = Client.builder()
+                    .id(12L)
+                    .firstName("Sofija")
+                    .lastName("Sofijic")
+                    .email("sofija.s@example.com")
+                    .phone("0699876543")
+                    .address("Dunavska 30")
+                    .birthDate(dateFormat.parse("1997-06-28"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("sofija"))
+                    .jmbg("0123456789118")
+                    .username("sofija1")
+                    .role(clientRole)
+                    .build();
+
+            Client client10 = Client.builder()
+                    .id(13L)
+                    .firstName("Luka")
+                    .lastName("Lukic")
+                    .email("luka.l@example.com")
+                    .phone("0619876543")
+                    .address("Bulevar Patrijarha Pavla 20")
+                    .birthDate(dateFormat.parse("1980-08-15"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("lukaluka"))
+                    .jmbg("0123456789117")
+                    .username("luka1")
+                    .role(clientRole)
+                    .build();
+
+            Client client11 = Client.builder()
+                    .id(14L)
+                    .firstName("Ivana")
+                    .lastName("Ivanovic")
+                    .email("ivana.i@example.com")
+                    .phone("0621234567")
+                    .address("Bulevar Kralja Aleksandra 15")
+                    .birthDate(dateFormat.parse("1993-03-20"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("ivanaivana"))
+                    .jmbg("0123456789116")
+                    .username("ivana1")
+                    .role(clientRole)
+                    .build();
+
+            Client client12 = Client.builder()
+                    .id(15L)
+                    .firstName("Dusan")
+                    .lastName("Dusanovic")
+                    .email("dusan.d@example.com")
+                    .phone("0639876543")
+                    .address("Kralja Petra 30")
+                    .birthDate(dateFormat.parse("1975-11-12"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("dusandusan"))
+                    .jmbg("0123456789115")
+                    .username("dusan1")
+                    .role(clientRole)
+                    .build();
+
+            Client client13 = Client.builder()
+                    .id(16L)
+                    .firstName("Marija")
+                    .lastName("Maric")
+                    .email("marija.m@example.com")
+                    .phone("0641234567")
+                    .address("Bulevar Oslobodjenja 50")
+                    .birthDate(dateFormat.parse("1987-07-25"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("marijamarija"))
+                    .jmbg("0123456789114")
+                    .username("marija1")
+                    .role(clientRole)
+                    .build();
+
+            Client client14 = Client.builder()
+                    .id(17L)
+                    .firstName("Aleksandar")
+                    .lastName("Aleksic")
+                    .email("aleksandar.a@example.com")
+                    .phone("0659876543")
+                    .address("Futoska 25")
+                    .birthDate(dateFormat.parse("1991-01-30"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("aleksandar"))
+                    .jmbg("0123456789113")
+                    .username("aleksandar1")
+                    .role(clientRole)
+                    .build();
+
+            Client client15 = Client.builder()
+                    .id(18L)
+                    .firstName("Jovana")
+                    .lastName("Jovanovic")
+                    .email("jovana.j@example.com")
+                    .phone("0661234567")
+                    .address("Bulevar Cara Lazara 60")
+                    .birthDate(dateFormat.parse("1996-09-05"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("jovanajovana"))
+                    .jmbg("0123456789112")
+                    .username("jovana1")
+                    .role(clientRole)
+                    .build();
+
+            Client client16 = Client.builder()
+                    .id(19L)
+                    .firstName("Vladimir")
+                    .lastName("Vladimirovic")
+                    .email("vladimir.v@example.com")
+                    .phone("0679876543")
+                    .address("Zmaj Jovina 15")
+                    .birthDate(dateFormat.parse("1983-04-18"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("vladimir"))
+                    .jmbg("0123456789111")
+                    .username("vladimir1")
+                    .role(clientRole)
+                    .build();
+
+            Client client17 = Client.builder()
+                    .id(20L)
+                    .firstName("Tamara")
+                    .lastName("Tamaric")
+                    .email("tamara.t@example.com")
+                    .phone("0681234567")
+                    .address("Bulevar Mihajla Pupina 25")
+                    .birthDate(dateFormat.parse("1994-12-22"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("tamaratamara"))
+                    .jmbg("0123456789110")
+                    .username("tamara1")
+                    .role(clientRole)
+                    .build();
+
+            Client client18 = Client.builder()
+                    .id(21L)
+                    .firstName("Bojan")
+                    .lastName("Bojanic")
+                    .email("bojan.b@example.com")
+                    .phone("0699876543")
+                    .address("Dunavska 45")
+                    .birthDate(dateFormat.parse("1989-06-10"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("bojanbojan"))
+                    .jmbg("0123456789109")
+                    .username("bojan1")
+                    .role(clientRole)
+                    .build();
+
+            Client client19 = Client.builder()
+                    .id(22L)
+                    .firstName("Sanja")
+                    .lastName("Sanjic")
+                    .email("sanja.s@example.com")
+                    .phone("0611234567")
+                    .address("Bulevar Patrijarha Pavla 35")
+                    .birthDate(dateFormat.parse("1998-02-28"))
+                    .gender("F")
+                    .password(passwordEncoder.encode("sanja"))
+                    .jmbg("0123456789108")
+                    .username("sanja1")
+                    .role(clientRole)
+                    .build();
+
+            Client client20 = Client.builder()
+                    .id(23L)
+                    .firstName("Dejan")
+                    .lastName("Dejanovic")
+                    .email("dejan.d@example.com")
+                    .phone("0629876543")
+                    .address("Bulevar Kralja Aleksandra 30")
+                    .birthDate(dateFormat.parse("1979-10-15"))
+                    .gender("M")
+                    .password(passwordEncoder.encode("dejandejan"))
+                    .jmbg("0123456789107")
+                    .username("dejan1")
+                    .role(clientRole)
+                    .build();
+
+            clientRepository.saveAll(List.of(client3, client4, client5, client6, client7, client8, client9, client10,
+                    client11, client12, client13, client14, client15, client16, client17, client18, client19, client20));
         }
 
         // CHATGPT CODE START 😊
@@ -382,7 +657,7 @@ public class BootstrapData implements CommandLineRunner {
                     .type("set-password")
                     .createdAt(1741631004271L)
                     .expiresAt(3000000000000L)
-                    .userId(6L)
+                    .userId(24L)
                     .build();
             authTokenRepository.save(authToken);
 
@@ -391,7 +666,7 @@ public class BootstrapData implements CommandLineRunner {
                     .type("request-card")
                     .createdAt(1741631004271L)
                     .expiresAt(3000000000000L)
-                    .userId(6L)
+                    .userId(3L)
                     .build();
             authTokenRepository.save(authToken1);
         }

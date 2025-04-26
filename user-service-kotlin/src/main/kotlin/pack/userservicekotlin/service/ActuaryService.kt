@@ -119,10 +119,12 @@ class ActuaryService(
                 .and(EmployeeSearchSpecification.startsWithPosition(position))
                 .and(EmployeeSearchSpecification.hasRole("AGENT"))
 
+
         val employeeDtoPage =
             employeeRepository
                 .findAll(spec, pageable)
                 .map { it.toDto() }
+
 
         val agentList = mutableListOf<AgentDto>()
 

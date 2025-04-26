@@ -80,10 +80,10 @@ public class BootstrapData implements CommandLineRunner {
         listingRedisService.saveAll(dtos);
         log.info("Listings saved to redis");
 
-        addPortfolioTestData();
-        addOrderTestData();
-        addOtcOfferTestData();
-        addOtcOptionTestData();
+//        addPortfolioTestData();
+//        addOrderTestData();
+//        addOtcOfferTestData();
+//        addOtcOptionTestData();
     }
 
     private void importCoreData() {

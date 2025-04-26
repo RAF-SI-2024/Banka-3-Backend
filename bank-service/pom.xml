@@ -170,6 +170,9 @@
         <!--            <artifactId>user-service</artifactId>-->
         <!--            <version>0.0.1-SNAPSHOT</version>-->
         <!--        </dependency>-->
+        
+        <!-- JSON Processing -->
+
     </dependencies>
 
     <dependencyManagement>
