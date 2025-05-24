@@ -13,6 +13,6 @@ public interface Bank2Client {
 //    @PostMapping("/api/v1/transactions/")
 //    ExternalPaymentResponseDto initiateExternalPayment(@RequestBody ExternalPaymentRequestDto request);
 
-    @GetMapping("/api/v1/accounts/number/{accountNumber}")
+    @GetMapping("/api/v1/accounts?number={accountNumber}")
     Bank2AccountDetailsDto getAccountDetailsByNumber(@PathVariable("accountNumber") String accountNumber);
 }
