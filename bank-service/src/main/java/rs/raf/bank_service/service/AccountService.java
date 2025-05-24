@@ -435,34 +435,4 @@ public class AccountService {
                 .toList();
     }
 
-
-    public void updateAvailableBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
-        }
-
-        if (account.getAvailableBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getAvailableBalance(), amount);
-
-        account.setAvailableBalance(account.getAvailableBalance().subtract(amount));
-        accountRepository.save(account);
-    }
-
-    public void updateBalance(String accountNumber, BigDecimal amount){
-        Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(AccountNotFoundException::new);
-
-        if(!account.getCurrency().getCode().equals("USD")){
-            ExchangeRateDto exchangeRateDto = exchangeRateService.getExchangeRate("USD", account.getCurrency().getCode());
-            amount = amount.multiply(exchangeRateDto.getExchangeRate());
-        }
-
-        if (account.getBalance().compareTo(amount) < 0)
-            throw new InsufficientFundsException(account.getBalance(), amount);
-
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
-    }
 }
