@@ -226,9 +226,12 @@ public class PaymentService {
            if (account.isPresent()) {
                return account.get();
            }
-           Bank2AccountDetailsDto accountDetails = bank2Client.getAccountDetailsByNumber(accountNumber);
-            // @todo save external currency id in currency or account entity
-           return accountService.saveBank2Account(accountDetails);
+           Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
+           if (accountList.getItems().isEmpty()) {
+               throw new ReceiverAccountNotFoundException(accountNumber);
+           }
+
+           return accountService.saveBank2Account(accountList.getItems().get(0));
         }
     }
 
