@@ -58,6 +58,8 @@ public abstract class Account {
     private BigDecimal dailySpending;
     private BigDecimal monthlySpending;
 
+    private String externalId;
+
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Card> cards = new ArrayList<>();

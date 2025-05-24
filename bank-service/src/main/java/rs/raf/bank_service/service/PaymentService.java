@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.client.Bank2Client;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -25,6 +26,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -36,6 +38,8 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
+    private final Bank2Client bank2Client;
+    private final AccountService accountService;
     private final CurrencyRepository currencyRepository;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
@@ -156,7 +160,10 @@ public class PaymentService {
                 clientId
         );
 
-        payment.setReceiverClientId(receiver.getClientId());
+        if (receiver.getExternalId() == null) { // set only for internal payments
+            payment.setReceiverClientId(receiver.getClientId());
+        }
+
         paymentRepository.save(payment);
 
         return payment;
@@ -209,9 +216,20 @@ public class PaymentService {
     }
 
     private Account getReceiverAccount(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
-                .stream().findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(accountNumber));
+        if (!isExternalAccount(accountNumber)) {
+            return accountRepository.findByAccountNumber(accountNumber)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new ReceiverAccountNotFoundException(accountNumber));
+        } else {
+           Optional<Account> account = accountRepository.findByAccountNumber(accountNumber)
+                   .stream().findFirst();
+           if (account.isPresent()) {
+               return account.get();
+           }
+           Bank2AccountDetailsDto accountDetails = bank2Client.getAccountDetailsByNumber(accountNumber);
+            // @todo save external currency id in currency or account entity
+           return accountService.saveBank2Account(accountDetails);
+        }
     }
 
     private void validateSufficientFunds(Account sender, BigDecimal amount) {
@@ -371,5 +389,9 @@ public class PaymentService {
     private CompanyAccount getBankCompanyAccount(Currency currency) {
         return accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L)
                 .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + currency.getCode()));
+    }
+
+    private boolean isExternalAccount(String accountNumber) {
+        return accountNumber != null && accountNumber.startsWith("222");
     }
 }
