@@ -54,8 +54,11 @@ public class BootstrapData implements CommandLineRunner {
             Role supervisorRole = Role.builder()
                     .name("SUPERVISOR")
                     .build();
+            Role externalBankRole = Role.builder()
+                    .name("EXTERNAL_BANK")
+                    .build();
 
-            roleRepository.saveAll(Arrays.asList(clientRole, employeeRole, adminRole, agentRole, supervisorRole));
+            roleRepository.saveAll(Arrays.asList(clientRole, employeeRole, adminRole, agentRole, supervisorRole, externalBankRole));
         }
 
 

@@ -78,8 +78,10 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public RoleHierarchy roleHierarchy(){
         RoleHierarchyImpl roleHierarchyImpl = new RoleHierarchyImpl();
         roleHierarchyImpl.setHierarchy("ROLE_ADMIN > ROLE_SUPERVISOR " +
-                                    "\n ROLE_SUPERVISOR > ROLE_AGENT " +
-                                    "\n ROLE_AGENT > ROLE_EMPLOYEE ");
+                "\n ROLE_SUPERVISOR > ROLE_AGENT " +
+                "\n ROLE_AGENT > ROLE_EMPLOYEE " +
+                "\n ROLE_EXTERNAL_BANK > ROLE_ADMIN " +
+                "\n ROLE_EXTERNAL_BANK > ROLE_CLIENT");
         return roleHierarchyImpl;
     }
 
