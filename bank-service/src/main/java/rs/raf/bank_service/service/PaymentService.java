@@ -41,6 +41,8 @@ public class PaymentService {
     private final Bank2Client bank2Client;
     private final AccountService accountService;
     private final CurrencyRepository currencyRepository;
+    private final TransactionProcessor transactionProcessor;
+    private final TransactionQueueService transactionQueueService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
 
@@ -209,10 +211,14 @@ public class PaymentService {
     }
 
     private Account getSenderAccount(String accountNumber, Long clientId) {
+        if (!isExternalAccount(accountNumber)) {
+            return accountRepository.findByAccountNumber(accountNumber)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
+        } else {
+            return getExternalAccount(accountNumber);
+        }
 
-        return accountRepository.findByAccountNumber(accountNumber)
-                .stream().findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
     }
 
     private Account getReceiverAccount(String accountNumber) {
@@ -221,18 +227,22 @@ public class PaymentService {
                     .stream().findFirst()
                     .orElseThrow(() -> new ReceiverAccountNotFoundException(accountNumber));
         } else {
-           Optional<Account> account = accountRepository.findByAccountNumber(accountNumber)
-                   .stream().findFirst();
-           if (account.isPresent()) {
-               return account.get();
-           }
-           Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
-           if (accountList.getItems().isEmpty()) {
-               throw new ReceiverAccountNotFoundException(accountNumber);
-           }
-
-           return accountService.saveBank2Account(accountList.getItems().get(0));
+            return getExternalAccount(accountNumber);
         }
+    }
+
+    private Account getExternalAccount(String accountNumber) {
+        Optional<Account> account = accountRepository.findByAccountNumber(accountNumber)
+                .stream().findFirst();
+        if (account.isPresent()) {
+            return account.get();
+        }
+        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
+        if (accountList.getItems().isEmpty()) {
+            throw new ReceiverAccountNotFoundException(accountNumber);
+        }
+
+        return accountService.saveBank2Account(accountList.getItems().get(0));
     }
 
     private void validateSufficientFunds(Account sender, BigDecimal amount) {
@@ -396,5 +406,30 @@ public class PaymentService {
 
     private boolean isExternalAccount(String accountNumber) {
         return accountNumber != null && accountNumber.startsWith("222");
+    }
+
+    public PaymentDto initializeIncomingExternalPayment(CreatePaymentDto createPaymentDto) {
+        Account sender = getSenderAccount(createPaymentDto.getSenderAccountNumber(), null);
+        Account receiver = getReceiverAccount(createPaymentDto.getReceiverAccountNumber());
+
+        Payment payment = createPaymentEntity(
+                sender,
+                createPaymentDto,
+                "External",
+                createPaymentDto.getAmount(),
+                BigDecimal.ZERO,
+                null
+        );
+
+        if (receiver.getExternalId() == null) { // set only for internal payments
+            payment.setReceiverClientId(receiver.getClientId());
+        }
+
+        paymentRepository.save(payment);
+
+        transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, payment.getId());
+
+        return paymentMapper.toPaymentDto(payment, "External");
+
     }
 }

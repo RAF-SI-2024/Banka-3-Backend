@@ -93,9 +93,28 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.OK).body("Payment created successfully.");
         } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException |
                  SenderAccountNotFoundException | ReceiverAccountNotFoundException | InsufficientFundsException e
-//                 JsonProcessingException e
         ) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+//    @PreAuthorize("hasRole('BANK')")
+    @PostMapping()
+    @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment created successfully"),
+            @ApiResponse(responseCode = "404", description = "Bad request."),
+
+    })
+    public ResponseEntity<?> createIncomingExternalPayment(
+            @Valid @RequestBody CreatePaymentDto dto) {
+        try {
+            PaymentDto payment = paymentService.initializeIncomingExternalPayment(dto);
+            transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, dto);
+            return ResponseEntity.status(HttpStatus.OK).body(payment);
+        } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException | ReceiverAccountNotFoundException | InsufficientFundsException e
+        ) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         }
     }
 

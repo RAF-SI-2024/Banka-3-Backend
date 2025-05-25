@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.configuration.RabbitMQConfig;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.enums.TransactionType;
 
@@ -19,6 +20,7 @@ public class TransactionProcessor {
     private final LoanService loanService;
     private final ObjectMapper objectMapper;
     private final PaymentCallbackService paymentCallbackService;
+    private final TransactionQueueService transactionQueueService;
 
     @RabbitListener(queues = "transaction-queue")
     @Transactional
@@ -83,6 +85,12 @@ public class TransactionProcessor {
                     break;
                 }
 
+                case PROCESS_EXTERNAL_PAYMENT: {
+                    Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
+                    log.info("Processed external payment for id: {}", paymentId);
+                    break;
+                }
+
 
                 default: {
                     log.warn("Unknown transaction type: {}", message.getType());
@@ -91,6 +99,17 @@ public class TransactionProcessor {
 
         } catch (Exception e) {
             log.error("Failed to process transaction: {}", message, e);
+        }
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.EXTERNAL_DELAY_QUEUE)
+    @Transactional
+    public void handleExternalPayment(Long paymentId) {
+        log.info("[Interbank] Received delayed payment for processing: {}", paymentId);
+        try {
+            transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, paymentId);
+        } catch (Exception e) {
+            log.error("[Interbank] Fatal error while processing payment {}: {}", paymentId, e.getMessage(), e);
         }
     }
 }
