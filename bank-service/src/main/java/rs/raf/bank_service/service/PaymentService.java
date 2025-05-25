@@ -198,9 +198,15 @@ public class PaymentService {
         Account sender = payment.getSenderAccount();
         Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
 
-        processPaymentWithCurrencyHandling(payment, sender, receiver);
+        if (receiver.getExternalId() == null) {
+            processPaymentWithCurrencyHandling(payment, sender, receiver);
+            payment.setStatus(PaymentStatus.COMPLETED);
+        } else { // external
+            updateAccountBalance(sender, sender.getBalance(), receiver.getAvailableBalance().subtract(payment.getAmount()));
+            transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, paymentId);
+        }
 
-        payment.setStatus(PaymentStatus.COMPLETED);
+
 
         return paymentMapper.toDetailsDto(paymentRepository.save(payment));
     }
@@ -421,6 +427,8 @@ public class PaymentService {
                 null
         );
 
+        payment.setStatus(PaymentStatus.PENDING);
+
         if (receiver.getExternalId() == null) { // set only for internal payments
             payment.setReceiverClientId(receiver.getClientId());
         }
@@ -430,6 +438,48 @@ public class PaymentService {
         transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, payment.getId());
 
         return paymentMapper.toPaymentDto(payment, "External");
+    }
 
+    public void processExternalPayment(Long paymentId) {
+        Payment payment = getPaymentById(paymentId);
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        if (receiver.getExternalId() == null) {
+            processIncomingExternalPayment(payment);
+        } else {
+            processOutgoingExternalPayment(payment);
+        }
+    }
+
+    public void processIncomingExternalPayment(Payment payment) {
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        updateAccountBalance(
+                receiver,
+                receiver.getBalance().add(payment.getAmount()),
+                receiver.getAvailableBalance().add(payment.getAmount())
+        );
+
+        payment.setStatus(PaymentStatus.COMPLETED); // or wait until we get notification ?
+
+        // notify bank 2
+    }
+
+    public void processOutgoingExternalPayment(Payment payment) {
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        ExternalPaymentCreateDto createDto = new ExternalPaymentCreateDto();
+
+        createDto.setFromCurrencyId(receiver.getCurrency().getExternalId());
+        createDto.setToCurrencyId(receiver.getCurrency().getExternalId());
+        createDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
+        createDto.setToAccountNumber(payment.getAccountNumberReceiver());
+        createDto.setAmount(payment.getAmount());
+
+        createDto.setPurpose(payment.getPurposeOfPayment());
+        createDto.setReferenceNumber(payment.getReferenceNumber());
+        createDto.setCodeId("9a25d56c-5244-4b5a-b39d-d07b0e1be150");
+
+        bank2Client.sendExternalPayment(createDto);
     }
 }

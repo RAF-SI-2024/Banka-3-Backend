@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Bank2CreatePayment {
+public class ExternalPaymentCreateDto {
     private String fromAccountNumber;
     private String toAccountNumber;
     private String fromCurrencyId;

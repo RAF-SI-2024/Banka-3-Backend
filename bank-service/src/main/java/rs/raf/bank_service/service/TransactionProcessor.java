@@ -87,7 +87,14 @@ public class TransactionProcessor {
 
                 case PROCESS_EXTERNAL_PAYMENT: {
                     Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
-                    log.info("Processed external payment for id: {}", paymentId);
+                    try {
+                        paymentService.processExternalPayment(paymentId);
+                        log.info("Processed external payment for id: {}", paymentId);
+                    }
+                    catch (Exception e) {
+                        log.error("Error executing external payment", e);
+                    }
+
                     break;
                 }
 
