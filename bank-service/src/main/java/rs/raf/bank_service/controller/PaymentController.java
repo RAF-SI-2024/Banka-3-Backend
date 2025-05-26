@@ -99,7 +99,7 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasRole('EXTERNAL_BANK')")
-    @PostMapping()
+    @PostMapping("/external")
     @Operation(summary = "Make a payment", description = "Executes a payment from the sender's account.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment created successfully"),
