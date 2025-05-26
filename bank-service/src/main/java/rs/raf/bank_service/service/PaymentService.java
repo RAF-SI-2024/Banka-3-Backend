@@ -483,4 +483,27 @@ public class PaymentService {
 
         bank2Client.sendExternalPayment(createDto);
     }
+
+    public void handleExternalPaymentStatusUpdate(Long id, NotifyPaymentStatusDto dto) {
+        Payment payment = getPaymentById(id);
+        if (dto.getSuccess()) {
+            updateAccountBalance(
+                    payment.getSenderAccount(),
+                    payment.getSenderAccount().getBalance().subtract(payment.getAmount()),
+                    payment.getSenderAccount().getAvailableBalance()
+            );
+
+            payment.setStatus(PaymentStatus.COMPLETED);
+        } else {
+            updateAccountBalance(
+                    payment.getSenderAccount(),
+                    payment.getSenderAccount().getBalance(),
+                    payment.getSenderAccount().getAvailableBalance().add(payment.getAmount())
+            );
+
+            payment.setStatus(PaymentStatus.ROLLBACK);
+        }
+
+        paymentRepository.save(payment);
+    }
 }
