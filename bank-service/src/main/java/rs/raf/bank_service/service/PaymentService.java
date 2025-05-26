@@ -478,7 +478,13 @@ public class PaymentService {
         createDto.setAmount(payment.getAmount());
         createDto.setPurpose(payment.getPurposeOfPayment());
         createDto.setReferenceNumber(payment.getReferenceNumber());
-        createDto.setCodeId("9a25d56c-5244-4b5a-b39d-d07b0e1be150");
+
+        Bank2TransactionCodeListDto result = bank2Client.getTransactionCodeDetails();
+        if (result.getItems().isEmpty()) {
+            throw new PaymentCodeNotProvidedException(); // valjda se nece desiti
+        }
+
+        createDto.setCodeId(result.getItems().get(0).getId());
         createDto.setExternalTransactionId(payment.getId());
 
         bank2Client.sendExternalPayment(createDto);
