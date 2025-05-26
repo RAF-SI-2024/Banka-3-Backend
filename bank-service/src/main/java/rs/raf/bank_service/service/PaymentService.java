@@ -427,6 +427,7 @@ public class PaymentService {
                 null
         );
 
+        payment.setExternalTransactionId(createPaymentDto.getExternalTransactionId());
         payment.setStatus(PaymentStatus.PENDING);
 
         if (receiver.getExternalId() == null) { // set only for internal payments
@@ -462,7 +463,7 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.COMPLETED); // or wait until we get notification ?
 
-        // notify bank 2
+        bank2Client.notifySuccess(payment.getExternalTransactionId());
     }
 
     public void processOutgoingExternalPayment(Payment payment) {
@@ -475,10 +476,10 @@ public class PaymentService {
         createDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
         createDto.setToAccountNumber(payment.getAccountNumberReceiver());
         createDto.setAmount(payment.getAmount());
-
         createDto.setPurpose(payment.getPurposeOfPayment());
         createDto.setReferenceNumber(payment.getReferenceNumber());
         createDto.setCodeId("9a25d56c-5244-4b5a-b39d-d07b0e1be150");
+        createDto.setExternalTransactionId(payment.getId());
 
         bank2Client.sendExternalPayment(createDto);
     }

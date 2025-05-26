@@ -1,16 +1,16 @@
 package rs.raf.bank_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 import rs.raf.bank_service.domain.dto.Bank2AccountListDto;
 import rs.raf.bank_service.domain.dto.ExternalPaymentCreateDto;
 import rs.raf.bank_service.domain.dto.ExternalPaymentResponseDto;
 
 @FeignClient(name = "bank2-service", url = "${spring.cloud.openfeign.client.config.bank2.api.url}")
 public interface Bank2Client {
+
+    @PutMapping("/api/v1/transactions/{id}/status")
+    Boolean notifySuccess(@PathVariable("id") String id);
 
     @PostMapping("/api/v1/transactions/")
     ExternalPaymentResponseDto sendExternalPayment(@RequestBody ExternalPaymentCreateDto request);

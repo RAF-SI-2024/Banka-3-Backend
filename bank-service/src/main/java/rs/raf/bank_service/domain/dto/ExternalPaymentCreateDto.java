@@ -20,4 +20,5 @@ public class ExternalPaymentCreateDto {
     private String codeId;
     private String referenceNumber;
     private String purpose;
+    private Long externalTransactionId;
 }

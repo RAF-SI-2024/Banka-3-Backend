@@ -68,6 +68,9 @@ public class Payment {
     @Column
     private BigDecimal exchangeProfit;
 
+    @Column
+    private String externalTransactionId;
+
 
     @Override
     public String toString() {
