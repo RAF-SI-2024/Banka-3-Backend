@@ -110,7 +110,7 @@ public class TransactionProcessor {
         }
     }
 
-    @RabbitListener(queues = RabbitMQConfig.EXTERNAL_DELAY_QUEUE)
+    @RabbitListener(queues = RabbitMQConfig.EXTERNAL_PROCESS_QUEUE)
     @Transactional
     public void handleExternalPayment(TransactionMessageDto message) throws JsonProcessingException {
         Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
