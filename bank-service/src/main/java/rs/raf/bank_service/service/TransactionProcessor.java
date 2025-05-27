@@ -1,5 +1,6 @@
 package rs.raf.bank_service.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +112,8 @@ public class TransactionProcessor {
 
     @RabbitListener(queues = RabbitMQConfig.EXTERNAL_DELAY_QUEUE)
     @Transactional
-    public void handleExternalPayment(Long paymentId) {
+    public void handleExternalPayment(TransactionMessageDto message) throws JsonProcessingException {
+        Long paymentId = objectMapper.readValue(message.getPayloadJson(), Long.class);
         log.info("[Interbank] Received delayed payment for processing: {}", paymentId);
         try {
             transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, paymentId);

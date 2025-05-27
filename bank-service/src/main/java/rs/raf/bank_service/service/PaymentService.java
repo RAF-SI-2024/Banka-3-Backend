@@ -199,8 +199,7 @@ public class PaymentService {
             processPaymentWithCurrencyHandling(payment, sender, receiver);
             payment.setStatus(PaymentStatus.COMPLETED);
         } else { // external
-            updateAccountBalance(sender, sender.getBalance(), receiver.getAvailableBalance().subtract(payment.getAmount()));
-            transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, paymentId);
+            transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, paymentId);
         }
 
 
@@ -240,7 +239,7 @@ public class PaymentService {
         if (account.isPresent()) {
             return account.get();
         }
-        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
+        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber.substring(3, 12));
         if (accountList.getItems().isEmpty()) {
             throw new ReceiverAccountNotFoundException(accountNumber);
         }
@@ -433,7 +432,7 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, payment.getId());
+        transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, payment.getId());
 
         return paymentMapper.toPaymentDto(payment, "External");
     }
@@ -472,7 +471,7 @@ public class PaymentService {
         createDto.setToCurrencyId(receiver.getCurrency().getExternalId());
         createDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
         createDto.setToAccountNumber(payment.getAccountNumberReceiver());
-        createDto.setAmount(payment.getAmount());
+        createDto.setAmount(payment.getOutAmount());
         createDto.setPurpose(payment.getPurposeOfPayment());
         createDto.setReferenceNumber(payment.getReferenceNumber());
 
@@ -484,7 +483,7 @@ public class PaymentService {
         createDto.setCodeId(result.getItems().get(0).getId());
         createDto.setExternalTransactionId(payment.getId());
 
-        bank2Client.sendExternalPayment(createDto);
+        bank2Client.sendExternalPayment(createDto); // update external id here from response
     }
 
     public void handleExternalPaymentStatusUpdate(Long id, NotifyPaymentStatusDto dto) {

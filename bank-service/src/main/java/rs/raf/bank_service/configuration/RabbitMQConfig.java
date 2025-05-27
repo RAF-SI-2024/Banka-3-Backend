@@ -77,11 +77,4 @@ public class RabbitMQConfig {
                 .to(externalDeadLetterExchange())
                 .with("external.process");
     }
-
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(jsonMessageConverter());
-        return template;
-    }
 }

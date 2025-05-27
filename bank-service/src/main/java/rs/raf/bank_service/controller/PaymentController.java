@@ -1,6 +1,5 @@
 package rs.raf.bank_service.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -110,7 +109,7 @@ public class PaymentController {
             @Valid @RequestBody CreatePaymentDto dto) {
         try {
             PaymentDto payment = paymentService.initializeIncomingExternalPayment(dto);
-            transactionQueueService.queueTransaction(TransactionType.PROCESS_EXTERNAL_PAYMENT, dto);
+            transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, dto);
             return ResponseEntity.status(HttpStatus.OK).body(payment);
         } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException | ReceiverAccountNotFoundException | InsufficientFundsException e
         ) {

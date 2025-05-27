@@ -25,7 +25,7 @@ public class TransactionQueueService {
             String jsonPayload = objectMapper.writeValueAsString(dto);
             TransactionMessageDto message = new TransactionMessageDto(type, jsonPayload, userId, System.currentTimeMillis());
             rabbitTemplate.convertAndSend(
-                    type.equals(TransactionType.PROCESS_EXTERNAL_PAYMENT) ? DELAY_QUEUE_NAME : QUEUE_NAME, message
+                    type.equals(TransactionType.DELAY_EXTERNAL_PAYMENT) ? DELAY_QUEUE_NAME : QUEUE_NAME, message
             );
             return true;
         } catch (JsonProcessingException e) {
