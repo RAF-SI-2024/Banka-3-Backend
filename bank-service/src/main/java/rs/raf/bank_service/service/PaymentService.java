@@ -2,7 +2,6 @@ package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
 import feign.codec.DecodeException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -40,8 +39,6 @@ public class PaymentService {
     private final ExchangeRateService exchangeRateService;
     private final Bank2Client bank2Client;
     private final AccountService accountService;
-    private final CurrencyRepository currencyRepository;
-    private final TransactionProcessor transactionProcessor;
     private final TransactionQueueService transactionQueueService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
