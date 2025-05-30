@@ -430,7 +430,7 @@ public class PaymentService {
             payment.setReceiverClientId(receiver.getClientId());
         }
 
-        paymentRepository.save(payment);
+        payment = paymentRepository.save(payment);
 
         transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, payment.getId());
 

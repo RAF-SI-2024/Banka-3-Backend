@@ -27,7 +27,7 @@ public class Payment {
 
     private String senderName;
 
-    @Column(nullable = false)
+    @Column
     private Long clientId;
 
     @ManyToOne(fetch = FetchType.EAGER)
