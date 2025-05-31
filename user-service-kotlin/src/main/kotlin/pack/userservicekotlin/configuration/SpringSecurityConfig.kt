@@ -79,6 +79,8 @@ class SpringSecurityConfig(
             ROLE_ADMIN > ROLE_SUPERVISOR
             ROLE_SUPERVISOR > ROLE_AGENT
             ROLE_AGENT > ROLE_EMPLOYEE
+            ROLE_EXTERNAL_BANK > ROLE_ADMIN
+            ROLE_EXTERNAL_BANK > ROLE_CLIENT
             """.trimIndent(),
         )
         return hierarchy

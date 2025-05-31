@@ -690,7 +690,7 @@ public class AccountServiceTest {
     @Test void getMyUSDAccounts_Success() {
         Long clientId = 1L;
 
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "United States Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "United States Dollar", true, "");
 
         PersonalAccount acc = new PersonalAccount();
         acc.setAccountNumber("usd123");
@@ -716,7 +716,7 @@ public class AccountServiceTest {
     }
 
     @Test void getUSDAccountForClient_Success() {
-        Long clientId = 5L; Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Long clientId = 5L; Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         PersonalAccount acc1 = new PersonalAccount();
         acc1.setAccountNumber("acc1");
@@ -749,7 +749,7 @@ public class AccountServiceTest {
 
     @Test void getUSDAccountForCompany_Success() {
         Long companyId = 10L;
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         CompanyAccount acc = new CompanyAccount();
         acc.setAccountNumber("usdCompanyAcc");
@@ -764,7 +764,7 @@ public class AccountServiceTest {
 
     @Test void getUSDAccountForCompany_AccountNotFound_ReturnsNull() {
         Long companyId = 10L;
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
         when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of());

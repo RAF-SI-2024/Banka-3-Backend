@@ -17,6 +17,16 @@ public class JwtTokenUtil {
     private static final Key secret = Keys.hmacShaKeyFor("si-2024-banka-3-tajni-kljuc-za-jwt-generisanje-tokena-mora-biti-512-bitova-valjda-je-dovoljno".getBytes());
     private final long expiration = 86400000;
 
+    public String generateExternalBankToken() {
+        return Jwts.builder()
+                .setSubject("Bank 2")
+                .claim("role", "EXTERNAL_BANK")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(Instant.now().toEpochMilli() + 999999999999L))
+                .signWith(SignatureAlgorithm.HS512, secret)
+                .compact();
+    }
+
     public String generateToken(String email, Long id, String role) {
         return Jwts.builder()
                 .setSubject(email)
