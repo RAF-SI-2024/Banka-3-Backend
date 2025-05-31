@@ -468,7 +468,7 @@ public class BootstrapData implements CommandLineRunner {
         if (accountRepository.count() > 0) return;
         Account currentAccount1 = PersonalAccount.builder()
                 .name("My RSD account")
-                .accountNumber("333111111111111112")
+                .accountNumber("333000011171111112")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
                 .creationDate(LocalDate.now().minusMonths(1))
@@ -488,7 +488,7 @@ public class BootstrapData implements CommandLineRunner {
         // Kreiramo račune za klijente
         Account foreignAccount1 = PersonalAccount.builder()
                 .name("My USD account")
-                .accountNumber("333111111111111111")
+                .accountNumber("333000011161111111")
                 .clientId(2L)
                 .createdByEmployeeId(3L)
                 .creationDate(LocalDate.now().minusMonths(1))
@@ -508,7 +508,7 @@ public class BootstrapData implements CommandLineRunner {
 
         Account currentAccount2 = PersonalAccount.builder()
                 .name("My RSD account")
-                .accountNumber("333211111111111111")
+                .accountNumber("333000011511111113")
                 .clientId(1L)
                 .createdByEmployeeId(3L)
                 .creationDate(LocalDate.now().minusMonths(1))
@@ -620,7 +620,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountRSD = CompanyAccount.builder()
                 .name("Bank account for RSD")
-                .accountNumber("333000156732897612")
+                .accountNumber("333000056732897612")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -640,7 +640,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountEUR = CompanyAccount.builder()
                 .name("Bank account for EUR")
-                .accountNumber("333000177732897122")
+                .accountNumber("333000077732897122")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -660,7 +660,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountCHF = CompanyAccount.builder()
                 .name("Bank account for CHF")
-                .accountNumber("333000137755897822")
+                .accountNumber("333000037755897822")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -680,7 +680,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountUSD = CompanyAccount.builder()
                 .name("Bank account for USD")
-                .accountNumber("333000157555885522")
+                .accountNumber("333000057555885522")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -700,7 +700,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountJPY = CompanyAccount.builder()
                 .name("Bank account for JPY")
-                .accountNumber("333000117755885122")
+                .accountNumber("333000017755885122")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -720,7 +720,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountGBP = CompanyAccount.builder()
                 .name("Bank account for GBP")
-                .accountNumber("333000166675885622")
+                .accountNumber("333000066675885622")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -740,7 +740,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountCAD = CompanyAccount.builder()
                 .name("Bank account for CAD")
-                .accountNumber("333000188875885822")
+                .accountNumber("333000088875885822")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -760,7 +760,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountAUD = CompanyAccount.builder()
                 .name("Bank account for AUD")
-                .accountNumber("333000199975899922")
+                .accountNumber("333000099975899922")
                 .clientId(null)
                 .companyId(1L)
                 .createdByEmployeeId(3L)
@@ -780,7 +780,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount bankAccountState = CompanyAccount.builder()
                 .name("State bank account")
-                .accountNumber("333000100000897612")
+                .accountNumber("333000000000897612")
                 .clientId(null)
                 .companyId(2L)
                 .createdByEmployeeId(3L)
@@ -800,7 +800,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount stockMarketAccount = CompanyAccount.builder()
                 .name("Stock market bank account")
-                .accountNumber("333000156732897699")
+                .accountNumber("333000056732897699")
                 .clientId(null)
                 .companyId(4L)
                 .createdByEmployeeId(3L)
@@ -820,7 +820,7 @@ public class BootstrapData implements CommandLineRunner {
 
         CompanyAccount foreignAccount = CompanyAccount.builder()
                 .name("My company's EUR account")
-                .accountNumber("333222222222222222")
+                .accountNumber("333000022222222222")
                 .clientId(1L)
                 .companyId(3L)
                 .createdByEmployeeId(3L)

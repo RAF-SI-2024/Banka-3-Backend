@@ -291,10 +291,10 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         createPaymentDto.setPurposeOfPayment("Isplata caciju za blejanje u Pionirskom parku");
         createPaymentDto.setReferenceNumber("");
         createPaymentDto.setSenderAccountNumber(dto.getAccountNumber());
-        createPaymentDto.setReceiverAccountNumber("333111111111111112");
+        createPaymentDto.setReceiverAccountNumber("333000011171111112");
 
         senderInitialBalance = accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance();
-        recieverInitialBalance = accountRepository.findByAccountNumber("333111111111111112").get().getBalance();
+        recieverInitialBalance = accountRepository.findByAccountNumber("333000011171111112").get().getBalance();
 
         authenticateWithJwtClient("Bearer " + clientToken, jwtTokenUtil);
         paymentController.newPayment(createPaymentDto, "Bearer " + clientToken);
@@ -303,7 +303,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
     @Then("the money has not been sent yet")
     public void theMoneyHasNotBeenSentYet() {
         if (!senderInitialBalance.equals(accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance()) ||
-                !recieverInitialBalance.equals(accountRepository.findByAccountNumber("333111111111111112").get().getBalance())) {
+                !recieverInitialBalance.equals(accountRepository.findByAccountNumber("333000011171111112").get().getBalance())) {
             fail("Balance has been transfered before the payment was confirmed.");
         }
     }
@@ -338,7 +338,7 @@ public class BankServiceTestsSteps extends BankServiceTestsConfig {
         }
 
         BigDecimal newSenderBalance = accountRepository.findByAccountNumber(dto.getAccountNumber()).get().getBalance();
-        BigDecimal newReceiverBalance = accountRepository.findByAccountNumber("333111111111111112").get().getBalance();
+        BigDecimal newReceiverBalance = accountRepository.findByAccountNumber("333000011171111112").get().getBalance();
 
         System.out.println(senderInitialBalance);
         System.out.println(recieverInitialBalance);
