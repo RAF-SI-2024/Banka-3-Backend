@@ -109,10 +109,10 @@ public class PaymentController {
             @Valid @RequestBody CreatePaymentDto dto) {
         try {
             PaymentDto payment = paymentService.initializeIncomingExternalPayment(dto);
-            transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, dto);
             return ResponseEntity.status(HttpStatus.OK).body(payment);
         } catch (PaymentCodeNotProvidedException | PurposeOfPaymentNotProvidedException | ReceiverAccountNotFoundException | InsufficientFundsException e
         ) {
+            log.error("Error initializing external payment", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorMessageDto(e.getMessage()));
         }
     }

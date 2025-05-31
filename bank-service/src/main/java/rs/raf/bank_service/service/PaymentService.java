@@ -457,9 +457,12 @@ public class PaymentService {
                 receiver.getAvailableBalance().add(payment.getAmount())
         );
 
-        payment.setStatus(PaymentStatus.COMPLETED); // or wait until we get notification ?
 
         bank2Client.notifySuccess(payment.getExternalTransactionId());
+
+        payment.setStatus(PaymentStatus.COMPLETED);
+
+        paymentRepository.save(payment);
     }
 
     public void processOutgoingExternalPayment(Payment payment) {
@@ -484,6 +487,9 @@ public class PaymentService {
         createDto.setExternalTransactionId(payment.getId());
 
         bank2Client.sendExternalPayment(createDto); // update external id here from response
+
+        payment.setStatus(PaymentStatus.PENDING);
+        paymentRepository.save(payment);
     }
 
     public void handleExternalPaymentStatusUpdate(Long id, NotifyPaymentStatusDto dto) {
