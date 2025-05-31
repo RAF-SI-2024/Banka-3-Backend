@@ -199,6 +199,7 @@ public class PaymentService {
             processPaymentWithCurrencyHandling(payment, sender, receiver);
             payment.setStatus(PaymentStatus.COMPLETED);
         } else { // external
+            payment.setStatus(PaymentStatus.PENDING);
             transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, paymentId);
         }
 
@@ -239,7 +240,7 @@ public class PaymentService {
         if (account.isPresent()) {
             return account.get();
         }
-        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber.substring(3, 12));
+        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
         if (accountList.getItems().isEmpty()) {
             throw new ReceiverAccountNotFoundException(accountNumber);
         }
