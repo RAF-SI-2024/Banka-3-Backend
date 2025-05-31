@@ -240,12 +240,12 @@ public class PaymentService {
         if (account.isPresent()) {
             return account.get();
         }
-        Bank2AccountListDto accountList = bank2Client.getAccountDetailsByNumber(accountNumber);
-        if (accountList.getItems().isEmpty()) {
+        Bank2AccountDetailsDto externalAccount = bank2Client.getAccountDetailsByNumber(accountNumber);
+        if (externalAccount == null) {
             throw new ReceiverAccountNotFoundException(accountNumber);
         }
 
-        return accountService.saveBank2Account(accountList.getItems().get(0));
+        return accountService.saveBank2Account(externalAccount);
     }
 
     private void validateSufficientFunds(Account sender, BigDecimal amount) {
