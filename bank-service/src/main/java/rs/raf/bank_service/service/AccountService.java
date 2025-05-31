@@ -186,7 +186,7 @@ public class AccountService {
             case "UNEMPLOYED" -> accountOwnerTypeNumber = "17";
         }
 
-        String accountNumber = "3330001" + random + accountOwnerTypeNumber;
+        String accountNumber = "3330000" + random + accountOwnerTypeNumber;
         newAccount.setAccountNumber(accountNumber);
 
         return AccountMapper.toDto(accountRepository.save(newAccount), clientDto);
