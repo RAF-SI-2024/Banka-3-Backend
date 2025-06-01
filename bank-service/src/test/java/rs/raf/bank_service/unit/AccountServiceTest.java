@@ -569,7 +569,7 @@ public class AccountServiceTest {
         assertEquals(AccountOwnerType.PERSONAL, saved.getAccountOwnerType());
         assertEquals(currency, saved.getCurrency());
         assertEquals(BigDecimal.valueOf(1000), saved.getBalance());
-        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+        assertTrue(saved.getAccountNumber().startsWith("3330000"));
         assertTrue(saved.getAccountNumber().endsWith("11"));
     }
 
