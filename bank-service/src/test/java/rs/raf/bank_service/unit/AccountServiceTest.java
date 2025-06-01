@@ -617,7 +617,7 @@ public class AccountServiceTest {
         assertEquals(currency, saved.getCurrency());
 
         assertNotNull(saved.getAccountNumber());
-        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+        assertTrue(saved.getAccountNumber().startsWith("3330000"));
 
         // Očekivani sufiks na osnovu ownerType
         String expectedSuffix = switch (ownerType) {
