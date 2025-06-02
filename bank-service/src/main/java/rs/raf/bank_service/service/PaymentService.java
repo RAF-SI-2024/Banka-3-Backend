@@ -2,7 +2,6 @@ package rs.raf.bank_service.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
 import feign.codec.DecodeException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rs.raf.bank_service.client.Bank2Client;
 import rs.raf.bank_service.client.UserClient;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.*;
@@ -25,6 +25,7 @@ import rs.raf.bank_service.utils.JwtTokenUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -36,7 +37,9 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final ObjectMapper objectMapper;
     private final ExchangeRateService exchangeRateService;
-    private final CurrencyRepository currencyRepository;
+    private final Bank2Client bank2Client;
+    private final AccountService accountService;
+    private final TransactionQueueService transactionQueueService;
     private PaymentRepository paymentRepository;
     private CardRepository cardRepository;
 
@@ -156,7 +159,10 @@ public class PaymentService {
                 clientId
         );
 
-        payment.setReceiverClientId(receiver.getClientId());
+        if (receiver.getExternalId() == null) { // set only for internal payments
+            payment.setReceiverClientId(receiver.getClientId());
+        }
+
         paymentRepository.save(payment);
 
         return payment;
@@ -189,9 +195,15 @@ public class PaymentService {
         Account sender = payment.getSenderAccount();
         Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
 
-        processPaymentWithCurrencyHandling(payment, sender, receiver);
+        if (receiver.getExternalId() == null) {
+            processPaymentWithCurrencyHandling(payment, sender, receiver);
+            payment.setStatus(PaymentStatus.COMPLETED);
+        } else { // external
+            payment.setStatus(PaymentStatus.PENDING);
+            transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, paymentId);
+        }
 
-        payment.setStatus(PaymentStatus.COMPLETED);
+
 
         return paymentMapper.toDetailsDto(paymentRepository.save(payment));
     }
@@ -202,16 +214,38 @@ public class PaymentService {
     }
 
     private Account getSenderAccount(String accountNumber, Long clientId) {
+        if (!isExternalAccount(accountNumber)) {
+            return accountRepository.findByAccountNumber(accountNumber)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
+        } else {
+            return getExternalAccount(accountNumber);
+        }
 
-        return accountRepository.findByAccountNumber(accountNumber)
-                .stream().findFirst()
-                .orElseThrow(() -> new SenderAccountNotFoundException(accountNumber));
     }
 
     private Account getReceiverAccount(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
-                .stream().findFirst()
-                .orElseThrow(() -> new ReceiverAccountNotFoundException(accountNumber));
+        if (!isExternalAccount(accountNumber)) {
+            return accountRepository.findByAccountNumber(accountNumber)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new ReceiverAccountNotFoundException(accountNumber));
+        } else {
+            return getExternalAccount(accountNumber);
+        }
+    }
+
+    private Account getExternalAccount(String accountNumber) {
+        Optional<Account> account = accountRepository.findByAccountNumber(accountNumber)
+                .stream().findFirst();
+        if (account.isPresent()) {
+            return account.get();
+        }
+        Bank2AccountDetailsDto externalAccount = bank2Client.getAccountDetailsByNumber(accountNumber);
+        if (externalAccount == null) {
+            throw new ReceiverAccountNotFoundException(accountNumber);
+        }
+
+        return accountService.saveBank2Account(externalAccount);
     }
 
     private void validateSufficientFunds(Account sender, BigDecimal amount) {
@@ -371,5 +405,114 @@ public class PaymentService {
     private CompanyAccount getBankCompanyAccount(Currency currency) {
         return accountRepository.findFirstByCurrencyAndCompanyId(currency, 1L)
                 .orElseThrow(() -> new BankAccountNotFoundException("No bank account found for currency: " + currency.getCode()));
+    }
+
+    private boolean isExternalAccount(String accountNumber) {
+        return accountNumber != null && accountNumber.startsWith("222");
+    }
+
+    public PaymentDto initializeIncomingExternalPayment(CreatePaymentDto createPaymentDto) {
+        Account sender = getSenderAccount(createPaymentDto.getSenderAccountNumber(), null);
+        Account receiver = getReceiverAccount(createPaymentDto.getReceiverAccountNumber());
+
+        Payment payment = createPaymentEntity(
+                sender,
+                createPaymentDto,
+                "External",
+                createPaymentDto.getAmount(),
+                BigDecimal.ZERO,
+                null
+        );
+
+        payment.setExternalTransactionId(createPaymentDto.getExternalTransactionId());
+        payment.setStatus(PaymentStatus.PENDING);
+
+        if (receiver.getExternalId() == null) { // set only for internal payments
+            payment.setReceiverClientId(receiver.getClientId());
+        }
+
+        payment = paymentRepository.save(payment);
+
+        transactionQueueService.queueTransaction(TransactionType.DELAY_EXTERNAL_PAYMENT, payment.getId());
+
+        return paymentMapper.toPaymentDto(payment, "External");
+    }
+
+    public void processExternalPayment(Long paymentId) {
+        Payment payment = getPaymentById(paymentId);
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        if (receiver.getExternalId() == null) {
+            processIncomingExternalPayment(payment);
+        } else {
+            processOutgoingExternalPayment(payment);
+        }
+    }
+
+    public void processIncomingExternalPayment(Payment payment) {
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        updateAccountBalance(
+                receiver,
+                receiver.getBalance().add(payment.getAmount()),
+                receiver.getAvailableBalance().add(payment.getAmount())
+        );
+
+
+        bank2Client.notifySuccess(payment.getExternalTransactionId());
+
+        payment.setStatus(PaymentStatus.COMPLETED);
+
+        paymentRepository.save(payment);
+    }
+
+    public void processOutgoingExternalPayment(Payment payment) {
+        Account receiver = getReceiverAccount(payment.getAccountNumberReceiver());
+
+        ExternalPaymentCreateDto createDto = new ExternalPaymentCreateDto();
+
+        createDto.setFromCurrencyId(receiver.getCurrency().getExternalId());
+        createDto.setToCurrencyId(receiver.getCurrency().getExternalId());
+        createDto.setFromAccountNumber(payment.getSenderAccount().getAccountNumber());
+        createDto.setToAccountNumber(payment.getAccountNumberReceiver());
+        createDto.setAmount(payment.getOutAmount());
+        createDto.setPurpose(payment.getPurposeOfPayment());
+        createDto.setReferenceNumber(payment.getReferenceNumber());
+
+        Bank2TransactionCodeListDto result = bank2Client.getTransactionCodeDetails();
+        if (result.getItems().isEmpty()) {
+            throw new PaymentCodeNotProvidedException(); // valjda se nece desiti
+        }
+
+        createDto.setCodeId(result.getItems().get(0).getId());
+        createDto.setExternalTransactionId(payment.getId());
+
+        bank2Client.sendExternalPayment(createDto); // update external id here from response
+
+        payment.setStatus(PaymentStatus.PENDING);
+        paymentRepository.save(payment);
+    }
+
+    public void handleExternalPaymentStatusUpdate(Long id, NotifyPaymentStatusDto dto) {
+        Payment payment = getPaymentById(id);
+        if (dto.getSuccess()) {
+            updateAccountBalance(
+                    payment.getSenderAccount(),
+                    payment.getSenderAccount().getBalance().subtract(payment.getAmount()),
+                    payment.getSenderAccount().getAvailableBalance()
+            );
+
+            payment.setStatus(PaymentStatus.COMPLETED);
+        } else {
+            updateAccountBalance(
+                    payment.getSenderAccount(),
+                    payment.getSenderAccount().getBalance(),
+                    payment.getSenderAccount().getAvailableBalance().add(payment.getAmount())
+            );
+
+            payment.setStatus(PaymentStatus.ROLLBACK);
+        }
+
+        paymentRepository.save(payment);
     }
 }

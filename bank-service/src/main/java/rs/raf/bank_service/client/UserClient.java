@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.raf.bank_service.configuration.InternalClientConfig;
 import rs.raf.bank_service.domain.dto.*;
 import rs.raf.bank_service.domain.entity.ChangeLimitRequest;
 
@@ -12,7 +13,7 @@ import java.util.List;
 
 
 /// Klasa koja sluzi za slanje HTTP poziva na userService
-@FeignClient(name = "user-service", url = "${spring.cloud.openfeign.client.config.user-service.url}", fallbackFactory = UserClientFallbackFactory.class, decode404 = true)
+@FeignClient(name = "user-service", url = "${spring.cloud.openfeign.client.config.user-service.url}", fallbackFactory = UserClientFallbackFactory.class, decode404 = true, configuration = InternalClientConfig.class)
 public interface UserClient {
 
     @GetMapping("/api/admin/clients/{id}")

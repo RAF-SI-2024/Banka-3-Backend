@@ -22,6 +22,7 @@ public class Currency {
     private String countries;
     private String description;
     private boolean active;
+    private String externalId;
 
     public Currency(String code) {
         this.code = code;

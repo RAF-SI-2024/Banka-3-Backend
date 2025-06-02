@@ -57,7 +57,7 @@ public class LoanServiceTest {
 
     @BeforeEach
     void init() {
-        currency = new Currency("RSD", "Dinar", "RSD", "RS", "Dinar", true);
+        currency = new Currency("RSD", "Dinar", "RSD", "RS", "Dinar", true, "");
         account = new PersonalAccount();
         account.setAccountNumber("12345");
         account.setClientId(1L);

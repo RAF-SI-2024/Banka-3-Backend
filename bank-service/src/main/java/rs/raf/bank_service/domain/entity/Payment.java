@@ -27,7 +27,7 @@ public class Payment {
 
     private String senderName;
 
-    @Column(nullable = false)
+    @Column
     private Long clientId;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -67,6 +67,9 @@ public class Payment {
 
     @Column
     private BigDecimal exchangeProfit;
+
+    @Column
+    private String externalTransactionId;
 
 
     @Override

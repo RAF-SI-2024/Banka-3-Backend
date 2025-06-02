@@ -569,7 +569,7 @@ public class AccountServiceTest {
         assertEquals(AccountOwnerType.PERSONAL, saved.getAccountOwnerType());
         assertEquals(currency, saved.getCurrency());
         assertEquals(BigDecimal.valueOf(1000), saved.getBalance());
-        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+        assertTrue(saved.getAccountNumber().startsWith("3330000"));
         assertTrue(saved.getAccountNumber().endsWith("11"));
     }
 
@@ -617,7 +617,7 @@ public class AccountServiceTest {
         assertEquals(currency, saved.getCurrency());
 
         assertNotNull(saved.getAccountNumber());
-        assertTrue(saved.getAccountNumber().startsWith("3330001"));
+        assertTrue(saved.getAccountNumber().startsWith("3330000"));
 
         // Očekivani sufiks na osnovu ownerType
         String expectedSuffix = switch (ownerType) {
@@ -690,7 +690,7 @@ public class AccountServiceTest {
     @Test void getMyUSDAccounts_Success() {
         Long clientId = 1L;
 
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "United States Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "United States Dollar", true, "");
 
         PersonalAccount acc = new PersonalAccount();
         acc.setAccountNumber("usd123");
@@ -716,7 +716,7 @@ public class AccountServiceTest {
     }
 
     @Test void getUSDAccountForClient_Success() {
-        Long clientId = 5L; Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Long clientId = 5L; Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         PersonalAccount acc1 = new PersonalAccount();
         acc1.setAccountNumber("acc1");
@@ -749,7 +749,7 @@ public class AccountServiceTest {
 
     @Test void getUSDAccountForCompany_Success() {
         Long companyId = 10L;
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         CompanyAccount acc = new CompanyAccount();
         acc.setAccountNumber("usdCompanyAcc");
@@ -764,7 +764,7 @@ public class AccountServiceTest {
 
     @Test void getUSDAccountForCompany_AccountNotFound_ReturnsNull() {
         Long companyId = 10L;
-        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true);
+        Currency usd = new Currency("USD", "Dollar", "USD", "US", "Dollar", true, "");
 
         when(currencyRepository.findByCode("USD")).thenReturn(Optional.of(usd));
         when(companyAccountRepository.findByCompanyIdAndCurrency_Code(companyId, "USD")).thenReturn(List.of());

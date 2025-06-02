@@ -51,8 +51,8 @@ public class ExchangeRateServiceTest {
 
     @BeforeEach
     public void setUp() {
-        dummyCurrency1 = new Currency("EUR", "Euro", "€", "EU", "Euro currency", true);
-        dummyCurrency2 = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar currency", true);
+        dummyCurrency1 = new Currency("EUR", "Euro", "€", "EU", "Euro currency", true, "");
+        dummyCurrency2 = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar currency", true, "");
         dummyExchangeRate = new ExchangeRate(1L, LocalDateTime.now(), dummyCurrency1, dummyCurrency2, BigDecimal.valueOf(117), BigDecimal.valueOf(118));
 
         dummyExchangeRateDto = ExchangeRateMapper.toDto(dummyExchangeRate);
@@ -89,7 +89,7 @@ public class ExchangeRateServiceTest {
 
     @Test
     public void testUpdateExchangeRates_SkipSameCurrency() {
-        Currency same = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar", true);
+        Currency same = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar", true, "");
         Map<String, BigDecimal> rates = Map.of("RSD", BigDecimal.valueOf(1));
         UpdateExchangeRateDto dto = new UpdateExchangeRateDto("success", "RSD", rates);
 
@@ -123,7 +123,7 @@ public class ExchangeRateServiceTest {
 
     @Test
     public void testConvert_IndirectViaRsd() {
-        Currency usd = new Currency("USD", "Dollar", "$", "USA", "Dollar currency", true);
+        Currency usd = new Currency("USD", "Dollar", "$", "USA", "Dollar currency", true, "");
         ExchangeRate eurToRsd = new ExchangeRate(null, null, dummyCurrency1, dummyCurrency2, BigDecimal.valueOf(117), BigDecimal.valueOf(118));
         ExchangeRate rsdToUsd = new ExchangeRate(null, null, dummyCurrency2, usd, BigDecimal.valueOf(100), BigDecimal.valueOf(102));
 
@@ -156,7 +156,7 @@ public class ExchangeRateServiceTest {
                 .thenReturn(Optional.empty());
 
 
-        Currency rsd = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar currency", true);
+        Currency rsd = new Currency("RSD", "Dinar", "RSD", "Serbia", "Dinar currency", true, "");
         when(currencyRepository.findByCode("RSD")).thenReturn(Optional.of(rsd));
         when(exchangeRateRepository.findByFromCurrencyAndToCurrency(dummyCurrency1, rsd)).thenReturn(Optional.empty());
         when(exchangeRateRepository.findByFromCurrencyAndToCurrency(rsd, dummyCurrency2)).thenReturn(Optional.empty());

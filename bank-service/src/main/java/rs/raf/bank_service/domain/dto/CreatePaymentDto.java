@@ -36,4 +36,6 @@ public class CreatePaymentDto {
     private String referenceNumber;
 
     private Long callbackId;
+
+    private String externalTransactionId;
 }

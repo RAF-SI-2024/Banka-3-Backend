@@ -128,6 +128,19 @@ public class AccountService {
         return AccountMapper.toDto(account.get(0), null);
     }
 
+    public Account saveBank2Account(Bank2AccountDetailsDto bank2AccountDetailsDto) {
+        Currency currency = currencyRepository.findByCode(bank2AccountDetailsDto.getCurrency().getCode()).orElseThrow();
+
+        currency.setExternalId(bank2AccountDetailsDto.getCurrency().getId());
+
+        Account account = new PersonalAccount();
+        account.setAccountNumber(bank2AccountDetailsDto.getAccountNumber());
+        account.setCurrency(currency);
+        account.setExternalId(bank2AccountDetailsDto.getId());
+
+        return accountRepository.save(account);
+    }
+
 
     public AccountDto createNewBankAccount(NewBankAccountDto newBankAccountDto, String authorizationHeader) {
         Long employeeId = jwtTokenUtil.getUserIdFromAuthHeader(authorizationHeader);
@@ -173,7 +186,7 @@ public class AccountService {
             case "UNEMPLOYED" -> accountOwnerTypeNumber = "17";
         }
 
-        String accountNumber = "3330001" + random + accountOwnerTypeNumber;
+        String accountNumber = "3330000" + random + accountOwnerTypeNumber;
         newAccount.setAccountNumber(accountNumber);
 
         return AccountMapper.toDto(accountRepository.save(newAccount), clientDto);
@@ -425,4 +438,5 @@ public class AccountService {
                 .map(account -> AccountMapper.toDto(account, null))
                 .toList();
     }
+
 }
