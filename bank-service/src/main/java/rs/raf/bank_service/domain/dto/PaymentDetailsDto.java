@@ -23,4 +23,23 @@ public class PaymentDetailsDto {
     private String cardNumber;
     private String senderCurrencyCode;
     private String receiverCurrencyCode;
+
+    @Override
+    public String toString() {
+        return "PaymentDetailsDto{" +
+                "id=" + id +
+                ", senderName='" + senderName + '\'' +
+                ", amount=" + amount +
+                ", receivedAmount=" + receivedAmount +
+                ", accountNumberReceiver='" + accountNumberReceiver + '\'' +
+                ", paymentCode='" + paymentCode + '\'' +
+                ", purposeOfPayment='" + purposeOfPayment + '\'' +
+                ", referenceNumber='" + referenceNumber + '\'' +
+                ", date=" + date +
+                ", status=" + status +
+                ", cardNumber='" + cardNumber + '\'' +
+                ", senderCurrencyCode='" + senderCurrencyCode + '\'' +
+                ", receiverCurrencyCode='" + receiverCurrencyCode + '\'' +
+                '}';
+    }
 }
