@@ -31,10 +31,10 @@ public class ExchangeRate {
     @JoinColumn(name = "to_currency_code")
     private Currency toCurrency;
 
-    @Column(precision = 10, scale = 6)
+    @Column(precision = 20, scale = 6)
     private BigDecimal exchangeRate;
 
-    @Column(precision = 10, scale = 6)
+    @Column(precision = 20, scale = 6)
     private BigDecimal sellRate;
 
 
