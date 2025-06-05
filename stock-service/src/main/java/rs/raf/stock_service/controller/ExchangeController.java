@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import rs.raf.stock_service.domain.dto.ErrorMessageDto;
 import rs.raf.stock_service.domain.entity.Exchange;
 import rs.raf.stock_service.exceptions.ExchangesNotLoadedException;
 import rs.raf.stock_service.service.ExchangeService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/exchange")
@@ -53,9 +55,9 @@ public class ExchangeController {
     public ResponseEntity<?> toggleTestMode() {
         try {
             exchangeService.toggleTestMode();
-            return ResponseEntity.ok("Successfully toggled test mode.");
+            return ResponseEntity.ok(Map.of());
         } catch (ExchangesNotLoadedException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
         }
     }
 }
