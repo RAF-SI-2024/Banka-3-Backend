@@ -60,7 +60,7 @@ public class TransactionProcessor {
                         createPaymentDto = objectMapper.readValue(message.getPayloadJson(), CreatePaymentDto.class);
                         PaymentDetailsDto paymentDetailsDto = paymentService.createAndExecuteSystemPayment(createPaymentDto, message.getUserId());
                         if (createPaymentDto.getCallbackId() != null) {
-                            System.out.println(paymentDetailsDto);
+                            log.info("Processed payment callback: {}", paymentDetailsDto);
                             paymentCallbackService.notifySuccess(createPaymentDto.getCallbackId());
                         }
                     } catch (Exception e) {

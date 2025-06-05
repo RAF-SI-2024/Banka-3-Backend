@@ -88,6 +88,8 @@ public class OrderMapper {
     }
 
     private static boolean afterHours(Exchange exchange) {
+        if (exchange.isTestMode()) return false;
+
         // Pretpostavka: exchange.getTimeZone() vraća npr. "America/New_York" ili "Europe/Belgrade"
         ZoneId zoneId = ZoneId.of(String.valueOf(exchange.getTimeZone()));
         ZonedDateTime now = ZonedDateTime.now(zoneId);
@@ -110,8 +112,6 @@ public class OrderMapper {
 
         // After hours traje 4 sata nakon zatvaranja
         ZonedDateTime afterHoursEnd = closeDateTime.plusHours(4);
-
-        System.out.println(!now.isBefore(closeDateTime) && now.isBefore(afterHoursEnd));
 
         // Provera da li je sadašnje vreme između zatvaranja i kraja after hours
         return !now.isBefore(closeDateTime) && now.isBefore(afterHoursEnd);
