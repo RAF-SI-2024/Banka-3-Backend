@@ -160,7 +160,7 @@ public class PortfolioService {
                 .findByUserIdAndListing(order.getUserId(), order.getListing())
                 .orElse(null);
 
-        int totalQuantity = transaction.getQuantity() * order.getContractSize();
+        int totalQuantity = transaction.getQuantity();
         BigDecimal price = order.getPricePerUnit();
 
         if (order.getDirection() == OrderDirection.BUY) {
@@ -195,7 +195,7 @@ public class PortfolioService {
                 portfolioEntryRepository.delete(entry);
             } else {
                 entry.setAmount(remaining);
-                entry.setReservedAmount(entry.getReservedAmount() - order.getContractSize() * order.getQuantity());
+                entry.setReservedAmount(entry.getReservedAmount() * transaction.getQuantity());
                 entry.setLastModified(LocalDateTime.now());
                 portfolioEntryRepository.save(entry);
             }
