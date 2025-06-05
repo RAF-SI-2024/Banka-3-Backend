@@ -3,9 +3,18 @@ package rs.raf.email_service.utils;
 import org.springframework.beans.factory.annotation.Value;
 import rs.raf.email_service.data.EmailType;
 
+import javax.annotation.PostConstruct;
+
 public class EmailUtils {
     @Value("${base.app.url}")
+    private String baseUrlFromConfig;
+
     private static String baseUrl;
+
+    @PostConstruct
+    public void init() {
+        baseUrl = baseUrlFromConfig;
+    }
 
     public static String getEmailPlainContent(EmailType type, String token) {
         return switch (type) {
