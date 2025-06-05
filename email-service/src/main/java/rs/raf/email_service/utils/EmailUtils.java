@@ -1,10 +1,12 @@
 package rs.raf.email_service.utils;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import rs.raf.email_service.data.EmailType;
 
 import javax.annotation.PostConstruct;
 
+@Component
 public class EmailUtils {
     @Value("${base.app.url}")
     private String baseUrlFromConfig;
@@ -14,6 +16,7 @@ public class EmailUtils {
     @PostConstruct
     public void init() {
         baseUrl = baseUrlFromConfig;
+        System.out.println(baseUrl);
     }
 
     public static String getEmailPlainContent(EmailType type, String token) {
