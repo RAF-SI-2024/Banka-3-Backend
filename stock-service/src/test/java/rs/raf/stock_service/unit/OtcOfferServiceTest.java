@@ -3,10 +3,8 @@ package rs.raf.stock_service.unit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import rs.raf.stock_service.client.BankClient;
@@ -298,7 +296,7 @@ public class OtcOfferServiceTest {
                             .build();
                 });
 
-        List<OtcOfferDto> result = otcService.getAllActiveOffersForUser(userId);
+        List<OtcOfferDto> result = otcService.getAllActiveOffersForClient(userId);
 
         assertEquals(3, result.size());
         assertEquals(3L, result.get(0).getId()); // najskorije

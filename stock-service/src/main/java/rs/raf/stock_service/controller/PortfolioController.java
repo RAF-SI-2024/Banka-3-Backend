@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.service.PortfolioService;
 import rs.raf.stock_service.utils.JwtTokenUtil;
 
@@ -81,18 +80,22 @@ public class PortfolioController {
             @ApiResponse(responseCode = "403", description = "Access denied – only CLIENT, AGENT, SUPERVISOR and ADMIN roles allowed."),
             @ApiResponse(responseCode = "500", description = "Unexpected server error.")
     })
-    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT', 'SUPERVISOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT')")
     @GetMapping("/public-stocks")
     public ResponseEntity<?> getAllPublicStocks(@RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
             String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
 
-            List<PublicStockDto> result = portfolioService.getAllPublicStocks(userId, role);
-            return ResponseEntity.ok(result);
-
+            if (role.equals("CLIENT")) {
+                return ResponseEntity.ok(portfolioService.getALlClientPublicStocks(userId));
+            } else if (role.equals("EXTERNAL_BANK")) {
+                return ResponseEntity.ok(portfolioService.getAllActuaryPublicStocks());
+            } else {
+                return ResponseEntity.ok(portfolioService.getExternalPublicStocks());
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto(e.getMessage()));
         }
     }
 

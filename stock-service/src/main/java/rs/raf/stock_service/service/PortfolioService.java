@@ -9,11 +9,9 @@ import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
         import rs.raf.stock_service.domain.entity.*;
         import rs.raf.stock_service.domain.enums.ListingType;
-import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.domain.enums.OrderDirection;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
-import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.domain.entity.Order;
 import rs.raf.stock_service.domain.entity.PortfolioEntry;
@@ -25,9 +23,7 @@ import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
@@ -89,14 +85,44 @@ public class PortfolioService {
         portfolioEntryRepository.save(entry);
     }
 
-    public List<PublicStockDto> getAllPublicStocks(Long userId, String role) {
-        if (!role.equals("CLIENT")) {
-            return Collections.emptyList();
-        }
+    public List<PublicStockDto> getExternalPublicStocks() {
+        // @todo call bank 2
+        return null;
+    }
 
+    public List<PublicStockDto> getAllActuaryPublicStocks() {
         List<PortfolioEntry> publicEntries = portfolioEntryRepository
                 .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
 
+        return publicEntries.stream().map(entry -> {
+            Listing listing = entry.getListing();
+
+            String ownerName;
+            try {
+                ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
+                ownerName = actuary.getFirstName() + " " + actuary.getLastName();
+            } catch (Exception e) {
+                return null; // skip client otc
+            }
+
+            BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;
+
+            return PublicStockDto.builder()
+                    .portfolioEntryId(entry.getId())
+                    .security(ListingType.STOCK.name())
+                    .ticker(listing.getTicker())
+                    .amount(entry.getPublicAmount())
+                    .price(currentPrice)
+                    .lastModified(entry.getLastModified())
+                    .owner(ownerName)
+                    .build();
+
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    public List<PublicStockDto> getALlClientPublicStocks(Long userId) {
+        List<PortfolioEntry> publicEntries = portfolioEntryRepository
+                .findAllByTypeAndPublicAmountGreaterThan(ListingType.STOCK, 0);
 
         return publicEntries.stream().filter(entry -> !Objects.equals(entry.getUserId(), userId)).map(entry -> {
             Listing listing = entry.getListing();
@@ -106,9 +132,7 @@ public class PortfolioService {
                 ClientDto client = userClient.getClientById(entry.getUserId());
                 ownerName = client.getFirstName() + " " + client.getLastName();
             } catch (Exception e) {
-                ActuaryDto actuary = userClient.getEmployeeById(entry.getUserId());
-                ownerName = actuary.getFirstName() + " " + actuary.getLastName();
-                return null; // skip actuary otc for now
+                return null; // skip actuary otc
             }
 
             BigDecimal currentPrice = listing.getPrice() != null ? listing.getPrice() : BigDecimal.ZERO;

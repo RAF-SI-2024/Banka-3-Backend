@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.raf.stock_service.domain.dto.*;
-import rs.raf.stock_service.exceptions.AccountNotFoundException;
 import rs.raf.stock_service.exceptions.OtcAccountNotFoundForBuyerException;
 import rs.raf.stock_service.exceptions.OtcAccountNotFoundForSellerException;
 import rs.raf.stock_service.exceptions.OtcException;
@@ -45,14 +44,18 @@ public class OtcController {
                                             @Valid @RequestBody CreateOtcOfferDto dto) {
         try {
             Long buyerId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            OtcOfferDto created = otcService.createOffer(dto, buyerId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+            if (role.equals("CLIENT")) {
+                return ResponseEntity.status(HttpStatus.CREATED).body(otcService.createOffer(dto, buyerId));
+            } else {
+                return ResponseEntity.status(HttpStatus.CREATED).body(otcService.createOfferToExternal(dto, buyerId));
+            }
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorMessageDto(e.getMessage()));
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorMessageDto(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessageDto("Server error: " + e.getMessage()));
         }
     }
 
@@ -68,8 +71,13 @@ public class OtcController {
     public ResponseEntity<?> getReceivedOffers(@RequestHeader("Authorization") String authHeader) {
         try {
             Long userId = jwtTokenUtil.getUserIdFromAuthHeader(authHeader);
-            List<OtcOfferDto> offers = otcService.getAllActiveOffersForUser(userId);
-            return ResponseEntity.ok(offers);
+            String role = jwtTokenUtil.getUserRoleFromAuthHeader(authHeader);
+            if (role.equals("CLIENT")) {
+                return ResponseEntity.ok(otcService.getAllActiveOffersForClient(userId));
+            } else {
+                return ResponseEntity.ok(otcService.getAllActiveOffersForActuary(userId));
+            }
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
         }
@@ -181,8 +189,8 @@ public class OtcController {
 
     @ExceptionHandler(OtcException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<String> handleOtcException(OtcException ex) {
-        return ResponseEntity.badRequest().body("OTC Error: " + ex.getMessage());
+    public ResponseEntity<?> handleOtcException(OtcException ex) {
+        return ResponseEntity.badRequest().body(new ErrorMessageDto("OTC Error: " + ex.getMessage()));
     }
 }
 

@@ -25,7 +25,7 @@ public class CreateOtcOfferDto {
 
     @NotNull
     @DecimalMin("0.01")
-    private BigDecimal pricePerStock; // koristiš ovo umesto strikePrice
+    private BigDecimal pricePerStock;
 
     @NotNull
     @DecimalMin("0.00")

@@ -155,7 +155,14 @@ public class OtcService {
         return otcOfferMapper.toDto(otcOfferRepository.save(offer), buyerId);
     }
 
-    public List<OtcOfferDto> getAllActiveOffersForUser(Long userId) {
+    public OtcOfferDto createOfferToExternal(CreateOtcOfferDto dto, Long buyerId) {
+        // @todo send offer to bank 2
+        return null;
+    }
+
+
+
+    public List<OtcOfferDto> getAllActiveOffersForClient(Long userId) {
         return otcOfferRepository.findAllByStatus(OtcOfferStatus.PENDING).stream()
                 .filter(offer -> offer.getSellerId().equals(userId) || offer.getBuyerId().equals(userId))
                 .sorted(Comparator.comparing(OtcOffer::getLastModified).reversed())
@@ -176,6 +183,21 @@ public class OtcService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public List<OtcOfferDto> getLocalActuaryOffers(Long userId) {
+        return getAllActiveOffersForClient(userId);
+    }
+
+    public List<OtcOfferDto> getExternalActuaryOffers(Long userId) {
+        // @todo call bank 2
+        return null;
+    }
+
+    public List<OtcOfferDto> getAllActiveOffersForActuary(Long userId) {
+        List<OtcOfferDto> offers = getLocalActuaryOffers(userId);
+        offers.addAll(getExternalActuaryOffers(userId));
+        return offers;
     }
 
     @Transactional

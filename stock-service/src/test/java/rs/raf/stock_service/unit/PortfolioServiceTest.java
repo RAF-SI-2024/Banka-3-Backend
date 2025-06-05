@@ -11,11 +11,9 @@ import rs.raf.stock_service.client.UserClient;
 import rs.raf.stock_service.domain.dto.*;
 import rs.raf.stock_service.domain.entity.*;
 import rs.raf.stock_service.domain.enums.ListingType;
-import rs.raf.stock_service.domain.enums.OptionType;
 import rs.raf.stock_service.domain.enums.TaxStatus;
 import rs.raf.stock_service.exceptions.InvalidListingTypeException;
 import rs.raf.stock_service.exceptions.InvalidPublicAmountException;
-import rs.raf.stock_service.exceptions.OptionNotEligibleException;
 import rs.raf.stock_service.exceptions.PortfolioEntryNotFoundException;
 import rs.raf.stock_service.repository.OrderRepository;
 import rs.raf.stock_service.service.PortfolioService;
@@ -28,7 +26,6 @@ import rs.raf.stock_service.repository.PortfolioEntryRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,7 +35,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 
 @ExtendWith(MockitoExtension.class)
 public class PortfolioServiceTest {
@@ -317,7 +313,7 @@ public class PortfolioServiceTest {
     }
 
     @Test
-    void testGetAllPublicStocks_shouldReturnBasicFields() {
+    void testGetALlClientPublicStocks_shouldReturnBasicFields() {
         initialiseStock();
 
         PortfolioEntry entry = PortfolioEntry.builder()
@@ -339,7 +335,7 @@ public class PortfolioServiceTest {
 
         when(userClient.getClientById(userId)).thenReturn(clientDto);
 
-        List<PublicStockDto> result = portfolioService.getAllPublicStocks(55L, "CLIENT");
+        List<PublicStockDto> result = portfolioService.getALlClientPublicStocks(55L);
 
         assertEquals(1, result.size());
         PublicStockDto dto = result.get(0);
