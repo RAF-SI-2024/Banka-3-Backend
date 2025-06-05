@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import rs.raf.email_service.data.EmailType;
 
 public class EmailUtils {
-    @Value("$base.app.url")
+    @Value("${base.app.url}")
     private static String baseUrl;
 
     public static String getEmailPlainContent(EmailType type, String token) {
