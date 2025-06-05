@@ -1,15 +1,19 @@
 package rs.raf.email_service.utils;
 
+import org.springframework.beans.factory.annotation.Value;
 import rs.raf.email_service.data.EmailType;
 
 public class EmailUtils {
+    @Value("${base.app.url}")
+    private static String baseUrl;
+
     public static String getEmailPlainContent(EmailType type, String token) {
         return switch (type) {
-            case SET_PASSWORD -> "Set your password: http://localhost/" + token;
-            case RESET_PASSWORD -> "Reset your password: http://localhost/" + token;
-            case ACTIVATE_ACCOUNT -> "Activate your account: http://localhost/" + token;
-            case REQUEST_CARD -> "Confirm that you sent this card request: http://localhost/" + token;
-            case INSUFFICIENT_FUNDS -> "Please pay your loans: http://localhost/"+token;
+            case SET_PASSWORD -> "Set your password: " + baseUrl + token;
+            case RESET_PASSWORD -> "Reset your password: " + baseUrl + token;
+            case ACTIVATE_ACCOUNT -> "Activate your account: " + baseUrl + token;
+            case REQUEST_CARD -> "Confirm that you sent this card request: " + baseUrl + token;
+            case INSUFFICIENT_FUNDS -> "Please pay your loans: "+ baseUrl +token;
         };
     }
 
@@ -30,30 +34,30 @@ public class EmailUtils {
         switch (type) {
             case SET_PASSWORD: {
                 title = "Set Your Password";
-                link = "http://localhost:4200/set-password/" + token;
+                link = baseUrl + "set-password/" + token;
                 break;
             }
             case RESET_PASSWORD: {
                 title = "Reset Your Password";
-                link = "http://localhost:4200/reset-password/" + token;
+                link = baseUrl + "reset-password/" + token;
                 break;
             }
             case ACTIVATE_ACCOUNT: {
                 title = "Activate Your Account";
-                link = "http://localhost:4200/set-password/" + token;
+                link = baseUrl + "set-password/" + token;
                 break;
             }
             case REQUEST_CARD: {
                 title = "Confirm that you sent this card request";
-                link = "http://localhost:4200/request-card" + token;
+                link = baseUrl + "request-card/" + token;
             }
             case INSUFFICIENT_FUNDS:{
                 title = "Please pay your loans.";
-                link = "http://localhost:4200/insufficient-funds/" + token;
+                link = baseUrl + "insufficient-funds/" + token;
             }
             default: {
                 title = "Email lol";
-                link = "http://localhost";
+                link = baseUrl;
             }
         }
         String html = """
