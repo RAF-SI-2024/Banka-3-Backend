@@ -20,7 +20,7 @@ import java.time.LocalDate;
 public class FuturesContract extends Listing {
     private Integer contractSize;
     private String ticker;
-    @Column(precision = 10, scale = 6)
+    @Column(precision = 20, scale = 6)
     private BigDecimal maintenanceMargin;
     private String contractUnit;
     private LocalDate settlementDate;

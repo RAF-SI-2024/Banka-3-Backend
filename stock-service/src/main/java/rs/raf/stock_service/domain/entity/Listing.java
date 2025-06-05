@@ -31,9 +31,9 @@ public abstract class Listing {
 
     private LocalDateTime lastRefresh;
 
-    @Column(precision = 10, scale = 6)
+    @Column(precision = 20, scale = 6)
     private BigDecimal price;
-    @Column(precision = 10, scale = 6)
+    @Column(precision = 20, scale = 6)
     private BigDecimal ask;
 
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
