@@ -38,4 +38,16 @@ public class TrackedPayment {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Override
+    public String toString() {
+        return "TrackedPayment{" +
+                "id=" + id +
+                ", type=" + type +
+                ", status=" + status +
+                ", trackedEntityId=" + trackedEntityId +
+                ", secondaryTrackedEntityId=" + secondaryTrackedEntityId +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
+    }
 }

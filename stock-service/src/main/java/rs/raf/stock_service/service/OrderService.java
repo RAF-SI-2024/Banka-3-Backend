@@ -337,9 +337,6 @@ public class OrderService {
                 .paymentCode("289")
                 .build();
 
-        System.out.println("receiver stock");
-        System.out.println(receiverAccount);
-
         bankClient.executeSystemPayment(ExecutePaymentDto.builder()
                 .clientId(order.getUserId())
                 .createPaymentDto(createPaymentDto)

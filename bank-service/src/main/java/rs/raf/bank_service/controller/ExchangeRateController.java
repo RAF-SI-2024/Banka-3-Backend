@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import rs.raf.bank_service.service.ExchangeRateService;
 
 import javax.validation.Valid;
 
+@Slf4j
 @Tag(name = "Exchange rate controller", description = "API for retrieving exchange rates")
 @RestController
 @RequestMapping("/api/exchange-rates")
@@ -55,6 +57,7 @@ public class ExchangeRateController {
         } catch (ExchangeRateNotFoundException | CurrencyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
+            log.error("Error converting currency {}", convertDto, e);
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
