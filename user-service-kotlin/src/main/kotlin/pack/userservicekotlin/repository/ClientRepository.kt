@@ -13,4 +13,6 @@ interface ClientRepository :
     fun findByEmail(email: String): Optional<Client>
 
     fun findByJmbg(jmbg: String): Optional<Client>
+
+    fun findByUsername(username: String): Optional<Client>
 }

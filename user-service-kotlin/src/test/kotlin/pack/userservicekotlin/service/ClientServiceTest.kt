@@ -78,6 +78,7 @@ class ClientServiceTest {
                 firstName = "Anna",
                 lastName = "Smith",
                 email = "anna@example.com",
+                username = "anna",
                 gender = "F",
                 phone = "5555",
                 address = "Street 5",
@@ -104,6 +105,7 @@ class ClientServiceTest {
             firstName = "Anna",
             lastName = "Smith",
             email = "anna@example.com",
+            username = "anna",
             gender = "F",
             phone = "5555",
             address = "Street 5",
@@ -137,7 +139,7 @@ class ClientServiceTest {
         val result = clientService.addClient(dto)
 
         assertTrue(result.isLeft())
-        assertEquals(ClientServiceError.EmailAlreadyExists("existing@example.com"), result.swap().getOrNull())
+        assertEquals(ClientServiceError.EmailAlreadyExists, result.swap().getOrNull())
     }
 
     @Test

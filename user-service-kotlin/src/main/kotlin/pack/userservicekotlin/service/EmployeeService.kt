@@ -90,6 +90,12 @@ class EmployeeService(
         if (employeeRepository.findByEmail(dto.email!!).isPresent) {
             return EmployeeServiceError.EmailAlreadyExists.left()
         }
+        if (employeeRepository.findByJmbg(dto.jmbg!!).isPresent) {
+            return EmployeeServiceError.JmbgAlreadyExists.left()
+        }
+        if (employeeRepository.findByUsername(dto.username!!).isPresent) {
+            return EmployeeServiceError.UsernameAlreadyExists.left()
+        }
 
         val role =
             roleRepository.findByName(dto.role!!).orElse(null)

@@ -58,6 +58,10 @@ class EmployeeController(
             ifLeft = {
                 when (it) {
                     EmployeeServiceError.RoleNotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Role not found")
+                    EmployeeServiceError.EmailAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists")
+                    EmployeeServiceError.JmbgAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Jmbg already exists")
+                    EmployeeServiceError.UsernameAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Username already exists")
+
                     else -> ResponseEntity.internalServerError().build()
                 }
             },

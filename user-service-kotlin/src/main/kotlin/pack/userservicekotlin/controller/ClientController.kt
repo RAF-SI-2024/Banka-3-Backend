@@ -62,6 +62,9 @@ class ClientController(
             ifLeft = {
                 when (it) {
                     is ClientServiceError.RoleNotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Client role not found")
+                    ClientServiceError.EmailAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists")
+                    ClientServiceError.JmbgAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Jmbg already exists")
+                    ClientServiceError.UsernameAlreadyExists -> ResponseEntity.status(HttpStatus.CONFLICT).body("Username already exists")
                     ClientServiceError.InvalidInput -> ResponseEntity.badRequest().body("Invalid client data")
                     else -> ResponseEntity.internalServerError().build()
                 }
