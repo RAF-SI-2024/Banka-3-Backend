@@ -17,4 +17,5 @@ interface EmployeeRepository :
     fun findByEmail(email: String): Optional<Employee>
 
     fun findByJmbg(jmbg: String): Optional<Employee>
+    fun findByUsername(username: String): Optional<Employee>
 }

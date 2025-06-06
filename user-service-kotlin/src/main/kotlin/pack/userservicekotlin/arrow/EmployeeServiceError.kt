@@ -11,6 +11,10 @@ sealed class EmployeeServiceError {
 
     data object EmailAlreadyExists : EmployeeServiceError()
 
+    data object JmbgAlreadyExists : EmployeeServiceError()
+
+    data object UsernameAlreadyExists : EmployeeServiceError()
+
     data class Unknown(
         val cause: Throwable,
     ) : EmployeeServiceError()
