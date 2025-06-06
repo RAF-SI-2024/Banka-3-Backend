@@ -186,7 +186,7 @@ class EmployeeControllerTest {
     }
 
     @Test
-    fun `createEmployee should return 500 if email already exists`() {
+    fun `createEmployee should return 409 if email already exists`() {
         val dto = validCreateEmployeeDto()
         `when`(employeeService.createEmployee(anyNonNull())).thenReturn(EmployeeServiceError.EmailAlreadyExists.left())
 
@@ -195,7 +195,7 @@ class EmployeeControllerTest {
                 contentType = MediaType.APPLICATION_JSON
                 content = objectMapper.writeValueAsString(dto)
             }.andExpect {
-                status { isInternalServerError() }
+                status { isConflict() }
             }
     }
 

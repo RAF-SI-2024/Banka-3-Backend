@@ -233,16 +233,16 @@ class ClientControllerTest {
     }
 
     @Test
-    fun `addClient should return 400 if email already exists`() {
+    fun `addClient should return 409 if email already exists`() {
         val request = validCreateClientDto()
-        `when`(clientService.addClient(anyNonNull())).thenReturn(Either.Left(ClientServiceError.EmailAlreadyExists("test@example.com")))
+        `when`(clientService.addClient(anyNonNull())).thenReturn(Either.Left(ClientServiceError.EmailAlreadyExists))
 
         mockMvc
             .post("/api/admin/clients") {
                 contentType = MediaType.APPLICATION_JSON
                 content = objectMapper.writeValueAsString(request)
             }.andExpect {
-                status { isInternalServerError() }
+                status { isConflict() }
             }
     }
 
