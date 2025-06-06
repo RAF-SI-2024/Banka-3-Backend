@@ -43,7 +43,13 @@ class ClientService(
 
     fun addClient(dto: CreateClientDto): Either<ClientServiceError, ClientResponseDto> {
         if (clientRepository.findByEmail(dto.email!!).isPresent) {
-            return ClientServiceError.EmailAlreadyExists(dto.email).left()
+            return ClientServiceError.EmailAlreadyExists.left()
+        }
+        if (clientRepository.findByJmbg(dto.jmbg!!).isPresent) {
+            return ClientServiceError.JmbgAlreadyExists.left()
+        }
+        if (clientRepository.findByUsername(dto.username!!).isPresent) {
+            return ClientServiceError.UsernameAlreadyExists.left()
         }
 
         val client = dto.toEntity() ?: return ClientServiceError.InvalidInput.left()
